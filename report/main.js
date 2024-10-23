@@ -1,0 +1,6 @@
+// src/jobs/main.ts
+(async function main() {
+})();
+
+//# debugId=B3DBA965F305C33B64756E2164756E21
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsic3JjL2pvYnMvbWFpbi50cyJdLAogICJzb3VyY2VzQ29udGVudCI6IFsKICAgICI7KGFzeW5jIGZ1bmN0aW9uIG1haW4oKSB7fSkoKVxuIgogIF0sCiAgIm1hcHBpbmdzIjogIjtBQUFDLENBQUMsZUFBZSxJQUFJLEdBQUc7QUFBQSxHQUFJOyIsCiAgImRlYnVnSWQiOiAiQjNEQkE5NjVGMzA1QzMzQjY0NzU2RTIxNjQ3NTZFMjEiLAogICJuYW1lcyI6IFtdCn0=
