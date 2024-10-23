@@ -3,6 +3,9 @@ name: ydb-slo-action-test-init
 on:
     pull_request:
     workflow_dispatch:
+        inputs:
+            github_pull_request_number:
+                required: true
 
 jobs:
     test-ydb-slo-action-init:
@@ -14,6 +17,9 @@ jobs:
 
             - name: Inititialize YDB SLO Test
               uses: ydb-platform/ydb-slo-action/init@main
+              with:
+                  github_pull_request_number: ${{ github.event.inputs.github_pull_request_number }}
+                  sdk_name: test
 
             - name: Run chaos testing
               run: |
