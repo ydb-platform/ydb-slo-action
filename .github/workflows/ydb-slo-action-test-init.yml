@@ -16,13 +16,11 @@ jobs:
               uses: ydb-platform/ydb-slo-action/init@main
 
             - name: Run chaos testing
-              run: echo 'CHAOS 🙈🙈🙈'
+              run: |
+                  echo 'Performing chaos testing...'
+                  sleep 10
 
             - name: Run user workload
-              run: sleep 60
-
-            - name: Upload YDB SLO Test results
-              uses: actions/upload-artifact@v4
-              with:
-                  name: ydb-slo-action-test-results
-                  path: '${{runner.temp}}'
+              run: |
+                  echo 'Running user workload...';
+                  sleep 10

@@ -3,10 +3,13 @@ import * as path from 'node:path'
 import { debug, getInput, saveState } from '@actions/core'
 import { exec } from '@actions/exec'
 import { generateComposeFile, prometheusConfig, ydbConfig } from '../configs'
+import { context } from '@actions/github'
 
 (async function main() {
 	let cwd = path.join(process.cwd(), ".slo")
 	saveState("CWD", cwd)
+
+	debug(JSON.stringify(context, null, 4))
 
 	debug("Creating working directory...")
 	fs.mkdirSync(cwd, { recursive: true })
