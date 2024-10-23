@@ -1,0 +1,6 @@
+name: 'YDB SLO Report Action'
+description: 'The report action generates detailed reports based on the test results and publish it.'
+
+runs:
+    using: 'node20'
+    main: 'main.js'
