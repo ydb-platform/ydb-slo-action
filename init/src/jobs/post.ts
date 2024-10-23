@@ -10,6 +10,7 @@ import { renderReport } from '../report/default'
 
 (async function post() {
 	let cwd = getState("CWD")
+	let sdk = getInput("sdk_name", { required: true })
 
 	let end = new Date()
 	let start = new Date(getState("YDB_START_TIME"))
@@ -22,17 +23,17 @@ import { renderReport } from '../report/default'
 	debug(`Metrics: ${Object.keys(metrics)}`)
 
 	debug("Rendering report...")
-	let report = renderReport(getInput("sdk_name") || "Unknown", metrics)
+	let report = renderReport(sdk, metrics)
 	debug(`Report: ${report}`)
 
 	debug("Writing report...")
-	let reportPath = path.join(cwd, "report.md")
+	let reportPath = path.join(cwd, `report.md`)
 	fs.writeFileSync(reportPath, report, { encoding: "utf-8" })
 	debug(`Report written to ${reportPath}`)
 
 	{
 		debug("Upload report as an artifact...")
-		let { id } = await artifactClient.uploadArtifact("report.md", [reportPath], cwd, { retentionDays: 1 })
+		let { id } = await artifactClient.uploadArtifact(`${sdk}-report.md`, [reportPath], cwd, { retentionDays: 1 })
 		debug(`Report uploaded as an artifact ${id}`)
 	}
 
@@ -47,7 +48,7 @@ import { renderReport } from '../report/default'
 		debug(`Pull number written to ${pullPath}`)
 
 		debug("Upload pull number as an artifact...")
-		let { id } = await artifactClient.uploadArtifact("pull.txt", [pullPath], cwd, { retentionDays: 1 })
+		let { id } = await artifactClient.uploadArtifact(`${sdk}-pull.txt`, [pullPath], cwd, { retentionDays: 1 })
 		debug(`Pull number uploaded as an artifact ${id}`)
 	}
 

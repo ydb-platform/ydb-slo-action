@@ -11,6 +11,9 @@ jobs:
     test-ydb-slo-action-init:
         name: Test YDB SLO Action Init
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                sdk: ['gorm', 'xorm']
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -19,7 +22,7 @@ jobs:
               uses: ydb-platform/ydb-slo-action/init@main
               with:
                   github_pull_request_number: ${{ github.event.inputs.github_pull_request_number }}
-                  sdk_name: test
+                  sdk_name: ${{ matrix.sdk }}
 
             - name: Run chaos testing
               run: |
