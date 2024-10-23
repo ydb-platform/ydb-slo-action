@@ -10,7 +10,7 @@ import { debug, getState, saveState } from "@actions/core"
 	let end = new Date()
 
 	debug("Stopping YDB...")
-	await exec(`docker`, [`compose`, `-f compose.yaml`, `down`], { cwd })
+	await exec(`docker`, [`compose`, `-f`, `compose.yaml`, `down`], { cwd })
 
 	debug(`YDB stopped at ${end}`)
 	saveState("YDB_END_TIME", end.toISOString())

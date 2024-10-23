@@ -1,15 +1,13 @@
 import * as fs from 'node:fs'
-import * as os from 'node:os'
 import * as path from 'node:path'
-import { debug, getInput, getState, saveState } from '@actions/core'
+import { debug, getInput, saveState } from '@actions/core'
 import { exec } from '@actions/exec'
 import { generateComposeFile, prometheusConfig, ydbConfig } from '../configs'
 
 (async function main() {
-	saveState("CWD", os.tmpdir())
-
-	let cwd = getState("CWD")
-	debug(`CWD is now: ${cwd}`)
+	let cwd = path.join(process.cwd(), ".slo")
+	debug("Creating working directory...")
+	fs.mkdirSync(cwd, { recursive: true })
 
 	{
 		debug("Creating ydb cofnig...")
@@ -36,7 +34,7 @@ import { generateComposeFile, prometheusConfig, ydbConfig } from '../configs'
 	}
 
 	debug("Starting YDB...")
-	await exec(`docker`, [`compose`, ` - f compose.yaml`, `up`, `--quiet - pull`, ` - d`], { cwd })
+	await exec(`docker`, [`compose`, `-f`, `compose.yaml`, `up`, `--quiet-pull`, `-d`], { cwd })
 
 	let start = new Date()
 	debug(`YDB started at ${start}`)
