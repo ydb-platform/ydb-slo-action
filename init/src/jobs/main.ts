@@ -6,11 +6,13 @@ import { generateComposeFile, prometheusConfig, ydbConfig } from '../configs'
 
 (async function main() {
 	let cwd = path.join(process.cwd(), ".slo")
+	saveState("CWD", cwd)
+
 	debug("Creating working directory...")
 	fs.mkdirSync(cwd, { recursive: true })
 
 	{
-		debug("Creating ydb cofnig...")
+		debug("Creating ydb config...")
 		let configPath = path.join(cwd, "ydb.yaml")
 		let configContent = ydbConfig
 		fs.writeFileSync(configPath, configContent, { encoding: "utf-8" })

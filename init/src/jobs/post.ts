@@ -4,7 +4,6 @@ import { debug, getState, saveState } from "@actions/core"
 
 (async function post() {
 	let cwd = getState("CWD")
-	debug(`tmpdir: ${cwd}`)
 
 	let start = new Date(getState("YDB_START_TIME"))
 	let end = new Date()

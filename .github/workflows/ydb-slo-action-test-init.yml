@@ -1,0 +1,28 @@
+name: ydb-slo-action-test-init
+
+on:
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    test-ydb-slo-action-init:
+        name: Test YDB SLO Action Init
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Inititialize YDB SLO Test
+              uses: ydb-platform/ydb-slo-action/init@main
+
+            - name: Run chaos testing
+              run: echo 'CHAOS 🙈🙈🙈'
+
+            - name: Run user workload
+              run: sleep 60
+
+            - name: Upload YDB SLO Test results
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ydb-slo-action-test-results
+                  path: '${{runner.temp}}'
