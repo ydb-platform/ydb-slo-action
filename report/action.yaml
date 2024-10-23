@@ -1,0 +1,6 @@
+name: 'Your Action Name'
+description: 'Description of your action'
+
+runs:
+  using: 'node20'
+  main: 'init.js'
