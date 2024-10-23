@@ -1,0 +1,11 @@
+{
+	"name": "@ydb-platform/ydb-slo-action-init",
+	"description": "The init action initializes SLO tests.",
+	"type": "module",
+	"scripts": {
+		"bundle:main": "bun build src/jobs/main.ts --target node --format cjs --sourcemap > main.js",
+		"bundle:post": "bun build src/jobs/post.ts --target node --format cjs --sourcemap > post.js",
+		"format": "bunx --bun prettier **/*.ts --write",
+		"lint": "bunx --bun oxlint **/*.ts --import-plugin --fix"
+	}
+}

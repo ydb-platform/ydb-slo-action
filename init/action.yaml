@@ -1,7 +1,13 @@
-name: 'Your Action Name'
-description: 'Description of your action'
-
+name: 'YDB SLO Init Action'
+description: 'The init action initializes SLO tests.'
+inputs:
+  # YDB_STORAGE_NODE_COUNT:
+  #   description: 'The number of YDB storage nodes to create.'
+  #   default: "1"
+  YDB_DATABASE_NODE_COUNT:
+    description: 'The number of YDB database nodes to create.'
+    default: "3"
 runs:
   using: 'node20'
-  main: 'init.js'
-  post: 'cleanup.js'
+  main: 'main.js'
+  post: 'post.js'

@@ -1,0 +1,23 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"tasks": {
+		"lint": {
+			"inputs": ["**/*.ts"],
+			"outputs": ["**/*.ts"]
+		},
+		"format": {
+			"inputs": ["**/*.ts"],
+			"outputs": ["**/*.ts"],
+			"dependsOn": ["lint"]
+		},
+		"bundle:main": {
+			"outputs": ["**/main.js"]
+		},
+		"bundle:post": {
+			"outputs": ["**/post.js"]
+		},
+		"bundle": {
+			"dependsOn": ["bundle:main", "bundle:post"]
+		}
+	}
+}
