@@ -1,0 +1,10 @@
+{
+	"name": "@ydb-platform/ydb-slo-action-report",
+	"description": "The report action generates detailed reports based on the test results and publish it.",
+	"type": "module",
+	"scripts": {
+		"bundle:main": "bun build src/jobs/main.ts --target node --format cjs --sourcemap > main.js",
+		"format": "bunx --bun prettier **/*.ts --write",
+		"lint": "bunx --bun oxlint **/*.ts --import-plugin --fix"
+	}
+}

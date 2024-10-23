@@ -1,15 +1,27 @@
 {
-	"name": "@xpenb/template",
-	"module": "index.ts",
+	"name": "@ydb-platform/ydb-slo-action",
 	"type": "module",
+	"workspaces": [
+		"init",
+		"report"
+	],
+	"packageManager": "bun@1.1.32",
 	"scripts": {
-		"lint": "bunx --bun oxlint --import-plugin --fix",
-		"format": "bunx --bun prettier **/*.ts --write"
+		"prepare": "simple-git-hooks || true",
+		"bundle": "turbo run bundle",
+		"format": "turbo run format",
+		"lint": "turbo run lint"
+	},
+	"dependencies": {
+		"@actions/core": "^1.11.1",
+		"@actions/exec": "^1.1.1",
+		"@actions/github": "^6.0.0"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.1.12",
 		"oxlint": "^0.10.2",
-		"prettier": "^3.3.3"
+		"prettier": "^3.3.3",
+		"simple-git-hooks": "^2.11.1"
 	},
 	"peerDependencies": {
 		"typescript": "^5.6.3"
@@ -25,5 +37,8 @@
 		"bracketSameLine": false,
 		"arrowParens": "always",
 		"endOfLine": "lf"
+	},
+	"simple-git-hooks": {
+		"pre-commit": "turbo run lint"
 	}
 }
