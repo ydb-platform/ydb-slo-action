@@ -5,7 +5,7 @@ export type Series = {
 	"values": [number, string][] // [timestamp (sec), value (float)]
 }
 
-export function renderChart(title: string, series: Series[], palette = defaultPalette): string {
+export function renderChart(title: string, series: Series[], xAx = "", yAx = "", palette = defaultPalette): string {
 	// 1. Filter zeros
 	let minLength = Number.POSITIVE_INFINITY;
 	for (const s of series) {
@@ -22,9 +22,9 @@ export function renderChart(title: string, series: Series[], palette = defaultPa
 	let min = Number.POSITIVE_INFINITY;
 	let max = Number.NEGATIVE_INFINITY;
 
-	let lines = [];
+	let lines: string[] = [];
 	for (const s of series) {
-		let line = []
+		let line: number[] = []
 
 		for (let [, value] of s.values) {
 			let v = Math.round(parseFloat(value) * 1000) / 1000;
@@ -57,8 +57,8 @@ config:
 ---
 xychart-beta
     title "${title}"
-    x-axis 0 --> 10
-    y-axis ${Math.floor(min * 0.9)} --> ${Math.floor(max * 1.1)}
+    x-axis "${xAx}" 0 --> 10
+    y-axis "${yAx}" ${Math.floor(min * 0.9)} --> ${Math.floor(max * 1.1)}
     ${lines.join("\n    ")}
 \`\`\`
 `

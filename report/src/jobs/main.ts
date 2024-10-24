@@ -47,33 +47,6 @@ import { context, getOctokit } from '@actions/github';
 		}
 	}
 
-	{
-		debug(`Finding completed and successfull runs...`)
-		let { data: { workflow_runs } } = await getOctokit(getInput("token", { required: true })).rest.actions.listWorkflowRuns({
-			owner: context.repo.owner,
-			repo: context.repo.repo,
-			workflow_id: context.payload.workflow.id,
-			branch: context.payload.repository!.default_branch,
-			status: "completed",
-		})
-
-		let runs = workflow_runs.filter(run => run.conclusion === "success")
-		debug(`Found ${runs.length} completed and successfull runs on default branch.`)
-
-		debug(`Finding latest run...`)
-		let latestRun = runs[0]
-		debug(`Latest run: ${JSON.stringify(latestRun, null, 4)}`)
-
-		debug(`Finding latest run artifacts...`)
-		let { data: { artifacts } } = await getOctokit(getInput("token", { required: true })).rest.actions.listWorkflowRunArtifacts({
-			owner: context.repo.owner,
-			repo: context.repo.repo,
-			run_id: latestRun.id,
-		})
-
-		debug(`Found ${artifacts.length} artifacts: ${JSON.stringify(artifacts, null, 4)}`)
-	}
-
 	for (let sdk of Object.keys(reports)) {
 		let pr = fs.readFileSync(pulls[sdk], { encoding: "utf-8" });
 		let report = fs.readFileSync(reports[sdk], { encoding: "utf-8" });

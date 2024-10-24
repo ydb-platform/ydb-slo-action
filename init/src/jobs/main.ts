@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { debug, getInput, saveState, setFailed } from '@actions/core'
+import { debug, getInput, saveState } from '@actions/core'
 import { exec } from '@actions/exec'
 import { generateComposeFile, prometheusConfig, ydbConfig } from '../configs'
 import { context } from '@actions/github'
@@ -10,20 +10,16 @@ import { getPullRequestNumber } from '../help/pulls'
 	debug(JSON.stringify(context, null, 4))
 
 	let cwd = path.join(process.cwd(), ".slo")
-	saveState("CWD", cwd)
+	saveState("cwd", cwd)
 
 	debug("Creating working directory...")
 	fs.mkdirSync(cwd, { recursive: true })
 
 	{
 		debug('Aquire pull request number...')
-		let prNumber = await getPullRequestNumber()
-		saveState("PRN", prNumber)
-		if (!prNumber) {
-			setFailed('Pull Request number could not be determined.');
-			return
-		}
+		let prNumber = await getPullRequestNumber() || -1
 		debug(`Pull request number: ${prNumber}`)
+		saveState("issue", prNumber)
 	}
 
 	{
@@ -55,5 +51,5 @@ import { getPullRequestNumber } from '../help/pulls'
 
 	let start = new Date()
 	debug(`YDB started at ${start}`)
-	saveState("YDB_START_TIME", start.toISOString())
+	saveState("start", start.toISOString())
 })()
