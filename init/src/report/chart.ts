@@ -5,7 +5,7 @@ export type Series = {
 	"values": [number, string][] // [timestamp (sec), value (float)]
 }
 
-export function renderChart(title: string, series: Series[], xAx = "", yAx = "", palette = defaultPalette): string {
+export function renderChart(title: string, series: Series[], xLabel = "", yLabel = "", palette = defaultPalette): string {
 	// 1. Filter zeros
 	let minLength = Number.POSITIVE_INFINITY;
 	for (const s of series) {
@@ -27,15 +27,19 @@ export function renderChart(title: string, series: Series[], xAx = "", yAx = "",
 		let line: number[] = []
 
 		for (let [, value] of s.values) {
-			let v = Math.round(parseFloat(value) * 1000) / 1000;
+			let v = parseFloat(value)
 			if (isNaN(v)) {
 				v = 0;
 			}
 
-			line.push(v);
+			let vR = Math.round(v * 1000) / 1000;
+			let vF = Math.floor(v * 1000) / 1000;
+			let vC = Math.ceil(v * 1000) / 1000;
 
-			if (v < min) min = v;
-			if (v > max) max = v;
+			line.push(vR);
+
+			if (vF < min) min = vF;
+			if (vC > max) max = vC;
 		}
 
 		lines.push(`line [${line.join()}]`);
@@ -57,8 +61,8 @@ config:
 ---
 xychart-beta
     title "${title}"
-    x-axis "${xAx}" 0 --> 10
-    y-axis "${yAx}" ${Math.floor(min * 0.9)} --> ${Math.floor(max * 1.1)}
+    x-axis "${xLabel}" 0 --> 10
+    y-axis "${yLabel}" ${Math.floor(min * 0.9)} --> ${Math.ceil(max * 1.1)}
     ${lines.join("\n    ")}
 \`\`\`
 `
