@@ -7,8 +7,8 @@ import { context } from '@actions/github';
 
 	let response = await artifact.getArtifact(`report.md`, {
 		findBy: {
-			token: getInput("GITHUB_TOKEN"),
-			workflowRunId: context.payload.runId,
+			token: getInput("token", { required: true }),
+			workflowRunId: parseInt(getInput("run_id", { required: true })),
 			repositoryOwner: context.repo.owner,
 			repositoryName: context.repo.repo,
 		}

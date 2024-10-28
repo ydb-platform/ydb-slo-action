@@ -17,3 +17,6 @@ jobs:
         steps:
             - name: Publish YDB SLO Report
               uses: ydb-platform/ydb-slo-action/report@main
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  run_id: ${{ github.event.workflow_run.id }}
