@@ -13,12 +13,7 @@ jobs:
         permissions:
             contents: read
             pull-requests: write
+        if: github.event.workflow_run.conclusion == 'success'
         steps:
-            - name: Download YDB SLO Test results
-              uses: actions/download-artifact@v4
-              with:
-                  name: ydb-slo-action-test-results
-                  path: '${{runner.temp}}/ydb-slo-action-test-results'
-
-            - name: Report YDB SLO Test results
+            - name: Publish YDB SLO Report
               uses: ydb-platform/ydb-slo-action/report@main

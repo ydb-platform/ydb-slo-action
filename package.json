@@ -13,9 +13,11 @@
 		"lint": "turbo run lint"
 	},
 	"dependencies": {
+		"@actions/artifact": "^2.1.11",
 		"@actions/core": "^1.11.1",
 		"@actions/exec": "^1.1.1",
-		"@actions/github": "^6.0.0"
+		"@actions/github": "^6.0.0",
+		"yaml": "^2.6.0"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.1.12",
