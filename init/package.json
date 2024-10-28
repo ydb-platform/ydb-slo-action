@@ -3,8 +3,8 @@
 	"description": "The init action initializes SLO tests.",
 	"type": "module",
 	"scripts": {
-		"bundle:main": "bun build src/jobs/main.ts --target node --format cjs --sourcemap --banner '/* eslint-disable */' > main.js",
-		"bundle:post": "bun build src/jobs/post.ts --target node --format cjs --sourcemap --banner '/* eslint-disable */' > post.js",
+		"bundle:main": "bun build src/jobs/main.ts --target node --format esm --sourcemap --banner '/* eslint-disable */' > main.js",
+		"bundle:post": "bun build src/jobs/post.ts --target node --format esm --sourcemap --banner '/* eslint-disable */' > post.js",
 		"format": "bunx --bun prettier **/*.ts --write",
 		"lint": "bunx --bun oxlint **/*.ts --fix --node-plugin --import-plugin --security-plugin --disable-react-plugin"
 	}
