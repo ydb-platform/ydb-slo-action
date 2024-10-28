@@ -1,9 +1,10 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { debug, getInput, saveState } from '@actions/core'
+import { debug, getInput, saveState, setFailed } from '@actions/core'
 import { exec } from '@actions/exec'
 import { generateComposeFile, prometheusConfig, ydbConfig } from '../configs'
 import { context } from '@actions/github'
+import { getPullRequestNumber } from '../help/pulls'
 
 (async function main() {
 	debug(JSON.stringify(context, null, 4))
@@ -13,6 +14,17 @@ import { context } from '@actions/github'
 
 	debug("Creating working directory...")
 	fs.mkdirSync(cwd, { recursive: true })
+
+	{
+		debug('Aquire pull request number...')
+		let prNumber = await getPullRequestNumber()
+		saveState("PRN", prNumber)
+		if (!prNumber) {
+			setFailed('Pull Request number could not be determined.');
+			return
+		}
+		debug(`Pull request number: ${prNumber}`)
+	}
 
 	{
 		debug("Creating ydb config...")
