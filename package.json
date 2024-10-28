@@ -39,6 +39,6 @@
 		"endOfLine": "lf"
 	},
 	"simple-git-hooks": {
-		"pre-commit": "turbo run lint"
+		"pre-commit": "turbo run bundle"
 	}
 }
