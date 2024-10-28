@@ -37,7 +37,7 @@ import type { Series } from '../report/chart'
 		info(`Metrics written to ${metricsPath}`)
 
 		info("Upload metrics as an artifact...")
-		let { id } = await artifactClient.uploadArtifact(`${sdk}-metrics.json`, [metricsPath], cwd, { retentionDays: 1 })
+		let { id } = await artifactClient.uploadArtifact(`${sdk}-metrics.json`, [metricsPath], cwd, { retentionDays: isPullRequest ? 1 : 30 })
 		info(`Metrics uploaded as an artifact ${id}`)
 	}
 
@@ -59,7 +59,7 @@ import type { Series } from '../report/chart'
 
 		info(`Fetching information about previous runs for base branch...`)
 		let runs = await getCurrentWorkflowRuns(pr.base.ref)
-		info(`Found ${runs.length} completed and successfull runs for default branch.`)
+		info(`Found ${runs.length} completed and successful runs for default branch.`)
 		debug(`Previous runs for base branch: ${JSON.stringify(runs.map(run => ({ id: run.id, upd: run.updated_at })), null, 4)}`)
 
 		if (runs.length === 0) {
@@ -82,8 +82,8 @@ import type { Series } from '../report/chart'
 		debug(`Latest run artifacts: ${JSON.stringify(artifacts, null, 4)}`)
 
 		let artifact = artifacts.find(artifact => artifact.name === `${sdk}-metrics.json`)
-		if (!artifact) {
-			warning("Metrics for base ref not found.")
+		if (!artifact || artifact.expired) {
+			warning("Metrics for base ref not found or expired.")
 		} else {
 			debug(`Metrics artifact: ${JSON.stringify(artifact, null, 4)}`)
 
