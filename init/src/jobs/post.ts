@@ -13,6 +13,7 @@ import type { Series } from '../report/chart'
 (async function post() {
 	let cwd = getState("cwd")
 	let sdk = getInput("sdk_name", { required: true })
+	let warmup = parseInt(getInput("warmup_seconds") || '0')
 
 	let end = new Date()
 	let start = new Date(getState("start"))
@@ -24,7 +25,8 @@ import type { Series } from '../report/chart'
 	let artifactClient = new DefaultArtifactClient()
 
 	info("Collecting metrics for head ref...")
-	let metrics = await collectPrometheus(start, end, defaultMetrics.metrics)
+	let adjStart = new Date(start.getTime() + warmup * 1000) // skip first warmup seconds
+	let metrics = await collectPrometheus(adjStart, end, defaultMetrics.metrics)
 	info(`Metrics collected for head ref: ${Object.keys(metrics)}`)
 	debug(`Head ref metrics: ${Object.keys(metrics)}`)
 
