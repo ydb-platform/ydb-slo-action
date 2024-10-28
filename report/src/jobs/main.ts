@@ -47,18 +47,53 @@ import { context, getOctokit } from '@actions/github';
 		}
 	}
 
+	let comments: Record<string, Array<{ id: number, body: string }>> = {}
+
+	for (let sdk of Object.keys(reports)) {
+		let pr = fs.readFileSync(pulls[sdk], { encoding: "utf-8" });
+
+		if (!comments[pr]) {
+			info(`Getting comments for ${pr}...`)
+			let { data } = await getOctokit(getInput("token", { required: true })).rest.issues.listComments({
+				issue_number: parseInt(pr.trim()),
+				owner: context.repo.owner,
+				repo: context.repo.repo,
+			})
+			debug(`Got ${data.length} comments for ${pr}`)
+
+			comments[pr] = data.map(comment => ({
+				id: comment.id,
+				body: (comment.body || comment.body_text || comment.body_html) || ""!
+			}))
+		}
+	}
+
 	for (let sdk of Object.keys(reports)) {
 		let pr = fs.readFileSync(pulls[sdk], { encoding: "utf-8" });
 		let report = fs.readFileSync(reports[sdk], { encoding: "utf-8" });
 
-		debug(`Creating report for ${sdk}...`)
-		let { data } = await getOctokit(getInput("token", { required: true })).rest.issues.createComment({
-			issue_number: parseInt(pr.trim()),
-			owner: context.repo.owner,
-			repo: context.repo.repo,
-			body: report
+		let existingComment = comments[pr].find(comment => {
+			return comment.body.includes(`sdk-${sdk.replace(/-/g, "--")}`)
 		})
 
-		debug(`Report for ${sdk} created: ${data.html_url}`)
+		if (existingComment) {
+			debug(`Updating report for ${sdk}...`)
+			let { data } = await getOctokit(getInput("token", { required: true })).rest.issues.updateComment({
+				comment_id: existingComment.id,
+				owner: context.repo.owner,
+				repo: context.repo.repo,
+				body: report
+			})
+			debug(`Report for was ${sdk} updated: ${data.html_url}`)
+		} else {
+			debug(`Creating report for ${sdk}...`)
+			let { data } = await getOctokit(getInput("token", { required: true })).rest.issues.createComment({
+				issue_number: parseInt(pr.trim()),
+				owner: context.repo.owner,
+				repo: context.repo.repo,
+				body: report
+			})
+			debug(`Report for ${sdk} created: ${data.html_url}`)
+		}
 	}
 })()

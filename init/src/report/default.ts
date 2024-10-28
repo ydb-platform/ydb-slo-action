@@ -1,6 +1,6 @@
 import { renderChart, type Series } from "./chart";
 
-export const renderReport = (sdk: string, metrics: Record<string, Series[]>) => `# SLO Testing <img align="right" height="36" src="https://img.shields.io/badge/⎇-head-%23FF7F0E?style=for-the-badge"><img align="right" height="36"  src="https://img.shields.io/badge/⎇-base-%231F77B4?style=for-the-badge"><img align="right" height="36" src="https://img.shields.io/badge/sdk-${sdk.replace(/-/g, "--")}-%23E377C2?style=for-the-badge">
+export const renderReport = (sdk: string, metrics: Record<string, Series[]>) => `# SLO Report <img align="right" height="36" src="https://img.shields.io/badge/⎇-head-%23FF7F0E?style=for-the-badge"><img align="right" height="36"  src="https://img.shields.io/badge/⎇-base-%231F77B4?style=for-the-badge"><img align="right" height="36" src="https://img.shields.io/badge/sdk-${sdk.replace(/-/g, "--")}-%23E377C2?style=for-the-badge">
 
 ### Operation Success Rate
 
