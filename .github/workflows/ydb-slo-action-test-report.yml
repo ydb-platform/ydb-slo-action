@@ -1,0 +1,24 @@
+name: ydb-slo-action-test-report
+
+on:
+    workflow_run:
+        workflows: ['ydb-slo-action-test-init']
+        types:
+            - completed
+
+jobs:
+    test-ydb-slo-action:
+        runs-on: ubuntu-latest
+        name: Test YDB SLO Action Report
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - name: Download YDB SLO Test results
+              uses: actions/download-artifact@v4
+              with:
+                  name: ydb-slo-action-test-results
+                  path: '${{runner.temp}}/ydb-slo-action-test-results'
+
+            - name: Report YDB SLO Test results
+              uses: ydb-platform/ydb-slo-action/report@main
