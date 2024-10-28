@@ -2,6 +2,12 @@ name: 'YDB SLO Initialization Action'
 description: 'This action prepares a Docker Compose configuration to deploy YDB and Prometheus. During post-run, it collects metric results and generates an SLO report.'
 
 inputs:
+    github_pull_request_number:
+        description: 'The number of the associated pull request. If not provided, the action will attempt to infer it automatically.'
+        required: false
+    github_token:
+        description: 'GitHub token used to access the GitHub API for inferring the pull request number.'
+        required: false
     # ydb_storage_node_count:
     #   description: 'Specifies the number of YDB storage nodes to initialize within the Docker Compose setup.'
     #   default: "1"
@@ -12,19 +18,15 @@ inputs:
     disable_default_metrics:
         description: 'A comma-separated list of default metric IDs to exclude from the report generation.'
         required: false
-        default: ''
     custom_metrics_yaml:
         description: 'YAML string defining additional custom metrics to include in the SLO report.'
         required: false
-        default: ''
     report_template:
         description: 'Path to a custom Markdown template used for generating the final SLO report.'
         required: false
-        default: ''
     sdk_name:
         description: 'The name of the SDK used by the user to generate load on the YDB database.'
-        required: false
-        default: ''
+        required: true
 
 runs:
     using: 'node20'
