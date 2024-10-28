@@ -13,23 +13,32 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                sdk: ['gorm', 'xorm']
+                sdk: ['sdk-1', 'sdk-2']
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Inititialize YDB SLO Test
+            - name: Initialize YDB SLO Test
               uses: ydb-platform/ydb-slo-action/init@main
               with:
                   github_pull_request_number: ${{ github.event.inputs.github_pull_request_number }}
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
                   sdk_name: ${{ matrix.sdk }}
+
+            - name: Download chaos testing tool
+              uses: robinraju/release-downloader@v1
+              with:
+                  repository: 'alexei-led/pumba'
+                  tag: '0.10.1'
+                  fileName: 'pumba_linux_amd64'
 
             - name: Run chaos testing
               run: |
                   echo 'Performing chaos testing...'
-                  sleep 10
+                  chmod +x ./pumba_linux_amd64
+                  ./pumba_linux_amd64 --random --interval 30s restart re2:^ydb-dynamic &
 
             - name: Run user workload
               run: |
                   echo 'Running user workload...';
-                  sleep 10
+                  sleep 600
