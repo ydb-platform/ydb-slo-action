@@ -19,13 +19,14 @@ import { context, getOctokit } from '@actions/github';
 		}
 	});
 
-	debug(`Found ${artifacts.length} artifacts: ${JSON.stringify(artifacts, null, 4)}`)
+	info(`Found ${artifacts.length} artifacts.`)
+	debug(`Artifacts: ${JSON.stringify(artifacts, null, 4)}`)
 
 	let reports: Record<string, string> = {}
 	let pulls: Record<string, string> = {}
 
 	for (let artifact of artifacts) {
-		debug(`Downloading artifact ${artifact.id}...`)
+		info(`Downloading artifact ${artifact.id}...`)
 		let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
 			path: cwd,
 			findBy: {
@@ -59,7 +60,7 @@ import { context, getOctokit } from '@actions/github';
 				owner: context.repo.owner,
 				repo: context.repo.repo,
 			})
-			debug(`Got ${data.length} comments for ${pr}`)
+			info(`Got ${data.length} comments for ${pr}`)
 
 			comments[pr] = data.map(comment => ({
 				id: comment.id,
@@ -77,23 +78,23 @@ import { context, getOctokit } from '@actions/github';
 		})
 
 		if (existingComment) {
-			debug(`Updating report for ${sdk}...`)
+			info(`Updating report for ${sdk}...`)
 			let { data } = await getOctokit(getInput("token", { required: true })).rest.issues.updateComment({
 				comment_id: existingComment.id,
 				owner: context.repo.owner,
 				repo: context.repo.repo,
 				body: report
 			})
-			debug(`Report for was ${sdk} updated: ${data.html_url}`)
+			info(`Report for was ${sdk} updated: ${data.html_url}`)
 		} else {
-			debug(`Creating report for ${sdk}...`)
+			info(`Creating report for ${sdk}...`)
 			let { data } = await getOctokit(getInput("token", { required: true })).rest.issues.createComment({
 				issue_number: parseInt(pr.trim()),
 				owner: context.repo.owner,
 				repo: context.repo.repo,
 				body: report
 			})
-			debug(`Report for ${sdk} created: ${data.html_url}`)
+			info(`Report for ${sdk} created: ${data.html_url}`)
 		}
 	}
 })()

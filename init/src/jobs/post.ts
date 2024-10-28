@@ -1,13 +1,14 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { exec } from "@actions/exec"
-import { debug, getInput, getState, saveState } from "@actions/core"
+import { debug, getInput, getState, info, saveState, warning } from "@actions/core"
 import { DefaultArtifactClient } from '@actions/artifact'
 import { collectPrometheus } from '../metrics/prometheus'
 import { defaultMetrics } from '../metrics/default'
 import { renderReport } from '../report/default'
 import { context, getOctokit } from '@actions/github'
 import { getCurrentWorkflowRuns } from '../workflow/workflow'
+import type { Series } from '../report/chart'
 
 (async function post() {
 	let cwd = getState("cwd")
@@ -22,86 +23,130 @@ import { getCurrentWorkflowRuns } from '../workflow/workflow'
 
 	let artifactClient = new DefaultArtifactClient()
 
-	debug("Collecting metrics for head ref...")
+	info("Collecting metrics for head ref...")
 	let metrics = await collectPrometheus(start, end, defaultMetrics.metrics)
+	info(`Metrics collected for head ref: ${Object.keys(metrics)}`)
 	debug(`Head ref metrics: ${Object.keys(metrics)}`)
 
 	{
-		debug("Writing metrics...")
+		info("Writing metrics...")
 		let metricsPath = path.join(cwd, `${sdk}-metrics.json`)
 		fs.writeFileSync(metricsPath, JSON.stringify(metrics), { encoding: "utf-8" })
-		debug(`Metrics written to ${metricsPath}`)
+		info(`Metrics written to ${metricsPath}`)
 
-		debug("Upload metrics as an artifact...")
+		info("Upload metrics as an artifact...")
 		let { id } = await artifactClient.uploadArtifact(`${sdk}-metrics.json`, [metricsPath], cwd, { retentionDays: 1 })
-		debug(`Metrics uploaded as an artifact ${id}`)
+		info(`Metrics uploaded as an artifact ${id}`)
 	}
 
+	PR:
 	if (!isPullRequest) {
-		debug("Not a pull request.")
-	} else {
-		// debug(`Pull request number: ${pullNumber}`)
+		warning("Not a pull request.")
+	}
+	else {
+		debug(`Pull request number: ${pullNumber}`)
 
-		// debug("Fetching information about pull request...")
-		// let { data: pr } = await getOctokit(getInput("token", { required: true })).rest.pulls.get({
-		// 	owner: context.repo.owner,
-		// 	repo: context.repo.repo,
-		// 	pull_number: pullNumber,
-		// })
+		info("Fetching information about pull request...")
+		let { data: pr } = await getOctokit(getInput("github_token", { required: true })).rest.pulls.get({
+			owner: context.repo.owner,
+			repo: context.repo.repo,
+			pull_number: pullNumber,
+		})
+		info(`Pull request information fetched: ${pr.html_url}`)
+		debug(`Pull request information: ${JSON.stringify(pr, null, 4)}`)
 
-		// debug(`Fetching information about previous runs for base branch...`)
-		// let runs = await getCurrentWorkflowRuns(pr.base.ref)
-		// debug(`Found ${runs.length} completed and successfull runs for default branch.`)
+		info(`Fetching information about previous runs for base branch...`)
+		let runs = await getCurrentWorkflowRuns(pr.base.ref)
+		info(`Found ${runs.length} completed and successfull runs for default branch.`)
+		debug(`Previous runs for base branch: ${JSON.stringify(runs.map(run => ({ id: run.id, upd: run.updated_at })), null, 4)}`)
 
-		// debug(`Finding latest run...`)
-		// let latestRun = runs[0]
-		// debug(`Latest run: ${JSON.stringify(latestRun, null, 4)}`)
+		if (runs.length === 0) {
+			warning("No previous runs found.")
+			break PR
+		}
 
-		// debug(`Finding latest run artifacts...`)
-		// let { data: { artifacts } } = await getOctokit(getInput("token", { required: true })).rest.actions.listWorkflowRunArtifacts({
-		// 	owner: context.repo.owner,
-		// 	repo: context.repo.repo,
-		// 	run_id: latestRun.id,
-		// })
+		info(`Finding latest run...`)
+		let latestRun = runs[0]
+		info(`Latest run: ${latestRun.url}`)
+		debug(`Latest run: ${JSON.stringify(latestRun, null, 4)}`)
 
-		// debug(`Found ${artifacts.length} artifacts: ${JSON.stringify(artifacts, null, 4)}`)
+		info(`Finding latest run artifacts...`)
+		let { data: { artifacts } } = await getOctokit(getInput("github_token", { required: true })).rest.actions.listWorkflowRunArtifacts({
+			owner: context.repo.owner,
+			repo: context.repo.repo,
+			run_id: latestRun.id,
+		})
+		info(`Found ${artifacts.length} artifacts.`)
+		debug(`Latest run artifacts: ${JSON.stringify(artifacts, null, 4)}`)
 
-		// debug("Collecting metrics for base ref...")
+		let artifact = artifacts.find(artifact => artifact.name === `${sdk}-metrics.json`)
+		if (!artifact) {
+			warning("Metrics for base ref not found.")
+		} else {
+			debug(`Metrics artifact: ${JSON.stringify(artifact, null, 4)}`)
+
+			info(`Downloading artifact ${artifact.id}...`)
+			let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
+				path: cwd,
+				findBy: {
+					token: getInput("github_token", { required: true }),
+					workflowRunId: latestRun.workflow_id,
+					repositoryOwner: context.repo.owner,
+					repositoryName: context.repo.repo,
+				}
+			});
+
+			info(`Downloaded artifact ${artifact.name} to ${downloadPath}`)
+
+			info(`Extracting metrics from artifact ${artifact.id}...`)
+			let baseMetrics = JSON.parse(fs.readFileSync(path.join(cwd, artifact.name), { encoding: "utf-8" })) as Record<string, Series[]>
+
+			info(`Metrics extracted from artifact ${artifact.id}: ${Object.keys(baseMetrics)}`)
+			debug(`Base metrics: ${JSON.stringify(baseMetrics, null, 4)}`)
+
+			info(`Merging metrics...`)
+			for (let [name, baseSeries] of Object.entries(baseMetrics)) {
+				if (!metrics[name]) continue
+
+				// base metrics always must be the second
+				metrics[name] = metrics[name].concat(baseSeries)
+			}
+		}
 	}
 
-	debug("Rendering report...")
+	info("Rendering report...")
 	let report = renderReport(sdk, metrics)
 	debug(`Report: ${report}`)
 
 	{
-		debug("Writing report...")
+		info("Writing report...")
 		let reportPath = path.join(cwd, `${sdk}-report.md`)
 		fs.writeFileSync(reportPath, report, { encoding: "utf-8" })
-		debug(`Report written to ${reportPath}`)
+		info(`Report written to ${reportPath}`)
 
-		debug("Upload report as an artifact...")
+		info("Upload report as an artifact...")
 		let { id } = await artifactClient.uploadArtifact(`${sdk}-report.md`, [reportPath], cwd, { retentionDays: 1 })
-		debug(`Report uploaded as an artifact ${id}`)
+		info(`Report uploaded as an artifact ${id}`)
 	}
 
 	{
-		debug("Writing pull number...")
+		info("Writing pull number...")
 		let pullPath = path.join(cwd, `${sdk}-pull.txt`)
 		fs.writeFileSync(pullPath, pullNumber.toFixed(0), { encoding: "utf-8" })
-		debug(`Pull number written to ${pullPath}`)
+		info(`Pull number written to ${pullPath}`)
 
-		debug("Upload pull number as an artifact...")
+		info("Upload pull number as an artifact...")
 		let { id } = await artifactClient.uploadArtifact(`${sdk}-pull.txt`, [pullPath], cwd, { retentionDays: 1 })
-		debug(`Pull number uploaded as an artifact ${id}`)
+		info(`Pull number uploaded as an artifact ${id}`)
 	}
 
-	debug("Stopping YDB...")
+	info("Stopping YDB...")
 	await exec(`docker`, [`compose`, `-f`, `compose.yaml`, `down`], { cwd })
 
-	debug(`YDB stopped at ${end}`)
+	info(`YDB stopped at ${end}`)
 
 	let duration = end.getTime() - start.getTime()
-	debug(`YDB SLO Test duration: ${duration}ms.`)
+	info(`YDB SLO Test duration: ${duration}ms.`)
 
 	debug("Cleaning up temp directory...")
 	fs.rmSync(cwd, { recursive: true });
