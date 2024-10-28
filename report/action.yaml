@@ -1,6 +1,6 @@
-name: 'Your Action Name'
-description: 'Description of your action'
+name: 'YDB SLO Report Action'
+description: 'The report action generates detailed reports based on the test results and publish it.'
 
 runs:
   using: 'node20'
-  main: 'init.js'
+  main: 'main.js'
