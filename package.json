@@ -39,6 +39,6 @@
 		"endOfLine": "lf"
 	},
 	"simple-git-hooks": {
-		"pre-commit": "turbo run bundle"
+		"pre-commit": "turbo run bundle && git add **/main.js **/post.js || true"
 	}
 }
