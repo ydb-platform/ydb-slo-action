@@ -14,6 +14,12 @@ ${renderChart("operation_type=read", metrics["read_throughput"], "Time, m", "Ope
 
 ${renderChart("operation_type=write", metrics["write_throughput"], "Time, m", "Operations")}
 
+### Retry Attempts Per Second
+
+${renderChart("operation_type=read", metrics["read_attempts"], "Time, m", "Attempts")}
+
+${renderChart("operation_type=write", metrics["write_attempts"], "Time, m", "Attempts")}
+
 ### 95th Percentile Latency
 
 ${renderChart("operation_type=read", metrics["read_latency_ms"], "Time, m", "Latency, ms")}
