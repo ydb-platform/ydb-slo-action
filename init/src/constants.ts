@@ -5,7 +5,7 @@ export const HOST = 'localhost'
 export const YDB_GRPC_PORT = 2135
 export const YDB_MON_PORT = 8765
 export const YDB_IC_PORT = 19001
-export const YDB_TENANT = '/Root/testdb'
+export const YDB_TENANT = '/Root'
 
 // Pass into workload
 export const YDB_ENDPOINT = `grpc://${HOST}:${YDB_GRPC_PORT}`

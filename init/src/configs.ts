@@ -137,23 +137,6 @@ let generateStaticNode = () =>
     depends_on:
       static-0:
         condition: service_healthy
-
-  tenant-init:
-    <<: *ydb-common
-    restart: on-failure
-    container_name: ydb-tenant-init
-    command:
-      - /opt/ydb/bin/ydbd
-      - -s
-      - ${YDB_ENDPOINT}
-      - admin
-      - database
-      - ${YDB_TENANT}
-      - create
-      - ssd:1
-    depends_on:
-      static-init:
-        condition: service_completed_successfully
 `.slice(1)
 
 // Generate YDB Dynamic Node
@@ -193,8 +176,6 @@ let generateDynamicNode = (idx: number) =>
       static-0:
         condition: service_healthy
       static-init:
-        condition: service_completed_successfully
-      tenant-init:
         condition: service_completed_successfully
     deploy:
       <<: *ydb-deploy
@@ -265,7 +246,7 @@ name: ydb
 services:
 ${generateStaticNode()}
 ${Array.from({ length: ydbDatabaseNodeCount }, (_, i) => i + 1)
-	.map(generateDynamicNode)
-	.join('\n')}
+		.map(generateDynamicNode)
+		.join('\n')}
 ${generateMonitoring()}
 `
