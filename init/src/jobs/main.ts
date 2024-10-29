@@ -16,7 +16,7 @@ import { getPullRequestNumber } from '../help/pulls'
 	fs.mkdirSync(cwd, { recursive: true })
 
 	{
-		info('Acquire pull request number...')
+		info('Aquire pull request number...')
 		let prNumber = await getPullRequestNumber() || -1
 		info(`Pull request number: ${prNumber}`)
 		saveState("issue", prNumber)
