@@ -1,38 +1,38 @@
-name: 'YDB SLO Initialization Action'
-description: 'This action prepares a Docker Compose configuration to deploy YDB and Prometheus. During post-run, it collects metric results and generates an SLO report.'
+name: "YDB SLO Initialization Action"
+description: "This action prepares a Docker Compose configuration to deploy YDB and Prometheus. During post-run, it collects metric results and generates an SLO report."
 
 inputs:
     github_pull_request_number:
-        description: 'The number of the associated pull request. If not provided, the action will attempt to infer it automatically.'
+        description: "The number of the associated pull request. If not provided, the action will attempt to infer it automatically."
         required: false
     github_token:
-        description: 'GitHub token used to access the GitHub API for inferring the pull request number.'
+        description: "GitHub token used to access the GitHub API for inferring the pull request number."
         required: false
     sdk_name:
-        description: 'The name of the SDK used by the user to generate load on the YDB database.'
+        description: "The name of the SDK used by the user to generate load on the YDB database."
         required: true
     # ydb_storage_node_count:
     #   description: 'Specifies the number of YDB storage nodes to initialize within the Docker Compose setup.'
     #   default: "1"
     ydb_database_node_count:
-        description: 'Specifies the number of YDB database nodes to initialize within the Docker Compose setup.'
+        description: "Specifies the number of YDB database nodes to initialize within the Docker Compose setup."
         required: false
-        default: '3'
+        default: "3"
     disable_default_metrics:
-        description: 'A comma-separated list of default metric IDs to exclude from the report generation.'
+        description: "A comma-separated list of default metric IDs to exclude from the report generation."
         required: false
     custom_metrics_yaml:
-        description: 'YAML string defining additional custom metrics to include in the SLO report.'
+        description: "YAML string defining additional custom metrics to include in the SLO report."
         required: false
     report_template:
-        description: 'Path to a custom Markdown template used for generating the final SLO report.'
+        description: "Path to a custom Markdown template used for generating the final SLO report."
         required: false
     warmup_seconds:
-        description: 'The duration of the warmup period in seconds.'
+        description: "The duration of the warmup period in seconds."
         required: false
-        default: '30'
+        default: "30"
 
 runs:
-    using: 'node20'
-    main: 'main.js' # Responsible for preparing the Docker Compose configuration for YDB and Prometheus
-    post: 'post.js' # Collects metrics and generates report.md based on specified or default configurations
+    using: "node20"
+    main: "dist/main.js"
+    post: "dist/post.js"

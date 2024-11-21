@@ -16,12 +16,12 @@
 		"@actions/artifact": "^2.1.11",
 		"@actions/core": "^1.11.1",
 		"@actions/exec": "^1.1.1",
-		"@actions/github": "^6.0.0",
-		"yaml": "^2.6.0"
+		"@actions/github": "^6.0.0"
 	},
 	"devDependencies": {
-		"@types/bun": "^1.1.12",
-		"oxlint": "^0.10.2",
+		"@types/bun": "^1.1.13",
+		"lint-staged": "^15.2.10",
+		"oxlint": "^0.11.0",
 		"prettier": "^3.3.3",
 		"simple-git-hooks": "^2.11.1"
 	},
@@ -38,9 +38,22 @@
 		"bracketSpacing": true,
 		"bracketSameLine": false,
 		"arrowParens": "always",
-		"endOfLine": "lf"
+		"endOfLine": "lf",
+		"overrides": [
+			{
+				"files": [
+					"*.yml",
+					"*.yaml"
+				],
+				"options": {
+					"tabWidth": 2,
+					"useTabs": false,
+					"singleQuote": false
+				}
+			}
+		]
 	},
 	"simple-git-hooks": {
-		"pre-commit": "turbo run bundle && git add **/main.js **/post.js || true"
+		"pre-commit": "bunx lint-staged"
 	}
 }
