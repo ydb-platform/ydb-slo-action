@@ -17,7 +17,7 @@
 			"outputs": ["**/post.js"]
 		},
 		"bundle": {
-			"dependsOn": ["lint", "bundle:main", "bundle:post"]
+			"dependsOn": ["bundle:main", "bundle:post"]
 		}
 	}
 }

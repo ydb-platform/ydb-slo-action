@@ -1,11 +1,17 @@
 {
-	"name": "@ydb-platform/ydb-slo-action-init",
+	"name": "@ydb-platform/ydb-slo-action-int",
 	"description": "The init action initializes SLO tests.",
 	"type": "module",
 	"scripts": {
-		"bundle:main": "bun build src/jobs/main.ts --target node --format esm --sourcemap --banner '/* eslint-disable */' > main.js",
-		"bundle:post": "bun build src/jobs/post.ts --target node --format esm --sourcemap --banner '/* eslint-disable */' > post.js",
+		"bundle": "bun build ./src/main.ts ./src/post.ts --target node --format esm --sourcemap --banner '/* eslint-disable */' --outdir dist",
 		"format": "bunx --bun prettier **/*.ts --write",
 		"lint": "bunx --bun oxlint **/*.ts --fix --node-plugin --import-plugin --security-plugin --disable-react-plugin"
+	},
+	"lint-staged": {
+		"*.ts": [
+			"bun run lint",
+			"bun run format",
+			"bun run bundle"
+		]
 	}
 }

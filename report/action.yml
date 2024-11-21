@@ -1,13 +1,13 @@
-name: 'YDB SLO Report Action'
-description: 'The report action generates detailed reports based on the test results and publish it.'
+name: "YDB SLO Report Action"
+description: "The report action generates detailed reports based on the test results and publish it."
 
 inputs:
     token:
-        description: 'The GitHub token used to authenticate with the GitHub API.'
+        description: "The GitHub token used to authenticate with the GitHub API."
         required: true
     run_id:
-        description: 'The id of the workflow run where the desired download artifact was uploaded from.'
+        description: "The id of the workflow run where the desired download artifact was uploaded from."
         required: true
 runs:
-    using: 'node20'
-    main: 'main.js'
+    using: "node20"
+    main: "dist/main.js"
