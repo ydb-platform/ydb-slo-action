@@ -159,7 +159,7 @@ let generateChaos = () =>
     <<: *runtime
     entrypoint: ["/bin/sh", "-c", "/opt/ydb/chaos.sh"]
     volumes:
-      - ./chaos.sh:/chaos.sh
+      - ./chaos.sh:/opt/ydb/chaos.sh
       - /var/run/docker.sock:/var/run/docker.sock
 `.slice(1)
 
