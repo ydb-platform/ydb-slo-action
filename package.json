@@ -7,7 +7,7 @@
 	],
 	"packageManager": "bun@1.1.32",
 	"scripts": {
-		"prepare": "simple-git-hooks || true",
+		"prepare": "husky",
 		"bundle": "turbo run bundle",
 		"format": "turbo run format",
 		"lint": "turbo run lint"
@@ -21,9 +21,9 @@
 	"devDependencies": {
 		"@types/bun": "^1.1.13",
 		"lint-staged": "^15.2.10",
-		"oxlint": "^0.11.0",
-		"prettier": "^3.3.3",
-		"simple-git-hooks": "^2.11.1"
+		"husky": "^9.1.7",
+		"oxlint": "^0.13.0",
+		"prettier": "^3.3.3"
 	},
 	"peerDependencies": {
 		"typescript": "^5.6.3"
@@ -52,8 +52,5 @@
 				}
 			}
 		]
-	},
-	"simple-git-hooks": {
-		"pre-commit": "bunx lint-staged"
 	}
 }
