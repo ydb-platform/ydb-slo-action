@@ -93174,7 +93174,7 @@ async function getPullRequestNumber() {
 }
 
 // src/main.ts
-(async function main() {
+async function main() {
   let cwd = path.join(process.cwd(), ".slo");
   let sdk = import_core2.getInput("sdk_name", { required: true });
   import_core2.saveState("cwd", cwd);
@@ -93221,7 +93221,7 @@ async function getPullRequestNumber() {
   {
     import_core2.info("Creating compose config...");
     let composePath = path.join(cwd, "compose.yaml");
-    let composeContent = generateComposeFile(parseInt(import_core2.getInput("YDB_DATABASE_NODE_COUNT", { required: true })));
+    let composeContent = generateComposeFile(parseInt(import_core2.getInput("ydb_database_node_count", { required: true })));
     fs.writeFileSync(composePath, composeContent, { encoding: "utf-8" });
     import_core2.info(`Created compose.yaml: ${composePath}`);
   }
@@ -93230,4 +93230,5 @@ async function getPullRequestNumber() {
   let start = new Date;
   import_core2.info(`YDB started at ${start}`);
   import_core2.saveState("start", start.toISOString());
-})();
+}
+main();

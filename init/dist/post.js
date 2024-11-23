@@ -89361,7 +89361,7 @@ var defaultMetrics = [
 ];
 
 // src/post.ts
-(async function post() {
+async function post() {
   let cwd = import_core.getState("cwd");
   let sdk = import_core.getState("sdk");
   let pull = import_core.getState("pull");
@@ -89396,4 +89396,5 @@ var defaultMetrics = [
   import_core.info(`YDB SLO Test duration: ${duration}ms.`);
   import_core.debug("Cleaning up temp directory...");
   fs.rmSync(cwd, { recursive: true });
-})();
+}
+post();

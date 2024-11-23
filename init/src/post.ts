@@ -7,7 +7,8 @@ import { DefaultArtifactClient } from '@actions/artifact'
 
 import { collectPrometheus } from './prometheus'
 import { defaultMetrics } from './metrics'
-;(async function post() {
+
+async function post() {
 	let cwd = getState('cwd')
 	let sdk = getState('sdk')
 	let pull = getState('pull')
@@ -52,4 +53,6 @@ import { defaultMetrics } from './metrics'
 
 	debug('Cleaning up temp directory...')
 	fs.rmSync(cwd, { recursive: true })
-})()
+}
+
+post()

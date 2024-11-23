@@ -12,7 +12,8 @@ import prometheusConfig from './cfg/prom/config.yml' with { type: 'text' }
 import { generateComposeFile } from './configs'
 import { getPullRequestNumber } from './pulls'
 import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants'
-;(async function main() {
+
+async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
 	let sdk = getInput('sdk_name', { required: true })
 
@@ -74,7 +75,7 @@ import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants'
 	{
 		info('Creating compose config...')
 		let composePath = path.join(cwd, 'compose.yaml')
-		let composeContent = generateComposeFile(parseInt(getInput('YDB_DATABASE_NODE_COUNT', { required: true })))
+		let composeContent = generateComposeFile(parseInt(getInput('ydb_database_node_count', { required: true })))
 
 		fs.writeFileSync(composePath, composeContent, { encoding: 'utf-8' })
 		info(`Created compose.yaml: ${composePath}`)
@@ -86,4 +87,6 @@ import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants'
 	let start = new Date()
 	info(`YDB started at ${start}`)
 	saveState('start', start.toISOString())
-})()
+}
+
+main()
