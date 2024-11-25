@@ -15,10 +15,10 @@ import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants'
 
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
-	let sdk = getInput('sdk_name', { required: true })
+	let workload = getInput('workload_name') || getInput('sdk_name') || 'unspecified'
 
 	saveState('cwd', cwd)
-	saveState('sdk', sdk)
+	saveState('workload', workload)
 
 	debug('Creating working directory...')
 	fs.mkdirSync(cwd, { recursive: true })
@@ -35,14 +35,14 @@ async function main() {
 		saveState('pull', prNumber)
 
 		info('Writing pull number...')
-		let pullPath = path.join(cwd, `${sdk}-pull.txt`)
+		let pullPath = path.join(cwd, `${workload}-pull.txt`)
 		fs.writeFileSync(pullPath, prNumber.toFixed(0), { encoding: 'utf-8' })
 		info(`Pull number written to ${pullPath}`)
 
 		let artifactClient = new DefaultArtifactClient()
 
 		info('Upload pull number as an artifact...')
-		let { id } = await artifactClient.uploadArtifact(`${sdk}-pull.txt`, [pullPath], cwd, { retentionDays: 1 })
+		let { id } = await artifactClient.uploadArtifact(`${workload}-pull.txt`, [pullPath], cwd, { retentionDays: 1 })
 		info(`Pull number uploaded as an artifact ${id}`)
 	}
 

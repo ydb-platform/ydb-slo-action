@@ -89363,11 +89363,11 @@ var defaultMetrics = [
 // src/post.ts
 async function post() {
   let cwd = import_core.getState("cwd");
-  let sdk = import_core.getState("sdk");
   let pull = import_core.getState("pull");
-  let warmup = parseInt(import_core.getInput("warmup_seconds") || "0");
+  let workload = import_core.getState("workload");
   let end = new Date;
   let start = new Date(import_core.getState("start"));
+  let warmup = parseInt(import_core.getInput("warmup_seconds") || "0");
   let artifactClient = new import_artifact.DefaultArtifactClient;
   import_core.info("Collecting metrics for head ref...");
   let adjStart = new Date(start.getTime() + warmup * 1000);
@@ -89380,11 +89380,11 @@ async function post() {
   }
   {
     import_core.info("Writing metrics...");
-    let metricsPath = path.join(cwd, `${sdk}-metrics.json`);
+    let metricsPath = path.join(cwd, `${workload}-metrics.json`);
     fs.writeFileSync(metricsPath, JSON.stringify(metrics), { encoding: "utf-8" });
     import_core.info(`Metrics written to ${metricsPath}`);
     import_core.info("Upload metrics as an artifact...");
-    let { id } = await artifactClient.uploadArtifact(`${sdk}-metrics.json`, [metricsPath], cwd, {
+    let { id } = await artifactClient.uploadArtifact(`${workload}-metrics.json`, [metricsPath], cwd, {
       retentionDays: pull ? 1 : 30
     });
     import_core.info(`Metrics uploaded as an artifact ${id}`);

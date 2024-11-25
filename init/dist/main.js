@@ -93176,9 +93176,9 @@ async function getPullRequestNumber() {
 // src/main.ts
 async function main() {
   let cwd = path.join(process.cwd(), ".slo");
-  let sdk = import_core2.getInput("sdk_name", { required: true });
+  let workload = import_core2.getInput("workload_name") || import_core2.getInput("sdk_name") || "unspecified";
   import_core2.saveState("cwd", cwd);
-  import_core2.saveState("sdk", sdk);
+  import_core2.saveState("workload", workload);
   import_core2.debug("Creating working directory...");
   fs.mkdirSync(cwd, { recursive: true });
   PR: {
@@ -93190,12 +93190,12 @@ async function main() {
     }
     import_core2.saveState("pull", prNumber);
     import_core2.info("Writing pull number...");
-    let pullPath = path.join(cwd, `${sdk}-pull.txt`);
+    let pullPath = path.join(cwd, `${workload}-pull.txt`);
     fs.writeFileSync(pullPath, prNumber.toFixed(0), { encoding: "utf-8" });
     import_core2.info(`Pull number written to ${pullPath}`);
     let artifactClient = new import_artifact.DefaultArtifactClient;
     import_core2.info("Upload pull number as an artifact...");
-    let { id } = await artifactClient.uploadArtifact(`${sdk}-pull.txt`, [pullPath], cwd, { retentionDays: 1 });
+    let { id } = await artifactClient.uploadArtifact(`${workload}-pull.txt`, [pullPath], cwd, { retentionDays: 1 });
     import_core2.info(`Pull number uploaded as an artifact ${id}`);
   }
   {

@@ -10,12 +10,12 @@ import { defaultMetrics } from './metrics'
 
 async function post() {
 	let cwd = getState('cwd')
-	let sdk = getState('sdk')
 	let pull = getState('pull')
-	let warmup = parseInt(getInput('warmup_seconds') || '0')
+	let workload = getState('workload')
 
 	let end = new Date()
 	let start = new Date(getState('start'))
+	let warmup = parseInt(getInput('warmup_seconds') || '0')
 
 	let artifactClient = new DefaultArtifactClient()
 
@@ -32,12 +32,12 @@ async function post() {
 
 	{
 		info('Writing metrics...')
-		let metricsPath = path.join(cwd, `${sdk}-metrics.json`)
+		let metricsPath = path.join(cwd, `${workload}-metrics.json`)
 		fs.writeFileSync(metricsPath, JSON.stringify(metrics), { encoding: 'utf-8' })
 		info(`Metrics written to ${metricsPath}`)
 
 		info('Upload metrics as an artifact...')
-		let { id } = await artifactClient.uploadArtifact(`${sdk}-metrics.json`, [metricsPath], cwd, {
+		let { id } = await artifactClient.uploadArtifact(`${workload}-metrics.json`, [metricsPath], cwd, {
 			retentionDays: pull ? 1 : 30,
 		})
 		info(`Metrics uploaded as an artifact ${id}`)

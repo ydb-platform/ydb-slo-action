@@ -1,10 +1,9 @@
-import { getInput } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
 
-export async function getCurrentWorkflowRuns(branch: string) {
+export async function getCurrentWorkflowRuns(token: string, branch: string) {
 	let {
 		data: { workflows },
-	} = await getOctokit(getInput('token', { required: true })).rest.actions.listRepoWorkflows({
+	} = await getOctokit(token).rest.actions.listRepoWorkflows({
 		owner: context.repo.owner,
 		repo: context.repo.repo,
 	})
@@ -17,7 +16,7 @@ export async function getCurrentWorkflowRuns(branch: string) {
 
 	let {
 		data: { workflow_runs },
-	} = await getOctokit(getInput('token', { required: true })).rest.actions.listWorkflowRuns({
+	} = await getOctokit(token).rest.actions.listWorkflowRuns({
 		owner: context.repo.owner,
 		repo: context.repo.repo,
 		workflow_id: workflow.id,
