@@ -12,8 +12,11 @@ type workload = string & { __type: 'workload' }
 
 async function main() {
 	const cwd = process.cwd()
-	const token = getInput('github_token') || getInput('token')
-	const workflowRunId = parseInt(getInput('github_run_id') || getInput('run_id'))
+	info('Fetching artifact list...')
+	const token = getInput('github_token')
+	const runId = getInput('github_run_id')
+	const branch = context.ref.replace('refs/heads/', '')
+	const workflowRunId = parseInt(runId || getInput('run_id'))
 	const artifactClient = new DefaultArtifactClient()
 
 	fs.mkdirSync(cwd, { recursive: true })
