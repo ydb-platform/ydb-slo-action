@@ -34,7 +34,7 @@ runs:
         shell: bash
         run: |
           cd ${{ github.action_path }}
-          npx ts-node src/main.ts
+          NODE_OPTIONS="--loader ts-node/esm" npx ts-node --esm src/main.ts
         env:
           GITHUB_TOKEN: ${{ inputs.github_token }}
           GITHUB_RUN_ID: ${{ inputs.github_run_id }}
