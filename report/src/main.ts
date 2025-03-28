@@ -13,19 +13,15 @@ type workload = string & { __type: 'workload' }
 async function main() {
 	const cwd = process.cwd()
 	info('Fetching artifact list...')
-	const token = getInput('github_token') || process.env.GITHUB_TOKEN
 	const runId = getInput('github_run_id') || process.env.GITHUB_RUN_ID
-
-	debug(`Token from inputs: ${getInput('github_token')}`)
-	debug(`Token from env: ${process.env.GITHUB_TOKEN}`)
-	debug(`Final token: ${token}`)
-
-	if (!token) {
-		throw new Error('GitHub token is required')
-	}
 
 	if (!runId) {
 		throw new Error('GitHub run ID is required')
+	}
+
+	const token = process.env.GITHUB_TOKEN
+	if (!token) {
+		throw new Error('GitHub token is required')
 	}
 
 	const branch = context.ref.replace('refs/heads/', '')
