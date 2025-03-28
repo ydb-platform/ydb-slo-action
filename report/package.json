@@ -2,9 +2,9 @@
 	"name": "@ydb-platform/ydb-slo-action-report",
 	"version": "1.0.0",
 	"description": "Report action for SLO tests",
-	"main": "dist/index.js",
+	"main": "src/main.ts",
+	"type": "module",
 	"scripts": {
-		"build": "tsc && esbuild ./dist/main.js --bundle --platform=node --target=node20 --format=cjs --banner:js='/* eslint-disable */' --outfile=dist/bundle.js --external:canvas",
 		"format": "prettier **/*.ts --write",
 		"lint": "eslint **/*.ts --fix",
 		"update-comment": "node scripts/update-comment.js"
@@ -20,7 +20,6 @@
 	},
 	"devDependencies": {
 		"@types/node": "^20.11.19",
-		"esbuild": "^0.20.1",
 		"prettier": "^3.2.5",
 		"eslint": "^8.57.0",
 		"@typescript-eslint/parser": "^7.1.1",
