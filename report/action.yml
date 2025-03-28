@@ -16,4 +16,5 @@ inputs:
         required: true
 runs:
     using: "node20"
-    main: "dist/main.js"
+    pre: "npm install -g ts-node typescript @types/node"
+    main: "src/main.ts"
