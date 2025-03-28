@@ -28,7 +28,7 @@ runs:
           HUSKY: 0
         run: |
           cd ${{ github.action_path }}
-          npm install
+          npm install --ignore-scripts
 
       - name: Run script
         shell: bash
