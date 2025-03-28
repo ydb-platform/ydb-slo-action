@@ -5,7 +5,7 @@
 	"main": "dist/index.js",
 	"type": "module",
 	"scripts": {
-		"build": "tsc && esbuild ./dist/main.js --bundle --platform=node --target=node20 --format=esm --banner:js='/* eslint-disable */' --outfile=dist/bundle.js --external:canvas",
+		"build": "tsc && esbuild ./dist/main.js --bundle --platform=node --target=node20 --format=esm --banner:js='/* eslint-disable */' --outfile=dist/bundle.js --external:@actions/artifact --external:@actions/core --external:@actions/github --external:canvas",
 		"format": "prettier **/*.ts --write",
 		"lint": "eslint **/*.ts --fix",
 		"update-comment": "node scripts/update-comment.js"
