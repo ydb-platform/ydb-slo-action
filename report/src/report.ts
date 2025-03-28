@@ -1,23 +1,67 @@
-import { renderChart } from './chart'
-import type { Metrics } from './metrics'
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { generateChart } from './chart.js';
+import { uploadToFileIO } from './upload.js';
+import type { Metrics, Series } from './metrics.js';
 
-export const renderReport = (variant: string, metrics: Metrics) => `🌋 Here are results of SLO test for ${variant}:
+function extractValues(series: Series[]): number[] {
+    if (!series || series.length === 0) return [];
+    return series[0].values.map(([_, value]) => parseFloat(value));
+}
 
-### Operation Success Rate
+export async function renderReport(metrics: Metrics): Promise<string> {
+    const chartsDir = 'charts';
+    mkdirSync(chartsDir, { recursive: true });
 
-${renderChart('operation_type=read', metrics['read_availability'], 'Time, m', 'Success Rate, %')}
+    const report = ['# Metrics\n'];
 
-${renderChart('operation_type=write', metrics['write_availability'], '	Time, m', 'Success Rate, %')}
+    // Success Rate
+    const availabilityChart = await generateChart({
+        title: 'Success Rate',
+        xLabel: 'Time, m',
+        yLabel: '%',
+        series: [
+            extractValues(metrics.read_availability),
+            extractValues(metrics.write_availability)
+        ],
+        seriesLabels: ['Read', 'Write']
+    });
+    const availabilityPath = join(chartsDir, 'availability.png');
+    writeFileSync(availabilityPath, availabilityChart);
+    const availabilityUrl = await uploadToFileIO(availabilityPath);
+    report.push(`## Success Rate\n![Success Rate](${availabilityUrl})\n`);
 
-### Operations Per Second
+    // Operations Per Second
+    const throughputChart = await generateChart({
+        title: 'Operations Per Second',
+        xLabel: 'Time, m',
+        yLabel: 'ops',
+        series: [
+            extractValues(metrics.read_throughput),
+            extractValues(metrics.write_throughput)
+        ],
+        seriesLabels: ['Read', 'Write']
+    });
+    const throughputPath = join(chartsDir, 'throughput.png');
+    writeFileSync(throughputPath, throughputChart);
+    const throughputUrl = await uploadToFileIO(throughputPath);
+    report.push(`## Operations Per Second\n![Operations Per Second](${throughputUrl})\n`);
 
-${renderChart('operation_type=read', metrics['read_throughput'], 'Time, m', 'Operations')}
+    // 95th Percentile Latency
+    const latencyChart = await generateChart({
+        title: '95th Percentile Latency',
+        xLabel: 'Time, m',
+        yLabel: 'ms',
+        series: [
+            extractValues(metrics.read_latency_ms),
+            extractValues(metrics.write_latency_ms)
+        ],
+        seriesLabels: ['Read', 'Write']
+    });
+    const latencyPath = join(chartsDir, 'latency.png');
+    writeFileSync(latencyPath, latencyChart);
+    const latencyUrl = await uploadToFileIO(latencyPath);
+    report.push(`## 95th Percentile Latency\n![95th Percentile Latency](${latencyUrl})\n`);
 
-${renderChart('operation_type=write', metrics['write_throughput'], 'Time, m', 'Operations')}
-
-### 95th Percentile Latency
-
-${renderChart('operation_type=read', metrics['read_latency_ms'], 'Time, m', 'Latency, ms')}
-
-${renderChart('operation_type=write', metrics['write_latency_ms'], 'Time, m', 'Latency, ms')}
-`
+    return report.join('\n');
+}
