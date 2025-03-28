@@ -53,7 +53,7 @@ jobs:
           cd report
           npx ts-node src/main.ts
         env:
-          GITHUB_TOKEN: ${{ inputs.github_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_RUN_ID: ${{ inputs.github_run_id }}
 
       - name: Setup Pages
