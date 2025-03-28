@@ -20,6 +20,8 @@ async function main() {
 	}
 
 	const token = process.env.GITHUB_TOKEN
+	debug(`Token from env: ${token}`)
+
 	if (!token) {
 		throw new Error('GitHub token is required')
 	}
