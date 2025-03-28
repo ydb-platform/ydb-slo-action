@@ -1,0 +1,74 @@
+name: Report
+
+on:
+  workflow_call:
+    inputs:
+      github_token:
+        required: true
+        type: string
+      github_run_id:
+        required: true
+        type: string
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      pages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libjpeg-dev \
+            libgif-dev \
+            librsvg2-dev \
+            pkg-config
+
+      - name: Install dependencies
+        run: |
+          cd report
+          npm ci
+
+      - name: Build native modules
+        run: |
+          cd report
+          npm rebuild canvas --build-from-source
+
+      - name: Generate report
+        run: |
+          cd report
+          npx ts-node src/main.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_RUN_ID: ${{ inputs.github_run_id }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload charts to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: report/charts
+          retention-days: 1
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+
+      - name: Update PR comment
+        run: |
+          cd report
+          npx ts-node scripts/update-comment.ts 
