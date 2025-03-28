@@ -11,16 +11,16 @@ import type { Metrics } from './metrics'
 type workload = string & { __type: 'workload' }
 
 async function main() {
-	let cwd = process.cwd()
-	let token = getInput('github_token') || getInput('token')
-	let workflowRunId = parseInt(getInput('github_run_id') || getInput('run_id'))
-	let artifactClient = new DefaultArtifactClient()
+	const cwd = process.cwd()
+	const token = getInput('github_token') || getInput('token')
+	const workflowRunId = parseInt(getInput('github_run_id') || getInput('run_id'))
+	const artifactClient = new DefaultArtifactClient()
 
 	fs.mkdirSync(cwd, { recursive: true })
 
 	info(`Current directory: ${cwd}`)
 
-	let { artifacts } = await artifactClient.listArtifacts({
+	const { artifacts } = await artifactClient.listArtifacts({
 		findBy: {
 			token,
 			workflowRunId,
@@ -32,11 +32,11 @@ async function main() {
 	info(`Found ${artifacts.length} artifacts.`)
 	debug(`Artifacts: ${JSON.stringify(artifacts, null, 4)}`)
 
-	let rawPulls: Record<workload, string> = {}
-	let rawMetrics: Record<workload, string> = {}
+	const rawPulls: Record<workload, string> = {}
+	const rawMetrics: Record<workload, string> = {}
 
 	// Download artifacts
-	for (let artifact of artifacts) {
+	for (const artifact of artifacts) {
 		info(`Downloading artifact ${artifact.name}...`)
 		let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
 			path: cwd,
@@ -53,47 +53,47 @@ async function main() {
 		info(`Downloaded artifact ${artifact.name} (${artifact.id}) to ${downloadPath}`)
 
 		if (artifact.name.endsWith('-metrics.json')) {
-			let workload = artifact.name.slice(0, -'-metrics.json'.length) as workload
+			const workload = artifact.name.slice(0, -'-metrics.json'.length) as workload
 			rawMetrics[workload] = fs.readFileSync(downloadPath, { encoding: 'utf-8' })
 		}
 
 		if (artifact.name.endsWith('-pull.txt')) {
-			let workload = artifact.name.slice(0, -'-pull.txt'.length) as workload
+			const workload = artifact.name.slice(0, -'-pull.txt'.length) as workload
 			rawPulls[workload] = fs.readFileSync(downloadPath, { encoding: 'utf-8' })
 		}
 	}
 
-	let pulls: Record<workload, number> = {}
-	let metrics: Record<workload, Metrics> = {}
-	let reports: Record<workload, string> = {}
-	let comments: Record<workload, number> = {}
+	const pulls: Record<workload, number> = {}
+	const metrics: Record<workload, Metrics> = {}
+	const reports: Record<workload, string> = {}
+	const comments: Record<workload, number> = {}
 
 	// Parse head pulls
-	for (let [workload, value] of Object.entries(rawPulls) as [workload, string][]) {
+	for (const [workload, value] of Object.entries(rawPulls) as [workload, string][]) {
 		pulls[workload] = parseInt(value)
 	}
 
 	// Parse head metrics
-	for (let [workload, value] of Object.entries(rawMetrics) as [workload, string][]) {
+	for (const [workload, value] of Object.entries(rawMetrics) as [workload, string][]) {
 		metrics[workload] = JSON.parse(value)
 	}
 
 	// Retrieve workload report comment in pull
-	for (let workload of Object.keys(pulls) as workload[]) {
-		let pull = pulls[workload]
+	for (const workload of Object.keys(pulls) as workload[]) {
+		const pull = pulls[workload]
 		if (!pull) {
 			continue
 		}
 
 		info(`Getting comments for ${pull}...`)
-		let { data } = await getOctokit(token).rest.issues.listComments({
+		const { data } = await getOctokit(token).rest.issues.listComments({
 			issue_number: pull,
 			owner: context.repo.owner,
 			repo: context.repo.repo,
 		})
 		info(`Got ${data.length} comments for ${pull}`)
 
-		for (let comment of data) {
+		for (const comment of data) {
 			// TODO: refactor finding report comment
 			if (
 				(comment.body || comment.body_text || comment.body_html)?.includes(
@@ -108,8 +108,8 @@ async function main() {
 	}
 
 	// Retrive metrics for base branch
-	for (let workload of Object.keys(pulls) as workload[]) {
-		let pull = pulls[workload]
+	for (const workload of Object.keys(pulls) as workload[]) {
+		const pull = pulls[workload]
 		if (!pull) {
 			continue
 		}
@@ -117,7 +117,7 @@ async function main() {
 		debug(`Pull request number: ${pull}`)
 
 		info('Fetching information about pull request...')
-		let { data: pr } = await getOctokit(token).rest.pulls.get({
+		const { data: pr } = await getOctokit(token).rest.pulls.get({
 			owner: context.repo.owner,
 			repo: context.repo.repo,
 			pull_number: pull,
@@ -126,7 +126,7 @@ async function main() {
 		debug(`Pull request information: ${JSON.stringify(pr, null, 4)}`)
 
 		info(`Fetching information about previous runs for base branch...`)
-		let runs = await getCurrentWorkflowRuns(token, pr.base.ref)
+		const runs = await getCurrentWorkflowRuns(token, pr.base.ref)
 		info(`Found ${runs.length} completed and successful runs for default branch.`)
 		debug(
 			`Previous runs for base branch: ${JSON.stringify(
@@ -142,12 +142,12 @@ async function main() {
 		}
 
 		info(`Finding latest run...`)
-		let latestRun = runs[0]
+		const latestRun = runs[0]
 		info(`Latest run: ${latestRun.url}`)
 		debug(`Latest run: ${JSON.stringify(latestRun, null, 4)}`)
 
 		info(`Finding latest run artifacts...`)
-		let {
+		const {
 			data: { artifacts },
 		} = await getOctokit(token).rest.actions.listWorkflowRunArtifacts({
 			owner: context.repo.owner,
@@ -157,7 +157,7 @@ async function main() {
 		info(`Found ${artifacts.length} artifacts.`)
 		debug(`Latest run artifacts: ${JSON.stringify(artifacts, null, 4)}`)
 
-		let artifact = artifacts.find((artifact) => artifact.name === `${workload}-metrics.json`)
+		const artifact = artifacts.find((artifact) => artifact.name === `${workload}-metrics.json`)
 		if (!artifact || artifact.expired) {
 			warning('Metrics for base ref not found or expired.')
 		} else {
@@ -179,13 +179,13 @@ async function main() {
 			info(`Downloaded artifact ${artifact.id} to ${downloadPath}`)
 
 			info(`Extracting metrics from artifact ${artifact.id}...`)
-			let baseMetrics = JSON.parse(fs.readFileSync(downloadPath, { encoding: 'utf-8' })) as Metrics
+			const baseMetrics = JSON.parse(fs.readFileSync(downloadPath, { encoding: 'utf-8' })) as Metrics
 
 			info(`Metrics extracted from artifact ${artifact.id}: ${Object.keys(baseMetrics)}`)
 			debug(`Base metrics: ${JSON.stringify(baseMetrics, null, 4)}`)
 
 			info(`Merging metrics...`)
-			for (let [name, baseSeries] of Object.entries(baseMetrics)) {
+			for (const [name, baseSeries] of Object.entries(baseMetrics)) {
 				if (!metrics[workload][name]) continue
 
 				// base metrics always must be the second
@@ -195,23 +195,23 @@ async function main() {
 	}
 
 	// Rendering reports
-	for (let workload of Object.keys(metrics) as workload[]) {
+	for (const workload of Object.keys(metrics) as workload[]) {
 		if (!metrics[workload]) {
 			continue
 		}
 
 		info('Rendering report...')
-		let report = renderReport(workload, metrics[workload])
+		const report = await renderReport(metrics[workload])
 		debug(`Report: ${report}`)
 
 		reports[workload] = report
 	}
 
 	// Commit report as pull comment
-	for (let workload of Object.keys(pulls) as workload[]) {
-		let pull = pulls[workload]
-		let report = reports[workload]
-		let commentId = comments[workload]
+	for (const workload of Object.keys(pulls) as workload[]) {
+		const pull = pulls[workload]
+		const report = reports[workload]
+		const commentId = comments[workload]
 
 		if (!report) {
 			continue
@@ -219,7 +219,7 @@ async function main() {
 
 		if (commentId) {
 			info(`Updating report for ${pull}...`)
-			let { data } = await getOctokit(token).rest.issues.updateComment({
+			const { data } = await getOctokit(token).rest.issues.updateComment({
 				comment_id: commentId,
 				owner: context.repo.owner,
 				repo: context.repo.repo,
@@ -228,7 +228,7 @@ async function main() {
 			info(`Report for was ${pull} updated: ${data.html_url}`)
 		} else {
 			info(`Creating report for ${pull}...`)
-			let { data } = await getOctokit(token).rest.issues.createComment({
+			const { data } = await getOctokit(token).rest.issues.createComment({
 				issue_number: pull,
 				owner: context.repo.owner,
 				repo: context.repo.repo,
