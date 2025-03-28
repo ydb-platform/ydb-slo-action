@@ -15,6 +15,24 @@ inputs:
         description: "The id of the workflow run where the desired download artifact was uploaded from."
         required: true
 runs:
-    using: "node20"
-    pre: "npm install -g ts-node typescript @types/node"
-    main: "src/main.ts"
+    using: "composite"
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          cd ${{ github.action_path }}
+          npm ci
+
+      - name: Run script
+        shell: bash
+        run: |
+          cd ${{ github.action_path }}
+          npx ts-node src/main.ts
+        env:
+          GITHUB_TOKEN: ${{ inputs.github_token }}
+          GITHUB_RUN_ID: ${{ inputs.github_run_id }}
