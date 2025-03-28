@@ -15,11 +15,8 @@ export async function renderReport(metrics) {
         title: 'Success Rate',
         xLabel: 'Time, m',
         yLabel: '%',
-        series: [
-            extractValues(metrics.read_availability),
-            extractValues(metrics.write_availability)
-        ],
-        seriesLabels: ['Read', 'Write']
+        series: [extractValues(metrics.read_availability), extractValues(metrics.write_availability)],
+        seriesLabels: ['Read', 'Write'],
     });
     const availabilityPath = join(chartsDir, 'availability.png');
     writeFileSync(availabilityPath, availabilityChart);
@@ -29,11 +26,8 @@ export async function renderReport(metrics) {
         title: 'Operations Per Second',
         xLabel: 'Time, m',
         yLabel: 'ops',
-        series: [
-            extractValues(metrics.read_throughput),
-            extractValues(metrics.write_throughput)
-        ],
-        seriesLabels: ['Read', 'Write']
+        series: [extractValues(metrics.read_throughput), extractValues(metrics.write_throughput)],
+        seriesLabels: ['Read', 'Write'],
     });
     const throughputPath = join(chartsDir, 'throughput.png');
     writeFileSync(throughputPath, throughputChart);
@@ -43,11 +37,8 @@ export async function renderReport(metrics) {
         title: '95th Percentile Latency',
         xLabel: 'Time, m',
         yLabel: 'ms',
-        series: [
-            extractValues(metrics.read_latency_ms),
-            extractValues(metrics.write_latency_ms)
-        ],
-        seriesLabels: ['Read', 'Write']
+        series: [extractValues(metrics.read_latency_ms), extractValues(metrics.write_latency_ms)],
+        seriesLabels: ['Read', 'Write'],
     });
     const latencyPath = join(chartsDir, 'latency.png');
     writeFileSync(latencyPath, latencyChart);

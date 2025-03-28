@@ -31,7 +31,7 @@ export async function generateChart(options) {
     ctx.fillText(yLabel, 0, 0);
     ctx.restore();
     // Находим максимальные значения для масштабирования
-    const maxX = Math.max(...series.map(s => s.length));
+    const maxX = Math.max(...series.map((s) => s.length));
     const maxY = Math.max(...series.flat());
     // Рисуем графики
     const colors = ['#2196F3', '#F44336', '#4CAF50', '#FFC107'];
