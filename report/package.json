@@ -5,7 +5,7 @@
 	"main": "dist/index.js",
 	"type": "module",
 	"scripts": {
-		"bundle": "bun build ./src/main.ts --target node --format esm --banner '/* eslint-disable */' --outdir dist",
+		"build": "bun build ./src/main.ts --target node --format esm --banner '/* eslint-disable */' --outdir dist",
 		"format": "bunx --bun prettier **/*.ts --write",
 		"lint": "bunx --bun oxlint **/*.ts --fix --node-plugin --import-plugin --security-plugin --disable-react-plugin"
 	},
