@@ -13,10 +13,19 @@ type workload = string & { __type: 'workload' }
 async function main() {
 	const cwd = process.cwd()
 	info('Fetching artifact list...')
-	const token = getInput('github_token')
-	const runId = getInput('github_run_id')
+	const token = getInput('github_token') || process.env.GITHUB_TOKEN
+	const runId = getInput('github_run_id') || process.env.GITHUB_RUN_ID
+
+	if (!token) {
+		throw new Error('GitHub token is required')
+	}
+
+	if (!runId) {
+		throw new Error('GitHub run ID is required')
+	}
+
 	const branch = context.ref.replace('refs/heads/', '')
-	const workflowRunId = parseInt(runId || getInput('run_id'))
+	const workflowRunId = parseInt(runId)
 	const artifactClient = new DefaultArtifactClient()
 
 	fs.mkdirSync(cwd, { recursive: true })
