@@ -15,14 +15,14 @@ async function main() {
 	info('Fetching artifact list...')
 
 	const runId = getInput('github_run_id') || getInput('run_id')
-	if (!runId) {
-		throw new Error('GitHub run ID is required')
-	}
+	// if (!runId) {
+	// 	throw new Error('GitHub run ID is required')
+	// }
 
 	const token = getInput('github_token') || getInput('token')
-	if (!token) {
-		throw new Error('GitHub token is required')
-	}
+	// if (!token) {
+	// 	throw new Error('GitHub token is required')
+	// }
 
 	const branch = context.ref.replace('refs/heads/', '')
 	const workflowRunId = parseInt(runId)
