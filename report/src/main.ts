@@ -16,6 +16,10 @@ async function main() {
 	const token = getInput('github_token') || process.env.GITHUB_TOKEN
 	const runId = getInput('github_run_id') || process.env.GITHUB_RUN_ID
 
+	debug(`Token from inputs: ${getInput('github_token')}`)
+	debug(`Token from env: ${process.env.GITHUB_TOKEN}`)
+	debug(`Final token: ${token}`)
+
 	if (!token) {
 		throw new Error('GitHub token is required')
 	}
