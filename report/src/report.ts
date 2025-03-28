@@ -1,7 +1,6 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { generateChart } from './chart.js';
-import { uploadToFileIO } from './upload.js';
 import type { Metrics, Series } from './metrics.js';
 
 function extractValues(series: Series[]): number[] {
@@ -28,8 +27,7 @@ export async function renderReport(metrics: Metrics): Promise<string> {
     });
     const availabilityPath = join(chartsDir, 'availability.png');
     writeFileSync(availabilityPath, availabilityChart);
-    const availabilityUrl = await uploadToFileIO(availabilityPath);
-    report.push(`## Success Rate\n![Success Rate](${availabilityUrl})\n`);
+    report.push(`## Success Rate\n![Success Rate](${availabilityPath})\n`);
 
     // Operations Per Second
     const throughputChart = await generateChart({
@@ -44,8 +42,7 @@ export async function renderReport(metrics: Metrics): Promise<string> {
     });
     const throughputPath = join(chartsDir, 'throughput.png');
     writeFileSync(throughputPath, throughputChart);
-    const throughputUrl = await uploadToFileIO(throughputPath);
-    report.push(`## Operations Per Second\n![Operations Per Second](${throughputUrl})\n`);
+    report.push(`## Operations Per Second\n![Operations Per Second](${throughputPath})\n`);
 
     // 95th Percentile Latency
     const latencyChart = await generateChart({
@@ -60,8 +57,7 @@ export async function renderReport(metrics: Metrics): Promise<string> {
     });
     const latencyPath = join(chartsDir, 'latency.png');
     writeFileSync(latencyPath, latencyChart);
-    const latencyUrl = await uploadToFileIO(latencyPath);
-    report.push(`## 95th Percentile Latency\n![95th Percentile Latency](${latencyUrl})\n`);
+    report.push(`## 95th Percentile Latency\n![95th Percentile Latency](${latencyPath})\n`);
 
     return report.join('\n');
 }
