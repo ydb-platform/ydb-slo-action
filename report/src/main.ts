@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 import { DefaultArtifactClient } from '@actions/artifact'
-import { debug, getInput, info, warning } from '@actions/core'
+import { debug, getInput, info, warning, error as logError } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
 import { renderReport } from './report.js'
 import { getCurrentWorkflowRuns } from './workflow.js'
@@ -251,9 +251,20 @@ async function main() {
 			}
 		}
 	} catch (error) {
-		error instanceof Error ? error.message : String(error)
+		if (error instanceof Error) {
+			logError(error.message)
+		} else {
+			logError(String(error))
+		}
 		process.exit(1)
 	}
 }
 
-main()
+main().catch((error) => {
+	if (error instanceof Error) {
+		logError(error.message)
+	} else {
+		logError(String(error))
+	}
+	process.exit(1)
+})
