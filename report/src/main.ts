@@ -15,12 +15,12 @@ async function main() {
 		const cwd = process.cwd()
 		info('Fetching artifact list...')
 
-		const runId = getInput('github_run_id') || getInput('run_id') || process.env.GITHUB_RUN_ID
+		const runId = getInput('github_run_id')
 		if (!runId) {
 			throw new Error('GitHub run ID is required')
 		}
 
-		const token = getInput('github_token') || getInput('token') || process.env.GITHUB_TOKEN
+		const token = getInput('github_token')
 		if (!token) {
 			throw new Error('GitHub token is required')
 		}
