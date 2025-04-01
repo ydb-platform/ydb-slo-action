@@ -10,29 +10,66 @@ import type { Metrics } from './metrics.js'
 
 type workload = string & { __type: 'workload' }
 
+interface FileIoResponse {
+	success: boolean
+	key: string
+	link: string
+	expiry: string
+}
+
+async function uploadToFileIo(filePath: string): Promise<string> {
+	const formData = new FormData()
+	const file = fs.readFileSync(filePath)
+	formData.append('file', new Blob([file]), path.basename(filePath))
+
+	const response = await fetch('https://file.io', {
+		method: 'POST',
+		body: formData,
+	})
+
+	if (!response.ok) {
+		throw new Error(`Failed to upload file: ${response.statusText}`)
+	}
+
+	const data = (await response.json()) as FileIoResponse
+	if (!data.success) {
+		throw new Error('Failed to upload file to file.io')
+	}
+
+	info(`File uploaded successfully: ${data.link}`)
+	debug(`File will expire in: ${data.expiry}`)
+	return data.link
+}
+
 async function main() {
 	try {
 		const cwd = process.cwd()
 		info('Fetching artifact list...')
 
-		const runId = getInput('github_run_id')
+		const runId = getInput('github_run_id') || getInput('run_id') || process.env.GITHUB_RUN_ID
+		debug(`Run ID: ${runId}`)
 		if (!runId) {
 			throw new Error('GitHub run ID is required')
 		}
 
-		const token = getInput('github_token')
+		const token = getInput('github_token') || getInput('token') || process.env.GITHUB_TOKEN
+		debug(`Token length: ${token?.length || 0}`)
 		if (!token) {
 			throw new Error('GitHub token is required')
 		}
 
 		const branch = context.ref.replace('refs/heads/', '')
+		debug(`Branch: ${branch}`)
 		const workflowRunId = parseInt(runId)
+		debug(`Workflow Run ID: ${workflowRunId}`)
 		const artifactClient = new DefaultArtifactClient()
 
 		fs.mkdirSync(cwd, { recursive: true })
 
 		info(`Current directory: ${cwd}`)
+		debug(`Repository: ${context.repo.owner}/${context.repo.repo}`)
 
+		info('Listing artifacts...')
 		const { artifacts } = await artifactClient.listArtifacts({
 			findBy: {
 				token,
@@ -80,6 +117,7 @@ async function main() {
 		const metrics: Record<workload, Metrics> = {}
 		const reports: Record<workload, string> = {}
 		const comments: Record<workload, number> = {}
+		const chartUrls: Record<workload, string> = {}
 
 		// Parse head pulls
 		for (const [workload, value] of Object.entries(rawPulls) as [workload, string][]) {
@@ -218,6 +256,13 @@ async function main() {
 			debug(`Report: ${report}`)
 
 			reports[workload] = report
+
+			// Upload chart to file.io
+			const chartPath = path.join(cwd, 'charts', `${workload}.png`)
+			if (fs.existsSync(chartPath)) {
+				info(`Uploading chart for ${workload} to file.io...`)
+				chartUrls[workload] = await uploadToFileIo(chartPath)
+			}
 		}
 
 		// Commit report as pull comment
@@ -225,10 +270,13 @@ async function main() {
 			const pull = pulls[workload]
 			const report = reports[workload]
 			const commentId = comments[workload]
+			const chartUrl = chartUrls[workload]
 
 			if (!report) {
 				continue
 			}
+
+			const commentBody = chartUrl ? `${report}\n\nChart: ${chartUrl}` : report
 
 			if (commentId) {
 				info(`Updating report for ${pull}...`)
@@ -236,7 +284,7 @@ async function main() {
 					comment_id: commentId,
 					owner: context.repo.owner,
 					repo: context.repo.repo,
-					body: report,
+					body: commentBody,
 				})
 				info(`Report for was ${pull} updated: ${data.html_url}`)
 			} else {
@@ -245,7 +293,7 @@ async function main() {
 					issue_number: pull,
 					owner: context.repo.owner,
 					repo: context.repo.repo,
-					body: report,
+					body: commentBody,
 				})
 				info(`Report for ${pull} created: ${data.html_url}`)
 			}
