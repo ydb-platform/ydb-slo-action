@@ -17,6 +17,9 @@ jobs:
       contents: write
       pull-requests: write
       pages: write
+    env:
+      GITHUB_TOKEN: ${{ inputs.github_token }}
+      GITHUB_RUN_ID: ${{ inputs.github_run_id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -52,14 +55,13 @@ jobs:
         run: |
           echo "Input github_token exists: ${{ inputs.github_token != '' }}"
           echo "Input github_run_id: ${{ inputs.github_run_id }}"
+          echo "Env GITHUB_TOKEN exists: ${GITHUB_TOKEN:+yes}"
+          echo "Env GITHUB_RUN_ID: $GITHUB_RUN_ID"
 
       - name: Generate report
         run: |
           cd report
           npx ts-node src/main.ts
-        env:
-          GITHUB_TOKEN: ${{ inputs.github_token }}
-          GITHUB_RUN_ID: ${{ inputs.github_run_id }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
