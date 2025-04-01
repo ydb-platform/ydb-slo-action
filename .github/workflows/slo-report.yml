@@ -15,6 +15,11 @@ jobs:
       pull-requests: write
     if: github.event.workflow_run.conclusion == 'success'
     steps:
+      - name: Debug inputs
+        run: |
+          echo "Workflow Run ID: ${{ github.event.workflow_run.id }}"
+          echo "GitHub Token exists: ${{ secrets.GITHUB_TOKEN != '' }}"
+
       - name: Publish YDB SLO Report
         uses: ydb-platform/ydb-slo-action/report@main
         with:

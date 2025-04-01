@@ -48,6 +48,11 @@ jobs:
           cd report
           npm rebuild canvas --build-from-source
 
+      - name: Debug inputs
+        run: |
+          echo "Input github_token exists: ${{ inputs.github_token != '' }}"
+          echo "Input github_run_id: ${{ inputs.github_run_id }}"
+
       - name: Generate report
         run: |
           cd report
