@@ -17,6 +17,7 @@ jobs:
       contents: write
       pull-requests: write
       pages: write
+      id-token: write
     env:
       GITHUB_TOKEN: ${{ inputs.github_token }}
       GITHUB_RUN_ID: ${{ inputs.github_run_id }}
@@ -57,6 +58,7 @@ jobs:
           echo "Input github_run_id: ${{ inputs.github_run_id }}"
           echo "Env GITHUB_TOKEN exists: ${GITHUB_TOKEN:+yes}"
           echo "Env GITHUB_RUN_ID: $GITHUB_RUN_ID"
+          echo "Secrets GITHUB_TOKEN exists: ${{ secrets.GITHUB_TOKEN != '' }}"
 
       - name: Generate report
         run: |
