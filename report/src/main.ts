@@ -44,24 +44,8 @@ async function uploadToFileIo(filePath: string): Promise<string> {
 async function main() {
 	try {
 		const cwd = process.cwd()
-		info('Fetching artifact list...')
-
-		const runId = getInput('github_run_id') || getInput('run_id') || process.env.GITHUB_RUN_ID
-		debug(`Run ID: ${runId}`)
-		if (!runId) {
-			throw new Error('GitHub run ID is required')
-		}
-
-		const token = getInput('github_token') || getInput('token') || process.env.GITHUB_TOKEN
-		debug(`Token length: ${token?.length || 0}`)
-		if (!token) {
-			throw new Error('GitHub token is required')
-		}
-
-		const branch = context.ref.replace('refs/heads/', '')
-		debug(`Branch: ${branch}`)
-		const workflowRunId = parseInt(runId)
-		debug(`Workflow Run ID: ${workflowRunId}`)
+		const token = getInput('github_token') || getInput('token')
+		const workflowRunId = parseInt(getInput('github_run_id') || getInput('run_id'))
 		const artifactClient = new DefaultArtifactClient()
 
 		fs.mkdirSync(cwd, { recursive: true })
