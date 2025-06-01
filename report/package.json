@@ -1,10 +1,30 @@
 {
 	"name": "@ydb-platform/ydb-slo-action-report",
-	"description": "The report action generates detailed reports based on the test results and publish it.",
+	"version": "1.0.0",
+	"description": "Report action for SLO tests",
+	"main": "src/main.ts",
 	"type": "module",
 	"scripts": {
-		"bundle": "bun build ./src/main.ts --target node --format esm --banner '/* eslint-disable */' --outdir dist",
-		"format": "bunx --bun prettier **/*.ts --write",
-		"lint": "bunx --bun oxlint **/*.ts --fix --node-plugin --import-plugin --security-plugin --disable-react-plugin"
+		"format": "prettier **/*.ts --write",
+		"lint": "eslint **/*.ts --fix",
+		"update-comment": "node scripts/update-comment.js"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"@actions/artifact": "^2.1.1",
+		"@actions/core": "^1.10.1",
+		"@actions/github": "^6.0.0",
+		"canvas": "^2.11.2"
+	},
+	"devDependencies": {
+		"@types/node": "^20.11.19",
+		"prettier": "^3.2.5",
+		"eslint": "^8.57.0",
+		"@typescript-eslint/parser": "^7.1.1",
+		"@typescript-eslint/eslint-plugin": "^7.1.1",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.3.3"
 	}
 }

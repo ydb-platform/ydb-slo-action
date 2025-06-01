@@ -15,5 +15,40 @@ inputs:
         description: "The id of the workflow run where the desired download artifact was uploaded from."
         required: true
 runs:
-    using: "node20"
-    main: "dist/main.js"
+    using: "composite"
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libjpeg-dev \
+            libgif-dev \
+            librsvg2-dev \
+            pkg-config
+
+      - name: Install dependencies
+        shell: bash
+        env:
+          HUSKY: 0
+        run: |
+          cd ${{ github.action_path }}
+          npm install --ignore-scripts
+          npm rebuild canvas --build-from-source
+
+      - name: Run script
+        shell: bash
+        run: |
+          cd ${{ github.action_path }}
+          NODE_OPTIONS="--loader ts-node/esm" npx ts-node --esm src/main.ts
+        env:
+          GITHUB_TOKEN: ${{ inputs.github_token }}
+          GITHUB_RUN_ID: ${{ inputs.github_run_id }}
