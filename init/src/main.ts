@@ -76,8 +76,7 @@ async function main() {
 		info('Creating compose config...')
 		let composePath = path.join(cwd, 'compose.yaml')
 		let composeContent = generateComposeFile(parseInt(getInput('ydb_database_node_count', { required: true })))
-		info('Created compose config: ')
-		info(composeContent)
+
 		fs.writeFileSync(composePath, composeContent, { encoding: 'utf-8' })
 		info(`Created compose.yaml: ${composePath}`)
 	}

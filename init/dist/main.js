@@ -113,14 +113,14 @@ var require_command = __commonJS((exports) => {
         let first = true;
         for (const key in this.properties) {
           if (this.properties.hasOwnProperty(key)) {
-            const val2 = this.properties[key];
-            if (val2) {
+            const val = this.properties[key];
+            if (val) {
               if (first) {
                 first = false;
               } else {
                 cmdStr += ",";
               }
-              cmdStr += `${key}=${escapeProperty(val2)}`;
+              cmdStr += `${key}=${escapeProperty(val)}`;
             }
           }
         }
@@ -428,7 +428,8 @@ var require_tunnel = __commonJS((exports) => {
     }
     function onError(cause) {
       connectReq.removeAllListeners();
-      debug("tunneling socket could not be established, cause=%s\n", cause.message, cause.stack);
+      debug(`tunneling socket could not be established, cause=%s
+`, cause.message, cause.stack);
       var error = new Error("tunneling socket could not be established, " + "cause=" + cause.message);
       error.code = "ECONNRESET";
       options.request.emit("error", error);
@@ -498,8 +499,7 @@ var require_tunnel = __commonJS((exports) => {
       console.error.apply(console, args);
     };
   } else {
-    debug = function() {
-    };
+    debug = function() {};
   }
   exports.debug = debug;
 });
@@ -927,8 +927,7 @@ var require_util = __commonJS((exports, module) => {
   var { stringify } = __require("querystring");
   var { headerNameLowerCasedRecord } = require_constants();
   var [nodeMajor, nodeMinor] = process.versions.node.split(".").map((v) => Number(v));
-  function nop() {
-  }
+  function nop() {}
   function isStream(obj) {
     return obj && typeof obj === "object" && typeof obj.pipe === "function" && typeof obj.on === "function";
   }
@@ -1065,8 +1064,8 @@ var require_util = __commonJS((exports, module) => {
     }
   }
   var KEEPALIVE_TIMEOUT_EXPR = /timeout=(\d+)/;
-  function parseKeepAliveTimeout(val2) {
-    const m = val2.toString().match(KEEPALIVE_TIMEOUT_EXPR);
+  function parseKeepAliveTimeout(val) {
+    const m = val.toString().match(KEEPALIVE_TIMEOUT_EXPR);
     return m ? parseInt(m[1], 10) * 1000 : null;
   }
   function headerNameToString(value) {
@@ -1077,19 +1076,19 @@ var require_util = __commonJS((exports, module) => {
       return headers;
     for (let i = 0;i < headers.length; i += 2) {
       const key = headers[i].toString().toLowerCase();
-      let val2 = obj[key];
-      if (!val2) {
+      let val = obj[key];
+      if (!val) {
         if (Array.isArray(headers[i + 1])) {
           obj[key] = headers[i + 1].map((x) => x.toString("utf8"));
         } else {
           obj[key] = headers[i + 1].toString("utf8");
         }
       } else {
-        if (!Array.isArray(val2)) {
-          val2 = [val2];
-          obj[key] = val2;
+        if (!Array.isArray(val)) {
+          val = [val];
+          obj[key] = val;
         }
-        val2.push(headers[i + 1].toString("utf8"));
+        val.push(headers[i + 1].toString("utf8"));
       }
     }
     if ("content-length" in obj && "content-disposition" in obj) {
@@ -1103,14 +1102,14 @@ var require_util = __commonJS((exports, module) => {
     let contentDispositionIdx = -1;
     for (let n = 0;n < headers.length; n += 2) {
       const key = headers[n + 0].toString();
-      const val2 = headers[n + 1].toString("utf8");
+      const val = headers[n + 1].toString("utf8");
       if (key.length === 14 && (key === "content-length" || key.toLowerCase() === "content-length")) {
-        ret.push(key, val2);
+        ret.push(key, val);
         hasContentLength = true;
       } else if (key.length === 19 && (key === "content-disposition" || key.toLowerCase() === "content-disposition")) {
-        contentDispositionIdx = ret.push(key, val2) - 1;
+        contentDispositionIdx = ret.push(key, val) - 1;
       } else {
-        ret.push(key, val2);
+        ret.push(key, val);
       }
     }
     if (hasContentLength && contentDispositionIdx !== -1) {
@@ -1232,13 +1231,13 @@ var require_util = __commonJS((exports, module) => {
     return () => signal.removeListener("abort", listener);
   }
   var hasToWellFormed = !!String.prototype.toWellFormed;
-  function toUSVString(val2) {
+  function toUSVString(val) {
     if (hasToWellFormed) {
-      return `${val2}`.toWellFormed();
+      return `${val}`.toWellFormed();
     } else if (nodeUtil.toUSVString) {
-      return nodeUtil.toUSVString(val2);
+      return nodeUtil.toUSVString(val);
     }
-    return `${val2}`;
+    return `${val}`;
   }
   function parseRangeHeader(range) {
     if (range == null || range === "")
@@ -1505,8 +1504,7 @@ var require_PartStream = __commonJS((exports, module) => {
     ReadableStream2.call(this, opts);
   }
   inherits(PartStream, ReadableStream2);
-  PartStream.prototype._read = function(n) {
-  };
+  PartStream.prototype._read = function(n) {};
   module.exports = PartStream;
 });
 
@@ -1529,7 +1527,9 @@ var require_HeaderParser = __commonJS((exports, module) => {
   var inherits = __require("node:util").inherits;
   var getLimit = require_getLimit();
   var StreamSearch = require_sbmh();
-  var B_DCRLF = Buffer.from("\r\n\r\n");
+  var B_DCRLF = Buffer.from(`\r
+\r
+`);
   var RE_CRLF = /\r\n/g;
   var RE_HDR = /^([^:]+):[ \t]?([\x00-\xFF]+)?$/;
   function HeaderParser(cfg) {
@@ -1629,9 +1629,9 @@ var require_Dicer = __commonJS((exports, module) => {
   var HeaderParser = require_HeaderParser();
   var DASH = 45;
   var B_ONEDASH = Buffer.from("-");
-  var B_CRLF = Buffer.from("\r\n");
-  var EMPTY_FN = function() {
-  };
+  var B_CRLF = Buffer.from(`\r
+`);
+  var EMPTY_FN = function() {};
   function Dicer(cfg) {
     if (!(this instanceof Dicer)) {
       return new Dicer(cfg);
@@ -1731,7 +1731,8 @@ var require_Dicer = __commonJS((exports, module) => {
   };
   Dicer.prototype.setBoundary = function(boundary) {
     const self2 = this;
-    this._bparser = new StreamSearch("\r\n--" + boundary);
+    this._bparser = new StreamSearch(`\r
+--` + boundary);
     this._bparser.on("info", function(isMatch, data, start, end) {
       self2._oninfo(isMatch, data, start, end);
     });
@@ -1947,8 +1948,7 @@ var require_decodeText = __commonJS((exports, module) => {
       if (textDecoders.has(exports.toString())) {
         try {
           return textDecoders.get(exports).decode(data);
-        } catch {
-        }
+        } catch {}
       }
       return typeof data === "string" ? data : data.toString();
     }
@@ -1967,7 +1967,7 @@ var require_parseParams = __commonJS((exports, module) => {
   var decodeText = require_decodeText();
   var RE_ENCODED = /%[a-fA-F0-9][a-fA-F0-9]/g;
   var EncodedLookup = {
-    "%00": "\0",
+    "%00": "\x00",
     "%01": "\x01",
     "%02": "\x02",
     "%03": "\x03",
@@ -1985,8 +1985,8 @@ var require_parseParams = __commonJS((exports, module) => {
     "%0B": "\v",
     "%0c": "\f",
     "%0C": "\f",
-    "%0d": `\r`,
-    "%0D": `\r`,
+    "%0d": "\r",
+    "%0D": "\r",
     "%0e": "\x0E",
     "%0E": "\x0E",
     "%0f": "\x0F",
@@ -2143,316 +2143,316 @@ var require_parseParams = __commonJS((exports, module) => {
     "%7D": "}",
     "%7e": "~",
     "%7E": "~",
-    "%7f": "\x7F",
-    "%7F": "\x7F",
-    "%80": "\x80",
-    "%81": "\x81",
-    "%82": "\x82",
-    "%83": "\x83",
-    "%84": "\x84",
-    "%85": "\x85",
-    "%86": "\x86",
-    "%87": "\x87",
-    "%88": "\x88",
-    "%89": "\x89",
-    "%8a": "\x8A",
-    "%8A": "\x8A",
-    "%8b": "\x8B",
-    "%8B": "\x8B",
-    "%8c": "\x8C",
-    "%8C": "\x8C",
-    "%8d": "\x8D",
-    "%8D": "\x8D",
-    "%8e": "\x8E",
-    "%8E": "\x8E",
-    "%8f": "\x8F",
-    "%8F": "\x8F",
-    "%90": "\x90",
-    "%91": "\x91",
-    "%92": "\x92",
-    "%93": "\x93",
-    "%94": "\x94",
-    "%95": "\x95",
-    "%96": "\x96",
-    "%97": "\x97",
-    "%98": "\x98",
-    "%99": "\x99",
-    "%9a": "\x9A",
-    "%9A": "\x9A",
-    "%9b": "\x9B",
-    "%9B": "\x9B",
-    "%9c": "\x9C",
-    "%9C": "\x9C",
-    "%9d": "\x9D",
-    "%9D": "\x9D",
-    "%9e": "\x9E",
-    "%9E": "\x9E",
-    "%9f": "\x9F",
-    "%9F": "\x9F",
-    "%a0": "\xA0",
-    "%A0": "\xA0",
-    "%a1": "\xA1",
-    "%A1": "\xA1",
-    "%a2": "\xA2",
-    "%A2": "\xA2",
-    "%a3": "\xA3",
-    "%A3": "\xA3",
-    "%a4": "\xA4",
-    "%A4": "\xA4",
-    "%a5": "\xA5",
-    "%A5": "\xA5",
-    "%a6": "\xA6",
-    "%A6": "\xA6",
-    "%a7": "\xA7",
-    "%A7": "\xA7",
-    "%a8": "\xA8",
-    "%A8": "\xA8",
-    "%a9": "\xA9",
-    "%A9": "\xA9",
-    "%aa": "\xAA",
-    "%Aa": "\xAA",
-    "%aA": "\xAA",
-    "%AA": "\xAA",
-    "%ab": "\xAB",
-    "%Ab": "\xAB",
-    "%aB": "\xAB",
-    "%AB": "\xAB",
-    "%ac": "\xAC",
-    "%Ac": "\xAC",
-    "%aC": "\xAC",
-    "%AC": "\xAC",
-    "%ad": "\xAD",
-    "%Ad": "\xAD",
-    "%aD": "\xAD",
-    "%AD": "\xAD",
-    "%ae": "\xAE",
-    "%Ae": "\xAE",
-    "%aE": "\xAE",
-    "%AE": "\xAE",
-    "%af": "\xAF",
-    "%Af": "\xAF",
-    "%aF": "\xAF",
-    "%AF": "\xAF",
-    "%b0": "\xB0",
-    "%B0": "\xB0",
-    "%b1": "\xB1",
-    "%B1": "\xB1",
-    "%b2": "\xB2",
-    "%B2": "\xB2",
-    "%b3": "\xB3",
-    "%B3": "\xB3",
-    "%b4": "\xB4",
-    "%B4": "\xB4",
-    "%b5": "\xB5",
-    "%B5": "\xB5",
-    "%b6": "\xB6",
-    "%B6": "\xB6",
-    "%b7": "\xB7",
-    "%B7": "\xB7",
-    "%b8": "\xB8",
-    "%B8": "\xB8",
-    "%b9": "\xB9",
-    "%B9": "\xB9",
-    "%ba": "\xBA",
-    "%Ba": "\xBA",
-    "%bA": "\xBA",
-    "%BA": "\xBA",
-    "%bb": "\xBB",
-    "%Bb": "\xBB",
-    "%bB": "\xBB",
-    "%BB": "\xBB",
-    "%bc": "\xBC",
-    "%Bc": "\xBC",
-    "%bC": "\xBC",
-    "%BC": "\xBC",
-    "%bd": "\xBD",
-    "%Bd": "\xBD",
-    "%bD": "\xBD",
-    "%BD": "\xBD",
-    "%be": "\xBE",
-    "%Be": "\xBE",
-    "%bE": "\xBE",
-    "%BE": "\xBE",
-    "%bf": "\xBF",
-    "%Bf": "\xBF",
-    "%bF": "\xBF",
-    "%BF": "\xBF",
-    "%c0": "\xC0",
-    "%C0": "\xC0",
-    "%c1": "\xC1",
-    "%C1": "\xC1",
-    "%c2": "\xC2",
-    "%C2": "\xC2",
-    "%c3": "\xC3",
-    "%C3": "\xC3",
-    "%c4": "\xC4",
-    "%C4": "\xC4",
-    "%c5": "\xC5",
-    "%C5": "\xC5",
-    "%c6": "\xC6",
-    "%C6": "\xC6",
-    "%c7": "\xC7",
-    "%C7": "\xC7",
-    "%c8": "\xC8",
-    "%C8": "\xC8",
-    "%c9": "\xC9",
-    "%C9": "\xC9",
-    "%ca": "\xCA",
-    "%Ca": "\xCA",
-    "%cA": "\xCA",
-    "%CA": "\xCA",
-    "%cb": "\xCB",
-    "%Cb": "\xCB",
-    "%cB": "\xCB",
-    "%CB": "\xCB",
-    "%cc": "\xCC",
-    "%Cc": "\xCC",
-    "%cC": "\xCC",
-    "%CC": "\xCC",
-    "%cd": "\xCD",
-    "%Cd": "\xCD",
-    "%cD": "\xCD",
-    "%CD": "\xCD",
-    "%ce": "\xCE",
-    "%Ce": "\xCE",
-    "%cE": "\xCE",
-    "%CE": "\xCE",
-    "%cf": "\xCF",
-    "%Cf": "\xCF",
-    "%cF": "\xCF",
-    "%CF": "\xCF",
-    "%d0": "\xD0",
-    "%D0": "\xD0",
-    "%d1": "\xD1",
-    "%D1": "\xD1",
-    "%d2": "\xD2",
-    "%D2": "\xD2",
-    "%d3": "\xD3",
-    "%D3": "\xD3",
-    "%d4": "\xD4",
-    "%D4": "\xD4",
-    "%d5": "\xD5",
-    "%D5": "\xD5",
-    "%d6": "\xD6",
-    "%D6": "\xD6",
-    "%d7": "\xD7",
-    "%D7": "\xD7",
-    "%d8": "\xD8",
-    "%D8": "\xD8",
-    "%d9": "\xD9",
-    "%D9": "\xD9",
-    "%da": "\xDA",
-    "%Da": "\xDA",
-    "%dA": "\xDA",
-    "%DA": "\xDA",
-    "%db": "\xDB",
-    "%Db": "\xDB",
-    "%dB": "\xDB",
-    "%DB": "\xDB",
-    "%dc": "\xDC",
-    "%Dc": "\xDC",
-    "%dC": "\xDC",
-    "%DC": "\xDC",
-    "%dd": "\xDD",
-    "%Dd": "\xDD",
-    "%dD": "\xDD",
-    "%DD": "\xDD",
-    "%de": "\xDE",
-    "%De": "\xDE",
-    "%dE": "\xDE",
-    "%DE": "\xDE",
-    "%df": "\xDF",
-    "%Df": "\xDF",
-    "%dF": "\xDF",
-    "%DF": "\xDF",
-    "%e0": "\xE0",
-    "%E0": "\xE0",
-    "%e1": "\xE1",
-    "%E1": "\xE1",
-    "%e2": "\xE2",
-    "%E2": "\xE2",
-    "%e3": "\xE3",
-    "%E3": "\xE3",
-    "%e4": "\xE4",
-    "%E4": "\xE4",
-    "%e5": "\xE5",
-    "%E5": "\xE5",
-    "%e6": "\xE6",
-    "%E6": "\xE6",
-    "%e7": "\xE7",
-    "%E7": "\xE7",
-    "%e8": "\xE8",
-    "%E8": "\xE8",
-    "%e9": "\xE9",
-    "%E9": "\xE9",
-    "%ea": "\xEA",
-    "%Ea": "\xEA",
-    "%eA": "\xEA",
-    "%EA": "\xEA",
-    "%eb": "\xEB",
-    "%Eb": "\xEB",
-    "%eB": "\xEB",
-    "%EB": "\xEB",
-    "%ec": "\xEC",
-    "%Ec": "\xEC",
-    "%eC": "\xEC",
-    "%EC": "\xEC",
-    "%ed": "\xED",
-    "%Ed": "\xED",
-    "%eD": "\xED",
-    "%ED": "\xED",
-    "%ee": "\xEE",
-    "%Ee": "\xEE",
-    "%eE": "\xEE",
-    "%EE": "\xEE",
-    "%ef": "\xEF",
-    "%Ef": "\xEF",
-    "%eF": "\xEF",
-    "%EF": "\xEF",
-    "%f0": "\xF0",
-    "%F0": "\xF0",
-    "%f1": "\xF1",
-    "%F1": "\xF1",
-    "%f2": "\xF2",
-    "%F2": "\xF2",
-    "%f3": "\xF3",
-    "%F3": "\xF3",
-    "%f4": "\xF4",
-    "%F4": "\xF4",
-    "%f5": "\xF5",
-    "%F5": "\xF5",
-    "%f6": "\xF6",
-    "%F6": "\xF6",
-    "%f7": "\xF7",
-    "%F7": "\xF7",
-    "%f8": "\xF8",
-    "%F8": "\xF8",
-    "%f9": "\xF9",
-    "%F9": "\xF9",
-    "%fa": "\xFA",
-    "%Fa": "\xFA",
-    "%fA": "\xFA",
-    "%FA": "\xFA",
-    "%fb": "\xFB",
-    "%Fb": "\xFB",
-    "%fB": "\xFB",
-    "%FB": "\xFB",
-    "%fc": "\xFC",
-    "%Fc": "\xFC",
-    "%fC": "\xFC",
-    "%FC": "\xFC",
-    "%fd": "\xFD",
-    "%Fd": "\xFD",
-    "%fD": "\xFD",
-    "%FD": "\xFD",
-    "%fe": "\xFE",
-    "%Fe": "\xFE",
-    "%fE": "\xFE",
-    "%FE": "\xFE",
-    "%ff": "\xFF",
-    "%Ff": "\xFF",
-    "%fF": "\xFF",
-    "%FF": "\xFF"
+    "%7f": "",
+    "%7F": "",
+    "%80": "",
+    "%81": "",
+    "%82": "",
+    "%83": "",
+    "%84": "",
+    "%85": "",
+    "%86": "",
+    "%87": "",
+    "%88": "",
+    "%89": "",
+    "%8a": "",
+    "%8A": "",
+    "%8b": "",
+    "%8B": "",
+    "%8c": "",
+    "%8C": "",
+    "%8d": "",
+    "%8D": "",
+    "%8e": "",
+    "%8E": "",
+    "%8f": "",
+    "%8F": "",
+    "%90": "",
+    "%91": "",
+    "%92": "",
+    "%93": "",
+    "%94": "",
+    "%95": "",
+    "%96": "",
+    "%97": "",
+    "%98": "",
+    "%99": "",
+    "%9a": "",
+    "%9A": "",
+    "%9b": "",
+    "%9B": "",
+    "%9c": "",
+    "%9C": "",
+    "%9d": "",
+    "%9D": "",
+    "%9e": "",
+    "%9E": "",
+    "%9f": "",
+    "%9F": "",
+    "%a0": " ",
+    "%A0": " ",
+    "%a1": "¡",
+    "%A1": "¡",
+    "%a2": "¢",
+    "%A2": "¢",
+    "%a3": "£",
+    "%A3": "£",
+    "%a4": "¤",
+    "%A4": "¤",
+    "%a5": "¥",
+    "%A5": "¥",
+    "%a6": "¦",
+    "%A6": "¦",
+    "%a7": "§",
+    "%A7": "§",
+    "%a8": "¨",
+    "%A8": "¨",
+    "%a9": "©",
+    "%A9": "©",
+    "%aa": "ª",
+    "%Aa": "ª",
+    "%aA": "ª",
+    "%AA": "ª",
+    "%ab": "«",
+    "%Ab": "«",
+    "%aB": "«",
+    "%AB": "«",
+    "%ac": "¬",
+    "%Ac": "¬",
+    "%aC": "¬",
+    "%AC": "¬",
+    "%ad": "­",
+    "%Ad": "­",
+    "%aD": "­",
+    "%AD": "­",
+    "%ae": "®",
+    "%Ae": "®",
+    "%aE": "®",
+    "%AE": "®",
+    "%af": "¯",
+    "%Af": "¯",
+    "%aF": "¯",
+    "%AF": "¯",
+    "%b0": "°",
+    "%B0": "°",
+    "%b1": "±",
+    "%B1": "±",
+    "%b2": "²",
+    "%B2": "²",
+    "%b3": "³",
+    "%B3": "³",
+    "%b4": "´",
+    "%B4": "´",
+    "%b5": "µ",
+    "%B5": "µ",
+    "%b6": "¶",
+    "%B6": "¶",
+    "%b7": "·",
+    "%B7": "·",
+    "%b8": "¸",
+    "%B8": "¸",
+    "%b9": "¹",
+    "%B9": "¹",
+    "%ba": "º",
+    "%Ba": "º",
+    "%bA": "º",
+    "%BA": "º",
+    "%bb": "»",
+    "%Bb": "»",
+    "%bB": "»",
+    "%BB": "»",
+    "%bc": "¼",
+    "%Bc": "¼",
+    "%bC": "¼",
+    "%BC": "¼",
+    "%bd": "½",
+    "%Bd": "½",
+    "%bD": "½",
+    "%BD": "½",
+    "%be": "¾",
+    "%Be": "¾",
+    "%bE": "¾",
+    "%BE": "¾",
+    "%bf": "¿",
+    "%Bf": "¿",
+    "%bF": "¿",
+    "%BF": "¿",
+    "%c0": "À",
+    "%C0": "À",
+    "%c1": "Á",
+    "%C1": "Á",
+    "%c2": "Â",
+    "%C2": "Â",
+    "%c3": "Ã",
+    "%C3": "Ã",
+    "%c4": "Ä",
+    "%C4": "Ä",
+    "%c5": "Å",
+    "%C5": "Å",
+    "%c6": "Æ",
+    "%C6": "Æ",
+    "%c7": "Ç",
+    "%C7": "Ç",
+    "%c8": "È",
+    "%C8": "È",
+    "%c9": "É",
+    "%C9": "É",
+    "%ca": "Ê",
+    "%Ca": "Ê",
+    "%cA": "Ê",
+    "%CA": "Ê",
+    "%cb": "Ë",
+    "%Cb": "Ë",
+    "%cB": "Ë",
+    "%CB": "Ë",
+    "%cc": "Ì",
+    "%Cc": "Ì",
+    "%cC": "Ì",
+    "%CC": "Ì",
+    "%cd": "Í",
+    "%Cd": "Í",
+    "%cD": "Í",
+    "%CD": "Í",
+    "%ce": "Î",
+    "%Ce": "Î",
+    "%cE": "Î",
+    "%CE": "Î",
+    "%cf": "Ï",
+    "%Cf": "Ï",
+    "%cF": "Ï",
+    "%CF": "Ï",
+    "%d0": "Ð",
+    "%D0": "Ð",
+    "%d1": "Ñ",
+    "%D1": "Ñ",
+    "%d2": "Ò",
+    "%D2": "Ò",
+    "%d3": "Ó",
+    "%D3": "Ó",
+    "%d4": "Ô",
+    "%D4": "Ô",
+    "%d5": "Õ",
+    "%D5": "Õ",
+    "%d6": "Ö",
+    "%D6": "Ö",
+    "%d7": "×",
+    "%D7": "×",
+    "%d8": "Ø",
+    "%D8": "Ø",
+    "%d9": "Ù",
+    "%D9": "Ù",
+    "%da": "Ú",
+    "%Da": "Ú",
+    "%dA": "Ú",
+    "%DA": "Ú",
+    "%db": "Û",
+    "%Db": "Û",
+    "%dB": "Û",
+    "%DB": "Û",
+    "%dc": "Ü",
+    "%Dc": "Ü",
+    "%dC": "Ü",
+    "%DC": "Ü",
+    "%dd": "Ý",
+    "%Dd": "Ý",
+    "%dD": "Ý",
+    "%DD": "Ý",
+    "%de": "Þ",
+    "%De": "Þ",
+    "%dE": "Þ",
+    "%DE": "Þ",
+    "%df": "ß",
+    "%Df": "ß",
+    "%dF": "ß",
+    "%DF": "ß",
+    "%e0": "à",
+    "%E0": "à",
+    "%e1": "á",
+    "%E1": "á",
+    "%e2": "â",
+    "%E2": "â",
+    "%e3": "ã",
+    "%E3": "ã",
+    "%e4": "ä",
+    "%E4": "ä",
+    "%e5": "å",
+    "%E5": "å",
+    "%e6": "æ",
+    "%E6": "æ",
+    "%e7": "ç",
+    "%E7": "ç",
+    "%e8": "è",
+    "%E8": "è",
+    "%e9": "é",
+    "%E9": "é",
+    "%ea": "ê",
+    "%Ea": "ê",
+    "%eA": "ê",
+    "%EA": "ê",
+    "%eb": "ë",
+    "%Eb": "ë",
+    "%eB": "ë",
+    "%EB": "ë",
+    "%ec": "ì",
+    "%Ec": "ì",
+    "%eC": "ì",
+    "%EC": "ì",
+    "%ed": "í",
+    "%Ed": "í",
+    "%eD": "í",
+    "%ED": "í",
+    "%ee": "î",
+    "%Ee": "î",
+    "%eE": "î",
+    "%EE": "î",
+    "%ef": "ï",
+    "%Ef": "ï",
+    "%eF": "ï",
+    "%EF": "ï",
+    "%f0": "ð",
+    "%F0": "ð",
+    "%f1": "ñ",
+    "%F1": "ñ",
+    "%f2": "ò",
+    "%F2": "ò",
+    "%f3": "ó",
+    "%F3": "ó",
+    "%f4": "ô",
+    "%F4": "ô",
+    "%f5": "õ",
+    "%F5": "õ",
+    "%f6": "ö",
+    "%F6": "ö",
+    "%f7": "÷",
+    "%F7": "÷",
+    "%f8": "ø",
+    "%F8": "ø",
+    "%f9": "ù",
+    "%F9": "ù",
+    "%fa": "ú",
+    "%Fa": "ú",
+    "%fA": "ú",
+    "%FA": "ú",
+    "%fb": "û",
+    "%Fb": "û",
+    "%fB": "û",
+    "%FB": "û",
+    "%fc": "ü",
+    "%Fc": "ü",
+    "%fC": "ü",
+    "%FC": "ü",
+    "%fd": "ý",
+    "%Fd": "ý",
+    "%fD": "ý",
+    "%FD": "ý",
+    "%fe": "þ",
+    "%Fe": "þ",
+    "%fE": "þ",
+    "%FE": "þ",
+    "%ff": "ÿ",
+    "%Ff": "ÿ",
+    "%fF": "ÿ",
+    "%FF": "ÿ"
   };
   function encodedReplacer(match) {
     return EncodedLookup[match];
@@ -2841,8 +2841,7 @@ var require_multipart = __commonJS((exports, module) => {
     this.truncated = false;
   }
   inherits(FileStream, Readable);
-  FileStream.prototype._read = function(n) {
-  };
+  FileStream.prototype._read = function(n) {};
   module.exports = Multipart;
 });
 
@@ -3523,8 +3522,7 @@ var require_util2 = __commonJS((exports, module) => {
     crypto = __require("crypto");
     const possibleRelevantHashes = ["sha256", "sha384", "sha512"];
     supportedHashes = crypto.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
-  } catch {
-  }
+  } catch {}
   function responseURL(response) {
     const urlList = response.urlList;
     const length = urlList.length;
@@ -3607,7 +3605,8 @@ var require_util2 = __commonJS((exports, module) => {
     if (potentialValue.startsWith("\t") || potentialValue.startsWith(" ") || potentialValue.endsWith("\t") || potentialValue.endsWith(" ")) {
       return false;
     }
-    if (potentialValue.includes("\0") || potentialValue.includes("\r") || potentialValue.includes("\n")) {
+    if (potentialValue.includes("\x00") || potentialValue.includes("\r") || potentialValue.includes(`
+`)) {
       return false;
     }
     return true;
@@ -3880,8 +3879,7 @@ var require_util2 = __commonJS((exports, module) => {
     }
     return true;
   }
-  function tryUpgradeRequestToAPotentiallyTrustworthyURL(request) {
-  }
+  function tryUpgradeRequestToAPotentiallyTrustworthyURL(request) {}
   function sameOrigin(A, B) {
     if (A.origin === B.origin && A.origin === "null") {
       return true;
@@ -4682,7 +4680,8 @@ var require_dataURL = __commonJS((exports, module) => {
     return serialization;
   }
   function isHTTPWhiteSpace(char) {
-    return char === "\r" || char === "\n" || char === "\t" || char === " ";
+    return char === "\r" || char === `
+` || char === "\t" || char === " ";
   }
   function removeHTTPWhitespace(str, leading = true, trailing = true) {
     let lead = 0;
@@ -4698,7 +4697,8 @@ var require_dataURL = __commonJS((exports, module) => {
     return str.slice(lead, trail + 1);
   }
   function isASCIIWhitespace(char) {
-    return char === "\r" || char === "\n" || char === "\t" || char === "\f" || char === " ";
+    return char === "\r" || char === `
+` || char === "\t" || char === "\f" || char === " ";
   }
   function removeASCIIWhitespace(str, leading = true, trailing = true) {
     let lead = 0;
@@ -4894,9 +4894,11 @@ var require_file = __commonJS((exports, module) => {
     return bytes;
   }
   function convertLineEndingsNative(s) {
-    let nativeLineEnding = "\n";
+    let nativeLineEnding = `
+`;
     if (process.platform === "win32") {
-      nativeLineEnding = "\r\n";
+      nativeLineEnding = `\r
+`;
     }
     return s.replace(/\r?\n/g, nativeLineEnding);
   }
@@ -5061,6 +5063,13 @@ var require_body = __commonJS((exports, module) => {
   var { isUint8Array, isArrayBuffer } = __require("util/types");
   var { File: UndiciFile } = require_file();
   var { parseMIMEType, serializeAMimeType } = require_dataURL();
+  var random;
+  try {
+    const crypto = __require("node:crypto");
+    random = (max) => crypto.randomInt(0, max);
+  } catch {
+    random = (max) => Math.floor(Math.random(max));
+  }
   var ReadableStream2 = globalThis.ReadableStream;
   var File2 = NativeFile ?? UndiciFile;
   var textEncoder = new TextEncoder;
@@ -5080,8 +5089,7 @@ var require_body = __commonJS((exports, module) => {
           controller.enqueue(typeof source === "string" ? textEncoder.encode(source) : source);
           queueMicrotask(() => readableStreamClose(controller));
         },
-        start() {
-        },
+        start() {},
         type: undefined
       });
     }
@@ -5101,22 +5109,30 @@ var require_body = __commonJS((exports, module) => {
     } else if (ArrayBuffer.isView(object)) {
       source = new Uint8Array(object.buffer.slice(object.byteOffset, object.byteOffset + object.byteLength));
     } else if (util.isFormDataLike(object)) {
-      const boundary = `----formdata-undici-0${`${Math.floor(Math.random() * 100000000000)}`.padStart(11, "0")}`;
-      const prefix = `--${boundary}\r\nContent-Disposition: form-data`;
+      const boundary = `----formdata-undici-0${`${random(100000000000)}`.padStart(11, "0")}`;
+      const prefix = `--${boundary}\r
+Content-Disposition: form-data`;
       /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
       const escape = (str) => str.replace(/\n/g, "%0A").replace(/\r/g, "%0D").replace(/"/g, "%22");
-      const normalizeLinefeeds = (value) => value.replace(/\r?\n|\r/g, "\r\n");
+      const normalizeLinefeeds = (value) => value.replace(/\r?\n|\r/g, `\r
+`);
       const blobParts = [];
       const rn = new Uint8Array([13, 10]);
       length = 0;
       let hasUnknownSizeValue = false;
       for (const [name, value] of object) {
         if (typeof value === "string") {
-          const chunk2 = textEncoder.encode(prefix + `; name="${escape(normalizeLinefeeds(name))}"` + `\r\n\r\n${normalizeLinefeeds(value)}\r\n`);
+          const chunk2 = textEncoder.encode(prefix + `; name="${escape(normalizeLinefeeds(name))}"` + `\r
+\r
+${normalizeLinefeeds(value)}\r
+`);
           blobParts.push(chunk2);
           length += chunk2.byteLength;
         } else {
-          const chunk2 = textEncoder.encode(`${prefix}; name="${escape(normalizeLinefeeds(name))}"` + (value.name ? `; filename="${escape(value.name)}"` : "") + "\r\n" + `Content-Type: ${value.type || "application/octet-stream"}\r\n\r\n`);
+          const chunk2 = textEncoder.encode(`${prefix}; name="${escape(normalizeLinefeeds(name))}"` + (value.name ? `; filename="${escape(value.name)}"` : "") + `\r
+` + `Content-Type: ${value.type || "application/octet-stream"}\r
+\r
+`);
           blobParts.push(chunk2, value, rn);
           if (typeof value.size === "number") {
             length += chunk2.byteLength + value.size + rn.byteLength;
@@ -5548,13 +5564,15 @@ var require_request = __commonJS((exports, module) => {
         const [bodyStream, contentType] = extractBody(body);
         if (this.contentType == null) {
           this.contentType = contentType;
-          this.headers += `content-type: ${contentType}\r\n`;
+          this.headers += `content-type: ${contentType}\r
+`;
         }
         this.body = bodyStream.stream;
         this.contentLength = bodyStream.length;
       } else if (util.isBlobLike(body) && this.contentType == null && body.type) {
         this.contentType = body.type;
-        this.headers += `content-type: ${body.type}\r\n`;
+        this.headers += `content-type: ${body.type}\r
+`;
       }
       util.validateHandler(handler, method, upgrade);
       this.servername = util.getServerName(this.host);
@@ -5686,7 +5704,8 @@ var require_request = __commonJS((exports, module) => {
       return request;
     }
     static [kHTTP2CopyHeaders](raw) {
-      const rawHeaders = raw.split("\r\n");
+      const rawHeaders = raw.split(`\r
+`);
       const headers = {};
       for (const header of rawHeaders) {
         const [key, value] = header.split(": ");
@@ -5700,42 +5719,43 @@ var require_request = __commonJS((exports, module) => {
       return headers;
     }
   }
-  function processHeaderValue(key, val2, skipAppend) {
-    if (val2 && typeof val2 === "object") {
+  function processHeaderValue(key, val, skipAppend) {
+    if (val && typeof val === "object") {
       throw new InvalidArgumentError(`invalid ${key} header`);
     }
-    val2 = val2 != null ? `${val2}` : "";
-    if (headerCharRegex.exec(val2) !== null) {
+    val = val != null ? `${val}` : "";
+    if (headerCharRegex.exec(val) !== null) {
       throw new InvalidArgumentError(`invalid ${key} header`);
     }
-    return skipAppend ? val2 : `${key}: ${val2}\r\n`;
+    return skipAppend ? val : `${key}: ${val}\r
+`;
   }
-  function processHeader(request, key, val2, skipAppend = false) {
-    if (val2 && (typeof val2 === "object" && !Array.isArray(val2))) {
+  function processHeader(request, key, val, skipAppend = false) {
+    if (val && (typeof val === "object" && !Array.isArray(val))) {
       throw new InvalidArgumentError(`invalid ${key} header`);
-    } else if (val2 === undefined) {
+    } else if (val === undefined) {
       return;
     }
     if (request.host === null && key.length === 4 && key.toLowerCase() === "host") {
-      if (headerCharRegex.exec(val2) !== null) {
+      if (headerCharRegex.exec(val) !== null) {
         throw new InvalidArgumentError(`invalid ${key} header`);
       }
-      request.host = val2;
+      request.host = val;
     } else if (request.contentLength === null && key.length === 14 && key.toLowerCase() === "content-length") {
-      request.contentLength = parseInt(val2, 10);
+      request.contentLength = parseInt(val, 10);
       if (!Number.isFinite(request.contentLength)) {
         throw new InvalidArgumentError("invalid content-length header");
       }
     } else if (request.contentType === null && key.length === 12 && key.toLowerCase() === "content-type") {
-      request.contentType = val2;
+      request.contentType = val;
       if (skipAppend)
-        request.headers[key] = processHeaderValue(key, val2, skipAppend);
+        request.headers[key] = processHeaderValue(key, val, skipAppend);
       else
-        request.headers += processHeaderValue(key, val2);
+        request.headers += processHeaderValue(key, val);
     } else if (key.length === 17 && key.toLowerCase() === "transfer-encoding") {
       throw new InvalidArgumentError("invalid transfer-encoding header");
     } else if (key.length === 10 && key.toLowerCase() === "connection") {
-      const value = typeof val2 === "string" ? val2.toLowerCase() : null;
+      const value = typeof val === "string" ? val.toLowerCase() : null;
       if (value !== "close" && value !== "keep-alive") {
         throw new InvalidArgumentError("invalid connection header");
       } else if (value === "close") {
@@ -5750,22 +5770,22 @@ var require_request = __commonJS((exports, module) => {
     } else if (tokenRegExp.exec(key) === null) {
       throw new InvalidArgumentError("invalid header key");
     } else {
-      if (Array.isArray(val2)) {
-        for (let i = 0;i < val2.length; i++) {
+      if (Array.isArray(val)) {
+        for (let i = 0;i < val.length; i++) {
           if (skipAppend) {
             if (request.headers[key])
-              request.headers[key] += `,${processHeaderValue(key, val2[i], skipAppend)}`;
+              request.headers[key] += `,${processHeaderValue(key, val[i], skipAppend)}`;
             else
-              request.headers[key] = processHeaderValue(key, val2[i], skipAppend);
+              request.headers[key] = processHeaderValue(key, val[i], skipAppend);
           } else {
-            request.headers += processHeaderValue(key, val2[i]);
+            request.headers += processHeaderValue(key, val[i]);
           }
         }
       } else {
         if (skipAppend)
-          request.headers[key] = processHeaderValue(key, val2, skipAppend);
+          request.headers[key] = processHeaderValue(key, val, skipAppend);
         else
-          request.headers += processHeaderValue(key, val2);
+          request.headers += processHeaderValue(key, val);
       }
     }
   }
@@ -6071,8 +6091,7 @@ var require_connect = __commonJS((exports, module) => {
   }
   function setupTimeout(onConnectTimeout2, timeout) {
     if (!timeout) {
-      return () => {
-      };
+      return () => {};
     }
     let s1 = null;
     let s2 = null;
@@ -6290,7 +6309,7 @@ var require_constants3 = __commonJS((exports) => {
     FINISH2[FINISH2["UNSAFE"] = 2] = "UNSAFE";
   })(FINISH = exports.FINISH || (exports.FINISH = {}));
   exports.ALPHA = [];
-  for (let i = "A".charCodeAt(0);i <= "Z".charCodeAt(0); i++) {
+  for (let i = 65;i <= 90; i++) {
     exports.ALPHA.push(String.fromCharCode(i));
     exports.ALPHA.push(String.fromCharCode(i + 32));
   }
@@ -6343,7 +6362,7 @@ var require_constants3 = __commonJS((exports) => {
     "9"
   ];
   exports.ALPHANUM = exports.ALPHA.concat(exports.NUM);
-  exports.MARK = ["-", "_", ".", "!", "~", "*", "\'", "(", ")"];
+  exports.MARK = ["-", "_", ".", "!", "~", "*", "'", "(", ")"];
   exports.USERINFO_CHARS = exports.ALPHANUM.concat(exports.MARK).concat(["%", ";", ":", "&", "=", "+", "$", ","]);
   exports.STRICT_URL_CHAR = [
     "!",
@@ -6351,7 +6370,7 @@ var require_constants3 = __commonJS((exports) => {
     "$",
     "%",
     "&",
-    "\'",
+    "'",
     "(",
     ")",
     "*",
@@ -6388,7 +6407,7 @@ var require_constants3 = __commonJS((exports) => {
     "$",
     "%",
     "&",
-    "\'",
+    "'",
     "*",
     "+",
     "-",
@@ -6514,8 +6533,7 @@ var require_RedirectHandler = __commonJS((exports, module) => {
       }
     }
     onData(chunk) {
-      if (this.location) {
-      } else {
+      if (this.location) {} else {
         return this.handler.onData(chunk);
       }
     }
@@ -6837,7 +6855,8 @@ var require_client = __commonJS((exports, module) => {
       this[kLocalAddress] = localAddress != null ? localAddress : null;
       this[kResuming] = 0;
       this[kNeedDrain] = 0;
-      this[kHostHeader] = `host: ${this[kUrl].hostname}${this[kUrl].port ? `:${this[kUrl].port}` : ""}\r\n`;
+      this[kHostHeader] = `host: ${this[kUrl].hostname}${this[kUrl].port ? `:${this[kUrl].port}` : ""}\r
+`;
       this[kBodyTimeout] = bodyTimeout != null ? bodyTimeout : 300000;
       this[kHeadersTimeout] = headersTimeout != null ? headersTimeout : 300000;
       this[kStrictContentLength] = strictContentLength == null ? true : strictContentLength;
@@ -6887,8 +6906,7 @@ var require_client = __commonJS((exports, module) => {
       const origin = opts.origin || this[kUrl].origin;
       const request = this[kHTTPConnVersion] === "h2" ? Request[kHTTP2BuildRequest](origin, opts, handler) : Request[kHTTP1BuildRequest](origin, opts, handler);
       this[kQueue].push(request);
-      if (this[kResuming]) {
-      } else if (util.bodyLength(request.body) == null && util.isIterable(request.body)) {
+      if (this[kResuming]) {} else if (util.bodyLength(request.body) == null && util.isIterable(request.body)) {
         this[kResuming] = 1;
         process.nextTick(resume, this);
       } else {
@@ -7507,8 +7525,7 @@ var require_client = __commonJS((exports, module) => {
         });
       });
       if (client.destroyed) {
-        util.destroy(socket.on("error", () => {
-        }), new ClientDestroyedError);
+        util.destroy(socket.on("error", () => {}), new ClientDestroyedError);
         return;
       }
       client[kConnecting] = false;
@@ -7763,18 +7780,24 @@ var require_client = __commonJS((exports, module) => {
     if (blocking) {
       socket[kBlocking] = true;
     }
-    let header = `${method} ${path} HTTP/1.1\r\n`;
+    let header = `${method} ${path} HTTP/1.1\r
+`;
     if (typeof host === "string") {
-      header += `host: ${host}\r\n`;
+      header += `host: ${host}\r
+`;
     } else {
       header += client[kHostHeader];
     }
     if (upgrade) {
-      header += `connection: upgrade\r\nupgrade: ${upgrade}\r\n`;
+      header += `connection: upgrade\r
+upgrade: ${upgrade}\r
+`;
     } else if (client[kPipelining] && !socket[kReset]) {
-      header += "connection: keep-alive\r\n";
+      header += `connection: keep-alive\r
+`;
     } else {
-      header += "connection: close\r\n";
+      header += `connection: close\r
+`;
     }
     if (headers) {
       header += headers;
@@ -7784,16 +7807,21 @@ var require_client = __commonJS((exports, module) => {
     }
     if (!body || bodyLength === 0) {
       if (contentLength === 0) {
-        socket.write(`${header}content-length: 0\r\n\r\n`, "latin1");
+        socket.write(`${header}content-length: 0\r
+\r
+`, "latin1");
       } else {
         assert(contentLength === null, "no body must not have content length");
-        socket.write(`${header}\r\n`, "latin1");
+        socket.write(`${header}\r
+`, "latin1");
       }
       request.onRequestSent();
     } else if (util.isBuffer(body)) {
       assert(contentLength === body.byteLength, "buffer body must have content length");
       socket.cork();
-      socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, "latin1");
+      socket.write(`${header}content-length: ${contentLength}\r
+\r
+`, "latin1");
       socket.write(body);
       socket.uncork();
       request.onBodySent(body);
@@ -8090,7 +8118,9 @@ var require_client = __commonJS((exports, module) => {
         h2stream.uncork();
       } else {
         socket.cork();
-        socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, "latin1");
+        socket.write(`${header}content-length: ${contentLength}\r
+\r
+`, "latin1");
         socket.write(buffer);
         socket.uncork();
       }
@@ -8198,13 +8228,18 @@ var require_client = __commonJS((exports, module) => {
           socket[kReset] = true;
         }
         if (contentLength === null) {
-          socket.write(`${header}transfer-encoding: chunked\r\n`, "latin1");
+          socket.write(`${header}transfer-encoding: chunked\r
+`, "latin1");
         } else {
-          socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, "latin1");
+          socket.write(`${header}content-length: ${contentLength}\r
+\r
+`, "latin1");
         }
       }
       if (contentLength === null) {
-        socket.write(`\r\n${len.toString(16)}\r\n`, "latin1");
+        socket.write(`\r
+${len.toString(16)}\r
+`, "latin1");
       }
       this.bytesWritten += len;
       const ret = socket.write(chunk);
@@ -8231,12 +8266,18 @@ var require_client = __commonJS((exports, module) => {
       }
       if (bytesWritten === 0) {
         if (expectsPayload) {
-          socket.write(`${header}content-length: 0\r\n\r\n`, "latin1");
+          socket.write(`${header}content-length: 0\r
+\r
+`, "latin1");
         } else {
-          socket.write(`${header}\r\n`, "latin1");
+          socket.write(`${header}\r
+`, "latin1");
         }
       } else if (contentLength === null) {
-        socket.write("\r\n0\r\n\r\n", "latin1");
+        socket.write(`\r
+0\r
+\r
+`, "latin1");
       }
       if (contentLength !== null && bytesWritten !== contentLength) {
         if (client[kStrictContentLength]) {
@@ -8575,6 +8616,14 @@ var require_pool = __commonJS((exports, module) => {
       this[kOptions] = { ...util.deepClone(options), connect, allowH2 };
       this[kOptions].interceptors = options.interceptors ? { ...options.interceptors } : undefined;
       this[kFactory] = factory;
+      this.on("connectionError", (origin2, targets, error) => {
+        for (const target of targets) {
+          const idx = this[kClients].indexOf(target);
+          if (idx !== -1) {
+            this[kClients].splice(idx, 1);
+          }
+        }
+      });
     }
     [kGetDispatcher]() {
       let dispatcher = this[kClients].find((dispatcher2) => !dispatcher2[kNeedDrain]);
@@ -8892,8 +8941,7 @@ var require_readable = __commonJS((exports, module) => {
   var kBody = Symbol("kBody");
   var kAbort = Symbol("abort");
   var kContentType = Symbol("kContentType");
-  var noop = () => {
-  };
+  var noop = () => {};
   module.exports = class BodyReadable extends Readable {
     constructor({
       resume,
@@ -9069,8 +9117,7 @@ var require_readable = __commonJS((exports, module) => {
       });
     }
     consume2.stream.resume();
-    while (consume2.stream.read() != null) {
-    }
+    while (consume2.stream.read() != null) {}
   }
   function consumeEnd(consume2) {
     const { type, body, resolve, stream, length } = consume2;
@@ -9154,8 +9201,7 @@ var require_util3 = __commonJS((exports, module) => {
         process.nextTick(callback, new ResponseStatusCodeError(`Response status code ${statusCode}${statusMessage ? `: ${statusMessage}` : ""}`, statusCode, headers, payload));
         return;
       }
-    } catch (err) {
-    }
+    } catch (err) {}
     process.nextTick(callback, new ResponseStatusCodeError(`Response status code ${statusCode}${statusMessage ? `: ${statusMessage}` : ""}`, statusCode, headers));
   }
   module.exports = { getResolveErrorBodyCallback };
@@ -10157,8 +10203,7 @@ var require_mock_utils = __commonJS((exports, module) => {
       handler.onComplete(responseTrailers);
       deleteMockDispatch(mockDispatches, key);
     }
-    function resume() {
-    }
+    function resume() {}
     return true;
   }
   function buildMockDispatch() {
@@ -10506,7 +10551,7 @@ var require_pending_interceptors_formatter = __commonJS((exports, module) => {
         Origin: origin,
         Path: path,
         "Status code": statusCode,
-        Persistent: persist ? "\u2705" : "\u274C",
+        Persistent: persist ? "✅" : "❌",
         Invocations: timesInvoked,
         Remaining: persist ? Infinity : times - timesInvoked
       }));
@@ -10738,8 +10783,7 @@ var require_proxy_agent = __commonJS((exports, module) => {
               }
             });
             if (statusCode !== 200) {
-              socket.on("error", () => {
-              }).destroy();
+              socket.on("error", () => {}).destroy();
               callback(new RequestAbortedError(`Proxy response (${statusCode}) !== 200 when HTTP Tunneling`));
             }
             if (opts2.protocol !== "https:") {
@@ -11098,6 +11142,7 @@ var require_headers = __commonJS((exports, module) => {
     isValidHeaderName,
     isValidHeaderValue
   } = require_util2();
+  var util = __require("util");
   var { webidl } = require_webidl();
   var assert = __require("assert");
   var kHeadersMap = Symbol("headers map");
@@ -11156,8 +11201,7 @@ var require_headers = __commonJS((exports, module) => {
     }
     if (headers[kGuard] === "immutable") {
       throw new TypeError("immutable");
-    } else if (headers[kGuard] === "request-no-cors") {
-    }
+    } else if (headers[kGuard] === "request-no-cors") {}
     return headers[kHeadersList].append(name, value);
   }
 
@@ -11236,7 +11280,7 @@ var require_headers = __commonJS((exports, module) => {
     }
   }
 
-  class Headers2 {
+  class Headers {
     constructor(init = undefined) {
       if (init === kConstruct) {
         return;
@@ -11249,14 +11293,14 @@ var require_headers = __commonJS((exports, module) => {
       }
     }
     append(name, value) {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       webidl.argumentLengthCheck(arguments, 2, { header: "Headers.append" });
       name = webidl.converters.ByteString(name);
       value = webidl.converters.ByteString(value);
       return appendHeader(this, name, value);
     }
     delete(name) {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       webidl.argumentLengthCheck(arguments, 1, { header: "Headers.delete" });
       name = webidl.converters.ByteString(name);
       if (!isValidHeaderName(name)) {
@@ -11268,15 +11312,14 @@ var require_headers = __commonJS((exports, module) => {
       }
       if (this[kGuard] === "immutable") {
         throw new TypeError("immutable");
-      } else if (this[kGuard] === "request-no-cors") {
-      }
+      } else if (this[kGuard] === "request-no-cors") {}
       if (!this[kHeadersList].contains(name)) {
         return;
       }
       this[kHeadersList].delete(name);
     }
     get(name) {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       webidl.argumentLengthCheck(arguments, 1, { header: "Headers.get" });
       name = webidl.converters.ByteString(name);
       if (!isValidHeaderName(name)) {
@@ -11289,7 +11332,7 @@ var require_headers = __commonJS((exports, module) => {
       return this[kHeadersList].get(name);
     }
     has(name) {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       webidl.argumentLengthCheck(arguments, 1, { header: "Headers.has" });
       name = webidl.converters.ByteString(name);
       if (!isValidHeaderName(name)) {
@@ -11302,7 +11345,7 @@ var require_headers = __commonJS((exports, module) => {
       return this[kHeadersList].contains(name);
     }
     set(name, value) {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       webidl.argumentLengthCheck(arguments, 2, { header: "Headers.set" });
       name = webidl.converters.ByteString(name);
       value = webidl.converters.ByteString(value);
@@ -11322,12 +11365,11 @@ var require_headers = __commonJS((exports, module) => {
       }
       if (this[kGuard] === "immutable") {
         throw new TypeError("immutable");
-      } else if (this[kGuard] === "request-no-cors") {
-      }
+      } else if (this[kGuard] === "request-no-cors") {}
       this[kHeadersList].set(name, value);
     }
     getSetCookie() {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       const list = this[kHeadersList].cookies;
       if (list) {
         return [...list];
@@ -11356,7 +11398,7 @@ var require_headers = __commonJS((exports, module) => {
       return headers;
     }
     keys() {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       if (this[kGuard] === "immutable") {
         const value = this[kHeadersSortedMap];
         return makeIterator(() => value, "Headers", "key");
@@ -11364,7 +11406,7 @@ var require_headers = __commonJS((exports, module) => {
       return makeIterator(() => [...this[kHeadersSortedMap].values()], "Headers", "key");
     }
     values() {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       if (this[kGuard] === "immutable") {
         const value = this[kHeadersSortedMap];
         return makeIterator(() => value, "Headers", "value");
@@ -11372,7 +11414,7 @@ var require_headers = __commonJS((exports, module) => {
       return makeIterator(() => [...this[kHeadersSortedMap].values()], "Headers", "value");
     }
     entries() {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       if (this[kGuard] === "immutable") {
         const value = this[kHeadersSortedMap];
         return makeIterator(() => value, "Headers", "key+value");
@@ -11380,7 +11422,7 @@ var require_headers = __commonJS((exports, module) => {
       return makeIterator(() => [...this[kHeadersSortedMap].values()], "Headers", "key+value");
     }
     forEach(callbackFn, thisArg = globalThis) {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       webidl.argumentLengthCheck(arguments, 1, { header: "Headers.forEach" });
       if (typeof callbackFn !== "function") {
         throw new TypeError("Failed to execute 'forEach' on 'Headers': parameter 1 is not of type 'Function'.");
@@ -11390,12 +11432,12 @@ var require_headers = __commonJS((exports, module) => {
       }
     }
     [Symbol.for("nodejs.util.inspect.custom")]() {
-      webidl.brandCheck(this, Headers2);
+      webidl.brandCheck(this, Headers);
       return this[kHeadersList];
     }
   }
-  Headers2.prototype[Symbol.iterator] = Headers2.prototype.entries;
-  Object.defineProperties(Headers2.prototype, {
+  Headers.prototype[Symbol.iterator] = Headers.prototype.entries;
+  Object.defineProperties(Headers.prototype, {
     append: kEnumerableProperty,
     delete: kEnumerableProperty,
     get: kEnumerableProperty,
@@ -11410,6 +11452,9 @@ var require_headers = __commonJS((exports, module) => {
     [Symbol.toStringTag]: {
       value: "Headers",
       configurable: true
+    },
+    [util.inspect.custom]: {
+      enumerable: false
     }
   });
   webidl.converters.HeadersInit = function(V) {
@@ -11427,14 +11472,14 @@ var require_headers = __commonJS((exports, module) => {
   };
   module.exports = {
     fill,
-    Headers: Headers2,
+    Headers,
     HeadersList
   };
 });
 
 // ../node_modules/undici/lib/fetch/response.js
 var require_response = __commonJS((exports, module) => {
-  var { Headers: Headers2, HeadersList, fill } = require_headers();
+  var { Headers, HeadersList, fill } = require_headers();
   var { extractBody, cloneBody, mixinBody } = require_body();
   var util = require_util();
   var { kEnumerableProperty } = util;
@@ -11521,7 +11566,7 @@ var require_response = __commonJS((exports, module) => {
       init = webidl.converters.ResponseInit(init);
       this[kRealm] = { settingsObject: {} };
       this[kState] = makeResponse({});
-      this[kHeaders] = new Headers2(kConstruct);
+      this[kHeaders] = new Headers(kConstruct);
       this[kHeaders][kGuard] = "response";
       this[kHeaders][kHeadersList] = this[kState].headersList;
       this[kHeaders][kRealm] = this[kRealm];
@@ -11789,7 +11834,7 @@ var require_response = __commonJS((exports, module) => {
 // ../node_modules/undici/lib/fetch/request.js
 var require_request2 = __commonJS((exports, module) => {
   var { extractBody, mixinBody, cloneBody } = require_body();
-  var { Headers: Headers2, fill: fillHeaders, HeadersList } = require_headers();
+  var { Headers, fill: fillHeaders, HeadersList } = require_headers();
   var { FinalizationRegistry } = require_dispatcher_weakref()();
   var util = require_util();
   var {
@@ -11998,13 +12043,12 @@ var require_request2 = __commonJS((exports, module) => {
             } else if (getEventListeners(signal, "abort").length >= defaultMaxListeners) {
               setMaxListeners(100, signal);
             }
-          } catch {
-          }
+          } catch {}
           util.addAbortListener(signal, abort);
           requestFinalizer.register(ac, { signal, abort });
         }
       }
-      this[kHeaders] = new Headers2(kConstruct);
+      this[kHeaders] = new Headers(kConstruct);
       this[kHeaders][kHeadersList] = request.headersList;
       this[kHeaders][kGuard] = "request";
       this[kHeaders][kRealm] = this[kRealm];
@@ -12019,8 +12063,8 @@ var require_request2 = __commonJS((exports, module) => {
         const headers = init.headers !== undefined ? init.headers : new HeadersList(headersList);
         headersList.clear();
         if (headers instanceof HeadersList) {
-          for (const [key, val2] of headers) {
-            headersList.append(key, val2);
+          for (const [key, val] of headers) {
+            headersList.append(key, val);
           }
           headersList.cookies = headers.cookies;
         } else {
@@ -12153,7 +12197,7 @@ var require_request2 = __commonJS((exports, module) => {
       const clonedRequestObject = new Request(kConstruct);
       clonedRequestObject[kState] = clonedRequest;
       clonedRequestObject[kRealm] = this[kRealm];
-      clonedRequestObject[kHeaders] = new Headers2(kConstruct);
+      clonedRequestObject[kHeaders] = new Headers(kConstruct);
       clonedRequestObject[kHeaders][kHeadersList] = clonedRequest.headersList;
       clonedRequestObject[kHeaders][kGuard] = this[kHeaders][kGuard];
       clonedRequestObject[kHeaders][kRealm] = this[kHeaders][kRealm];
@@ -12333,7 +12377,7 @@ var require_fetch = __commonJS((exports, module) => {
     filterResponse,
     makeResponse
   } = require_response();
-  var { Headers: Headers2 } = require_headers();
+  var { Headers } = require_headers();
   var { Request, makeRequest } = require_request2();
   var zlib = __require("zlib");
   var {
@@ -12420,7 +12464,7 @@ var require_fetch = __commonJS((exports, module) => {
       this.emit("terminated", error);
     }
   }
-  function fetch2(input, init = {}) {
+  function fetch(input, init = {}) {
     webidl.argumentLengthCheck(arguments, 1, { header: "globalThis.fetch" });
     const p = createDeferredPromise();
     let requestObject;
@@ -12588,10 +12632,8 @@ var require_fetch = __commonJS((exports, module) => {
     if (!request.headersList.contains("accept-language")) {
       request.headersList.append("accept-language", "*");
     }
-    if (request.priority === null) {
-    }
-    if (subresourceSet.has(request.destination)) {
-    }
+    if (request.priority === null) {}
+    if (subresourceSet.has(request.destination)) {}
     mainFetch(fetchParams).catch((err) => {
       fetchParams.controller.terminate(err);
     });
@@ -12641,8 +12683,7 @@ var require_fetch = __commonJS((exports, module) => {
       return response;
     }
     if (response.status !== 0 && !response.internalResponse) {
-      if (request.responseTainting === "cors") {
-      }
+      if (request.responseTainting === "cors") {}
       if (request.responseTainting === "basic") {
         response = filterResponse(response, "basic");
       } else if (request.responseTainting === "cors") {
@@ -12778,8 +12819,7 @@ var require_fetch = __commonJS((exports, module) => {
         controller.enqueue(chunk);
       };
       const transformStream = new TransformStream({
-        start() {
-        },
+        start() {},
         transform: identityTransformAlgorithm,
         flush: processResponseEndOfBody
       }, {
@@ -12809,8 +12849,7 @@ var require_fetch = __commonJS((exports, module) => {
     let response = null;
     let actualResponse = null;
     const timingInfo = fetchParams.timingInfo;
-    if (request.serviceWorkers === "all") {
-    }
+    if (request.serviceWorkers === "all") {}
     if (response === null) {
       if (request.redirect === "follow") {
         request.serviceWorkers = "none";
@@ -12924,8 +12963,7 @@ var require_fetch = __commonJS((exports, module) => {
     if (contentLengthHeaderValue != null) {
       httpRequest.headersList.append("content-length", contentLengthHeaderValue);
     }
-    if (contentLength != null && httpRequest.keepalive) {
-    }
+    if (contentLength != null && httpRequest.keepalive) {}
     if (httpRequest.referrer instanceof URL) {
       httpRequest.headersList.append("referer", isomorphicEncode(httpRequest.referrer.href));
     }
@@ -12959,22 +12997,18 @@ var require_fetch = __commonJS((exports, module) => {
       }
     }
     httpRequest.headersList.delete("host");
-    if (includeCredentials) {
-    }
+    if (includeCredentials) {}
     if (httpCache == null) {
       httpRequest.cache = "no-store";
     }
-    if (httpRequest.mode !== "no-store" && httpRequest.mode !== "reload") {
-    }
+    if (httpRequest.mode !== "no-store" && httpRequest.mode !== "reload") {}
     if (response == null) {
       if (httpRequest.mode === "only-if-cached") {
         return makeNetworkError("only if cached");
       }
       const forwardResponse = await httpNetworkFetch(httpFetchParams, includeCredentials, isNewConnectionFetch);
-      if (!safeMethodsSet.has(httpRequest.method) && forwardResponse.status >= 200 && forwardResponse.status <= 399) {
-      }
-      if (revalidatingFlag && forwardResponse.status === 304) {
-      }
+      if (!safeMethodsSet.has(httpRequest.method) && forwardResponse.status >= 200 && forwardResponse.status <= 399) {}
+      if (revalidatingFlag && forwardResponse.status === 304) {}
       if (response == null) {
         response = forwardResponse;
       }
@@ -13000,8 +13034,7 @@ var require_fetch = __commonJS((exports, module) => {
       fetchParams.controller.connection.destroy();
       response = await httpNetworkOrCacheFetch(fetchParams, isAuthenticationFetch, true);
     }
-    if (isAuthenticationFetch) {
-    }
+    if (isAuthenticationFetch) {}
     return response;
   }
   async function httpNetworkFetch(fetchParams, includeCredentials = false, forceNewConnection = false) {
@@ -13024,9 +13057,7 @@ var require_fetch = __commonJS((exports, module) => {
       request.cache = "no-store";
     }
     const newConnection = forceNewConnection ? "yes" : "no";
-    if (request.mode === "websocket") {
-    } else {
-    }
+    if (request.mode === "websocket") {} else {}
     let requestBody = null;
     if (request.body == null && fetchParams.processRequestEndOfBody) {
       queueMicrotask(() => fetchParams.processRequestEndOfBody());
@@ -13193,28 +13224,28 @@ var require_fetch = __commonJS((exports, module) => {
           }
           let codings = [];
           let location = "";
-          const headers = new Headers2;
+          const headers = new Headers;
           if (Array.isArray(headersList)) {
             for (let n = 0;n < headersList.length; n += 2) {
               const key = headersList[n + 0].toString("latin1");
-              const val2 = headersList[n + 1].toString("latin1");
+              const val = headersList[n + 1].toString("latin1");
               if (key.toLowerCase() === "content-encoding") {
-                codings = val2.toLowerCase().split(",").map((x) => x.trim());
+                codings = val.toLowerCase().split(",").map((x) => x.trim());
               } else if (key.toLowerCase() === "location") {
-                location = val2;
+                location = val;
               }
-              headers[kHeadersList].append(key, val2);
+              headers[kHeadersList].append(key, val);
             }
           } else {
             const keys = Object.keys(headersList);
             for (const key of keys) {
-              const val2 = headersList[key];
+              const val = headersList[key];
               if (key.toLowerCase() === "content-encoding") {
-                codings = val2.toLowerCase().split(",").map((x) => x.trim()).reverse();
+                codings = val.toLowerCase().split(",").map((x) => x.trim()).reverse();
               } else if (key.toLowerCase() === "location") {
-                location = val2;
+                location = val;
               }
-              headers[kHeadersList].append(key, val2);
+              headers[kHeadersList].append(key, val);
             }
           }
           this.body = new Readable({ read: resume });
@@ -13241,9 +13272,7 @@ var require_fetch = __commonJS((exports, module) => {
             status,
             statusText,
             headersList: headers[kHeadersList],
-            body: decoders.length ? pipeline(this.body, ...decoders, () => {
-            }) : this.body.on("error", () => {
-            })
+            body: decoders.length ? pipeline(this.body, ...decoders, () => {}) : this.body.on("error", () => {})
           });
           return true;
         },
@@ -13274,11 +13303,11 @@ var require_fetch = __commonJS((exports, module) => {
           if (status !== 101) {
             return;
           }
-          const headers = new Headers2;
+          const headers = new Headers;
           for (let n = 0;n < headersList.length; n += 2) {
             const key = headersList[n + 0].toString("latin1");
-            const val2 = headersList[n + 1].toString("latin1");
-            headers[kHeadersList].append(key, val2);
+            const val = headersList[n + 1].toString("latin1");
+            headers[kHeadersList].append(key, val);
           }
           resolve({
             status,
@@ -13292,7 +13321,7 @@ var require_fetch = __commonJS((exports, module) => {
     }
   }
   module.exports = {
-    fetch: fetch2,
+    fetch,
     Fetch,
     fetching,
     finalizeAndReportTiming
@@ -14695,8 +14724,6 @@ var require_constants4 = __commonJS((exports, module) => {
 
 // ../node_modules/undici/lib/cookies/util.js
 var require_util6 = __commonJS((exports, module) => {
-  var assert = __require("assert");
-  var { kHeadersList } = require_symbols();
   function isCTLExcludingHtab(value) {
     if (value.length === 0) {
       return false;
@@ -14826,23 +14853,13 @@ var require_util6 = __commonJS((exports, module) => {
     }
     return out.join("; ");
   }
-  var kHeadersListNode;
-  function getHeadersList(headers) {
-    if (headers[kHeadersList]) {
-      return headers[kHeadersList];
-    }
-    if (!kHeadersListNode) {
-      kHeadersListNode = Object.getOwnPropertySymbols(headers).find((symbol) => symbol.description === "headers list");
-      assert(kHeadersListNode, "Headers cannot be parsed");
-    }
-    const headersList = headers[kHeadersListNode];
-    assert(headersList);
-    return headersList;
-  }
   module.exports = {
     isCTLExcludingHtab,
-    stringify,
-    getHeadersList
+    validateCookieName,
+    validateCookiePath,
+    validateCookieValue,
+    toIMFDate,
+    stringify
   };
 });
 
@@ -14974,12 +14991,12 @@ var require_parse = __commonJS((exports, module) => {
 // ../node_modules/undici/lib/cookies/index.js
 var require_cookies = __commonJS((exports, module) => {
   var { parseSetCookie } = require_parse();
-  var { stringify, getHeadersList } = require_util6();
+  var { stringify } = require_util6();
   var { webidl } = require_webidl();
-  var { Headers: Headers2 } = require_headers();
+  var { Headers } = require_headers();
   function getCookies(headers) {
     webidl.argumentLengthCheck(arguments, 1, { header: "getCookies" });
-    webidl.brandCheck(headers, Headers2, { strict: false });
+    webidl.brandCheck(headers, Headers, { strict: false });
     const cookie = headers.get("cookie");
     const out = {};
     if (!cookie) {
@@ -14993,7 +15010,7 @@ var require_cookies = __commonJS((exports, module) => {
   }
   function deleteCookie(headers, name, attributes) {
     webidl.argumentLengthCheck(arguments, 2, { header: "deleteCookie" });
-    webidl.brandCheck(headers, Headers2, { strict: false });
+    webidl.brandCheck(headers, Headers, { strict: false });
     name = webidl.converters.DOMString(name);
     attributes = webidl.converters.DeleteCookieAttributes(attributes);
     setCookie(headers, {
@@ -15005,16 +15022,16 @@ var require_cookies = __commonJS((exports, module) => {
   }
   function getSetCookies(headers) {
     webidl.argumentLengthCheck(arguments, 1, { header: "getSetCookies" });
-    webidl.brandCheck(headers, Headers2, { strict: false });
-    const cookies = getHeadersList(headers).cookies;
+    webidl.brandCheck(headers, Headers, { strict: false });
+    const cookies = headers.getSetCookie();
     if (!cookies) {
       return [];
     }
-    return cookies.map((pair) => parseSetCookie(Array.isArray(pair) ? pair[1] : pair));
+    return cookies.map((pair) => parseSetCookie(pair));
   }
   function setCookie(headers, cookie) {
     webidl.argumentLengthCheck(arguments, 2, { header: "setCookie" });
-    webidl.brandCheck(headers, Headers2, { strict: false });
+    webidl.brandCheck(headers, Headers, { strict: false });
     cookie = webidl.converters.Cookie(cookie);
     const str = stringify(cookie);
     if (str) {
@@ -15488,7 +15505,7 @@ var require_connection = __commonJS((exports, module) => {
   var { CloseEvent } = require_events();
   var { makeRequest } = require_request2();
   var { fetching } = require_fetch();
-  var { Headers: Headers2 } = require_headers();
+  var { Headers } = require_headers();
   var { getGlobalDispatcher } = require_global2();
   var { kHeadersList } = require_symbols();
   var channels = {};
@@ -15498,8 +15515,7 @@ var require_connection = __commonJS((exports, module) => {
   var crypto;
   try {
     crypto = __require("crypto");
-  } catch {
-  }
+  } catch {}
   function establishWebSocketConnection(url, protocols, ws, onEstablish, options) {
     const requestURL = url;
     requestURL.protocol = url.protocol === "ws:" ? "http:" : "https:";
@@ -15513,7 +15529,7 @@ var require_connection = __commonJS((exports, module) => {
       redirect: "error"
     });
     if (options.headers) {
-      const headersList = new Headers2(options.headers)[kHeadersList];
+      const headersList = new Headers(options.headers)[kHeadersList];
       request.headersList = headersList;
     }
     const keyValue = crypto.randomBytes(16).toString("base64");
@@ -15625,8 +15641,7 @@ var require_frame = __commonJS((exports, module) => {
   var crypto;
   try {
     crypto = __require("crypto");
-  } catch {
-  }
+  } catch {}
 
   class WebsocketFrameSend {
     constructor(data) {
@@ -15988,8 +16003,7 @@ var require_websocket = __commonJS((exports, module) => {
           throw new DOMException2(`Reason must be less than 123 bytes; received ${reasonByteLength}`, "SyntaxError");
         }
       }
-      if (this[kReadyState] === WebSocket.CLOSING || this[kReadyState] === WebSocket.CLOSED) {
-      } else if (!isEstablished(this)) {
+      if (this[kReadyState] === WebSocket.CLOSING || this[kReadyState] === WebSocket.CLOSED) {} else if (!isEstablished(this)) {
         failWebsocketConnection(this, "Connection was closed before it was established.");
         this[kReadyState] = WebSocket.CLOSING;
       } else if (!isClosing(this)) {
@@ -16496,11 +16510,11 @@ var require_lib = __commonJS((exports) => {
     HttpCodes2[HttpCodes2["ServiceUnavailable"] = 503] = "ServiceUnavailable";
     HttpCodes2[HttpCodes2["GatewayTimeout"] = 504] = "GatewayTimeout";
   })(HttpCodes || (exports.HttpCodes = HttpCodes = {}));
-  var Headers2;
-  (function(Headers3) {
-    Headers3["Accept"] = "accept";
-    Headers3["ContentType"] = "content-type";
-  })(Headers2 || (exports.Headers = Headers2 = {}));
+  var Headers;
+  (function(Headers2) {
+    Headers2["Accept"] = "accept";
+    Headers2["ContentType"] = "content-type";
+  })(Headers || (exports.Headers = Headers = {}));
   var MediaTypes;
   (function(MediaTypes2) {
     MediaTypes2["ApplicationJson"] = "application/json";
@@ -16654,7 +16668,7 @@ var require_lib = __commonJS((exports) => {
     }
     getJson(requestUrl, additionalHeaders = {}) {
       return __awaiter(this, undefined, undefined, function* () {
-        additionalHeaders[Headers2.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers2.Accept, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
         const res = yield this.get(requestUrl, additionalHeaders);
         return this._processResponse(res, this.requestOptions);
       });
@@ -16662,8 +16676,8 @@ var require_lib = __commonJS((exports) => {
     postJson(requestUrl, obj, additionalHeaders = {}) {
       return __awaiter(this, undefined, undefined, function* () {
         const data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers2.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers2.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers2.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers2.ContentType, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
         const res = yield this.post(requestUrl, data, additionalHeaders);
         return this._processResponse(res, this.requestOptions);
       });
@@ -16671,8 +16685,8 @@ var require_lib = __commonJS((exports) => {
     putJson(requestUrl, obj, additionalHeaders = {}) {
       return __awaiter(this, undefined, undefined, function* () {
         const data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers2.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers2.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers2.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers2.ContentType, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
         const res = yield this.put(requestUrl, data, additionalHeaders);
         return this._processResponse(res, this.requestOptions);
       });
@@ -16680,8 +16694,8 @@ var require_lib = __commonJS((exports) => {
     patchJson(requestUrl, obj, additionalHeaders = {}) {
       return __awaiter(this, undefined, undefined, function* () {
         const data = JSON.stringify(obj, null, 2);
-        additionalHeaders[Headers2.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers2.Accept, MediaTypes.ApplicationJson);
-        additionalHeaders[Headers2.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers2.ContentType, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.Accept] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.Accept, MediaTypes.ApplicationJson);
+        additionalHeaders[Headers.ContentType] = this._getExistingOrDefaultHeader(additionalHeaders, Headers.ContentType, MediaTypes.ApplicationJson);
         const res = yield this.patch(requestUrl, data, additionalHeaders);
         return this._processResponse(res, this.requestOptions);
       });
@@ -16969,8 +16983,7 @@ var require_lib = __commonJS((exports) => {
               response.result = obj;
             }
             response.headers = res.message.headers;
-          } catch (err) {
-          }
+          } catch (err) {}
           if (statusCode > 299) {
             let msg;
             if (obj && obj.message) {
@@ -17153,8 +17166,10 @@ var require_oidc_utils = __commonJS((exports) => {
       return __awaiter(this, undefined, undefined, function* () {
         const httpclient = OidcClient.createHttpClient();
         const res = yield httpclient.getJson(id_token_url).catch((error) => {
-          throw new Error(`Failed to get ID Token. \n 
-        Error Code : ${error.statusCode}\n 
+          throw new Error(`Failed to get ID Token. 
+ 
+        Error Code : ${error.statusCode}
+ 
         Error Message: ${error.message}`);
         });
         const id_token = (_a = res.result) === null || _a === undefined ? undefined : _a.value;
@@ -17233,7 +17248,7 @@ var require_summary = __commonJS((exports) => {
         }
         const pathFromEnv = process.env[exports.SUMMARY_ENV_VAR];
         if (!pathFromEnv) {
-          throw new Error(`Unable to find environment variable for \$${exports.SUMMARY_ENV_VAR}. Check if your runtime environment supports job summaries.`);
+          throw new Error(`Unable to find environment variable for $${exports.SUMMARY_ENV_VAR}. Check if your runtime environment supports job summaries.`);
         }
         try {
           yield access(pathFromEnv, fs_1.constants.R_OK | fs_1.constants.W_OK);
@@ -18508,7 +18523,8 @@ var require_platform = __commonJS((exports) => {
     const { stdout } = yield exec.getExecOutput("lsb_release", ["-i", "-r", "-s"], {
       silent: true
     });
-    const [name, version] = stdout.trim().split("\n");
+    const [name, version] = stdout.trim().split(`
+`);
     return {
       name,
       version
@@ -18607,12 +18623,12 @@ var require_core = __commonJS((exports) => {
     ExitCode2[ExitCode2["Success"] = 0] = "Success";
     ExitCode2[ExitCode2["Failure"] = 1] = "Failure";
   })(ExitCode || (exports.ExitCode = ExitCode = {}));
-  function exportVariable(name, val2) {
-    const convertedVal = (0, utils_1.toCommandValue)(val2);
+  function exportVariable(name, val) {
+    const convertedVal = (0, utils_1.toCommandValue)(val);
     process.env[name] = convertedVal;
     const filePath = process.env["GITHUB_ENV"] || "";
     if (filePath) {
-      return (0, file_command_1.issueFileCommand)("ENV", (0, file_command_1.prepareKeyValueMessage)(name, val2));
+      return (0, file_command_1.issueFileCommand)("ENV", (0, file_command_1.prepareKeyValueMessage)(name, val));
     }
     (0, command_1.issueCommand)("set-env", { name }, convertedVal);
   }
@@ -18632,18 +18648,19 @@ var require_core = __commonJS((exports) => {
   }
   exports.addPath = addPath;
   function getInput(name, options) {
-    const val2 = process.env[`INPUT_${name.replace(/ /g, "_").toUpperCase()}`] || "";
-    if (options && options.required && !val2) {
+    const val = process.env[`INPUT_${name.replace(/ /g, "_").toUpperCase()}`] || "";
+    if (options && options.required && !val) {
       throw new Error(`Input required and not supplied: ${name}`);
     }
     if (options && options.trimWhitespace === false) {
-      return val2;
+      return val;
     }
-    return val2.trim();
+    return val.trim();
   }
   exports.getInput = getInput;
   function getMultilineInput(name, options) {
-    const inputs = getInput(name, options).split("\n").filter((x) => x !== "");
+    const inputs = getInput(name, options).split(`
+`).filter((x) => x !== "");
     if (options && options.trimWhitespace === false) {
       return inputs;
     }
@@ -18653,12 +18670,13 @@ var require_core = __commonJS((exports) => {
   function getBooleanInput(name, options) {
     const trueValue = ["true", "True", "TRUE"];
     const falseValue = ["false", "False", "FALSE"];
-    const val2 = getInput(name, options);
-    if (trueValue.includes(val2))
+    const val = getInput(name, options);
+    if (trueValue.includes(val))
       return true;
-    if (falseValue.includes(val2))
+    if (falseValue.includes(val))
       return false;
-    throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}\n` + `Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
+    throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}
+` + `Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
   }
   exports.getBooleanInput = getBooleanInput;
   function setOutput(name, value) {
@@ -18771,6 +18789,7 @@ var require_config = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getUploadChunkTimeout = exports.getConcurrency = exports.getGitHubWorkspaceDir = exports.isGhes = exports.getResultsServiceUrl = exports.getRuntimeToken = exports.getUploadChunkSize = undefined;
   var os_1 = __importDefault(__require("os"));
+  var core_1 = require_core();
   function getUploadChunkSize() {
     return 8 * 1024 * 1024;
   }
@@ -18810,15 +18829,37 @@ var require_config = __commonJS((exports) => {
   exports.getGitHubWorkspaceDir = getGitHubWorkspaceDir;
   function getConcurrency() {
     const numCPUs = os_1.default.cpus().length;
-    if (numCPUs <= 4) {
-      return 32;
+    let concurrencyCap = 32;
+    if (numCPUs > 4) {
+      const concurrency = 16 * numCPUs;
+      concurrencyCap = concurrency > 300 ? 300 : concurrency;
     }
-    const concurrency = 16 * numCPUs;
-    return concurrency > 300 ? 300 : concurrency;
+    const concurrencyOverride = process.env["ACTIONS_ARTIFACT_UPLOAD_CONCURRENCY"];
+    if (concurrencyOverride) {
+      const concurrency = parseInt(concurrencyOverride);
+      if (isNaN(concurrency) || concurrency < 1) {
+        throw new Error("Invalid value set for ACTIONS_ARTIFACT_UPLOAD_CONCURRENCY env variable");
+      }
+      if (concurrency < concurrencyCap) {
+        (0, core_1.info)(`Set concurrency based on the value set in ACTIONS_ARTIFACT_UPLOAD_CONCURRENCY.`);
+        return concurrency;
+      }
+      (0, core_1.info)(`ACTIONS_ARTIFACT_UPLOAD_CONCURRENCY is higher than the cap of ${concurrencyCap} based on the number of cpus. Set it to the maximum value allowed.`);
+      return concurrencyCap;
+    }
+    return 5;
   }
   exports.getConcurrency = getConcurrency;
   function getUploadChunkTimeout() {
-    return 300000;
+    const timeoutVar = process.env["ACTIONS_ARTIFACT_UPLOAD_TIMEOUT_MS"];
+    if (!timeoutVar) {
+      return 300000;
+    }
+    const timeout = parseInt(timeoutVar);
+    if (isNaN(timeout)) {
+      throw new Error("Invalid value set for ACTIONS_ARTIFACT_UPLOAD_TIMEOUT_MS env variable");
+    }
+    return timeout;
   }
   exports.getUploadChunkTimeout = getUploadChunkTimeout;
 });
@@ -18852,8 +18893,8 @@ var require_base64 = __commonJS((exports) => {
   var decTable = [];
   for (let i = 0;i < encTable.length; i++)
     decTable[encTable[i].charCodeAt(0)] = i;
-  decTable["-".charCodeAt(0)] = encTable.indexOf("+");
-  decTable["_".charCodeAt(0)] = encTable.indexOf("/");
+  decTable[45] = encTable.indexOf("+");
+  decTable[95] = encTable.indexOf("/");
   function base64decode(base64Str) {
     let es = base64Str.length * 3 / 4;
     if (base64Str[base64Str.length - 2] == "=")
@@ -18867,7 +18908,8 @@ var require_base64 = __commonJS((exports) => {
         switch (base64Str[i]) {
           case "=":
             groupPos = 0;
-          case "\n":
+          case `
+`:
           case "\r":
           case "\t":
           case " ":
@@ -19402,8 +19444,7 @@ var require_binary_reader = __commonJS((exports) => {
       let start = this.pos;
       switch (wireType) {
         case binary_format_contract_1.WireType.Varint:
-          while (this.buf[this.pos++] & 128) {
-          }
+          while (this.buf[this.pos++] & 128) {}
           break;
         case binary_format_contract_1.WireType.Bit64:
           this.pos += 4;
@@ -20171,26 +20212,26 @@ var require_reflection_json_reader = __commonJS((exports) => {
           const fieldObj = target[localName];
           for (const [jsonObjKey, jsonObjValue] of Object.entries(jsonValue)) {
             this.assert(jsonObjValue !== null, field.name + " map value", null);
-            let val2;
+            let val;
             switch (field.V.kind) {
               case "message":
-                val2 = field.V.T().internalJsonRead(jsonObjValue, options);
+                val = field.V.T().internalJsonRead(jsonObjValue, options);
                 break;
               case "enum":
-                val2 = this.enum(field.V.T(), jsonObjValue, field.name, options.ignoreUnknownFields);
-                if (val2 === false)
+                val = this.enum(field.V.T(), jsonObjValue, field.name, options.ignoreUnknownFields);
+                if (val === false)
                   continue;
                 break;
               case "scalar":
-                val2 = this.scalar(jsonObjValue, field.V.T, field.V.L, field.name);
+                val = this.scalar(jsonObjValue, field.V.T, field.V.L, field.name);
                 break;
             }
-            this.assert(val2 !== undefined, field.name + " map value", jsonObjValue);
+            this.assert(val !== undefined, field.name + " map value", jsonObjValue);
             let key = jsonObjKey;
             if (field.K == reflection_info_1.ScalarType.BOOL)
               key = key == "true" ? true : key == "false" ? false : key;
             key = this.scalar(key, field.K, reflection_info_1.LongType.STRING, field.name).toString();
-            fieldObj[key] = val2;
+            fieldObj[key] = val;
           }
         } else if (field.repeat) {
           if (jsonValue === null)
@@ -20199,22 +20240,22 @@ var require_reflection_json_reader = __commonJS((exports) => {
           const fieldArr = target[localName];
           for (const jsonItem of jsonValue) {
             this.assert(jsonItem !== null, field.name, null);
-            let val2;
+            let val;
             switch (field.kind) {
               case "message":
-                val2 = field.T().internalJsonRead(jsonItem, options);
+                val = field.T().internalJsonRead(jsonItem, options);
                 break;
               case "enum":
-                val2 = this.enum(field.T(), jsonItem, field.name, options.ignoreUnknownFields);
-                if (val2 === false)
+                val = this.enum(field.T(), jsonItem, field.name, options.ignoreUnknownFields);
+                if (val === false)
                   continue;
                 break;
               case "scalar":
-                val2 = this.scalar(jsonItem, field.T, field.L, field.name);
+                val = this.scalar(jsonItem, field.T, field.L, field.name);
                 break;
             }
-            this.assert(val2 !== undefined, field.name, jsonValue);
-            fieldArr.push(val2);
+            this.assert(val !== undefined, field.name, jsonValue);
+            fieldArr.push(val);
           }
         } else {
           switch (field.kind) {
@@ -20226,12 +20267,16 @@ var require_reflection_json_reader = __commonJS((exports) => {
               target[localName] = field.T().internalJsonRead(jsonValue, options, target[localName]);
               break;
             case "enum":
-              let val2 = this.enum(field.T(), jsonValue, field.name, options.ignoreUnknownFields);
-              if (val2 === false)
+              if (jsonValue === null)
                 continue;
-              target[localName] = val2;
+              let val = this.enum(field.T(), jsonValue, field.name, options.ignoreUnknownFields);
+              if (val === false)
+                continue;
+              target[localName] = val;
               break;
             case "scalar":
+              if (jsonValue === null)
+                continue;
               target[localName] = this.scalar(jsonValue, field.T, field.L, field.name);
               break;
           }
@@ -20414,26 +20459,26 @@ var require_reflection_json_writer = __commonJS((exports) => {
         switch (field.V.kind) {
           case "scalar":
             for (const [entryKey, entryValue] of Object.entries(value)) {
-              const val2 = this.scalar(field.V.T, entryValue, field.name, false, true);
-              assert_1.assert(val2 !== undefined);
-              jsonObj[entryKey.toString()] = val2;
+              const val = this.scalar(field.V.T, entryValue, field.name, false, true);
+              assert_1.assert(val !== undefined);
+              jsonObj[entryKey.toString()] = val;
             }
             break;
           case "message":
             const messageType = field.V.T();
             for (const [entryKey, entryValue] of Object.entries(value)) {
-              const val2 = this.message(messageType, entryValue, field.name, options);
-              assert_1.assert(val2 !== undefined);
-              jsonObj[entryKey.toString()] = val2;
+              const val = this.message(messageType, entryValue, field.name, options);
+              assert_1.assert(val !== undefined);
+              jsonObj[entryKey.toString()] = val;
             }
             break;
           case "enum":
             const enumInfo = field.V.T();
             for (const [entryKey, entryValue] of Object.entries(value)) {
               assert_1.assert(entryValue === undefined || typeof entryValue == "number");
-              const val2 = this.enum(enumInfo, entryValue, field.name, false, true, options.enumAsInteger);
-              assert_1.assert(val2 !== undefined);
-              jsonObj[entryKey.toString()] = val2;
+              const val = this.enum(enumInfo, entryValue, field.name, false, true, options.enumAsInteger);
+              assert_1.assert(val !== undefined);
+              jsonObj[entryKey.toString()] = val;
             }
             break;
         }
@@ -20445,26 +20490,26 @@ var require_reflection_json_writer = __commonJS((exports) => {
         switch (field.kind) {
           case "scalar":
             for (let i = 0;i < value.length; i++) {
-              const val2 = this.scalar(field.T, value[i], field.name, field.opt, true);
-              assert_1.assert(val2 !== undefined);
-              jsonArr.push(val2);
+              const val = this.scalar(field.T, value[i], field.name, field.opt, true);
+              assert_1.assert(val !== undefined);
+              jsonArr.push(val);
             }
             break;
           case "enum":
             const enumInfo = field.T();
             for (let i = 0;i < value.length; i++) {
               assert_1.assert(value[i] === undefined || typeof value[i] == "number");
-              const val2 = this.enum(enumInfo, value[i], field.name, field.opt, true, options.enumAsInteger);
-              assert_1.assert(val2 !== undefined);
-              jsonArr.push(val2);
+              const val = this.enum(enumInfo, value[i], field.name, field.opt, true, options.enumAsInteger);
+              assert_1.assert(val !== undefined);
+              jsonArr.push(val);
             }
             break;
           case "message":
             const messageType = field.T();
             for (let i = 0;i < value.length; i++) {
-              const val2 = this.message(messageType, value[i], field.name, options);
-              assert_1.assert(val2 !== undefined);
-              jsonArr.push(val2);
+              const val = this.message(messageType, value[i], field.name, options);
+              assert_1.assert(val !== undefined);
+              jsonArr.push(val);
             }
             break;
         }
@@ -20685,7 +20730,7 @@ var require_reflection_binary_reader = __commonJS((exports) => {
       let length = reader.uint32();
       let end = reader.pos + length;
       let key = undefined;
-      let val2 = undefined;
+      let val = undefined;
       while (reader.pos < end) {
         let [fieldNo, wireType] = reader.tag();
         switch (fieldNo) {
@@ -20698,13 +20743,13 @@ var require_reflection_binary_reader = __commonJS((exports) => {
           case 2:
             switch (field.V.kind) {
               case "scalar":
-                val2 = this.scalar(reader, field.V.T, field.V.L);
+                val = this.scalar(reader, field.V.T, field.V.L);
                 break;
               case "enum":
-                val2 = reader.int32();
+                val = reader.int32();
                 break;
               case "message":
-                val2 = field.V.T().internalBinaryRead(reader, reader.uint32(), options);
+                val = field.V.T().internalBinaryRead(reader, reader.uint32(), options);
                 break;
             }
             break;
@@ -20716,19 +20761,19 @@ var require_reflection_binary_reader = __commonJS((exports) => {
         let keyRaw = reflection_scalar_default_1.reflectionScalarDefault(field.K);
         key = field.K == reflection_info_1.ScalarType.BOOL ? keyRaw.toString() : keyRaw;
       }
-      if (val2 === undefined)
+      if (val === undefined)
         switch (field.V.kind) {
           case "scalar":
-            val2 = reflection_scalar_default_1.reflectionScalarDefault(field.V.T, field.V.L);
+            val = reflection_scalar_default_1.reflectionScalarDefault(field.V.T, field.V.L);
             break;
           case "enum":
-            val2 = 0;
+            val = 0;
             break;
           case "message":
-            val2 = field.V.T().create();
+            val = field.V.T().create();
             break;
         }
-      return [key, val2];
+      return [key, val];
     }
     scalar(reader, type, longType) {
       switch (type) {
@@ -20828,8 +20873,8 @@ var require_reflection_binary_writer = __commonJS((exports) => {
             break;
           case "map":
             assert_1.assert(typeof value == "object" && value !== null);
-            for (const [key, val2] of Object.entries(value))
-              this.mapEntry(writer, options, field, key, val2);
+            for (const [key, val] of Object.entries(value))
+              this.mapEntry(writer, options, field, key, val);
             break;
         }
       }
@@ -21293,11 +21338,11 @@ var require_enum_object = __commonJS((exports) => {
   }
   exports.listEnumValues = listEnumValues;
   function listEnumNames(enumObject) {
-    return listEnumValues(enumObject).map((val2) => val2.name);
+    return listEnumValues(enumObject).map((val) => val.name);
   }
   exports.listEnumNames = listEnumNames;
   function listEnumNumbers(enumObject) {
-    return listEnumValues(enumObject).map((val2) => val2.number).filter((num, index, arr) => arr.indexOf(num) == index);
+    return listEnumValues(enumObject).map((val) => val.number).filter((num, index, arr) => arr.indexOf(num) == index);
   }
   exports.listEnumNumbers = listEnumNumbers;
 });
@@ -22178,7 +22223,8 @@ var require_rpc_error = __commonJS((exports) => {
           l.push(`  ${k}: ${v}`);
         }
       }
-      return l.join("\n");
+      return l.join(`
+`);
     }
   }
   exports.RpcError = RpcError;
@@ -22196,7 +22242,7 @@ var require_rpc_options = __commonJS((exports) => {
     copy(defaults, o);
     copy(options, o);
     for (let key of Object.keys(options)) {
-      let val2 = options[key];
+      let val = options[key];
       switch (key) {
         case "jsonOptions":
           o.jsonOptions = runtime_1.mergeJsonOptions(defaults.jsonOptions, o.jsonOptions);
@@ -22210,7 +22256,7 @@ var require_rpc_options = __commonJS((exports) => {
           copy(options.meta, o.meta);
           break;
         case "interceptors":
-          o.interceptors = defaults.interceptors ? defaults.interceptors.concat(val2) : val2.concat();
+          o.interceptors = defaults.interceptors ? defaults.interceptors.concat(val) : val.concat();
           break;
       }
     }
@@ -22251,8 +22297,7 @@ var require_deferred = __commonJS((exports) => {
         this._reject = reject;
       });
       if (preventUnhandledRejectionWarning) {
-        this._promise.catch((_2) => {
-        });
+        this._promise.catch((_2) => {});
       }
     }
     get state() {
@@ -22273,9 +22318,9 @@ var require_deferred = __commonJS((exports) => {
       this._reject(reason);
       this._state = DeferredState.REJECTED;
     }
-    resolvePending(val2) {
+    resolvePending(val) {
       if (this._state === DeferredState.PENDING)
-        this.resolve(val2);
+        this.resolve(val);
     }
     rejectPending(reason) {
       if (this._state === DeferredState.PENDING)
@@ -22301,6 +22346,7 @@ var require_rpc_output_stream = __commonJS((exports) => {
         cmp: []
       };
       this._closed = false;
+      this._itState = { q: [] };
     }
     onNext(callback) {
       return this.addLis(callback, this._lis.nxt);
@@ -22361,9 +22407,6 @@ var require_rpc_output_stream = __commonJS((exports) => {
       this.clearLis();
     }
     [Symbol.asyncIterator]() {
-      if (!this._itState) {
-        this._itState = { q: [] };
-      }
       if (this._closed === true)
         this.pushIt({ value: null, done: true });
       else if (this._closed !== false)
@@ -22383,8 +22426,6 @@ var require_rpc_output_stream = __commonJS((exports) => {
     }
     pushIt(result) {
       let state = this._itState;
-      if (!state)
-        return;
       if (state.p) {
         const p = state.p;
         runtime_1.assert(p.state == deferred_1.DeferredState.PENDING, "iterator contract broken");
@@ -22789,8 +22830,7 @@ var require_test_transport = __commonJS((exports) => {
     maybeSuppressUncaught(...promise) {
       if (this.suppressUncaughtRejections) {
         for (let p of promise) {
-          p.catch(() => {
-          });
+          p.catch(() => {});
         }
       }
     }
@@ -22799,36 +22839,28 @@ var require_test_transport = __commonJS((exports) => {
     }
     unary(method, input, options) {
       var _a;
-      const requestHeaders = (_a = options.meta) !== null && _a !== undefined ? _a : {}, headersPromise = this.promiseHeaders().then(delay(this.headerDelay, options.abort)), responsePromise = headersPromise.catch((_2) => {
-      }).then(delay(this.responseDelay, options.abort)).then((_2) => this.promiseSingleResponse(method)), statusPromise = responsePromise.catch((_2) => {
-      }).then(delay(this.afterResponseDelay, options.abort)).then((_2) => this.promiseStatus()), trailersPromise = responsePromise.catch((_2) => {
-      }).then(delay(this.afterResponseDelay, options.abort)).then((_2) => this.promiseTrailers());
+      const requestHeaders = (_a = options.meta) !== null && _a !== undefined ? _a : {}, headersPromise = this.promiseHeaders().then(delay(this.headerDelay, options.abort)), responsePromise = headersPromise.catch((_2) => {}).then(delay(this.responseDelay, options.abort)).then((_2) => this.promiseSingleResponse(method)), statusPromise = responsePromise.catch((_2) => {}).then(delay(this.afterResponseDelay, options.abort)).then((_2) => this.promiseStatus()), trailersPromise = responsePromise.catch((_2) => {}).then(delay(this.afterResponseDelay, options.abort)).then((_2) => this.promiseTrailers());
       this.maybeSuppressUncaught(statusPromise, trailersPromise);
       this.lastInput = { single: input };
       return new unary_call_1.UnaryCall(method, requestHeaders, input, headersPromise, responsePromise, statusPromise, trailersPromise);
     }
     serverStreaming(method, input, options) {
       var _a;
-      const requestHeaders = (_a = options.meta) !== null && _a !== undefined ? _a : {}, headersPromise = this.promiseHeaders().then(delay(this.headerDelay, options.abort)), outputStream = new rpc_output_stream_1.RpcOutputStreamController, responseStreamClosedPromise = headersPromise.then(delay(this.responseDelay, options.abort)).catch(() => {
-      }).then(() => this.streamResponses(method, outputStream, options.abort)).then(delay(this.afterResponseDelay, options.abort)), statusPromise = responseStreamClosedPromise.then(() => this.promiseStatus()), trailersPromise = responseStreamClosedPromise.then(() => this.promiseTrailers());
+      const requestHeaders = (_a = options.meta) !== null && _a !== undefined ? _a : {}, headersPromise = this.promiseHeaders().then(delay(this.headerDelay, options.abort)), outputStream = new rpc_output_stream_1.RpcOutputStreamController, responseStreamClosedPromise = headersPromise.then(delay(this.responseDelay, options.abort)).catch(() => {}).then(() => this.streamResponses(method, outputStream, options.abort)).then(delay(this.afterResponseDelay, options.abort)), statusPromise = responseStreamClosedPromise.then(() => this.promiseStatus()), trailersPromise = responseStreamClosedPromise.then(() => this.promiseTrailers());
       this.maybeSuppressUncaught(statusPromise, trailersPromise);
       this.lastInput = { single: input };
       return new server_streaming_call_1.ServerStreamingCall(method, requestHeaders, input, headersPromise, outputStream, statusPromise, trailersPromise);
     }
     clientStreaming(method, options) {
       var _a;
-      const requestHeaders = (_a = options.meta) !== null && _a !== undefined ? _a : {}, headersPromise = this.promiseHeaders().then(delay(this.headerDelay, options.abort)), responsePromise = headersPromise.catch((_2) => {
-      }).then(delay(this.responseDelay, options.abort)).then((_2) => this.promiseSingleResponse(method)), statusPromise = responsePromise.catch((_2) => {
-      }).then(delay(this.afterResponseDelay, options.abort)).then((_2) => this.promiseStatus()), trailersPromise = responsePromise.catch((_2) => {
-      }).then(delay(this.afterResponseDelay, options.abort)).then((_2) => this.promiseTrailers());
+      const requestHeaders = (_a = options.meta) !== null && _a !== undefined ? _a : {}, headersPromise = this.promiseHeaders().then(delay(this.headerDelay, options.abort)), responsePromise = headersPromise.catch((_2) => {}).then(delay(this.responseDelay, options.abort)).then((_2) => this.promiseSingleResponse(method)), statusPromise = responsePromise.catch((_2) => {}).then(delay(this.afterResponseDelay, options.abort)).then((_2) => this.promiseStatus()), trailersPromise = responsePromise.catch((_2) => {}).then(delay(this.afterResponseDelay, options.abort)).then((_2) => this.promiseTrailers());
       this.maybeSuppressUncaught(statusPromise, trailersPromise);
       this.lastInput = new TestInputStream(this.data, options.abort);
       return new client_streaming_call_1.ClientStreamingCall(method, requestHeaders, this.lastInput, headersPromise, responsePromise, statusPromise, trailersPromise);
     }
     duplex(method, options) {
       var _a;
-      const requestHeaders = (_a = options.meta) !== null && _a !== undefined ? _a : {}, headersPromise = this.promiseHeaders().then(delay(this.headerDelay, options.abort)), outputStream = new rpc_output_stream_1.RpcOutputStreamController, responseStreamClosedPromise = headersPromise.then(delay(this.responseDelay, options.abort)).catch(() => {
-      }).then(() => this.streamResponses(method, outputStream, options.abort)).then(delay(this.afterResponseDelay, options.abort)), statusPromise = responseStreamClosedPromise.then(() => this.promiseStatus()), trailersPromise = responseStreamClosedPromise.then(() => this.promiseTrailers());
+      const requestHeaders = (_a = options.meta) !== null && _a !== undefined ? _a : {}, headersPromise = this.promiseHeaders().then(delay(this.headerDelay, options.abort)), outputStream = new rpc_output_stream_1.RpcOutputStreamController, responseStreamClosedPromise = headersPromise.then(delay(this.responseDelay, options.abort)).catch(() => {}).then(() => this.streamResponses(method, outputStream, options.abort)).then(delay(this.afterResponseDelay, options.abort)), statusPromise = responseStreamClosedPromise.then(() => this.promiseStatus()), trailersPromise = responseStreamClosedPromise.then(() => this.promiseTrailers());
       this.maybeSuppressUncaught(statusPromise, trailersPromise);
       this.lastInput = new TestInputStream(this.data, options.abort);
       return new duplex_streaming_call_1.DuplexStreamingCall(method, requestHeaders, this.lastInput, headersPromise, outputStream, statusPromise, trailersPromise);
@@ -23079,7 +23111,7 @@ var require_commonjs2 = __commonJS((exports) => {
 // ../node_modules/@actions/artifact/lib/generated/results/api/v1/artifact.js
 var require_artifact = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.ArtifactService = exports.DeleteArtifactResponse = exports.DeleteArtifactRequest = exports.GetSignedArtifactURLResponse = exports.GetSignedArtifactURLRequest = exports.ListArtifactsResponse_MonolithArtifact = exports.ListArtifactsResponse = exports.ListArtifactsRequest = exports.FinalizeArtifactResponse = exports.FinalizeArtifactRequest = exports.CreateArtifactResponse = exports.CreateArtifactRequest = undefined;
+  exports.ArtifactService = exports.DeleteArtifactResponse = exports.DeleteArtifactRequest = exports.GetSignedArtifactURLResponse = exports.GetSignedArtifactURLRequest = exports.ListArtifactsResponse_MonolithArtifact = exports.ListArtifactsResponse = exports.ListArtifactsRequest = exports.FinalizeArtifactResponse = exports.FinalizeArtifactRequest = exports.CreateArtifactResponse = exports.CreateArtifactRequest = exports.FinalizeMigratedArtifactResponse = exports.FinalizeMigratedArtifactRequest = exports.MigrateArtifactResponse = exports.MigrateArtifactRequest = undefined;
   var runtime_rpc_1 = require_commonjs2();
   var runtime_1 = require_commonjs();
   var runtime_2 = require_commonjs();
@@ -23089,6 +23121,214 @@ var require_artifact = __commonJS((exports) => {
   var wrappers_1 = require_wrappers();
   var wrappers_2 = require_wrappers();
   var timestamp_1 = require_timestamp();
+
+  class MigrateArtifactRequest$Type extends runtime_5.MessageType {
+    constructor() {
+      super("github.actions.results.api.v1.MigrateArtifactRequest", [
+        { no: 1, name: "workflow_run_backend_id", kind: "scalar", T: 9 },
+        { no: 2, name: "name", kind: "scalar", T: 9 },
+        { no: 3, name: "expires_at", kind: "message", T: () => timestamp_1.Timestamp }
+      ]);
+    }
+    create(value) {
+      const message = { workflowRunBackendId: "", name: "" };
+      globalThis.Object.defineProperty(message, runtime_4.MESSAGE_TYPE, { enumerable: false, value: this });
+      if (value !== undefined)
+        (0, runtime_3.reflectionMergePartial)(this, message, value);
+      return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+      let message = target !== null && target !== undefined ? target : this.create(), end = reader.pos + length;
+      while (reader.pos < end) {
+        let [fieldNo, wireType] = reader.tag();
+        switch (fieldNo) {
+          case 1:
+            message.workflowRunBackendId = reader.string();
+            break;
+          case 2:
+            message.name = reader.string();
+            break;
+          case 3:
+            message.expiresAt = timestamp_1.Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+            break;
+          default:
+            let u = options.readUnknownField;
+            if (u === "throw")
+              throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+            let d = reader.skip(wireType);
+            if (u !== false)
+              (u === true ? runtime_2.UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+        }
+      }
+      return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+      if (message.workflowRunBackendId !== "")
+        writer.tag(1, runtime_1.WireType.LengthDelimited).string(message.workflowRunBackendId);
+      if (message.name !== "")
+        writer.tag(2, runtime_1.WireType.LengthDelimited).string(message.name);
+      if (message.expiresAt)
+        timestamp_1.Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(3, runtime_1.WireType.LengthDelimited).fork(), options).join();
+      let u = options.writeUnknownFields;
+      if (u !== false)
+        (u == true ? runtime_2.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+      return writer;
+    }
+  }
+  exports.MigrateArtifactRequest = new MigrateArtifactRequest$Type;
+
+  class MigrateArtifactResponse$Type extends runtime_5.MessageType {
+    constructor() {
+      super("github.actions.results.api.v1.MigrateArtifactResponse", [
+        { no: 1, name: "ok", kind: "scalar", T: 8 },
+        { no: 2, name: "signed_upload_url", kind: "scalar", T: 9 }
+      ]);
+    }
+    create(value) {
+      const message = { ok: false, signedUploadUrl: "" };
+      globalThis.Object.defineProperty(message, runtime_4.MESSAGE_TYPE, { enumerable: false, value: this });
+      if (value !== undefined)
+        (0, runtime_3.reflectionMergePartial)(this, message, value);
+      return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+      let message = target !== null && target !== undefined ? target : this.create(), end = reader.pos + length;
+      while (reader.pos < end) {
+        let [fieldNo, wireType] = reader.tag();
+        switch (fieldNo) {
+          case 1:
+            message.ok = reader.bool();
+            break;
+          case 2:
+            message.signedUploadUrl = reader.string();
+            break;
+          default:
+            let u = options.readUnknownField;
+            if (u === "throw")
+              throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+            let d = reader.skip(wireType);
+            if (u !== false)
+              (u === true ? runtime_2.UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+        }
+      }
+      return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+      if (message.ok !== false)
+        writer.tag(1, runtime_1.WireType.Varint).bool(message.ok);
+      if (message.signedUploadUrl !== "")
+        writer.tag(2, runtime_1.WireType.LengthDelimited).string(message.signedUploadUrl);
+      let u = options.writeUnknownFields;
+      if (u !== false)
+        (u == true ? runtime_2.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+      return writer;
+    }
+  }
+  exports.MigrateArtifactResponse = new MigrateArtifactResponse$Type;
+
+  class FinalizeMigratedArtifactRequest$Type extends runtime_5.MessageType {
+    constructor() {
+      super("github.actions.results.api.v1.FinalizeMigratedArtifactRequest", [
+        { no: 1, name: "workflow_run_backend_id", kind: "scalar", T: 9 },
+        { no: 2, name: "name", kind: "scalar", T: 9 },
+        { no: 3, name: "size", kind: "scalar", T: 3 }
+      ]);
+    }
+    create(value) {
+      const message = { workflowRunBackendId: "", name: "", size: "0" };
+      globalThis.Object.defineProperty(message, runtime_4.MESSAGE_TYPE, { enumerable: false, value: this });
+      if (value !== undefined)
+        (0, runtime_3.reflectionMergePartial)(this, message, value);
+      return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+      let message = target !== null && target !== undefined ? target : this.create(), end = reader.pos + length;
+      while (reader.pos < end) {
+        let [fieldNo, wireType] = reader.tag();
+        switch (fieldNo) {
+          case 1:
+            message.workflowRunBackendId = reader.string();
+            break;
+          case 2:
+            message.name = reader.string();
+            break;
+          case 3:
+            message.size = reader.int64().toString();
+            break;
+          default:
+            let u = options.readUnknownField;
+            if (u === "throw")
+              throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+            let d = reader.skip(wireType);
+            if (u !== false)
+              (u === true ? runtime_2.UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+        }
+      }
+      return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+      if (message.workflowRunBackendId !== "")
+        writer.tag(1, runtime_1.WireType.LengthDelimited).string(message.workflowRunBackendId);
+      if (message.name !== "")
+        writer.tag(2, runtime_1.WireType.LengthDelimited).string(message.name);
+      if (message.size !== "0")
+        writer.tag(3, runtime_1.WireType.Varint).int64(message.size);
+      let u = options.writeUnknownFields;
+      if (u !== false)
+        (u == true ? runtime_2.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+      return writer;
+    }
+  }
+  exports.FinalizeMigratedArtifactRequest = new FinalizeMigratedArtifactRequest$Type;
+
+  class FinalizeMigratedArtifactResponse$Type extends runtime_5.MessageType {
+    constructor() {
+      super("github.actions.results.api.v1.FinalizeMigratedArtifactResponse", [
+        { no: 1, name: "ok", kind: "scalar", T: 8 },
+        { no: 2, name: "artifact_id", kind: "scalar", T: 3 }
+      ]);
+    }
+    create(value) {
+      const message = { ok: false, artifactId: "0" };
+      globalThis.Object.defineProperty(message, runtime_4.MESSAGE_TYPE, { enumerable: false, value: this });
+      if (value !== undefined)
+        (0, runtime_3.reflectionMergePartial)(this, message, value);
+      return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+      let message = target !== null && target !== undefined ? target : this.create(), end = reader.pos + length;
+      while (reader.pos < end) {
+        let [fieldNo, wireType] = reader.tag();
+        switch (fieldNo) {
+          case 1:
+            message.ok = reader.bool();
+            break;
+          case 2:
+            message.artifactId = reader.int64().toString();
+            break;
+          default:
+            let u = options.readUnknownField;
+            if (u === "throw")
+              throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+            let d = reader.skip(wireType);
+            if (u !== false)
+              (u === true ? runtime_2.UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+        }
+      }
+      return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+      if (message.ok !== false)
+        writer.tag(1, runtime_1.WireType.Varint).bool(message.ok);
+      if (message.artifactId !== "0")
+        writer.tag(2, runtime_1.WireType.Varint).int64(message.artifactId);
+      let u = options.writeUnknownFields;
+      if (u !== false)
+        (u == true ? runtime_2.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+      return writer;
+    }
+  }
+  exports.FinalizeMigratedArtifactResponse = new FinalizeMigratedArtifactResponse$Type;
 
   class CreateArtifactRequest$Type extends runtime_5.MessageType {
     constructor() {
@@ -23434,7 +23674,8 @@ var require_artifact = __commonJS((exports) => {
         { no: 3, name: "database_id", kind: "scalar", T: 3 },
         { no: 4, name: "name", kind: "scalar", T: 9 },
         { no: 5, name: "size", kind: "scalar", T: 3 },
-        { no: 6, name: "created_at", kind: "message", T: () => timestamp_1.Timestamp }
+        { no: 6, name: "created_at", kind: "message", T: () => timestamp_1.Timestamp },
+        { no: 7, name: "digest", kind: "message", T: () => wrappers_2.StringValue }
       ]);
     }
     create(value) {
@@ -23467,6 +23708,9 @@ var require_artifact = __commonJS((exports) => {
           case 6:
             message.createdAt = timestamp_1.Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
             break;
+          case 7:
+            message.digest = wrappers_2.StringValue.internalBinaryRead(reader, reader.uint32(), options, message.digest);
+            break;
           default:
             let u = options.readUnknownField;
             if (u === "throw")
@@ -23491,6 +23735,8 @@ var require_artifact = __commonJS((exports) => {
         writer.tag(5, runtime_1.WireType.Varint).int64(message.size);
       if (message.createdAt)
         timestamp_1.Timestamp.internalBinaryWrite(message.createdAt, writer.tag(6, runtime_1.WireType.LengthDelimited).fork(), options).join();
+      if (message.digest)
+        wrappers_2.StringValue.internalBinaryWrite(message.digest, writer.tag(7, runtime_1.WireType.LengthDelimited).fork(), options).join();
       let u = options.writeUnknownFields;
       if (u !== false)
         (u == true ? runtime_2.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -23705,1350 +23951,16 @@ var require_artifact = __commonJS((exports) => {
     { name: "FinalizeArtifact", options: {}, I: exports.FinalizeArtifactRequest, O: exports.FinalizeArtifactResponse },
     { name: "ListArtifacts", options: {}, I: exports.ListArtifactsRequest, O: exports.ListArtifactsResponse },
     { name: "GetSignedArtifactURL", options: {}, I: exports.GetSignedArtifactURLRequest, O: exports.GetSignedArtifactURLResponse },
-    { name: "DeleteArtifact", options: {}, I: exports.DeleteArtifactRequest, O: exports.DeleteArtifactResponse }
+    { name: "DeleteArtifact", options: {}, I: exports.DeleteArtifactRequest, O: exports.DeleteArtifactResponse },
+    { name: "MigrateArtifact", options: {}, I: exports.MigrateArtifactRequest, O: exports.MigrateArtifactResponse },
+    { name: "FinalizeMigratedArtifact", options: {}, I: exports.FinalizeMigratedArtifactRequest, O: exports.FinalizeMigratedArtifactResponse }
   ]);
 });
 
-// ../node_modules/twirp-ts/build/twirp/context.js
-var require_context = __commonJS((exports) => {
+// ../node_modules/@actions/artifact/lib/generated/results/api/v1/artifact.twirp-client.js
+var require_artifact_twirp_client = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-});
-
-// ../node_modules/twirp-ts/build/twirp/hooks.js
-var require_hooks = __commonJS((exports) => {
-  var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.isHook = exports.chainHooks = undefined;
-  function chainHooks(...hooks) {
-    if (hooks.length === 0) {
-      return null;
-    }
-    if (hooks.length === 1) {
-      return hooks[0];
-    }
-    const serverHook = {
-      requestReceived(ctx) {
-        return __awaiter(this, undefined, undefined, function* () {
-          for (const hook of hooks) {
-            if (!hook.requestReceived) {
-              continue;
-            }
-            yield hook.requestReceived(ctx);
-          }
-        });
-      },
-      requestPrepared(ctx) {
-        return __awaiter(this, undefined, undefined, function* () {
-          for (const hook of hooks) {
-            if (!hook.requestPrepared) {
-              continue;
-            }
-            console.warn("hook requestPrepared is deprecated and will be removed in the next release. " + "Please use responsePrepared instead.");
-            yield hook.requestPrepared(ctx);
-          }
-        });
-      },
-      responsePrepared(ctx) {
-        return __awaiter(this, undefined, undefined, function* () {
-          for (const hook of hooks) {
-            if (!hook.responsePrepared) {
-              continue;
-            }
-            yield hook.responsePrepared(ctx);
-          }
-        });
-      },
-      requestSent(ctx) {
-        return __awaiter(this, undefined, undefined, function* () {
-          for (const hook of hooks) {
-            if (!hook.requestSent) {
-              continue;
-            }
-            console.warn("hook requestSent is deprecated and will be removed in the next release. " + "Please use responseSent instead.");
-            yield hook.requestSent(ctx);
-          }
-        });
-      },
-      responseSent(ctx) {
-        return __awaiter(this, undefined, undefined, function* () {
-          for (const hook of hooks) {
-            if (!hook.responseSent) {
-              continue;
-            }
-            yield hook.responseSent(ctx);
-          }
-        });
-      },
-      requestRouted(ctx) {
-        return __awaiter(this, undefined, undefined, function* () {
-          for (const hook of hooks) {
-            if (!hook.requestRouted) {
-              continue;
-            }
-            yield hook.requestRouted(ctx);
-          }
-        });
-      },
-      error(ctx, err) {
-        return __awaiter(this, undefined, undefined, function* () {
-          for (const hook of hooks) {
-            if (!hook.error) {
-              continue;
-            }
-            yield hook.error(ctx, err);
-          }
-        });
-      }
-    };
-    return serverHook;
-  }
-  exports.chainHooks = chainHooks;
-  function isHook(object) {
-    return "requestReceived" in object || "requestPrepared" in object || "requestSent" in object || "requestRouted" in object || "responsePrepared" in object || "responseSent" in object || "error" in object;
-  }
-  exports.isHook = isHook;
-});
-
-// ../node_modules/twirp-ts/build/twirp/errors.js
-var require_errors2 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.isValidErrorCode = exports.httpStatusFromErrorCode = exports.TwirpErrorCode = exports.BadRouteError = exports.InternalServerErrorWith = exports.InternalServerError = exports.RequiredArgumentError = exports.InvalidArgumentError = exports.NotFoundError = exports.TwirpError = undefined;
-
-  class TwirpError extends Error {
-    constructor(code, msg) {
-      super(msg);
-      this.code = TwirpErrorCode.Internal;
-      this.meta = {};
-      this.code = code;
-      this.msg = msg;
-      Object.setPrototypeOf(this, TwirpError.prototype);
-    }
-    withMeta(key, value) {
-      this.meta[key] = value;
-      return this;
-    }
-    getMeta(key) {
-      return this.meta[key] || "";
-    }
-    withCause(err, addMeta = false) {
-      this._originalCause = err;
-      if (addMeta) {
-        this.withMeta("cause", err.message);
-      }
-      return this;
-    }
-    cause() {
-      return this._originalCause;
-    }
-    toJSON() {
-      try {
-        return JSON.stringify({
-          code: this.code,
-          msg: this.msg,
-          meta: this.meta
-        });
-      } catch (e) {
-        return `{"code": "internal", "msg": "There was an error but it could not be serialized into JSON"}`;
-      }
-    }
-    static fromObject(obj) {
-      const code = obj["code"] || TwirpErrorCode.Unknown;
-      const msg = obj["msg"] || "unknown";
-      const error = new TwirpError(code, msg);
-      if (obj["meta"]) {
-        Object.keys(obj["meta"]).forEach((key) => {
-          error.withMeta(key, obj["meta"][key]);
-        });
-      }
-      return error;
-    }
-  }
-  exports.TwirpError = TwirpError;
-
-  class NotFoundError extends TwirpError {
-    constructor(msg) {
-      super(TwirpErrorCode.NotFound, msg);
-    }
-  }
-  exports.NotFoundError = NotFoundError;
-
-  class InvalidArgumentError extends TwirpError {
-    constructor(argument, validationMsg) {
-      super(TwirpErrorCode.InvalidArgument, argument + " " + validationMsg);
-      this.withMeta("argument", argument);
-    }
-  }
-  exports.InvalidArgumentError = InvalidArgumentError;
-
-  class RequiredArgumentError extends InvalidArgumentError {
-    constructor(argument) {
-      super(argument, "is required");
-    }
-  }
-  exports.RequiredArgumentError = RequiredArgumentError;
-
-  class InternalServerError extends TwirpError {
-    constructor(msg) {
-      super(TwirpErrorCode.Internal, msg);
-    }
-  }
-  exports.InternalServerError = InternalServerError;
-
-  class InternalServerErrorWith extends InternalServerError {
-    constructor(err) {
-      super(err.message);
-      this.withMeta("cause", err.name);
-      this.withCause(err);
-    }
-  }
-  exports.InternalServerErrorWith = InternalServerErrorWith;
-
-  class BadRouteError extends TwirpError {
-    constructor(msg, method, url) {
-      super(TwirpErrorCode.BadRoute, msg);
-      this.withMeta("twirp_invalid_route", method + " " + url);
-    }
-  }
-  exports.BadRouteError = BadRouteError;
-  var TwirpErrorCode;
-  (function(TwirpErrorCode2) {
-    TwirpErrorCode2["Canceled"] = "canceled";
-    TwirpErrorCode2["Unknown"] = "unknown";
-    TwirpErrorCode2["InvalidArgument"] = "invalid_argument";
-    TwirpErrorCode2["Malformed"] = "malformed";
-    TwirpErrorCode2["DeadlineExceeded"] = "deadline_exceeded";
-    TwirpErrorCode2["NotFound"] = "not_found";
-    TwirpErrorCode2["BadRoute"] = "bad_route";
-    TwirpErrorCode2["AlreadyExists"] = "already_exists";
-    TwirpErrorCode2["PermissionDenied"] = "permission_denied";
-    TwirpErrorCode2["Unauthenticated"] = "unauthenticated";
-    TwirpErrorCode2["ResourceExhausted"] = "resource_exhausted";
-    TwirpErrorCode2["FailedPrecondition"] = "failed_precondition";
-    TwirpErrorCode2["Aborted"] = "aborted";
-    TwirpErrorCode2["OutOfRange"] = "out_of_range";
-    TwirpErrorCode2["Unimplemented"] = "unimplemented";
-    TwirpErrorCode2["Internal"] = "internal";
-    TwirpErrorCode2["Unavailable"] = "unavailable";
-    TwirpErrorCode2["DataLoss"] = "data_loss";
-  })(TwirpErrorCode = exports.TwirpErrorCode || (exports.TwirpErrorCode = {}));
-  function httpStatusFromErrorCode(code) {
-    switch (code) {
-      case TwirpErrorCode.Canceled:
-        return 408;
-      case TwirpErrorCode.Unknown:
-        return 500;
-      case TwirpErrorCode.InvalidArgument:
-        return 400;
-      case TwirpErrorCode.Malformed:
-        return 400;
-      case TwirpErrorCode.DeadlineExceeded:
-        return 408;
-      case TwirpErrorCode.NotFound:
-        return 404;
-      case TwirpErrorCode.BadRoute:
-        return 404;
-      case TwirpErrorCode.AlreadyExists:
-        return 409;
-      case TwirpErrorCode.PermissionDenied:
-        return 403;
-      case TwirpErrorCode.Unauthenticated:
-        return 401;
-      case TwirpErrorCode.ResourceExhausted:
-        return 429;
-      case TwirpErrorCode.FailedPrecondition:
-        return 412;
-      case TwirpErrorCode.Aborted:
-        return 409;
-      case TwirpErrorCode.OutOfRange:
-        return 400;
-      case TwirpErrorCode.Unimplemented:
-        return 501;
-      case TwirpErrorCode.Internal:
-        return 500;
-      case TwirpErrorCode.Unavailable:
-        return 503;
-      case TwirpErrorCode.DataLoss:
-        return 500;
-      default:
-        return 0;
-    }
-  }
-  exports.httpStatusFromErrorCode = httpStatusFromErrorCode;
-  function isValidErrorCode(code) {
-    return httpStatusFromErrorCode(code) != 0;
-  }
-  exports.isValidErrorCode = isValidErrorCode;
-});
-
-// ../node_modules/twirp-ts/build/twirp/request.js
-var require_request3 = __commonJS((exports) => {
-  var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.parseTwirpPath = exports.getRequestData = exports.validateRequest = exports.getContentType = exports.TwirpContentType = undefined;
-  var errors_1 = require_errors2();
-  var TwirpContentType;
-  (function(TwirpContentType2) {
-    TwirpContentType2[TwirpContentType2["Protobuf"] = 0] = "Protobuf";
-    TwirpContentType2[TwirpContentType2["JSON"] = 1] = "JSON";
-    TwirpContentType2[TwirpContentType2["Unknown"] = 2] = "Unknown";
-  })(TwirpContentType = exports.TwirpContentType || (exports.TwirpContentType = {}));
-  function getContentType(mimeType) {
-    switch (mimeType) {
-      case "application/protobuf":
-        return TwirpContentType.Protobuf;
-      case "application/json":
-        return TwirpContentType.JSON;
-      default:
-        return TwirpContentType.Unknown;
-    }
-  }
-  exports.getContentType = getContentType;
-  function validateRequest(ctx, request, pathPrefix) {
-    if (request.method !== "POST") {
-      const msg = `unsupported method ${request.method} (only POST is allowed)`;
-      throw new errors_1.BadRouteError(msg, request.method || "", request.url || "");
-    }
-    const path = parseTwirpPath(request.url || "");
-    if (path.pkgService !== (ctx.packageName ? ctx.packageName + "." : "") + ctx.serviceName) {
-      const msg = `no handler for path ${request.url}`;
-      throw new errors_1.BadRouteError(msg, request.method || "", request.url || "");
-    }
-    if (path.prefix !== pathPrefix) {
-      const msg = `invalid path prefix ${path.prefix}, expected ${pathPrefix}, on path ${request.url}`;
-      throw new errors_1.BadRouteError(msg, request.method || "", request.url || "");
-    }
-    const mimeContentType = request.headers["content-type"] || "";
-    if (ctx.contentType === TwirpContentType.Unknown) {
-      const msg = `unexpected Content-Type: ${request.headers["content-type"]}`;
-      throw new errors_1.BadRouteError(msg, request.method || "", request.url || "");
-    }
-    return Object.assign(Object.assign({}, path), { mimeContentType, contentType: ctx.contentType });
-  }
-  exports.validateRequest = validateRequest;
-  function getRequestData(req) {
-    return new Promise((resolve, reject) => {
-      const reqWithRawBody = req;
-      if (reqWithRawBody.rawBody instanceof Buffer) {
-        resolve(reqWithRawBody.rawBody);
-        return;
-      }
-      const chunks = [];
-      req.on("data", (chunk) => chunks.push(chunk));
-      req.on("end", () => __awaiter(this, undefined, undefined, function* () {
-        const data = Buffer.concat(chunks);
-        resolve(data);
-      }));
-      req.on("error", (err) => {
-        if (req.aborted) {
-          reject(new errors_1.TwirpError(errors_1.TwirpErrorCode.DeadlineExceeded, "failed to read request: deadline exceeded"));
-        } else {
-          reject(new errors_1.TwirpError(errors_1.TwirpErrorCode.Malformed, err.message).withCause(err));
-        }
-      });
-      req.on("close", () => {
-        reject(new errors_1.TwirpError(errors_1.TwirpErrorCode.Canceled, "failed to read request: context canceled"));
-      });
-    });
-  }
-  exports.getRequestData = getRequestData;
-  function parseTwirpPath(path) {
-    const parts = path.split("/");
-    if (parts.length < 2) {
-      return {
-        pkgService: "",
-        method: "",
-        prefix: ""
-      };
-    }
-    return {
-      method: parts[parts.length - 1],
-      pkgService: parts[parts.length - 2],
-      prefix: parts.slice(0, parts.length - 2).join("/")
-    };
-  }
-  exports.parseTwirpPath = parseTwirpPath;
-});
-
-// ../node_modules/twirp-ts/build/twirp/server.js
-var require_server = __commonJS((exports) => {
-  var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.writeError = exports.TwirpServer = undefined;
-  var hooks_1 = require_hooks();
-  var request_1 = require_request3();
-  var errors_1 = require_errors2();
-
-  class TwirpServer {
-    constructor(options) {
-      this.pathPrefix = "/twirp";
-      this.hooks = [];
-      this.interceptors = [];
-      this.packageName = options.packageName;
-      this.serviceName = options.serviceName;
-      this.methodList = options.methodList;
-      this.matchRoute = options.matchRoute;
-      this.service = options.service;
-    }
-    get prefix() {
-      return this.pathPrefix;
-    }
-    httpHandler(options) {
-      return (req, resp) => {
-        if ((options === null || options === undefined ? undefined : options.prefix) !== undefined) {
-          this.withPrefix(options.prefix);
-        }
-        return this._httpHandler(req, resp);
-      };
-    }
-    use(...middlewares) {
-      middlewares.forEach((middleware) => {
-        if (hooks_1.isHook(middleware)) {
-          this.hooks.push(middleware);
-          return this;
-        }
-        this.interceptors.push(middleware);
-      });
-      return this;
-    }
-    withPrefix(prefix) {
-      if (prefix === false) {
-        this.pathPrefix = "";
-      } else {
-        this.pathPrefix = prefix;
-      }
-      return this;
-    }
-    matchingPath() {
-      const baseRegex = this.baseURI().replace(/\./g, "\\.");
-      return new RegExp(`${baseRegex}/(${this.methodList.join("|")})`);
-    }
-    baseURI() {
-      return `${this.pathPrefix}/${this.packageName ? this.packageName + "." : ""}${this.serviceName}`;
-    }
-    createContext(req, res) {
-      return {
-        packageName: this.packageName,
-        serviceName: this.serviceName,
-        methodName: "",
-        contentType: request_1.getContentType(req.headers["content-type"]),
-        req,
-        res
-      };
-    }
-    _httpHandler(req, resp) {
-      return __awaiter(this, undefined, undefined, function* () {
-        const ctx = this.createContext(req, resp);
-        try {
-          yield this.invokeHook("requestReceived", ctx);
-          const { method, mimeContentType } = request_1.validateRequest(ctx, req, this.pathPrefix || "");
-          const handler = this.matchRoute(method, {
-            onMatch: (ctx2) => {
-              return this.invokeHook("requestRouted", ctx2);
-            },
-            onNotFound: () => {
-              const msg = `no handler for path ${req.url}`;
-              throw new errors_1.BadRouteError(msg, req.method || "", req.url || "");
-            }
-          });
-          const body = yield request_1.getRequestData(req);
-          const response = yield handler(ctx, this.service, body, this.interceptors);
-          yield Promise.all([
-            this.invokeHook("responsePrepared", ctx),
-            this.invokeHook("requestPrepared", ctx)
-          ]);
-          resp.statusCode = 200;
-          resp.setHeader("Content-Type", mimeContentType);
-          resp.end(response);
-        } catch (e) {
-          yield this.invokeHook("error", ctx, mustBeTwirpError(e));
-          if (!resp.headersSent) {
-            writeError(resp, e);
-          }
-        } finally {
-          yield Promise.all([
-            this.invokeHook("responseSent", ctx),
-            this.invokeHook("requestSent", ctx)
-          ]);
-        }
-      });
-    }
-    invokeHook(hookName, ctx, err) {
-      return __awaiter(this, undefined, undefined, function* () {
-        if (this.hooks.length === 0) {
-          return;
-        }
-        const chainedHooks = hooks_1.chainHooks(...this.hooks);
-        const hook = chainedHooks === null || chainedHooks === undefined ? undefined : chainedHooks[hookName];
-        if (hook) {
-          yield hook(ctx, err || new errors_1.InternalServerError("internal server error"));
-        }
-      });
-    }
-  }
-  exports.TwirpServer = TwirpServer;
-  function writeError(res, error) {
-    const twirpError = mustBeTwirpError(error);
-    res.setHeader("Content-Type", "application/json");
-    res.statusCode = errors_1.httpStatusFromErrorCode(twirpError.code);
-    res.end(twirpError.toJSON());
-  }
-  exports.writeError = writeError;
-  function mustBeTwirpError(err) {
-    if (err instanceof errors_1.TwirpError) {
-      return err;
-    }
-    return new errors_1.InternalServerErrorWith(err);
-  }
-});
-
-// ../node_modules/twirp-ts/build/twirp/interceptors.js
-var require_interceptors = __commonJS((exports) => {
-  var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.chainInterceptors = undefined;
-  function chainInterceptors(...interceptors) {
-    if (interceptors.length === 0) {
-      return;
-    }
-    if (interceptors.length === 1) {
-      return interceptors[0];
-    }
-    const first = interceptors[0];
-    return (ctx, request, handler) => __awaiter(this, undefined, undefined, function* () {
-      let next = handler;
-      for (let i = interceptors.length - 1;i > 0; i--) {
-        next = ((next2) => (ctx2, typedRequest) => {
-          return interceptors[i](ctx2, typedRequest, next2);
-        })(next);
-      }
-      return first(ctx, request, next);
-    });
-  }
-  exports.chainInterceptors = chainInterceptors;
-});
-
-// ../node_modules/dot-object/index.js
-var require_dot_object = __commonJS((exports, module) => {
-  function _process(v, mod) {
-    var i;
-    var r;
-    if (typeof mod === "function") {
-      r = mod(v);
-      if (r !== undefined) {
-        v = r;
-      }
-    } else if (Array.isArray(mod)) {
-      for (i = 0;i < mod.length; i++) {
-        r = mod[i](v);
-        if (r !== undefined) {
-          v = r;
-        }
-      }
-    }
-    return v;
-  }
-  function parseKey(key, val2) {
-    if (key[0] === "-" && Array.isArray(val2) && /^-\d+$/.test(key)) {
-      return val2.length + parseInt(key, 10);
-    }
-    return key;
-  }
-  function isIndex(k) {
-    return /^\d+$/.test(k);
-  }
-  function isObject(val2) {
-    return Object.prototype.toString.call(val2) === "[object Object]";
-  }
-  function isArrayOrObject(val2) {
-    return Object(val2) === val2;
-  }
-  function isEmptyObject(val2) {
-    return Object.keys(val2).length === 0;
-  }
-  var blacklist = ["__proto__", "prototype", "constructor"];
-  var blacklistFilter = function(part) {
-    return blacklist.indexOf(part) === -1;
-  };
-  function parsePath(path, sep) {
-    if (path.indexOf("[") >= 0) {
-      path = path.replace(/\[/g, sep).replace(/]/g, "");
-    }
-    var parts = path.split(sep);
-    var check = parts.filter(blacklistFilter);
-    if (check.length !== parts.length) {
-      throw Error("Refusing to update blacklisted property " + path);
-    }
-    return parts;
-  }
-  var hasOwnProperty = Object.prototype.hasOwnProperty;
-  function DotObject(separator, override, useArray, useBrackets) {
-    if (!(this instanceof DotObject)) {
-      return new DotObject(separator, override, useArray, useBrackets);
-    }
-    if (typeof override === "undefined")
-      override = false;
-    if (typeof useArray === "undefined")
-      useArray = true;
-    if (typeof useBrackets === "undefined")
-      useBrackets = true;
-    this.separator = separator || ".";
-    this.override = override;
-    this.useArray = useArray;
-    this.useBrackets = useBrackets;
-    this.keepArray = false;
-    this.cleanup = [];
-  }
-  var dotDefault = new DotObject(".", false, true, true);
-  function wrap(method) {
-    return function() {
-      return dotDefault[method].apply(dotDefault, arguments);
-    };
-  }
-  DotObject.prototype._fill = function(a, obj, v, mod) {
-    var k = a.shift();
-    if (a.length > 0) {
-      obj[k] = obj[k] || (this.useArray && isIndex(a[0]) ? [] : {});
-      if (!isArrayOrObject(obj[k])) {
-        if (this.override) {
-          obj[k] = {};
-        } else {
-          if (!(isArrayOrObject(v) && isEmptyObject(v))) {
-            throw new Error("Trying to redefine `" + k + "` which is a " + typeof obj[k]);
-          }
-          return;
-        }
-      }
-      this._fill(a, obj[k], v, mod);
-    } else {
-      if (!this.override && isArrayOrObject(obj[k]) && !isEmptyObject(obj[k])) {
-        if (!(isArrayOrObject(v) && isEmptyObject(v))) {
-          throw new Error("Trying to redefine non-empty obj['" + k + "']");
-        }
-        return;
-      }
-      obj[k] = _process(v, mod);
-    }
-  };
-  DotObject.prototype.object = function(obj, mods) {
-    var self2 = this;
-    Object.keys(obj).forEach(function(k) {
-      var mod = mods === undefined ? null : mods[k];
-      var ok = parsePath(k, self2.separator).join(self2.separator);
-      if (ok.indexOf(self2.separator) !== -1) {
-        self2._fill(ok.split(self2.separator), obj, obj[k], mod);
-        delete obj[k];
-      } else {
-        obj[k] = _process(obj[k], mod);
-      }
-    });
-    return obj;
-  };
-  DotObject.prototype.str = function(path, v, obj, mod) {
-    var ok = parsePath(path, this.separator).join(this.separator);
-    if (path.indexOf(this.separator) !== -1) {
-      this._fill(ok.split(this.separator), obj, v, mod);
-    } else {
-      obj[path] = _process(v, mod);
-    }
-    return obj;
-  };
-  DotObject.prototype.pick = function(path, obj, remove, reindexArray) {
-    var i;
-    var keys;
-    var val2;
-    var key;
-    var cp;
-    keys = parsePath(path, this.separator);
-    for (i = 0;i < keys.length; i++) {
-      key = parseKey(keys[i], obj);
-      if (obj && typeof obj === "object" && key in obj) {
-        if (i === keys.length - 1) {
-          if (remove) {
-            val2 = obj[key];
-            if (reindexArray && Array.isArray(obj)) {
-              obj.splice(key, 1);
-            } else {
-              delete obj[key];
-            }
-            if (Array.isArray(obj)) {
-              cp = keys.slice(0, -1).join(".");
-              if (this.cleanup.indexOf(cp) === -1) {
-                this.cleanup.push(cp);
-              }
-            }
-            return val2;
-          } else {
-            return obj[key];
-          }
-        } else {
-          obj = obj[key];
-        }
-      } else {
-        return;
-      }
-    }
-    if (remove && Array.isArray(obj)) {
-      obj = obj.filter(function(n) {
-        return n !== undefined;
-      });
-    }
-    return obj;
-  };
-  DotObject.prototype.delete = function(path, obj) {
-    return this.remove(path, obj, true);
-  };
-  DotObject.prototype.remove = function(path, obj, reindexArray) {
-    var i;
-    this.cleanup = [];
-    if (Array.isArray(path)) {
-      for (i = 0;i < path.length; i++) {
-        this.pick(path[i], obj, true, reindexArray);
-      }
-      if (!reindexArray) {
-        this._cleanup(obj);
-      }
-      return obj;
-    } else {
-      return this.pick(path, obj, true, reindexArray);
-    }
-  };
-  DotObject.prototype._cleanup = function(obj) {
-    var ret;
-    var i;
-    var keys;
-    var root;
-    if (this.cleanup.length) {
-      for (i = 0;i < this.cleanup.length; i++) {
-        keys = this.cleanup[i].split(".");
-        root = keys.splice(0, -1).join(".");
-        ret = root ? this.pick(root, obj) : obj;
-        ret = ret[keys[0]].filter(function(v) {
-          return v !== undefined;
-        });
-        this.set(this.cleanup[i], ret, obj);
-      }
-      this.cleanup = [];
-    }
-  };
-  DotObject.prototype.del = DotObject.prototype.remove;
-  DotObject.prototype.move = function(source, target, obj, mods, merge) {
-    if (typeof mods === "function" || Array.isArray(mods)) {
-      this.set(target, _process(this.pick(source, obj, true), mods), obj, merge);
-    } else {
-      merge = mods;
-      this.set(target, this.pick(source, obj, true), obj, merge);
-    }
-    return obj;
-  };
-  DotObject.prototype.transfer = function(source, target, obj1, obj2, mods, merge) {
-    if (typeof mods === "function" || Array.isArray(mods)) {
-      this.set(target, _process(this.pick(source, obj1, true), mods), obj2, merge);
-    } else {
-      merge = mods;
-      this.set(target, this.pick(source, obj1, true), obj2, merge);
-    }
-    return obj2;
-  };
-  DotObject.prototype.copy = function(source, target, obj1, obj2, mods, merge) {
-    if (typeof mods === "function" || Array.isArray(mods)) {
-      this.set(target, _process(JSON.parse(JSON.stringify(this.pick(source, obj1, false))), mods), obj2, merge);
-    } else {
-      merge = mods;
-      this.set(target, this.pick(source, obj1, false), obj2, merge);
-    }
-    return obj2;
-  };
-  DotObject.prototype.set = function(path, val2, obj, merge) {
-    var i;
-    var k;
-    var keys;
-    var key;
-    if (typeof val2 === "undefined") {
-      return obj;
-    }
-    keys = parsePath(path, this.separator);
-    for (i = 0;i < keys.length; i++) {
-      key = keys[i];
-      if (i === keys.length - 1) {
-        if (merge && isObject(val2) && isObject(obj[key])) {
-          for (k in val2) {
-            if (hasOwnProperty.call(val2, k)) {
-              obj[key][k] = val2[k];
-            }
-          }
-        } else if (merge && Array.isArray(obj[key]) && Array.isArray(val2)) {
-          for (var j = 0;j < val2.length; j++) {
-            obj[keys[i]].push(val2[j]);
-          }
-        } else {
-          obj[key] = val2;
-        }
-      } else if (!hasOwnProperty.call(obj, key) || !isObject(obj[key]) && !Array.isArray(obj[key])) {
-        if (/^\d+$/.test(keys[i + 1])) {
-          obj[key] = [];
-        } else {
-          obj[key] = {};
-        }
-      }
-      obj = obj[key];
-    }
-    return obj;
-  };
-  DotObject.prototype.transform = function(recipe, obj, tgt) {
-    obj = obj || {};
-    tgt = tgt || {};
-    Object.keys(recipe).forEach(function(key) {
-      this.set(recipe[key], this.pick(key, obj), tgt);
-    }.bind(this));
-    return tgt;
-  };
-  DotObject.prototype.dot = function(obj, tgt, path) {
-    tgt = tgt || {};
-    path = path || [];
-    var isArray = Array.isArray(obj);
-    Object.keys(obj).forEach(function(key) {
-      var index = isArray && this.useBrackets ? "[" + key + "]" : key;
-      if (isArrayOrObject(obj[key]) && (isObject(obj[key]) && !isEmptyObject(obj[key]) || Array.isArray(obj[key]) && !this.keepArray && obj[key].length !== 0)) {
-        if (isArray && this.useBrackets) {
-          var previousKey = path[path.length - 1] || "";
-          return this.dot(obj[key], tgt, path.slice(0, -1).concat(previousKey + index));
-        } else {
-          return this.dot(obj[key], tgt, path.concat(index));
-        }
-      } else {
-        if (isArray && this.useBrackets) {
-          tgt[path.join(this.separator).concat("[" + key + "]")] = obj[key];
-        } else {
-          tgt[path.concat(index).join(this.separator)] = obj[key];
-        }
-      }
-    }.bind(this));
-    return tgt;
-  };
-  DotObject.pick = wrap("pick");
-  DotObject.move = wrap("move");
-  DotObject.transfer = wrap("transfer");
-  DotObject.transform = wrap("transform");
-  DotObject.copy = wrap("copy");
-  DotObject.object = wrap("object");
-  DotObject.str = wrap("str");
-  DotObject.set = wrap("set");
-  DotObject.delete = wrap("delete");
-  DotObject.del = DotObject.remove = wrap("remove");
-  DotObject.dot = wrap("dot");
-  ["override", "overwrite"].forEach(function(prop) {
-    Object.defineProperty(DotObject, prop, {
-      get: function() {
-        return dotDefault.override;
-      },
-      set: function(val2) {
-        dotDefault.override = !!val2;
-      }
-    });
-  });
-  ["useArray", "keepArray", "useBrackets"].forEach(function(prop) {
-    Object.defineProperty(DotObject, prop, {
-      get: function() {
-        return dotDefault[prop];
-      },
-      set: function(val2) {
-        dotDefault[prop] = val2;
-      }
-    });
-  });
-  DotObject._process = _process;
-  module.exports = DotObject;
-});
-
-// ../node_modules/twirp-ts/build/twirp/http.client.js
-var require_http_client = __commonJS((exports) => {
-  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() {
-      return m[k];
-    } });
-  } : function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    o[k2] = m[k];
-  });
-  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-  } : function(o, v) {
-    o["default"] = v;
-  });
-  var __importStar = exports && exports.__importStar || function(mod) {
-    if (mod && mod.__esModule)
-      return mod;
-    var result = {};
-    if (mod != null) {
-      for (var k in mod)
-        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
-          __createBinding(result, mod, k);
-    }
-    __setModuleDefault(result, mod);
-    return result;
-  };
-  var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.FetchRPC = exports.wrapErrorResponseToTwirpError = exports.NodeHttpRPC = undefined;
-  var http = __importStar(__require("http"));
-  var https = __importStar(__require("https"));
-  var url_1 = __require("url");
-  var errors_1 = require_errors2();
-  var NodeHttpRPC = (options) => ({
-    request(service, method, contentType, data) {
-      let client;
-      return new Promise((resolve, rejected) => {
-        const responseChunks = [];
-        const requestData = contentType === "application/protobuf" ? Buffer.from(data) : JSON.stringify(data);
-        const url = new url_1.URL(options.baseUrl);
-        const isHttps = url.protocol === "https:";
-        if (isHttps) {
-          client = https;
-        } else {
-          client = http;
-        }
-        const prefix = url.pathname !== "/" ? url.pathname : "";
-        const req = client.request(Object.assign(Object.assign({}, options ? options : {}), { method: "POST", protocol: url.protocol, host: url.hostname, port: url.port ? url.port : isHttps ? 443 : 80, path: `${prefix}/${service}/${method}`, headers: Object.assign(Object.assign({}, options.headers ? options.headers : {}), { "Content-Type": contentType, "Content-Length": contentType === "application/protobuf" ? Buffer.byteLength(requestData) : Buffer.from(requestData).byteLength }) }), (res) => {
-          res.on("data", (chunk) => responseChunks.push(chunk));
-          res.on("end", () => {
-            const data2 = Buffer.concat(responseChunks);
-            if (res.statusCode != 200) {
-              rejected(wrapErrorResponseToTwirpError(data2.toString()));
-            } else {
-              if (contentType === "application/json") {
-                resolve(JSON.parse(data2.toString()));
-              } else {
-                resolve(data2);
-              }
-            }
-          });
-          res.on("error", (err) => {
-            rejected(err);
-          });
-        }).on("error", (err) => {
-          rejected(err);
-        });
-        req.end(requestData);
-      });
-    }
-  });
-  exports.NodeHttpRPC = NodeHttpRPC;
-  function wrapErrorResponseToTwirpError(errorResponse) {
-    return errors_1.TwirpError.fromObject(JSON.parse(errorResponse));
-  }
-  exports.wrapErrorResponseToTwirpError = wrapErrorResponseToTwirpError;
-  var FetchRPC = (options) => ({
-    request(service, method, contentType, data) {
-      return __awaiter(this, undefined, undefined, function* () {
-        const headers = new Headers(options.headers);
-        headers.set("content-type", contentType);
-        const response = yield fetch(`${options.baseUrl}/${service}/${method}`, Object.assign(Object.assign({}, options), { method: "POST", headers, body: data instanceof Uint8Array ? data : JSON.stringify(data) }));
-        if (response.status === 200) {
-          if (contentType === "application/json") {
-            return yield response.json();
-          }
-          return new Uint8Array(yield response.arrayBuffer());
-        }
-        throw errors_1.TwirpError.fromObject(yield response.json());
-      });
-    }
-  });
-  exports.FetchRPC = FetchRPC;
-});
-
-// ../node_modules/twirp-ts/build/twirp/gateway.js
-var require_gateway = __commonJS((exports) => {
-  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() {
-      return m[k];
-    } });
-  } : function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    o[k2] = m[k];
-  });
-  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-  } : function(o, v) {
-    o["default"] = v;
-  });
-  var __importStar = exports && exports.__importStar || function(mod) {
-    if (mod && mod.__esModule)
-      return mod;
-    var result = {};
-    if (mod != null) {
-      for (var k in mod)
-        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
-          __createBinding(result, mod, k);
-    }
-    __setModuleDefault(result, mod);
-    return result;
-  };
-  var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  var __rest = exports && exports.__rest || function(s, e) {
-    var t = {};
-    for (var p in s)
-      if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-      for (var i = 0, p = Object.getOwnPropertySymbols(s);i < p.length; i++) {
-        if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-          t[p[i]] = s[p[i]];
-      }
-    return t;
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.Gateway = exports.Pattern = undefined;
-  var querystring_1 = __require("querystring");
-  var dotObject = __importStar(require_dot_object());
-  var request_1 = require_request3();
-  var errors_1 = require_errors2();
-  var http_client_1 = require_http_client();
-  var server_1 = require_server();
-  var Pattern;
-  (function(Pattern2) {
-    Pattern2["POST"] = "post";
-    Pattern2["GET"] = "get";
-    Pattern2["PATCH"] = "patch";
-    Pattern2["PUT"] = "put";
-    Pattern2["DELETE"] = "delete";
-  })(Pattern = exports.Pattern || (exports.Pattern = {}));
-
-  class Gateway {
-    constructor(routes) {
-      this.routes = routes;
-    }
-    twirpRewrite(prefix = "/twirp") {
-      return (req, resp, next) => {
-        this.rewrite(req, resp, prefix).then(() => next()).catch((e) => {
-          if (e instanceof errors_1.TwirpError) {
-            if (e.code !== errors_1.TwirpErrorCode.NotFound) {
-              server_1.writeError(resp, e);
-            } else {
-              next();
-            }
-          }
-        });
-      };
-    }
-    rewrite(req, resp, prefix = "/twirp") {
-      return __awaiter(this, undefined, undefined, function* () {
-        const [match, route] = this.matchRoute(req);
-        const body = yield this.prepareTwirpBody(req, match, route);
-        const twirpUrl = `${prefix}/${route.packageName}.${route.serviceName}/${route.methodName}`;
-        req.url = twirpUrl;
-        req.originalUrl = twirpUrl;
-        req.method = "POST";
-        req.headers["content-type"] = "application/json";
-        req.rawBody = Buffer.from(JSON.stringify(body));
-        if (route.responseBodyKey) {
-          const endFn = resp.end.bind(resp);
-          resp.end = function(chunk) {
-            if (resp.statusCode === 200) {
-              endFn(`{ "${route.responseBodyKey}": ${chunk} }`);
-            } else {
-              endFn(chunk);
-            }
-          };
-        }
-      });
-    }
-    reverseProxy(httpClientOption) {
-      const client = http_client_1.NodeHttpRPC(httpClientOption);
-      return (req, res) => __awaiter(this, undefined, undefined, function* () {
-        try {
-          const [match, route] = this.matchRoute(req);
-          const body = yield this.prepareTwirpBody(req, match, route);
-          const response = yield client.request(`${route.packageName}.${route.serviceName}`, route.methodName, "application/json", body);
-          res.statusCode = 200;
-          res.setHeader("content-type", "application/json");
-          let jsonResponse;
-          if (route.responseBodyKey) {
-            jsonResponse = JSON.stringify({ [route.responseBodyKey]: response });
-          } else {
-            jsonResponse = JSON.stringify(response);
-          }
-          res.end(jsonResponse);
-        } catch (e) {
-          server_1.writeError(res, e);
-        }
-      });
-    }
-    prepareTwirpBody(req, match, route) {
-      return __awaiter(this, undefined, undefined, function* () {
-        const _a = match.params, { query_string } = _a, params = __rest(_a, ["query_string"]);
-        let requestBody = Object.assign({}, params);
-        if (query_string && route.bodyKey !== "*") {
-          const queryParams = this.parseQueryString(query_string);
-          requestBody = Object.assign(Object.assign({}, queryParams), requestBody);
-        }
-        let body = {};
-        if (route.bodyKey) {
-          const data = yield request_1.getRequestData(req);
-          try {
-            const jsonBody = JSON.parse(data.toString() || "{}");
-            if (route.bodyKey === "*") {
-              body = jsonBody;
-            } else {
-              body[route.bodyKey] = jsonBody;
-            }
-          } catch (e) {
-            const msg = "the json request could not be decoded";
-            throw new errors_1.TwirpError(errors_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-          }
-        }
-        return Object.assign(Object.assign({}, body), requestBody);
-      });
-    }
-    matchRoute(req) {
-      var _a;
-      const httpMethod = (_a = req.method) === null || _a === undefined ? undefined : _a.toLowerCase();
-      if (!httpMethod) {
-        throw new errors_1.BadRouteError(`method not allowed`, req.method || "", req.url || "");
-      }
-      const routes = this.routes[httpMethod];
-      for (const route of routes) {
-        const match = route.matcher(req.url || "/");
-        if (match) {
-          return [match, route];
-        }
-      }
-      throw new errors_1.NotFoundError(`url ${req.url} not found`);
-    }
-    parseQueryString(queryString) {
-      const queryParams = querystring_1.parse(queryString.replace("?", ""));
-      return dotObject.object(queryParams);
-    }
-  }
-  exports.Gateway = Gateway;
-});
-
-// ../node_modules/twirp-ts/build/twirp/index.js
-var require_twirp = __commonJS((exports) => {
-  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() {
-      return m[k];
-    } });
-  } : function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    o[k2] = m[k];
-  });
-  var __exportStar = exports && exports.__exportStar || function(m, exports2) {
-    for (var p in m)
-      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p))
-        __createBinding(exports2, m, p);
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.TwirpContentType = undefined;
-  __exportStar(require_context(), exports);
-  __exportStar(require_server(), exports);
-  __exportStar(require_interceptors(), exports);
-  __exportStar(require_hooks(), exports);
-  __exportStar(require_errors2(), exports);
-  __exportStar(require_gateway(), exports);
-  __exportStar(require_http_client(), exports);
-  var request_1 = require_request3();
-  Object.defineProperty(exports, "TwirpContentType", { enumerable: true, get: function() {
-    return request_1.TwirpContentType;
-  } });
-});
-
-// ../node_modules/@actions/artifact/lib/generated/results/api/v1/artifact.twirp.js
-var require_artifact_twirp = __commonJS((exports) => {
-  var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createArtifactServiceServer = exports.ArtifactServiceMethodList = exports.ArtifactServiceMethod = exports.ArtifactServiceClientProtobuf = exports.ArtifactServiceClientJSON = undefined;
-  var twirp_ts_1 = require_twirp();
+  exports.ArtifactServiceClientProtobuf = exports.ArtifactServiceClientJSON = undefined;
   var artifact_1 = require_artifact();
 
   class ArtifactServiceClientJSON {
@@ -25147,384 +24059,6 @@ var require_artifact_twirp = __commonJS((exports) => {
     }
   }
   exports.ArtifactServiceClientProtobuf = ArtifactServiceClientProtobuf;
-  var ArtifactServiceMethod;
-  (function(ArtifactServiceMethod2) {
-    ArtifactServiceMethod2["CreateArtifact"] = "CreateArtifact";
-    ArtifactServiceMethod2["FinalizeArtifact"] = "FinalizeArtifact";
-    ArtifactServiceMethod2["ListArtifacts"] = "ListArtifacts";
-    ArtifactServiceMethod2["GetSignedArtifactURL"] = "GetSignedArtifactURL";
-    ArtifactServiceMethod2["DeleteArtifact"] = "DeleteArtifact";
-  })(ArtifactServiceMethod || (exports.ArtifactServiceMethod = ArtifactServiceMethod = {}));
-  exports.ArtifactServiceMethodList = [
-    ArtifactServiceMethod.CreateArtifact,
-    ArtifactServiceMethod.FinalizeArtifact,
-    ArtifactServiceMethod.ListArtifacts,
-    ArtifactServiceMethod.GetSignedArtifactURL,
-    ArtifactServiceMethod.DeleteArtifact
-  ];
-  function createArtifactServiceServer(service) {
-    return new twirp_ts_1.TwirpServer({
-      service,
-      packageName: "github.actions.results.api.v1",
-      serviceName: "ArtifactService",
-      methodList: exports.ArtifactServiceMethodList,
-      matchRoute: matchArtifactServiceRoute
-    });
-  }
-  exports.createArtifactServiceServer = createArtifactServiceServer;
-  function matchArtifactServiceRoute(method, events) {
-    switch (method) {
-      case "CreateArtifact":
-        return (ctx, service, data, interceptors) => __awaiter(this, undefined, undefined, function* () {
-          ctx = Object.assign(Object.assign({}, ctx), { methodName: "CreateArtifact" });
-          yield events.onMatch(ctx);
-          return handleArtifactServiceCreateArtifactRequest(ctx, service, data, interceptors);
-        });
-      case "FinalizeArtifact":
-        return (ctx, service, data, interceptors) => __awaiter(this, undefined, undefined, function* () {
-          ctx = Object.assign(Object.assign({}, ctx), { methodName: "FinalizeArtifact" });
-          yield events.onMatch(ctx);
-          return handleArtifactServiceFinalizeArtifactRequest(ctx, service, data, interceptors);
-        });
-      case "ListArtifacts":
-        return (ctx, service, data, interceptors) => __awaiter(this, undefined, undefined, function* () {
-          ctx = Object.assign(Object.assign({}, ctx), { methodName: "ListArtifacts" });
-          yield events.onMatch(ctx);
-          return handleArtifactServiceListArtifactsRequest(ctx, service, data, interceptors);
-        });
-      case "GetSignedArtifactURL":
-        return (ctx, service, data, interceptors) => __awaiter(this, undefined, undefined, function* () {
-          ctx = Object.assign(Object.assign({}, ctx), { methodName: "GetSignedArtifactURL" });
-          yield events.onMatch(ctx);
-          return handleArtifactServiceGetSignedArtifactURLRequest(ctx, service, data, interceptors);
-        });
-      case "DeleteArtifact":
-        return (ctx, service, data, interceptors) => __awaiter(this, undefined, undefined, function* () {
-          ctx = Object.assign(Object.assign({}, ctx), { methodName: "DeleteArtifact" });
-          yield events.onMatch(ctx);
-          return handleArtifactServiceDeleteArtifactRequest(ctx, service, data, interceptors);
-        });
-      default:
-        events.onNotFound();
-        const msg = `no handler found`;
-        throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.BadRoute, msg);
-    }
-  }
-  function handleArtifactServiceCreateArtifactRequest(ctx, service, data, interceptors) {
-    switch (ctx.contentType) {
-      case twirp_ts_1.TwirpContentType.JSON:
-        return handleArtifactServiceCreateArtifactJSON(ctx, service, data, interceptors);
-      case twirp_ts_1.TwirpContentType.Protobuf:
-        return handleArtifactServiceCreateArtifactProtobuf(ctx, service, data, interceptors);
-      default:
-        const msg = "unexpected Content-Type";
-        throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.BadRoute, msg);
-    }
-  }
-  function handleArtifactServiceFinalizeArtifactRequest(ctx, service, data, interceptors) {
-    switch (ctx.contentType) {
-      case twirp_ts_1.TwirpContentType.JSON:
-        return handleArtifactServiceFinalizeArtifactJSON(ctx, service, data, interceptors);
-      case twirp_ts_1.TwirpContentType.Protobuf:
-        return handleArtifactServiceFinalizeArtifactProtobuf(ctx, service, data, interceptors);
-      default:
-        const msg = "unexpected Content-Type";
-        throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.BadRoute, msg);
-    }
-  }
-  function handleArtifactServiceListArtifactsRequest(ctx, service, data, interceptors) {
-    switch (ctx.contentType) {
-      case twirp_ts_1.TwirpContentType.JSON:
-        return handleArtifactServiceListArtifactsJSON(ctx, service, data, interceptors);
-      case twirp_ts_1.TwirpContentType.Protobuf:
-        return handleArtifactServiceListArtifactsProtobuf(ctx, service, data, interceptors);
-      default:
-        const msg = "unexpected Content-Type";
-        throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.BadRoute, msg);
-    }
-  }
-  function handleArtifactServiceGetSignedArtifactURLRequest(ctx, service, data, interceptors) {
-    switch (ctx.contentType) {
-      case twirp_ts_1.TwirpContentType.JSON:
-        return handleArtifactServiceGetSignedArtifactURLJSON(ctx, service, data, interceptors);
-      case twirp_ts_1.TwirpContentType.Protobuf:
-        return handleArtifactServiceGetSignedArtifactURLProtobuf(ctx, service, data, interceptors);
-      default:
-        const msg = "unexpected Content-Type";
-        throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.BadRoute, msg);
-    }
-  }
-  function handleArtifactServiceDeleteArtifactRequest(ctx, service, data, interceptors) {
-    switch (ctx.contentType) {
-      case twirp_ts_1.TwirpContentType.JSON:
-        return handleArtifactServiceDeleteArtifactJSON(ctx, service, data, interceptors);
-      case twirp_ts_1.TwirpContentType.Protobuf:
-        return handleArtifactServiceDeleteArtifactProtobuf(ctx, service, data, interceptors);
-      default:
-        const msg = "unexpected Content-Type";
-        throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.BadRoute, msg);
-    }
-  }
-  function handleArtifactServiceCreateArtifactJSON(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        const body = JSON.parse(data.toString() || "{}");
-        request = artifact_1.CreateArtifactRequest.fromJson(body, {
-          ignoreUnknownFields: true
-        });
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the json request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.CreateArtifact(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.CreateArtifact(ctx, request);
-      }
-      return JSON.stringify(artifact_1.CreateArtifactResponse.toJson(response, {
-        useProtoFieldName: true,
-        emitDefaultValues: false
-      }));
-    });
-  }
-  function handleArtifactServiceFinalizeArtifactJSON(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        const body = JSON.parse(data.toString() || "{}");
-        request = artifact_1.FinalizeArtifactRequest.fromJson(body, {
-          ignoreUnknownFields: true
-        });
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the json request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.FinalizeArtifact(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.FinalizeArtifact(ctx, request);
-      }
-      return JSON.stringify(artifact_1.FinalizeArtifactResponse.toJson(response, {
-        useProtoFieldName: true,
-        emitDefaultValues: false
-      }));
-    });
-  }
-  function handleArtifactServiceListArtifactsJSON(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        const body = JSON.parse(data.toString() || "{}");
-        request = artifact_1.ListArtifactsRequest.fromJson(body, {
-          ignoreUnknownFields: true
-        });
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the json request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.ListArtifacts(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.ListArtifacts(ctx, request);
-      }
-      return JSON.stringify(artifact_1.ListArtifactsResponse.toJson(response, {
-        useProtoFieldName: true,
-        emitDefaultValues: false
-      }));
-    });
-  }
-  function handleArtifactServiceGetSignedArtifactURLJSON(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        const body = JSON.parse(data.toString() || "{}");
-        request = artifact_1.GetSignedArtifactURLRequest.fromJson(body, {
-          ignoreUnknownFields: true
-        });
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the json request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.GetSignedArtifactURL(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.GetSignedArtifactURL(ctx, request);
-      }
-      return JSON.stringify(artifact_1.GetSignedArtifactURLResponse.toJson(response, {
-        useProtoFieldName: true,
-        emitDefaultValues: false
-      }));
-    });
-  }
-  function handleArtifactServiceDeleteArtifactJSON(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        const body = JSON.parse(data.toString() || "{}");
-        request = artifact_1.DeleteArtifactRequest.fromJson(body, {
-          ignoreUnknownFields: true
-        });
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the json request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.DeleteArtifact(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.DeleteArtifact(ctx, request);
-      }
-      return JSON.stringify(artifact_1.DeleteArtifactResponse.toJson(response, {
-        useProtoFieldName: true,
-        emitDefaultValues: false
-      }));
-    });
-  }
-  function handleArtifactServiceCreateArtifactProtobuf(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        request = artifact_1.CreateArtifactRequest.fromBinary(data);
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the protobuf request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.CreateArtifact(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.CreateArtifact(ctx, request);
-      }
-      return Buffer.from(artifact_1.CreateArtifactResponse.toBinary(response));
-    });
-  }
-  function handleArtifactServiceFinalizeArtifactProtobuf(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        request = artifact_1.FinalizeArtifactRequest.fromBinary(data);
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the protobuf request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.FinalizeArtifact(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.FinalizeArtifact(ctx, request);
-      }
-      return Buffer.from(artifact_1.FinalizeArtifactResponse.toBinary(response));
-    });
-  }
-  function handleArtifactServiceListArtifactsProtobuf(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        request = artifact_1.ListArtifactsRequest.fromBinary(data);
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the protobuf request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.ListArtifacts(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.ListArtifacts(ctx, request);
-      }
-      return Buffer.from(artifact_1.ListArtifactsResponse.toBinary(response));
-    });
-  }
-  function handleArtifactServiceGetSignedArtifactURLProtobuf(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        request = artifact_1.GetSignedArtifactURLRequest.fromBinary(data);
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the protobuf request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.GetSignedArtifactURL(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.GetSignedArtifactURL(ctx, request);
-      }
-      return Buffer.from(artifact_1.GetSignedArtifactURLResponse.toBinary(response));
-    });
-  }
-  function handleArtifactServiceDeleteArtifactProtobuf(ctx, service, data, interceptors) {
-    return __awaiter(this, undefined, undefined, function* () {
-      let request;
-      let response;
-      try {
-        request = artifact_1.DeleteArtifactRequest.fromBinary(data);
-      } catch (e) {
-        if (e instanceof Error) {
-          const msg = "the protobuf request could not be decoded";
-          throw new twirp_ts_1.TwirpError(twirp_ts_1.TwirpErrorCode.Malformed, msg).withCause(e, true);
-        }
-      }
-      if (interceptors && interceptors.length > 0) {
-        const interceptor = (0, twirp_ts_1.chainInterceptors)(...interceptors);
-        response = yield interceptor(ctx, request, (ctx2, inputReq) => {
-          return service.DeleteArtifact(ctx2, inputReq);
-        });
-      } else {
-        response = yield service.DeleteArtifact(ctx, request);
-      }
-      return Buffer.from(artifact_1.DeleteArtifactResponse.toBinary(response));
-    });
-  }
 });
 
 // ../node_modules/@actions/artifact/lib/generated/index.js
@@ -25553,7 +24087,7 @@ var require_generated = __commonJS((exports) => {
   __exportStar(require_timestamp(), exports);
   __exportStar(require_wrappers(), exports);
   __exportStar(require_artifact(), exports);
-  __exportStar(require_artifact_twirp(), exports);
+  __exportStar(require_artifact_twirp_client(), exports);
 });
 
 // ../node_modules/@actions/artifact/lib/internal/upload/retention.js
@@ -25635,7 +24169,8 @@ var require_path_and_artifact_name_validation = __commonJS((exports) => {
     ["*", " Asterisk *"],
     ["?", " Question mark ?"],
     ["\r", " Carriage return \\r"],
-    ["\n", " Line feed \\n"]
+    [`
+`, " Line feed \\n"]
   ]);
   var invalidArtifactNameCharacters = new Map([
     ...invalidArtifactFilePathCharacters,
@@ -25680,7 +24215,7 @@ The following characters are not allowed in files that are uploaded due to limit
 var require_package = __commonJS((exports, module) => {
   module.exports = {
     name: "@actions/artifact",
-    version: "2.1.11",
+    version: "2.3.2",
     preview: true,
     description: "Actions artifact lib",
     keywords: [
@@ -25731,7 +24266,6 @@ var require_package = __commonJS((exports, module) => {
       "@protobuf-ts/plugin": "^2.2.3-alpha.1",
       archiver: "^7.0.1",
       "jwt-decode": "^3.1.2",
-      "twirp-ts": "^2.5.0",
       "unzip-stream": "^0.3.1"
     },
     devDependencies: {
@@ -25756,7 +24290,7 @@ var require_user_agent = __commonJS((exports) => {
 });
 
 // ../node_modules/@actions/artifact/lib/internal/shared/errors.js
-var require_errors3 = __commonJS((exports) => {
+var require_errors2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.UsageError = exports.NetworkError = exports.GHESNotSupportedError = exports.ArtifactNotFoundError = exports.InvalidResponseError = exports.FilesNotFoundError = undefined;
 
@@ -25799,7 +24333,8 @@ var require_errors3 = __commonJS((exports) => {
 
   class NetworkError extends Error {
     constructor(code) {
-      const message = `Unable to make request: ${code}\nIf you are using self-hosted runners, please make sure your runner has access to all GitHub endpoints: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#communication-between-self-hosted-runners-and-github`;
+      const message = `Unable to make request: ${code}
+If you are using self-hosted runners, please make sure your runner has access to all GitHub endpoints: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#communication-between-self-hosted-runners-and-github`;
       super(message);
       this.code = code;
       this.name = "NetworkError";
@@ -25820,7 +24355,8 @@ var require_errors3 = __commonJS((exports) => {
 
   class UsageError extends Error {
     constructor() {
-      const message = `Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.\nMore info on storage limits: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#calculating-minute-and-storage-spending`;
+      const message = `Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.
+More info on storage limits: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#calculating-minute-and-storage-spending`;
       super(message);
       this.name = "UsageError";
     }
@@ -25833,8 +24369,168 @@ var require_errors3 = __commonJS((exports) => {
   };
 });
 
+// ../node_modules/jwt-decode/build/jwt-decode.cjs.js
+var require_jwt_decode_cjs = __commonJS((exports, module) => {
+  function e(e2) {
+    this.message = e2;
+  }
+  e.prototype = new Error, e.prototype.name = "InvalidCharacterError";
+  var r = typeof window != "undefined" && window.atob && window.atob.bind(window) || function(r2) {
+    var t2 = String(r2).replace(/=+$/, "");
+    if (t2.length % 4 == 1)
+      throw new e("'atob' failed: The string to be decoded is not correctly encoded.");
+    for (var n2, o2, a2 = 0, i = 0, c = "";o2 = t2.charAt(i++); ~o2 && (n2 = a2 % 4 ? 64 * n2 + o2 : o2, a2++ % 4) ? c += String.fromCharCode(255 & n2 >> (-2 * a2 & 6)) : 0)
+      o2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=".indexOf(o2);
+    return c;
+  };
+  function t(e2) {
+    var t2 = e2.replace(/-/g, "+").replace(/_/g, "/");
+    switch (t2.length % 4) {
+      case 0:
+        break;
+      case 2:
+        t2 += "==";
+        break;
+      case 3:
+        t2 += "=";
+        break;
+      default:
+        throw "Illegal base64url string!";
+    }
+    try {
+      return function(e3) {
+        return decodeURIComponent(r(e3).replace(/(.)/g, function(e4, r2) {
+          var t3 = r2.charCodeAt(0).toString(16).toUpperCase();
+          return t3.length < 2 && (t3 = "0" + t3), "%" + t3;
+        }));
+      }(t2);
+    } catch (e3) {
+      return r(t2);
+    }
+  }
+  function n(e2) {
+    this.message = e2;
+  }
+  function o(e2, r2) {
+    if (typeof e2 != "string")
+      throw new n("Invalid token specified");
+    var o2 = (r2 = r2 || {}).header === true ? 0 : 1;
+    try {
+      return JSON.parse(t(e2.split(".")[o2]));
+    } catch (e3) {
+      throw new n("Invalid token specified: " + e3.message);
+    }
+  }
+  n.prototype = new Error, n.prototype.name = "InvalidTokenError";
+  var a = o;
+  a.default = o, a.InvalidTokenError = n, module.exports = a;
+});
+
+// ../node_modules/@actions/artifact/lib/internal/shared/util.js
+var require_util8 = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  var __importDefault = exports && exports.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.maskSecretUrls = exports.maskSigUrl = exports.getBackendIdsFromToken = undefined;
+  var core = __importStar(require_core());
+  var config_1 = require_config();
+  var jwt_decode_1 = __importDefault(require_jwt_decode_cjs());
+  var core_1 = require_core();
+  var InvalidJwtError = new Error("Failed to get backend IDs: The provided JWT token is invalid and/or missing claims");
+  function getBackendIdsFromToken() {
+    const token = (0, config_1.getRuntimeToken)();
+    const decoded = (0, jwt_decode_1.default)(token);
+    if (!decoded.scp) {
+      throw InvalidJwtError;
+    }
+    const scpParts = decoded.scp.split(" ");
+    if (scpParts.length === 0) {
+      throw InvalidJwtError;
+    }
+    for (const scopes of scpParts) {
+      const scopeParts = scopes.split(":");
+      if ((scopeParts === null || scopeParts === undefined ? undefined : scopeParts[0]) !== "Actions.Results") {
+        continue;
+      }
+      if (scopeParts.length !== 3) {
+        throw InvalidJwtError;
+      }
+      const ids = {
+        workflowRunBackendId: scopeParts[1],
+        workflowJobRunBackendId: scopeParts[2]
+      };
+      core.debug(`Workflow Run Backend ID: ${ids.workflowRunBackendId}`);
+      core.debug(`Workflow Job Run Backend ID: ${ids.workflowJobRunBackendId}`);
+      return ids;
+    }
+    throw InvalidJwtError;
+  }
+  exports.getBackendIdsFromToken = getBackendIdsFromToken;
+  function maskSigUrl(url) {
+    if (!url)
+      return;
+    try {
+      const parsedUrl = new URL(url);
+      const signature = parsedUrl.searchParams.get("sig");
+      if (signature) {
+        (0, core_1.setSecret)(signature);
+        (0, core_1.setSecret)(encodeURIComponent(signature));
+      }
+    } catch (error) {
+      (0, core_1.debug)(`Failed to parse URL: ${url} ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  exports.maskSigUrl = maskSigUrl;
+  function maskSecretUrls(body) {
+    if (typeof body !== "object" || body === null) {
+      (0, core_1.debug)("body is not an object or is null");
+      return;
+    }
+    if ("signed_upload_url" in body && typeof body.signed_upload_url === "string") {
+      maskSigUrl(body.signed_upload_url);
+    }
+    if ("signed_url" in body && typeof body.signed_url === "string") {
+      maskSigUrl(body.signed_url);
+    }
+  }
+  exports.maskSecretUrls = maskSecretUrls;
+});
+
 // ../node_modules/@actions/artifact/lib/internal/shared/artifact-twirp-client.js
-var require_artifact_twirp_client = __commonJS((exports) => {
+var require_artifact_twirp_client2 = __commonJS((exports) => {
   var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
     function adopt(value) {
       return value instanceof P ? value : new P(function(resolve) {
@@ -25870,7 +24566,8 @@ var require_artifact_twirp_client = __commonJS((exports) => {
   var generated_1 = require_generated();
   var config_1 = require_config();
   var user_agent_1 = require_user_agent();
-  var errors_1 = require_errors3();
+  var errors_1 = require_errors2();
+  var util_1 = require_util8();
 
   class ArtifactHttpClient {
     constructor(userAgent, maxAttempts, baseRetryIntervalMilliseconds, retryMultiplier) {
@@ -25923,6 +24620,7 @@ var require_artifact_twirp_client = __commonJS((exports) => {
             (0, core_1.debug)(`[Response] - ${response.message.statusCode}`);
             (0, core_1.debug)(`Headers: ${JSON.stringify(response.message.headers, null, 2)}`);
             const body = JSON.parse(rawBody);
+            (0, util_1.maskSecretUrls)(body);
             (0, core_1.debug)(`Body: ${JSON.stringify(body, null, 2)}`);
             if (this.isSuccessStatusCode(statusCode)) {
               return { response, body };
@@ -26088,323 +24786,6 @@ var require_upload_zip_specification = __commonJS((exports) => {
     return specification;
   }
   exports.getUploadZipSpecification = getUploadZipSpecification;
-});
-
-// ../node_modules/jwt-decode/build/jwt-decode.cjs.js
-var require_jwt_decode_cjs = __commonJS((exports, module) => {
-  function e(e2) {
-    this.message = e2;
-  }
-  e.prototype = new Error, e.prototype.name = "InvalidCharacterError";
-  var r = typeof window != "undefined" && window.atob && window.atob.bind(window) || function(r2) {
-    var t2 = String(r2).replace(/=+$/, "");
-    if (t2.length % 4 == 1)
-      throw new e("'atob' failed: The string to be decoded is not correctly encoded.");
-    for (var n2, o2, a2 = 0, i = 0, c = "";o2 = t2.charAt(i++); ~o2 && (n2 = a2 % 4 ? 64 * n2 + o2 : o2, a2++ % 4) ? c += String.fromCharCode(255 & n2 >> (-2 * a2 & 6)) : 0)
-      o2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=".indexOf(o2);
-    return c;
-  };
-  function t(e2) {
-    var t2 = e2.replace(/-/g, "+").replace(/_/g, "/");
-    switch (t2.length % 4) {
-      case 0:
-        break;
-      case 2:
-        t2 += "==";
-        break;
-      case 3:
-        t2 += "=";
-        break;
-      default:
-        throw "Illegal base64url string!";
-    }
-    try {
-      return function(e3) {
-        return decodeURIComponent(r(e3).replace(/(.)/g, function(e4, r2) {
-          var t3 = r2.charCodeAt(0).toString(16).toUpperCase();
-          return t3.length < 2 && (t3 = "0" + t3), "%" + t3;
-        }));
-      }(t2);
-    } catch (e3) {
-      return r(t2);
-    }
-  }
-  function n(e2) {
-    this.message = e2;
-  }
-  function o(e2, r2) {
-    if (typeof e2 != "string")
-      throw new n("Invalid token specified");
-    var o2 = (r2 = r2 || {}).header === true ? 0 : 1;
-    try {
-      return JSON.parse(t(e2.split(".")[o2]));
-    } catch (e3) {
-      throw new n("Invalid token specified: " + e3.message);
-    }
-  }
-  n.prototype = new Error, n.prototype.name = "InvalidTokenError";
-  var a = o;
-  a.default = o, a.InvalidTokenError = n, module.exports = a;
-});
-
-// ../node_modules/@actions/artifact/lib/internal/shared/util.js
-var require_util8 = __commonJS((exports) => {
-  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() {
-        return m[k];
-      } };
-    }
-    Object.defineProperty(o, k2, desc);
-  } : function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    o[k2] = m[k];
-  });
-  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-  } : function(o, v) {
-    o["default"] = v;
-  });
-  var __importStar = exports && exports.__importStar || function(mod) {
-    if (mod && mod.__esModule)
-      return mod;
-    var result = {};
-    if (mod != null) {
-      for (var k in mod)
-        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
-          __createBinding(result, mod, k);
-    }
-    __setModuleDefault(result, mod);
-    return result;
-  };
-  var __importDefault = exports && exports.__importDefault || function(mod) {
-    return mod && mod.__esModule ? mod : { default: mod };
-  };
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getBackendIdsFromToken = undefined;
-  var core = __importStar(require_core());
-  var config_1 = require_config();
-  var jwt_decode_1 = __importDefault(require_jwt_decode_cjs());
-  var InvalidJwtError = new Error("Failed to get backend IDs: The provided JWT token is invalid and/or missing claims");
-  function getBackendIdsFromToken() {
-    const token = (0, config_1.getRuntimeToken)();
-    const decoded = (0, jwt_decode_1.default)(token);
-    if (!decoded.scp) {
-      throw InvalidJwtError;
-    }
-    const scpParts = decoded.scp.split(" ");
-    if (scpParts.length === 0) {
-      throw InvalidJwtError;
-    }
-    for (const scopes of scpParts) {
-      const scopeParts = scopes.split(":");
-      if ((scopeParts === null || scopeParts === undefined ? undefined : scopeParts[0]) !== "Actions.Results") {
-        continue;
-      }
-      if (scopeParts.length !== 3) {
-        throw InvalidJwtError;
-      }
-      const ids = {
-        workflowRunBackendId: scopeParts[1],
-        workflowJobRunBackendId: scopeParts[2]
-      };
-      core.debug(`Workflow Run Backend ID: ${ids.workflowRunBackendId}`);
-      core.debug(`Workflow Job Run Backend ID: ${ids.workflowJobRunBackendId}`);
-      return ids;
-    }
-    throw InvalidJwtError;
-  }
-  exports.getBackendIdsFromToken = getBackendIdsFromToken;
-});
-
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/pipeline.js
-var require_pipeline = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createEmptyPipeline = createEmptyPipeline;
-  var ValidPhaseNames = new Set(["Deserialize", "Serialize", "Retry", "Sign"]);
-
-  class HttpPipeline {
-    constructor(policies) {
-      var _a;
-      this._policies = [];
-      this._policies = (_a = policies === null || policies === undefined ? undefined : policies.slice(0)) !== null && _a !== undefined ? _a : [];
-      this._orderedPolicies = undefined;
-    }
-    addPolicy(policy, options = {}) {
-      if (options.phase && options.afterPhase) {
-        throw new Error("Policies inside a phase cannot specify afterPhase.");
-      }
-      if (options.phase && !ValidPhaseNames.has(options.phase)) {
-        throw new Error(`Invalid phase name: ${options.phase}`);
-      }
-      if (options.afterPhase && !ValidPhaseNames.has(options.afterPhase)) {
-        throw new Error(`Invalid afterPhase name: ${options.afterPhase}`);
-      }
-      this._policies.push({
-        policy,
-        options
-      });
-      this._orderedPolicies = undefined;
-    }
-    removePolicy(options) {
-      const removedPolicies = [];
-      this._policies = this._policies.filter((policyDescriptor) => {
-        if (options.name && policyDescriptor.policy.name === options.name || options.phase && policyDescriptor.options.phase === options.phase) {
-          removedPolicies.push(policyDescriptor.policy);
-          return false;
-        } else {
-          return true;
-        }
-      });
-      this._orderedPolicies = undefined;
-      return removedPolicies;
-    }
-    sendRequest(httpClient, request) {
-      const policies = this.getOrderedPolicies();
-      const pipeline = policies.reduceRight((next, policy) => {
-        return (req) => {
-          return policy.sendRequest(req, next);
-        };
-      }, (req) => httpClient.sendRequest(req));
-      return pipeline(request);
-    }
-    getOrderedPolicies() {
-      if (!this._orderedPolicies) {
-        this._orderedPolicies = this.orderPolicies();
-      }
-      return this._orderedPolicies;
-    }
-    clone() {
-      return new HttpPipeline(this._policies);
-    }
-    static create() {
-      return new HttpPipeline;
-    }
-    orderPolicies() {
-      const result = [];
-      const policyMap = new Map;
-      function createPhase(name) {
-        return {
-          name,
-          policies: new Set,
-          hasRun: false,
-          hasAfterPolicies: false
-        };
-      }
-      const serializePhase = createPhase("Serialize");
-      const noPhase = createPhase("None");
-      const deserializePhase = createPhase("Deserialize");
-      const retryPhase = createPhase("Retry");
-      const signPhase = createPhase("Sign");
-      const orderedPhases = [serializePhase, noPhase, deserializePhase, retryPhase, signPhase];
-      function getPhase(phase) {
-        if (phase === "Retry") {
-          return retryPhase;
-        } else if (phase === "Serialize") {
-          return serializePhase;
-        } else if (phase === "Deserialize") {
-          return deserializePhase;
-        } else if (phase === "Sign") {
-          return signPhase;
-        } else {
-          return noPhase;
-        }
-      }
-      for (const descriptor of this._policies) {
-        const policy = descriptor.policy;
-        const options = descriptor.options;
-        const policyName = policy.name;
-        if (policyMap.has(policyName)) {
-          throw new Error("Duplicate policy names not allowed in pipeline");
-        }
-        const node = {
-          policy,
-          dependsOn: new Set,
-          dependants: new Set
-        };
-        if (options.afterPhase) {
-          node.afterPhase = getPhase(options.afterPhase);
-          node.afterPhase.hasAfterPolicies = true;
-        }
-        policyMap.set(policyName, node);
-        const phase = getPhase(options.phase);
-        phase.policies.add(node);
-      }
-      for (const descriptor of this._policies) {
-        const { policy, options } = descriptor;
-        const policyName = policy.name;
-        const node = policyMap.get(policyName);
-        if (!node) {
-          throw new Error(`Missing node for policy ${policyName}`);
-        }
-        if (options.afterPolicies) {
-          for (const afterPolicyName of options.afterPolicies) {
-            const afterNode = policyMap.get(afterPolicyName);
-            if (afterNode) {
-              node.dependsOn.add(afterNode);
-              afterNode.dependants.add(node);
-            }
-          }
-        }
-        if (options.beforePolicies) {
-          for (const beforePolicyName of options.beforePolicies) {
-            const beforeNode = policyMap.get(beforePolicyName);
-            if (beforeNode) {
-              beforeNode.dependsOn.add(node);
-              node.dependants.add(beforeNode);
-            }
-          }
-        }
-      }
-      function walkPhase(phase) {
-        phase.hasRun = true;
-        for (const node of phase.policies) {
-          if (node.afterPhase && (!node.afterPhase.hasRun || node.afterPhase.policies.size)) {
-            continue;
-          }
-          if (node.dependsOn.size === 0) {
-            result.push(node.policy);
-            for (const dependant of node.dependants) {
-              dependant.dependsOn.delete(node);
-            }
-            policyMap.delete(node.policy.name);
-            phase.policies.delete(node);
-          }
-        }
-      }
-      function walkPhases() {
-        for (const phase of orderedPhases) {
-          walkPhase(phase);
-          if (phase.policies.size > 0 && phase !== noPhase) {
-            if (!noPhase.hasRun) {
-              walkPhase(noPhase);
-            }
-            return;
-          }
-          if (phase.hasAfterPolicies) {
-            walkPhase(noPhase);
-          }
-        }
-      }
-      let iteration = 0;
-      while (policyMap.size > 0) {
-        iteration++;
-        const initialResultLength = result.length;
-        walkPhases();
-        if (result.length <= initialResultLength && iteration > 1) {
-          throw new Error("Cannot satisfy policy dependencies due to requirements cycle.");
-        }
-      }
-      return result;
-    }
-  }
-  function createEmptyPipeline() {
-    return HttpPipeline.create();
-  }
 });
 
 // ../node_modules/tslib/tslib.js
@@ -26855,14 +25236,24 @@ var require_tslib = __commonJS((exports, module) => {
     } : function(o, v) {
       o["default"] = v;
     };
+    var ownKeys = function(o) {
+      ownKeys = Object.getOwnPropertyNames || function(o2) {
+        var ar = [];
+        for (var k in o2)
+          if (Object.prototype.hasOwnProperty.call(o2, k))
+            ar[ar.length] = k;
+        return ar;
+      };
+      return ownKeys(o);
+    };
     __importStar = function(mod) {
       if (mod && mod.__esModule)
         return mod;
       var result = {};
       if (mod != null) {
-        for (var k in mod)
-          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
-            __createBinding(result, mod, k);
+        for (var k = ownKeys(mod), i = 0;i < k.length; i++)
+          if (k[i] !== "default")
+            __createBinding(result, mod, k[i]);
       }
       __setModuleDefault(result, mod);
       return result;
@@ -27002,7 +25393,21 @@ var require_tslib = __commonJS((exports, module) => {
   });
 });
 
-// ../node_modules/@azure/logger/dist/commonjs/log.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/abort-controller/AbortError.js
+var require_AbortError = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.AbortError = undefined;
+
+  class AbortError extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "AbortError";
+    }
+  }
+  exports.AbortError = AbortError;
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/logger/log.js
 var require_log = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.log = log;
@@ -27015,7 +25420,7 @@ var require_log = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/logger/dist/commonjs/debug.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/logger/debug.js
 var require_debug = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var log_js_1 = require_log();
@@ -27043,9 +25448,9 @@ var require_debug = __commonJS((exports) => {
     const namespaceList = namespaces.split(",").map((ns) => ns.trim().replace(wildcard, ".*?"));
     for (const ns of namespaceList) {
       if (ns.startsWith("-")) {
-        skippedNamespaces.push(new RegExp(`^${ns.substr(1)}\$`));
+        skippedNamespaces.push(new RegExp(`^${ns.substr(1)}$`));
       } else {
-        enabledNamespaces.push(new RegExp(`^${ns}\$`));
+        enabledNamespaces.push(new RegExp(`^${ns}$`));
       }
     }
     for (const instance of debuggers) {
@@ -27109,217 +25514,411 @@ var require_debug = __commonJS((exports) => {
   exports.default = debugObj;
 });
 
-// ../node_modules/@azure/logger/dist/commonjs/index.js
-var require_commonjs3 = __commonJS((exports) => {
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/logger/logger.js
+var require_logger = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.AzureLogger = undefined;
+  exports.TypeSpecRuntimeLogger = undefined;
+  exports.createLoggerContext = createLoggerContext;
   exports.setLogLevel = setLogLevel;
   exports.getLogLevel = getLogLevel;
   exports.createClientLogger = createClientLogger;
   var tslib_1 = require_tslib();
   var debug_js_1 = tslib_1.__importDefault(require_debug());
-  var registeredLoggers = new Set;
-  var logLevelFromEnv = typeof process !== "undefined" && process.env && process.env.AZURE_LOG_LEVEL || undefined;
-  var azureLogLevel;
-  exports.AzureLogger = (0, debug_js_1.default)("azure");
-  exports.AzureLogger.log = (...args) => {
-    debug_js_1.default.log(...args);
-  };
-  var AZURE_LOG_LEVELS = ["verbose", "info", "warning", "error"];
-  if (logLevelFromEnv) {
-    if (isAzureLogLevel(logLevelFromEnv)) {
-      setLogLevel(logLevelFromEnv);
-    } else {
-      console.error(`AZURE_LOG_LEVEL set to unknown log level '${logLevelFromEnv}'; logging is not enabled. Acceptable values: ${AZURE_LOG_LEVELS.join(", ")}.`);
-    }
-  }
-  function setLogLevel(level) {
-    if (level && !isAzureLogLevel(level)) {
-      throw new Error(`Unknown log level '${level}'. Acceptable values: ${AZURE_LOG_LEVELS.join(",")}`);
-    }
-    azureLogLevel = level;
-    const enabledNamespaces = [];
-    for (const logger of registeredLoggers) {
-      if (shouldEnable(logger)) {
-        enabledNamespaces.push(logger.namespace);
-      }
-    }
-    debug_js_1.default.enable(enabledNamespaces.join(","));
-  }
-  function getLogLevel() {
-    return azureLogLevel;
-  }
+  var TYPESPEC_RUNTIME_LOG_LEVELS = ["verbose", "info", "warning", "error"];
   var levelMap = {
     verbose: 400,
     info: 300,
     warning: 200,
     error: 100
   };
-  function createClientLogger(namespace) {
-    const clientRootLogger = exports.AzureLogger.extend(namespace);
-    patchLogMethod(exports.AzureLogger, clientRootLogger);
-    return {
-      error: createLogger(clientRootLogger, "error"),
-      warning: createLogger(clientRootLogger, "warning"),
-      info: createLogger(clientRootLogger, "info"),
-      verbose: createLogger(clientRootLogger, "verbose")
-    };
-  }
   function patchLogMethod(parent, child) {
     child.log = (...args) => {
       parent.log(...args);
     };
   }
-  function createLogger(parent, level) {
-    const logger = Object.assign(parent.extend(level), {
-      level
-    });
-    patchLogMethod(parent, logger);
-    if (shouldEnable(logger)) {
-      const enabledNamespaces = debug_js_1.default.disable();
-      debug_js_1.default.enable(enabledNamespaces + "," + logger.namespace);
+  function isTypeSpecRuntimeLogLevel(level) {
+    return TYPESPEC_RUNTIME_LOG_LEVELS.includes(level);
+  }
+  function createLoggerContext(options) {
+    const registeredLoggers = new Set;
+    const logLevelFromEnv = typeof process !== "undefined" && process.env && process.env[options.logLevelEnvVarName] || undefined;
+    let logLevel;
+    const clientLogger = (0, debug_js_1.default)(options.namespace);
+    clientLogger.log = (...args) => {
+      debug_js_1.default.log(...args);
+    };
+    if (logLevelFromEnv) {
+      if (isTypeSpecRuntimeLogLevel(logLevelFromEnv)) {
+        setLogLevel(logLevelFromEnv);
+      } else {
+        console.error(`${options.logLevelEnvVarName} set to unknown log level '${logLevelFromEnv}'; logging is not enabled. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(", ")}.`);
+      }
     }
-    registeredLoggers.add(logger);
-    return logger;
-  }
-  function shouldEnable(logger) {
-    return Boolean(azureLogLevel && levelMap[logger.level] <= levelMap[azureLogLevel]);
-  }
-  function isAzureLogLevel(logLevel) {
-    return AZURE_LOG_LEVELS.includes(logLevel);
-  }
-});
-
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/log.js
-var require_log2 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.logger = undefined;
-  var logger_1 = require_commonjs3();
-  exports.logger = (0, logger_1.createClientLogger)("core-rest-pipeline");
-});
-
-// ../node_modules/@azure/abort-controller/dist/commonjs/AbortError.js
-var require_AbortError = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.AbortError = undefined;
-
-  class AbortError extends Error {
-    constructor(message) {
-      super(message);
-      this.name = "AbortError";
+    function shouldEnable(logger) {
+      return Boolean(logLevel && levelMap[logger.level] <= levelMap[logLevel]);
     }
-  }
-  exports.AbortError = AbortError;
-});
-
-// ../node_modules/@azure/abort-controller/dist/commonjs/index.js
-var require_commonjs4 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.AbortError = undefined;
-  var AbortError_js_1 = require_AbortError();
-  Object.defineProperty(exports, "AbortError", { enumerable: true, get: function() {
-    return AbortError_js_1.AbortError;
-  } });
-});
-
-// ../node_modules/@azure/core-util/dist/commonjs/createAbortablePromise.js
-var require_createAbortablePromise = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createAbortablePromise = createAbortablePromise;
-  var abort_controller_1 = require_commonjs4();
-  function createAbortablePromise(buildPromise, options) {
-    const { cleanupBeforeAbort, abortSignal, abortErrorMsg } = options !== null && options !== undefined ? options : {};
-    return new Promise((resolve, reject) => {
-      function rejectOnAbort() {
-        reject(new abort_controller_1.AbortError(abortErrorMsg !== null && abortErrorMsg !== undefined ? abortErrorMsg : "The operation was aborted."));
+    function createLogger(parent, level) {
+      const logger = Object.assign(parent.extend(level), {
+        level
+      });
+      patchLogMethod(parent, logger);
+      if (shouldEnable(logger)) {
+        const enabledNamespaces = debug_js_1.default.disable();
+        debug_js_1.default.enable(enabledNamespaces + "," + logger.namespace);
       }
-      function removeListeners() {
-        abortSignal === null || abortSignal === undefined || abortSignal.removeEventListener("abort", onAbort);
-      }
-      function onAbort() {
-        cleanupBeforeAbort === null || cleanupBeforeAbort === undefined || cleanupBeforeAbort();
-        removeListeners();
-        rejectOnAbort();
-      }
-      if (abortSignal === null || abortSignal === undefined ? undefined : abortSignal.aborted) {
-        return rejectOnAbort();
-      }
-      try {
-        buildPromise((x) => {
-          removeListeners();
-          resolve(x);
-        }, (x) => {
-          removeListeners();
-          reject(x);
-        });
-      } catch (err) {
-        reject(err);
-      }
-      abortSignal === null || abortSignal === undefined || abortSignal.addEventListener("abort", onAbort);
-    });
-  }
-});
-
-// ../node_modules/@azure/core-util/dist/commonjs/random.js
-var require_random = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getRandomIntegerInclusive = getRandomIntegerInclusive;
-  function getRandomIntegerInclusive(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    const offset = Math.floor(Math.random() * (max - min + 1));
-    return offset + min;
-  }
-});
-
-// ../node_modules/@azure/core-util/dist/commonjs/delay.js
-var require_delay = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.delay = delay;
-  exports.calculateRetryDelay = calculateRetryDelay;
-  var createAbortablePromise_js_1 = require_createAbortablePromise();
-  var random_js_1 = require_random();
-  var StandardAbortMessage = "The delay was aborted.";
-  function delay(timeInMs, options) {
-    let token;
-    const { abortSignal, abortErrorMsg } = options !== null && options !== undefined ? options : {};
-    return (0, createAbortablePromise_js_1.createAbortablePromise)((resolve) => {
-      token = setTimeout(resolve, timeInMs);
-    }, {
-      cleanupBeforeAbort: () => clearTimeout(token),
-      abortSignal,
-      abortErrorMsg: abortErrorMsg !== null && abortErrorMsg !== undefined ? abortErrorMsg : StandardAbortMessage
-    });
-  }
-  function calculateRetryDelay(retryAttempt, config) {
-    const exponentialDelay = config.retryDelayInMs * Math.pow(2, retryAttempt);
-    const clampedDelay = Math.min(config.maxRetryDelayInMs, exponentialDelay);
-    const retryAfterInMs = clampedDelay / 2 + (0, random_js_1.getRandomIntegerInclusive)(0, clampedDelay / 2);
-    return { retryAfterInMs };
-  }
-});
-
-// ../node_modules/@azure/core-util/dist/commonjs/aborterUtils.js
-var require_aborterUtils = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.cancelablePromiseRace = cancelablePromiseRace;
-  async function cancelablePromiseRace(abortablePromiseBuilders, options) {
-    var _a, _b;
-    const aborter = new AbortController;
-    function abortHandler() {
-      aborter.abort();
+      registeredLoggers.add(logger);
+      return logger;
     }
-    (_a = options === null || options === undefined ? undefined : options.abortSignal) === null || _a === undefined || _a.addEventListener("abort", abortHandler);
-    try {
-      return await Promise.race(abortablePromiseBuilders.map((p) => p({ abortSignal: aborter.signal })));
-    } finally {
-      aborter.abort();
-      (_b = options === null || options === undefined ? undefined : options.abortSignal) === null || _b === undefined || _b.removeEventListener("abort", abortHandler);
+    return {
+      setLogLevel(level) {
+        if (level && !isTypeSpecRuntimeLogLevel(level)) {
+          throw new Error(`Unknown log level '${level}'. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(",")}`);
+        }
+        logLevel = level;
+        const enabledNamespaces = [];
+        for (const logger of registeredLoggers) {
+          if (shouldEnable(logger)) {
+            enabledNamespaces.push(logger.namespace);
+          }
+        }
+        debug_js_1.default.enable(enabledNamespaces.join(","));
+      },
+      getLogLevel() {
+        return logLevel;
+      },
+      createClientLogger(namespace) {
+        const clientRootLogger = clientLogger.extend(namespace);
+        patchLogMethod(clientLogger, clientRootLogger);
+        return {
+          error: createLogger(clientRootLogger, "error"),
+          warning: createLogger(clientRootLogger, "warning"),
+          info: createLogger(clientRootLogger, "info"),
+          verbose: createLogger(clientRootLogger, "verbose")
+        };
+      },
+      logger: clientLogger
+    };
+  }
+  var context = createLoggerContext({
+    logLevelEnvVarName: "TYPESPEC_RUNTIME_LOG_LEVEL",
+    namespace: "typeSpecRuntime"
+  });
+  exports.TypeSpecRuntimeLogger = context.logger;
+  function setLogLevel(logLevel) {
+    context.setLogLevel(logLevel);
+  }
+  function getLogLevel() {
+    return context.getLogLevel();
+  }
+  function createClientLogger(namespace) {
+    return context.createClientLogger(namespace);
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/httpHeaders.js
+var require_httpHeaders = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createHttpHeaders = createHttpHeaders;
+  function normalizeName(name) {
+    return name.toLowerCase();
+  }
+  function* headerIterator(map) {
+    for (const entry of map.values()) {
+      yield [entry.name, entry.value];
     }
   }
+
+  class HttpHeadersImpl {
+    constructor(rawHeaders) {
+      this._headersMap = new Map;
+      if (rawHeaders) {
+        for (const headerName of Object.keys(rawHeaders)) {
+          this.set(headerName, rawHeaders[headerName]);
+        }
+      }
+    }
+    set(name, value) {
+      this._headersMap.set(normalizeName(name), { name, value: String(value).trim() });
+    }
+    get(name) {
+      var _a;
+      return (_a = this._headersMap.get(normalizeName(name))) === null || _a === undefined ? undefined : _a.value;
+    }
+    has(name) {
+      return this._headersMap.has(normalizeName(name));
+    }
+    delete(name) {
+      this._headersMap.delete(normalizeName(name));
+    }
+    toJSON(options = {}) {
+      const result = {};
+      if (options.preserveCase) {
+        for (const entry of this._headersMap.values()) {
+          result[entry.name] = entry.value;
+        }
+      } else {
+        for (const [normalizedName, entry] of this._headersMap) {
+          result[normalizedName] = entry.value;
+        }
+      }
+      return result;
+    }
+    toString() {
+      return JSON.stringify(this.toJSON({ preserveCase: true }));
+    }
+    [Symbol.iterator]() {
+      return headerIterator(this._headersMap);
+    }
+  }
+  function createHttpHeaders(rawHeaders) {
+    return new HttpHeadersImpl(rawHeaders);
+  }
 });
 
-// ../node_modules/@azure/core-util/dist/commonjs/object.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/auth/schemes.js
+var require_schemes = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/auth/oauth2Flows.js
+var require_oauth2Flows = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/uuidUtils.js
+var require_uuidUtils = __commonJS((exports) => {
+  var _a;
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.randomUUID = randomUUID;
+  var node_crypto_1 = __require("node:crypto");
+  var uuidFunction = typeof ((_a = globalThis === null || globalThis === undefined ? undefined : globalThis.crypto) === null || _a === undefined ? undefined : _a.randomUUID) === "function" ? globalThis.crypto.randomUUID.bind(globalThis.crypto) : node_crypto_1.randomUUID;
+  function randomUUID() {
+    return uuidFunction();
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/pipelineRequest.js
+var require_pipelineRequest = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createPipelineRequest = createPipelineRequest;
+  var httpHeaders_js_1 = require_httpHeaders();
+  var uuidUtils_js_1 = require_uuidUtils();
+
+  class PipelineRequestImpl {
+    constructor(options) {
+      var _a, _b, _c, _d, _e, _f, _g;
+      this.url = options.url;
+      this.body = options.body;
+      this.headers = (_a = options.headers) !== null && _a !== undefined ? _a : (0, httpHeaders_js_1.createHttpHeaders)();
+      this.method = (_b = options.method) !== null && _b !== undefined ? _b : "GET";
+      this.timeout = (_c = options.timeout) !== null && _c !== undefined ? _c : 0;
+      this.multipartBody = options.multipartBody;
+      this.formData = options.formData;
+      this.disableKeepAlive = (_d = options.disableKeepAlive) !== null && _d !== undefined ? _d : false;
+      this.proxySettings = options.proxySettings;
+      this.streamResponseStatusCodes = options.streamResponseStatusCodes;
+      this.withCredentials = (_e = options.withCredentials) !== null && _e !== undefined ? _e : false;
+      this.abortSignal = options.abortSignal;
+      this.onUploadProgress = options.onUploadProgress;
+      this.onDownloadProgress = options.onDownloadProgress;
+      this.requestId = options.requestId || (0, uuidUtils_js_1.randomUUID)();
+      this.allowInsecureConnection = (_f = options.allowInsecureConnection) !== null && _f !== undefined ? _f : false;
+      this.enableBrowserStreams = (_g = options.enableBrowserStreams) !== null && _g !== undefined ? _g : false;
+      this.requestOverrides = options.requestOverrides;
+    }
+  }
+  function createPipelineRequest(options) {
+    return new PipelineRequestImpl(options);
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/pipeline.js
+var require_pipeline = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createEmptyPipeline = createEmptyPipeline;
+  var ValidPhaseNames = new Set(["Deserialize", "Serialize", "Retry", "Sign"]);
+
+  class HttpPipeline {
+    constructor(policies) {
+      var _a;
+      this._policies = [];
+      this._policies = (_a = policies === null || policies === undefined ? undefined : policies.slice(0)) !== null && _a !== undefined ? _a : [];
+      this._orderedPolicies = undefined;
+    }
+    addPolicy(policy, options = {}) {
+      if (options.phase && options.afterPhase) {
+        throw new Error("Policies inside a phase cannot specify afterPhase.");
+      }
+      if (options.phase && !ValidPhaseNames.has(options.phase)) {
+        throw new Error(`Invalid phase name: ${options.phase}`);
+      }
+      if (options.afterPhase && !ValidPhaseNames.has(options.afterPhase)) {
+        throw new Error(`Invalid afterPhase name: ${options.afterPhase}`);
+      }
+      this._policies.push({
+        policy,
+        options
+      });
+      this._orderedPolicies = undefined;
+    }
+    removePolicy(options) {
+      const removedPolicies = [];
+      this._policies = this._policies.filter((policyDescriptor) => {
+        if (options.name && policyDescriptor.policy.name === options.name || options.phase && policyDescriptor.options.phase === options.phase) {
+          removedPolicies.push(policyDescriptor.policy);
+          return false;
+        } else {
+          return true;
+        }
+      });
+      this._orderedPolicies = undefined;
+      return removedPolicies;
+    }
+    sendRequest(httpClient, request) {
+      const policies = this.getOrderedPolicies();
+      const pipeline = policies.reduceRight((next, policy) => {
+        return (req) => {
+          return policy.sendRequest(req, next);
+        };
+      }, (req) => httpClient.sendRequest(req));
+      return pipeline(request);
+    }
+    getOrderedPolicies() {
+      if (!this._orderedPolicies) {
+        this._orderedPolicies = this.orderPolicies();
+      }
+      return this._orderedPolicies;
+    }
+    clone() {
+      return new HttpPipeline(this._policies);
+    }
+    static create() {
+      return new HttpPipeline;
+    }
+    orderPolicies() {
+      const result = [];
+      const policyMap = new Map;
+      function createPhase(name) {
+        return {
+          name,
+          policies: new Set,
+          hasRun: false,
+          hasAfterPolicies: false
+        };
+      }
+      const serializePhase = createPhase("Serialize");
+      const noPhase = createPhase("None");
+      const deserializePhase = createPhase("Deserialize");
+      const retryPhase = createPhase("Retry");
+      const signPhase = createPhase("Sign");
+      const orderedPhases = [serializePhase, noPhase, deserializePhase, retryPhase, signPhase];
+      function getPhase(phase) {
+        if (phase === "Retry") {
+          return retryPhase;
+        } else if (phase === "Serialize") {
+          return serializePhase;
+        } else if (phase === "Deserialize") {
+          return deserializePhase;
+        } else if (phase === "Sign") {
+          return signPhase;
+        } else {
+          return noPhase;
+        }
+      }
+      for (const descriptor of this._policies) {
+        const policy = descriptor.policy;
+        const options = descriptor.options;
+        const policyName = policy.name;
+        if (policyMap.has(policyName)) {
+          throw new Error("Duplicate policy names not allowed in pipeline");
+        }
+        const node = {
+          policy,
+          dependsOn: new Set,
+          dependants: new Set
+        };
+        if (options.afterPhase) {
+          node.afterPhase = getPhase(options.afterPhase);
+          node.afterPhase.hasAfterPolicies = true;
+        }
+        policyMap.set(policyName, node);
+        const phase = getPhase(options.phase);
+        phase.policies.add(node);
+      }
+      for (const descriptor of this._policies) {
+        const { policy, options } = descriptor;
+        const policyName = policy.name;
+        const node = policyMap.get(policyName);
+        if (!node) {
+          throw new Error(`Missing node for policy ${policyName}`);
+        }
+        if (options.afterPolicies) {
+          for (const afterPolicyName of options.afterPolicies) {
+            const afterNode = policyMap.get(afterPolicyName);
+            if (afterNode) {
+              node.dependsOn.add(afterNode);
+              afterNode.dependants.add(node);
+            }
+          }
+        }
+        if (options.beforePolicies) {
+          for (const beforePolicyName of options.beforePolicies) {
+            const beforeNode = policyMap.get(beforePolicyName);
+            if (beforeNode) {
+              beforeNode.dependsOn.add(node);
+              node.dependants.add(beforeNode);
+            }
+          }
+        }
+      }
+      function walkPhase(phase) {
+        phase.hasRun = true;
+        for (const node of phase.policies) {
+          if (node.afterPhase && (!node.afterPhase.hasRun || node.afterPhase.policies.size)) {
+            continue;
+          }
+          if (node.dependsOn.size === 0) {
+            result.push(node.policy);
+            for (const dependant of node.dependants) {
+              dependant.dependsOn.delete(node);
+            }
+            policyMap.delete(node.policy.name);
+            phase.policies.delete(node);
+          }
+        }
+      }
+      function walkPhases() {
+        for (const phase of orderedPhases) {
+          walkPhase(phase);
+          if (phase.policies.size > 0 && phase !== noPhase) {
+            if (!noPhase.hasRun) {
+              walkPhase(noPhase);
+            }
+            return;
+          }
+          if (phase.hasAfterPolicies) {
+            walkPhase(noPhase);
+          }
+        }
+      }
+      let iteration = 0;
+      while (policyMap.size > 0) {
+        iteration++;
+        const initialResultLength = result.length;
+        walkPhases();
+        if (result.length <= initialResultLength && iteration > 1) {
+          throw new Error("Cannot satisfy policy dependencies due to requirements cycle.");
+        }
+      }
+      return result;
+    }
+  }
+  function createEmptyPipeline() {
+    return HttpPipeline.create();
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/object.js
 var require_object = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.isObject = isObject;
@@ -27328,11 +25927,10 @@ var require_object = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-util/dist/commonjs/error.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/error.js
 var require_error = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.isError = isError;
-  exports.getErrorMessage = getErrorMessage;
   var object_js_1 = require_object();
   function isError(e) {
     if ((0, object_js_1.isObject)(e)) {
@@ -27342,202 +25940,21 @@ var require_error = __commonJS((exports) => {
     }
     return false;
   }
-  function getErrorMessage(e) {
-    if (isError(e)) {
-      return e.message;
-    } else {
-      let stringified;
-      try {
-        if (typeof e === "object" && e) {
-          stringified = JSON.stringify(e);
-        } else {
-          stringified = String(e);
-        }
-      } catch (err) {
-        stringified = "[unable to stringify input]";
-      }
-      return `Unknown error ${stringified}`;
-    }
-  }
 });
 
-// ../node_modules/@azure/core-util/dist/commonjs/sha256.js
-var require_sha256 = __commonJS((exports) => {
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/inspect.js
+var require_inspect = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.computeSha256Hmac = computeSha256Hmac;
-  exports.computeSha256Hash = computeSha256Hash;
-  var crypto_1 = __require("crypto");
-  async function computeSha256Hmac(key, stringToSign, encoding) {
-    const decodedKey = Buffer.from(key, "base64");
-    return (0, crypto_1.createHmac)("sha256", decodedKey).update(stringToSign).digest(encoding);
-  }
-  async function computeSha256Hash(content, encoding) {
-    return (0, crypto_1.createHash)("sha256").update(content).digest(encoding);
-  }
+  exports.custom = undefined;
+  var node_util_1 = __require("node:util");
+  exports.custom = node_util_1.inspect.custom;
 });
 
-// ../node_modules/@azure/core-util/dist/commonjs/typeGuards.js
-var require_typeGuards = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.isDefined = isDefined;
-  exports.isObjectWithProperties = isObjectWithProperties;
-  exports.objectHasProperty = objectHasProperty;
-  function isDefined(thing) {
-    return typeof thing !== "undefined" && thing !== null;
-  }
-  function isObjectWithProperties(thing, properties) {
-    if (!isDefined(thing) || typeof thing !== "object") {
-      return false;
-    }
-    for (const property of properties) {
-      if (!objectHasProperty(thing, property)) {
-        return false;
-      }
-    }
-    return true;
-  }
-  function objectHasProperty(thing, property) {
-    return isDefined(thing) && typeof thing === "object" && property in thing;
-  }
-});
-
-// ../node_modules/@azure/core-util/dist/commonjs/uuidUtils.js
-var require_uuidUtils = __commonJS((exports) => {
-  var _a;
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.randomUUID = randomUUID;
-  var crypto_1 = __require("crypto");
-  var uuidFunction = typeof ((_a = globalThis === null || globalThis === undefined ? undefined : globalThis.crypto) === null || _a === undefined ? undefined : _a.randomUUID) === "function" ? globalThis.crypto.randomUUID.bind(globalThis.crypto) : crypto_1.randomUUID;
-  function randomUUID() {
-    return uuidFunction();
-  }
-});
-
-// ../node_modules/@azure/core-util/dist/commonjs/checkEnvironment.js
-var require_checkEnvironment = __commonJS((exports) => {
-  var _a;
-  var _b;
-  var _c;
-  var _d;
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.isReactNative = exports.isNodeRuntime = exports.isNode = exports.isNodeLike = exports.isBun = exports.isDeno = exports.isWebWorker = exports.isBrowser = undefined;
-  exports.isBrowser = typeof window !== "undefined" && typeof window.document !== "undefined";
-  exports.isWebWorker = typeof self === "object" && typeof (self === null || self === undefined ? undefined : self.importScripts) === "function" && (((_a = self.constructor) === null || _a === undefined ? undefined : _a.name) === "DedicatedWorkerGlobalScope" || ((_b = self.constructor) === null || _b === undefined ? undefined : _b.name) === "ServiceWorkerGlobalScope" || ((_c = self.constructor) === null || _c === undefined ? undefined : _c.name) === "SharedWorkerGlobalScope");
-  exports.isDeno = typeof Deno !== "undefined" && typeof Deno.version !== "undefined" && typeof Deno.version.deno !== "undefined";
-  exports.isBun = typeof Bun !== "undefined" && typeof Bun.version !== "undefined";
-  exports.isNodeLike = typeof globalThis.process !== "undefined" && Boolean(globalThis.process.version) && Boolean((_d = globalThis.process.versions) === null || _d === undefined ? undefined : _d.node);
-  exports.isNode = exports.isNodeLike;
-  exports.isNodeRuntime = exports.isNodeLike && !exports.isBun && !exports.isDeno;
-  exports.isReactNative = typeof navigator !== "undefined" && (navigator === null || navigator === undefined ? undefined : navigator.product) === "ReactNative";
-});
-
-// ../node_modules/@azure/core-util/dist/commonjs/bytesEncoding.js
-var require_bytesEncoding = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.uint8ArrayToString = uint8ArrayToString;
-  exports.stringToUint8Array = stringToUint8Array;
-  function uint8ArrayToString(bytes, format) {
-    return Buffer.from(bytes).toString(format);
-  }
-  function stringToUint8Array(value, format) {
-    return Buffer.from(value, format);
-  }
-});
-
-// ../node_modules/@azure/core-util/dist/commonjs/index.js
-var require_commonjs5 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.stringToUint8Array = exports.uint8ArrayToString = exports.isWebWorker = exports.isReactNative = exports.isDeno = exports.isNodeRuntime = exports.isNodeLike = exports.isNode = exports.isBun = exports.isBrowser = exports.randomUUID = exports.objectHasProperty = exports.isObjectWithProperties = exports.isDefined = exports.computeSha256Hmac = exports.computeSha256Hash = exports.getErrorMessage = exports.isError = exports.isObject = exports.getRandomIntegerInclusive = exports.createAbortablePromise = exports.cancelablePromiseRace = exports.calculateRetryDelay = exports.delay = undefined;
-  var delay_js_1 = require_delay();
-  Object.defineProperty(exports, "delay", { enumerable: true, get: function() {
-    return delay_js_1.delay;
-  } });
-  Object.defineProperty(exports, "calculateRetryDelay", { enumerable: true, get: function() {
-    return delay_js_1.calculateRetryDelay;
-  } });
-  var aborterUtils_js_1 = require_aborterUtils();
-  Object.defineProperty(exports, "cancelablePromiseRace", { enumerable: true, get: function() {
-    return aborterUtils_js_1.cancelablePromiseRace;
-  } });
-  var createAbortablePromise_js_1 = require_createAbortablePromise();
-  Object.defineProperty(exports, "createAbortablePromise", { enumerable: true, get: function() {
-    return createAbortablePromise_js_1.createAbortablePromise;
-  } });
-  var random_js_1 = require_random();
-  Object.defineProperty(exports, "getRandomIntegerInclusive", { enumerable: true, get: function() {
-    return random_js_1.getRandomIntegerInclusive;
-  } });
-  var object_js_1 = require_object();
-  Object.defineProperty(exports, "isObject", { enumerable: true, get: function() {
-    return object_js_1.isObject;
-  } });
-  var error_js_1 = require_error();
-  Object.defineProperty(exports, "isError", { enumerable: true, get: function() {
-    return error_js_1.isError;
-  } });
-  Object.defineProperty(exports, "getErrorMessage", { enumerable: true, get: function() {
-    return error_js_1.getErrorMessage;
-  } });
-  var sha256_js_1 = require_sha256();
-  Object.defineProperty(exports, "computeSha256Hash", { enumerable: true, get: function() {
-    return sha256_js_1.computeSha256Hash;
-  } });
-  Object.defineProperty(exports, "computeSha256Hmac", { enumerable: true, get: function() {
-    return sha256_js_1.computeSha256Hmac;
-  } });
-  var typeGuards_js_1 = require_typeGuards();
-  Object.defineProperty(exports, "isDefined", { enumerable: true, get: function() {
-    return typeGuards_js_1.isDefined;
-  } });
-  Object.defineProperty(exports, "isObjectWithProperties", { enumerable: true, get: function() {
-    return typeGuards_js_1.isObjectWithProperties;
-  } });
-  Object.defineProperty(exports, "objectHasProperty", { enumerable: true, get: function() {
-    return typeGuards_js_1.objectHasProperty;
-  } });
-  var uuidUtils_js_1 = require_uuidUtils();
-  Object.defineProperty(exports, "randomUUID", { enumerable: true, get: function() {
-    return uuidUtils_js_1.randomUUID;
-  } });
-  var checkEnvironment_js_1 = require_checkEnvironment();
-  Object.defineProperty(exports, "isBrowser", { enumerable: true, get: function() {
-    return checkEnvironment_js_1.isBrowser;
-  } });
-  Object.defineProperty(exports, "isBun", { enumerable: true, get: function() {
-    return checkEnvironment_js_1.isBun;
-  } });
-  Object.defineProperty(exports, "isNode", { enumerable: true, get: function() {
-    return checkEnvironment_js_1.isNode;
-  } });
-  Object.defineProperty(exports, "isNodeLike", { enumerable: true, get: function() {
-    return checkEnvironment_js_1.isNodeLike;
-  } });
-  Object.defineProperty(exports, "isNodeRuntime", { enumerable: true, get: function() {
-    return checkEnvironment_js_1.isNodeRuntime;
-  } });
-  Object.defineProperty(exports, "isDeno", { enumerable: true, get: function() {
-    return checkEnvironment_js_1.isDeno;
-  } });
-  Object.defineProperty(exports, "isReactNative", { enumerable: true, get: function() {
-    return checkEnvironment_js_1.isReactNative;
-  } });
-  Object.defineProperty(exports, "isWebWorker", { enumerable: true, get: function() {
-    return checkEnvironment_js_1.isWebWorker;
-  } });
-  var bytesEncoding_js_1 = require_bytesEncoding();
-  Object.defineProperty(exports, "uint8ArrayToString", { enumerable: true, get: function() {
-    return bytesEncoding_js_1.uint8ArrayToString;
-  } });
-  Object.defineProperty(exports, "stringToUint8Array", { enumerable: true, get: function() {
-    return bytesEncoding_js_1.stringToUint8Array;
-  } });
-});
-
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/sanitizer.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/sanitizer.js
 var require_sanitizer = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.Sanitizer = undefined;
-  var core_util_1 = require_commonjs5();
+  var object_js_1 = require_object();
   var RedactedString = "REDACTED";
   var defaultAllowedHeaderNames = [
     "x-ms-client-request-id",
@@ -27607,7 +26024,7 @@ var require_sanitizer = __commonJS((exports) => {
           return;
         } else if (key === "operationSpec") {
           return;
-        } else if (Array.isArray(value) || (0, core_util_1.isObject)(value)) {
+        } else if (Array.isArray(value) || (0, object_js_1.isObject)(value)) {
           if (seen.has(value)) {
             return "[Circular]";
           }
@@ -27660,7 +26077,373 @@ var require_sanitizer = __commonJS((exports) => {
   exports.Sanitizer = Sanitizer;
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/logPolicy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/restError.js
+var require_restError = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.RestError = undefined;
+  exports.isRestError = isRestError;
+  var error_js_1 = require_error();
+  var inspect_js_1 = require_inspect();
+  var sanitizer_js_1 = require_sanitizer();
+  var errorSanitizer = new sanitizer_js_1.Sanitizer;
+
+  class RestError extends Error {
+    constructor(message, options = {}) {
+      super(message);
+      this.name = "RestError";
+      this.code = options.code;
+      this.statusCode = options.statusCode;
+      Object.defineProperty(this, "request", { value: options.request, enumerable: false });
+      Object.defineProperty(this, "response", { value: options.response, enumerable: false });
+      Object.defineProperty(this, inspect_js_1.custom, {
+        value: () => {
+          return `RestError: ${this.message} 
+ ${errorSanitizer.sanitize(Object.assign(Object.assign({}, this), { request: this.request, response: this.response }))}`;
+        },
+        enumerable: false
+      });
+      Object.setPrototypeOf(this, RestError.prototype);
+    }
+  }
+  exports.RestError = RestError;
+  RestError.REQUEST_SEND_ERROR = "REQUEST_SEND_ERROR";
+  RestError.PARSE_ERROR = "PARSE_ERROR";
+  function isRestError(e) {
+    if (e instanceof RestError) {
+      return true;
+    }
+    return (0, error_js_1.isError)(e) && e.name === "RestError";
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/bytesEncoding.js
+var require_bytesEncoding = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.uint8ArrayToString = uint8ArrayToString;
+  exports.stringToUint8Array = stringToUint8Array;
+  function uint8ArrayToString(bytes, format) {
+    return Buffer.from(bytes).toString(format);
+  }
+  function stringToUint8Array(value, format) {
+    return Buffer.from(value, format);
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/log.js
+var require_log2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.logger = undefined;
+  var logger_js_1 = require_logger();
+  exports.logger = (0, logger_js_1.createClientLogger)("ts-http-runtime");
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/nodeHttpClient.js
+var require_nodeHttpClient = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.getBodyLength = getBodyLength;
+  exports.createNodeHttpClient = createNodeHttpClient;
+  var tslib_1 = require_tslib();
+  var http = tslib_1.__importStar(__require("node:http"));
+  var https = tslib_1.__importStar(__require("node:https"));
+  var zlib = tslib_1.__importStar(__require("node:zlib"));
+  var node_stream_1 = __require("node:stream");
+  var AbortError_js_1 = require_AbortError();
+  var httpHeaders_js_1 = require_httpHeaders();
+  var restError_js_1 = require_restError();
+  var log_js_1 = require_log2();
+  var sanitizer_js_1 = require_sanitizer();
+  var DEFAULT_TLS_SETTINGS = {};
+  function isReadableStream(body) {
+    return body && typeof body.pipe === "function";
+  }
+  function isStreamComplete(stream) {
+    if (stream.readable === false) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      const handler = () => {
+        resolve();
+        stream.removeListener("close", handler);
+        stream.removeListener("end", handler);
+        stream.removeListener("error", handler);
+      };
+      stream.on("close", handler);
+      stream.on("end", handler);
+      stream.on("error", handler);
+    });
+  }
+  function isArrayBuffer(body) {
+    return body && typeof body.byteLength === "number";
+  }
+
+  class ReportTransform extends node_stream_1.Transform {
+    _transform(chunk, _encoding, callback) {
+      this.push(chunk);
+      this.loadedBytes += chunk.length;
+      try {
+        this.progressCallback({ loadedBytes: this.loadedBytes });
+        callback();
+      } catch (e) {
+        callback(e);
+      }
+    }
+    constructor(progressCallback) {
+      super();
+      this.loadedBytes = 0;
+      this.progressCallback = progressCallback;
+    }
+  }
+
+  class NodeHttpClient {
+    constructor() {
+      this.cachedHttpsAgents = new WeakMap;
+    }
+    async sendRequest(request) {
+      var _a, _b, _c;
+      const abortController = new AbortController;
+      let abortListener;
+      if (request.abortSignal) {
+        if (request.abortSignal.aborted) {
+          throw new AbortError_js_1.AbortError("The operation was aborted. Request has already been canceled.");
+        }
+        abortListener = (event) => {
+          if (event.type === "abort") {
+            abortController.abort();
+          }
+        };
+        request.abortSignal.addEventListener("abort", abortListener);
+      }
+      let timeoutId;
+      if (request.timeout > 0) {
+        timeoutId = setTimeout(() => {
+          const sanitizer = new sanitizer_js_1.Sanitizer;
+          log_js_1.logger.info(`request to '${sanitizer.sanitizeUrl(request.url)}' timed out. canceling...`);
+          abortController.abort();
+        }, request.timeout);
+      }
+      const acceptEncoding = request.headers.get("Accept-Encoding");
+      const shouldDecompress = (acceptEncoding === null || acceptEncoding === undefined ? undefined : acceptEncoding.includes("gzip")) || (acceptEncoding === null || acceptEncoding === undefined ? undefined : acceptEncoding.includes("deflate"));
+      let body = typeof request.body === "function" ? request.body() : request.body;
+      if (body && !request.headers.has("Content-Length")) {
+        const bodyLength = getBodyLength(body);
+        if (bodyLength !== null) {
+          request.headers.set("Content-Length", bodyLength);
+        }
+      }
+      let responseStream;
+      try {
+        if (body && request.onUploadProgress) {
+          const onUploadProgress = request.onUploadProgress;
+          const uploadReportStream = new ReportTransform(onUploadProgress);
+          uploadReportStream.on("error", (e) => {
+            log_js_1.logger.error("Error in upload progress", e);
+          });
+          if (isReadableStream(body)) {
+            body.pipe(uploadReportStream);
+          } else {
+            uploadReportStream.end(body);
+          }
+          body = uploadReportStream;
+        }
+        const res = await this.makeRequest(request, abortController, body);
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
+        const headers = getResponseHeaders(res);
+        const status = (_a = res.statusCode) !== null && _a !== undefined ? _a : 0;
+        const response = {
+          status,
+          headers,
+          request
+        };
+        if (request.method === "HEAD") {
+          res.resume();
+          return response;
+        }
+        responseStream = shouldDecompress ? getDecodedResponseStream(res, headers) : res;
+        const onDownloadProgress = request.onDownloadProgress;
+        if (onDownloadProgress) {
+          const downloadReportStream = new ReportTransform(onDownloadProgress);
+          downloadReportStream.on("error", (e) => {
+            log_js_1.logger.error("Error in download progress", e);
+          });
+          responseStream.pipe(downloadReportStream);
+          responseStream = downloadReportStream;
+        }
+        if (((_b = request.streamResponseStatusCodes) === null || _b === undefined ? undefined : _b.has(Number.POSITIVE_INFINITY)) || ((_c = request.streamResponseStatusCodes) === null || _c === undefined ? undefined : _c.has(response.status))) {
+          response.readableStreamBody = responseStream;
+        } else {
+          response.bodyAsText = await streamToText(responseStream);
+        }
+        return response;
+      } finally {
+        if (request.abortSignal && abortListener) {
+          let uploadStreamDone = Promise.resolve();
+          if (isReadableStream(body)) {
+            uploadStreamDone = isStreamComplete(body);
+          }
+          let downloadStreamDone = Promise.resolve();
+          if (isReadableStream(responseStream)) {
+            downloadStreamDone = isStreamComplete(responseStream);
+          }
+          Promise.all([uploadStreamDone, downloadStreamDone]).then(() => {
+            var _a2;
+            if (abortListener) {
+              (_a2 = request.abortSignal) === null || _a2 === undefined || _a2.removeEventListener("abort", abortListener);
+            }
+          }).catch((e) => {
+            log_js_1.logger.warning("Error when cleaning up abortListener on httpRequest", e);
+          });
+        }
+      }
+    }
+    makeRequest(request, abortController, body) {
+      var _a;
+      const url = new URL(request.url);
+      const isInsecure = url.protocol !== "https:";
+      if (isInsecure && !request.allowInsecureConnection) {
+        throw new Error(`Cannot connect to ${request.url} while allowInsecureConnection is false.`);
+      }
+      const agent = (_a = request.agent) !== null && _a !== undefined ? _a : this.getOrCreateAgent(request, isInsecure);
+      const options = Object.assign({ agent, hostname: url.hostname, path: `${url.pathname}${url.search}`, port: url.port, method: request.method, headers: request.headers.toJSON({ preserveCase: true }) }, request.requestOverrides);
+      return new Promise((resolve, reject) => {
+        const req = isInsecure ? http.request(options, resolve) : https.request(options, resolve);
+        req.once("error", (err) => {
+          var _a2;
+          reject(new restError_js_1.RestError(err.message, { code: (_a2 = err.code) !== null && _a2 !== undefined ? _a2 : restError_js_1.RestError.REQUEST_SEND_ERROR, request }));
+        });
+        abortController.signal.addEventListener("abort", () => {
+          const abortError = new AbortError_js_1.AbortError("The operation was aborted. Rejecting from abort signal callback while making request.");
+          req.destroy(abortError);
+          reject(abortError);
+        });
+        if (body && isReadableStream(body)) {
+          body.pipe(req);
+        } else if (body) {
+          if (typeof body === "string" || Buffer.isBuffer(body)) {
+            req.end(body);
+          } else if (isArrayBuffer(body)) {
+            req.end(ArrayBuffer.isView(body) ? Buffer.from(body.buffer) : Buffer.from(body));
+          } else {
+            log_js_1.logger.error("Unrecognized body type", body);
+            reject(new restError_js_1.RestError("Unrecognized body type"));
+          }
+        } else {
+          req.end();
+        }
+      });
+    }
+    getOrCreateAgent(request, isInsecure) {
+      var _a;
+      const disableKeepAlive = request.disableKeepAlive;
+      if (isInsecure) {
+        if (disableKeepAlive) {
+          return http.globalAgent;
+        }
+        if (!this.cachedHttpAgent) {
+          this.cachedHttpAgent = new http.Agent({ keepAlive: true });
+        }
+        return this.cachedHttpAgent;
+      } else {
+        if (disableKeepAlive && !request.tlsSettings) {
+          return https.globalAgent;
+        }
+        const tlsSettings = (_a = request.tlsSettings) !== null && _a !== undefined ? _a : DEFAULT_TLS_SETTINGS;
+        let agent = this.cachedHttpsAgents.get(tlsSettings);
+        if (agent && agent.options.keepAlive === !disableKeepAlive) {
+          return agent;
+        }
+        log_js_1.logger.info("No cached TLS Agent exist, creating a new Agent");
+        agent = new https.Agent(Object.assign({
+          keepAlive: !disableKeepAlive
+        }, tlsSettings));
+        this.cachedHttpsAgents.set(tlsSettings, agent);
+        return agent;
+      }
+    }
+  }
+  function getResponseHeaders(res) {
+    const headers = (0, httpHeaders_js_1.createHttpHeaders)();
+    for (const header of Object.keys(res.headers)) {
+      const value = res.headers[header];
+      if (Array.isArray(value)) {
+        if (value.length > 0) {
+          headers.set(header, value[0]);
+        }
+      } else if (value) {
+        headers.set(header, value);
+      }
+    }
+    return headers;
+  }
+  function getDecodedResponseStream(stream, headers) {
+    const contentEncoding = headers.get("Content-Encoding");
+    if (contentEncoding === "gzip") {
+      const unzip = zlib.createGunzip();
+      stream.pipe(unzip);
+      return unzip;
+    } else if (contentEncoding === "deflate") {
+      const inflate = zlib.createInflate();
+      stream.pipe(inflate);
+      return inflate;
+    }
+    return stream;
+  }
+  function streamToText(stream) {
+    return new Promise((resolve, reject) => {
+      const buffer = [];
+      stream.on("data", (chunk) => {
+        if (Buffer.isBuffer(chunk)) {
+          buffer.push(chunk);
+        } else {
+          buffer.push(Buffer.from(chunk));
+        }
+      });
+      stream.on("end", () => {
+        resolve(Buffer.concat(buffer).toString("utf8"));
+      });
+      stream.on("error", (e) => {
+        if (e && (e === null || e === undefined ? undefined : e.name) === "AbortError") {
+          reject(e);
+        } else {
+          reject(new restError_js_1.RestError(`Error reading response as text: ${e.message}`, {
+            code: restError_js_1.RestError.PARSE_ERROR
+          }));
+        }
+      });
+    });
+  }
+  function getBodyLength(body) {
+    if (!body) {
+      return 0;
+    } else if (Buffer.isBuffer(body)) {
+      return body.length;
+    } else if (isReadableStream(body)) {
+      return null;
+    } else if (isArrayBuffer(body)) {
+      return body.byteLength;
+    } else if (typeof body === "string") {
+      return Buffer.from(body).length;
+    } else {
+      return null;
+    }
+  }
+  function createNodeHttpClient() {
+    return new NodeHttpClient;
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/defaultHttpClient.js
+var require_defaultHttpClient = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createDefaultHttpClient = createDefaultHttpClient;
+  var nodeHttpClient_js_1 = require_nodeHttpClient();
+  function createDefaultHttpClient() {
+    return (0, nodeHttpClient_js_1.createNodeHttpClient)();
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/logPolicy.js
 var require_logPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.logPolicyName = undefined;
@@ -27691,7 +26474,7 @@ var require_logPolicy = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/redirectPolicy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/redirectPolicy.js
 var require_redirectPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.redirectPolicyName = undefined;
@@ -27727,7 +26510,7 @@ var require_redirectPolicy = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/userAgentPlatform.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/userAgentPlatform.js
 var require_userAgentPlatform = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getHeaderName = getHeaderName;
@@ -27753,15 +26536,15 @@ var require_userAgentPlatform = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/constants.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/constants.js
 var require_constants6 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.DEFAULT_RETRY_POLICY_COUNT = exports.SDK_VERSION = undefined;
-  exports.SDK_VERSION = "1.17.0";
+  exports.SDK_VERSION = "0.2.2";
   exports.DEFAULT_RETRY_POLICY_COUNT = 3;
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/userAgent.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/userAgent.js
 var require_userAgent = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getUserAgentHeaderName = getUserAgentHeaderName;
@@ -27781,7 +26564,7 @@ var require_userAgent = __commonJS((exports) => {
   }
   async function getUserAgentValue(prefix) {
     const runtimeInfo = new Map;
-    runtimeInfo.set("core-rest-pipeline", constants_js_1.SDK_VERSION);
+    runtimeInfo.set("ts-http-runtime", constants_js_1.SDK_VERSION);
     await (0, userAgentPlatform_js_1.setPlatformSpecificData)(runtimeInfo);
     const defaultAgent = getUserAgentString(runtimeInfo);
     const userAgentValue = prefix ? `${prefix} ${defaultAgent}` : defaultAgent;
@@ -27789,7 +26572,7 @@ var require_userAgent = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/userAgentPolicy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/userAgentPolicy.js
 var require_userAgentPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.userAgentPolicyName = undefined;
@@ -27811,263 +26594,7 @@ var require_userAgentPolicy = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/typeGuards.js
-var require_typeGuards2 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.isNodeReadableStream = isNodeReadableStream;
-  exports.isWebReadableStream = isWebReadableStream;
-  exports.isReadableStream = isReadableStream;
-  exports.isBlob = isBlob;
-  function isNodeReadableStream(x) {
-    return Boolean(x && typeof x["pipe"] === "function");
-  }
-  function isWebReadableStream(x) {
-    return Boolean(x && typeof x.getReader === "function" && typeof x.tee === "function");
-  }
-  function isReadableStream(x) {
-    return isNodeReadableStream(x) || isWebReadableStream(x);
-  }
-  function isBlob(x) {
-    return typeof x.stream === "function";
-  }
-});
-
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/file.js
-var require_file2 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getRawContent = getRawContent;
-  exports.createFileFromStream = createFileFromStream;
-  exports.createFile = createFile;
-  var core_util_1 = require_commonjs5();
-  var typeGuards_js_1 = require_typeGuards2();
-  var unimplementedMethods = {
-    arrayBuffer: () => {
-      throw new Error("Not implemented");
-    },
-    slice: () => {
-      throw new Error("Not implemented");
-    },
-    text: () => {
-      throw new Error("Not implemented");
-    }
-  };
-  var rawContent = Symbol("rawContent");
-  function hasRawContent(x) {
-    return typeof x[rawContent] === "function";
-  }
-  function getRawContent(blob) {
-    if (hasRawContent(blob)) {
-      return blob[rawContent]();
-    } else {
-      return blob.stream();
-    }
-  }
-  function createFileFromStream(stream, name, options = {}) {
-    var _a, _b, _c, _d;
-    return Object.assign(Object.assign({}, unimplementedMethods), { type: (_a = options.type) !== null && _a !== undefined ? _a : "", lastModified: (_b = options.lastModified) !== null && _b !== undefined ? _b : new Date().getTime(), webkitRelativePath: (_c = options.webkitRelativePath) !== null && _c !== undefined ? _c : "", size: (_d = options.size) !== null && _d !== undefined ? _d : -1, name, stream: () => {
-      const s = stream();
-      if ((0, typeGuards_js_1.isNodeReadableStream)(s)) {
-        throw new Error("Not supported: a Node stream was provided as input to createFileFromStream.");
-      }
-      return s;
-    }, [rawContent]: stream });
-  }
-  function createFile(content, name, options = {}) {
-    var _a, _b, _c;
-    if (core_util_1.isNodeLike) {
-      return Object.assign(Object.assign({}, unimplementedMethods), { type: (_a = options.type) !== null && _a !== undefined ? _a : "", lastModified: (_b = options.lastModified) !== null && _b !== undefined ? _b : new Date().getTime(), webkitRelativePath: (_c = options.webkitRelativePath) !== null && _c !== undefined ? _c : "", size: content.byteLength, name, arrayBuffer: async () => content.buffer, stream: () => new Blob([content]).stream(), [rawContent]: () => content });
-    } else {
-      return new File([content], name, options);
-    }
-  }
-});
-
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/concat.js
-var require_concat = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.concat = concat;
-  var tslib_1 = require_tslib();
-  var node_stream_1 = __require("node:stream");
-  var typeGuards_js_1 = require_typeGuards2();
-  var file_js_1 = require_file2();
-  function streamAsyncIterator() {
-    return tslib_1.__asyncGenerator(this, arguments, function* streamAsyncIterator_1() {
-      const reader = this.getReader();
-      try {
-        while (true) {
-          const { done, value } = yield tslib_1.__await(reader.read());
-          if (done) {
-            return yield tslib_1.__await(undefined);
-          }
-          yield yield tslib_1.__await(value);
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    });
-  }
-  function makeAsyncIterable(webStream) {
-    if (!webStream[Symbol.asyncIterator]) {
-      webStream[Symbol.asyncIterator] = streamAsyncIterator.bind(webStream);
-    }
-    if (!webStream.values) {
-      webStream.values = streamAsyncIterator.bind(webStream);
-    }
-  }
-  function ensureNodeStream(stream) {
-    if (stream instanceof ReadableStream) {
-      makeAsyncIterable(stream);
-      return node_stream_1.Readable.fromWeb(stream);
-    } else {
-      return stream;
-    }
-  }
-  function toStream(source) {
-    if (source instanceof Uint8Array) {
-      return node_stream_1.Readable.from(Buffer.from(source));
-    } else if ((0, typeGuards_js_1.isBlob)(source)) {
-      return toStream((0, file_js_1.getRawContent)(source));
-    } else {
-      return ensureNodeStream(source);
-    }
-  }
-  async function concat(sources) {
-    return function() {
-      const streams = sources.map((x) => typeof x === "function" ? x() : x).map(toStream);
-      return node_stream_1.Readable.from(function() {
-        return tslib_1.__asyncGenerator(this, arguments, function* () {
-          var _a, e_1, _b, _c;
-          for (const stream of streams) {
-            try {
-              for (var _d = true, stream_1 = (e_1 = undefined, tslib_1.__asyncValues(stream)), stream_1_1;stream_1_1 = yield tslib_1.__await(stream_1.next()), _a = stream_1_1.done, !_a; _d = true) {
-                _c = stream_1_1.value;
-                _d = false;
-                const chunk = _c;
-                yield yield tslib_1.__await(chunk);
-              }
-            } catch (e_1_1) {
-              e_1 = { error: e_1_1 };
-            } finally {
-              try {
-                if (!_d && !_a && (_b = stream_1.return))
-                  yield tslib_1.__await(_b.call(stream_1));
-              } finally {
-                if (e_1)
-                  throw e_1.error;
-              }
-            }
-          }
-        });
-      }());
-    };
-  }
-});
-
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/multipartPolicy.js
-var require_multipartPolicy = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.multipartPolicyName = undefined;
-  exports.multipartPolicy = multipartPolicy;
-  var core_util_1 = require_commonjs5();
-  var concat_js_1 = require_concat();
-  var typeGuards_js_1 = require_typeGuards2();
-  function generateBoundary() {
-    return `----AzSDKFormBoundary${(0, core_util_1.randomUUID)()}`;
-  }
-  function encodeHeaders(headers) {
-    let result = "";
-    for (const [key, value] of headers) {
-      result += `${key}: ${value}\r\n`;
-    }
-    return result;
-  }
-  function getLength(source) {
-    if (source instanceof Uint8Array) {
-      return source.byteLength;
-    } else if ((0, typeGuards_js_1.isBlob)(source)) {
-      return source.size === -1 ? undefined : source.size;
-    } else {
-      return;
-    }
-  }
-  function getTotalLength(sources) {
-    let total = 0;
-    for (const source of sources) {
-      const partLength = getLength(source);
-      if (partLength === undefined) {
-        return;
-      } else {
-        total += partLength;
-      }
-    }
-    return total;
-  }
-  async function buildRequestBody(request, parts, boundary) {
-    const sources = [
-      (0, core_util_1.stringToUint8Array)(`--${boundary}`, "utf-8"),
-      ...parts.flatMap((part) => [
-        (0, core_util_1.stringToUint8Array)("\r\n", "utf-8"),
-        (0, core_util_1.stringToUint8Array)(encodeHeaders(part.headers), "utf-8"),
-        (0, core_util_1.stringToUint8Array)("\r\n", "utf-8"),
-        part.body,
-        (0, core_util_1.stringToUint8Array)(`\r\n--${boundary}`, "utf-8")
-      ]),
-      (0, core_util_1.stringToUint8Array)("--\r\n\r\n", "utf-8")
-    ];
-    const contentLength = getTotalLength(sources);
-    if (contentLength) {
-      request.headers.set("Content-Length", contentLength);
-    }
-    request.body = await (0, concat_js_1.concat)(sources);
-  }
-  exports.multipartPolicyName = "multipartPolicy";
-  var maxBoundaryLength = 70;
-  var validBoundaryCharacters = new Set(`abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'()+,-./:=?`);
-  function assertValidBoundary(boundary) {
-    if (boundary.length > maxBoundaryLength) {
-      throw new Error(`Multipart boundary "${boundary}" exceeds maximum length of 70 characters`);
-    }
-    if (Array.from(boundary).some((x) => !validBoundaryCharacters.has(x))) {
-      throw new Error(`Multipart boundary "${boundary}" contains invalid characters`);
-    }
-  }
-  function multipartPolicy() {
-    return {
-      name: exports.multipartPolicyName,
-      async sendRequest(request, next) {
-        var _a;
-        if (!request.multipartBody) {
-          return next(request);
-        }
-        if (request.body) {
-          throw new Error("multipartBody and regular body cannot be set at the same time");
-        }
-        let boundary = request.multipartBody.boundary;
-        const contentTypeHeader = (_a = request.headers.get("Content-Type")) !== null && _a !== undefined ? _a : "multipart/mixed";
-        const parsedHeader = contentTypeHeader.match(/^(multipart\/[^ ;]+)(?:; *boundary=(.+))?$/);
-        if (!parsedHeader) {
-          throw new Error(`Got multipart request body, but content-type header was not multipart: ${contentTypeHeader}`);
-        }
-        const [, contentType, parsedBoundary] = parsedHeader;
-        if (parsedBoundary && boundary && parsedBoundary !== boundary) {
-          throw new Error(`Multipart boundary was specified as ${parsedBoundary} in the header, but got ${boundary} in the request body`);
-        }
-        boundary !== null && boundary !== undefined || (boundary = parsedBoundary);
-        if (boundary) {
-          assertValidBoundary(boundary);
-        } else {
-          boundary = generateBoundary();
-        }
-        request.headers.set("Content-Type", `${contentType}; boundary=${boundary}`);
-        await buildRequestBody(request, request.multipartBody.parts, boundary);
-        request.multipartBody = undefined;
-        return next(request);
-      }
-    };
-  }
-});
-
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/decompressResponsePolicy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/decompressResponsePolicy.js
 var require_decompressResponsePolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.decompressResponsePolicyName = undefined;
@@ -28086,19 +26613,44 @@ var require_decompressResponsePolicy = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/helpers.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/random.js
+var require_random = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.getRandomIntegerInclusive = getRandomIntegerInclusive;
+  function getRandomIntegerInclusive(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    const offset = Math.floor(Math.random() * (max - min + 1));
+    return offset + min;
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/delay.js
+var require_delay = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.calculateRetryDelay = calculateRetryDelay;
+  var random_js_1 = require_random();
+  function calculateRetryDelay(retryAttempt, config) {
+    const exponentialDelay = config.retryDelayInMs * Math.pow(2, retryAttempt);
+    const clampedDelay = Math.min(config.maxRetryDelayInMs, exponentialDelay);
+    const retryAfterInMs = clampedDelay / 2 + (0, random_js_1.getRandomIntegerInclusive)(0, clampedDelay / 2);
+    return { retryAfterInMs };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/helpers.js
 var require_helpers = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.delay = delay;
   exports.parseHeaderValueAsNumber = parseHeaderValueAsNumber;
-  var abort_controller_1 = require_commonjs4();
+  var AbortError_js_1 = require_AbortError();
   var StandardAbortMessage = "The operation was aborted.";
   function delay(delayInMs, value, options) {
     return new Promise((resolve, reject) => {
       let timer = undefined;
       let onAborted = undefined;
       const rejectOnAbort = () => {
-        return reject(new abort_controller_1.AbortError((options === null || options === undefined ? undefined : options.abortErrorMsg) ? options === null || options === undefined ? undefined : options.abortErrorMsg : StandardAbortMessage));
+        return reject(new AbortError_js_1.AbortError((options === null || options === undefined ? undefined : options.abortErrorMsg) ? options === null || options === undefined ? undefined : options.abortErrorMsg : StandardAbortMessage));
       };
       const removeListeners = () => {
         if ((options === null || options === undefined ? undefined : options.abortSignal) && onAborted) {
@@ -28135,7 +26687,7 @@ var require_helpers = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/retryStrategies/throttlingRetryStrategy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/retryStrategies/throttlingRetryStrategy.js
 var require_throttlingRetryStrategy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.isThrottlingRetryResponse = isThrottlingRetryResponse;
@@ -28183,13 +26735,13 @@ var require_throttlingRetryStrategy = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/retryStrategies/exponentialRetryStrategy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/retryStrategies/exponentialRetryStrategy.js
 var require_exponentialRetryStrategy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.exponentialRetryStrategy = exponentialRetryStrategy;
   exports.isExponentialRetryResponse = isExponentialRetryResponse;
   exports.isSystemError = isSystemError;
-  var core_util_1 = require_commonjs5();
+  var delay_js_1 = require_delay();
   var throttlingRetryStrategy_js_1 = require_throttlingRetryStrategy();
   var DEFAULT_CLIENT_RETRY_INTERVAL = 1000;
   var DEFAULT_CLIENT_MAX_RETRY_INTERVAL = 1000 * 64;
@@ -28197,7 +26749,6 @@ var require_exponentialRetryStrategy = __commonJS((exports) => {
     var _a, _b;
     const retryInterval = (_a = options.retryDelayInMs) !== null && _a !== undefined ? _a : DEFAULT_CLIENT_RETRY_INTERVAL;
     const maxRetryInterval = (_b = options.maxRetryDelayInMs) !== null && _b !== undefined ? _b : DEFAULT_CLIENT_MAX_RETRY_INTERVAL;
-    let retryAfterInMs = retryInterval;
     return {
       name: "exponentialRetryStrategy",
       retry({ retryCount, response, responseError }) {
@@ -28212,10 +26763,10 @@ var require_exponentialRetryStrategy = __commonJS((exports) => {
         if (responseError && !matchedSystemError && !isExponential) {
           return { errorToThrow: responseError };
         }
-        const exponentialDelay = retryAfterInMs * Math.pow(2, retryCount);
-        const clampedExponentialDelay = Math.min(maxRetryInterval, exponentialDelay);
-        retryAfterInMs = clampedExponentialDelay / 2 + (0, core_util_1.getRandomIntegerInclusive)(0, clampedExponentialDelay / 2);
-        return { retryAfterInMs };
+        return (0, delay_js_1.calculateRetryDelay)(retryCount, {
+          retryDelayInMs: retryInterval,
+          maxRetryDelayInMs: maxRetryInterval
+        });
       }
     };
   }
@@ -28230,15 +26781,15 @@ var require_exponentialRetryStrategy = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/retryPolicy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/retryPolicy.js
 var require_retryPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.retryPolicy = retryPolicy;
   var helpers_js_1 = require_helpers();
-  var logger_1 = require_commonjs3();
-  var abort_controller_1 = require_commonjs4();
+  var AbortError_js_1 = require_AbortError();
+  var logger_js_1 = require_logger();
   var constants_js_1 = require_constants6();
-  var retryPolicyLogger = (0, logger_1.createClientLogger)("core-rest-pipeline retryPolicy");
+  var retryPolicyLogger = (0, logger_js_1.createClientLogger)("ts-http-runtime retryPolicy");
   var retryPolicyName = "retryPolicy";
   function retryPolicy(strategies, options = { maxRetries: constants_js_1.DEFAULT_RETRY_POLICY_COUNT }) {
     const logger = options.logger || retryPolicyLogger;
@@ -28268,7 +26819,7 @@ var require_retryPolicy = __commonJS((exports) => {
             }
             if ((_a = request.abortSignal) === null || _a === undefined ? undefined : _a.aborted) {
               logger.error(`Retry ${retryCount}: Request aborted.`);
-              const abortError = new abort_controller_1.AbortError;
+              const abortError = new AbortError_js_1.AbortError;
               throw abortError;
             }
             if (retryCount >= ((_b = options.maxRetries) !== null && _b !== undefined ? _b : constants_js_1.DEFAULT_RETRY_POLICY_COUNT)) {
@@ -28284,7 +26835,7 @@ var require_retryPolicy = __commonJS((exports) => {
             logger.info(`Retry ${retryCount}: Processing ${strategies.length} retry strategies.`);
             strategiesLoop:
               for (const strategy of strategies) {
-                const strategyLogger = strategy.logger || retryPolicyLogger;
+                const strategyLogger = strategy.logger || logger;
                 strategyLogger.info(`Retry ${retryCount}: Processing retry strategy ${strategy.name}.`);
                 const modifiers = strategy.retry({
                   retryCount,
@@ -28325,7 +26876,7 @@ var require_retryPolicy = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/defaultRetryPolicy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/defaultRetryPolicy.js
 var require_defaultRetryPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.defaultRetryPolicyName = undefined;
@@ -28346,72 +26897,30 @@ var require_defaultRetryPolicy = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/httpHeaders.js
-var require_httpHeaders = __commonJS((exports) => {
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/checkEnvironment.js
+var require_checkEnvironment = __commonJS((exports) => {
+  var _a;
+  var _b;
+  var _c;
+  var _d;
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createHttpHeaders = createHttpHeaders;
-  function normalizeName(name) {
-    return name.toLowerCase();
-  }
-  function* headerIterator(map) {
-    for (const entry of map.values()) {
-      yield [entry.name, entry.value];
-    }
-  }
-
-  class HttpHeadersImpl {
-    constructor(rawHeaders) {
-      this._headersMap = new Map;
-      if (rawHeaders) {
-        for (const headerName of Object.keys(rawHeaders)) {
-          this.set(headerName, rawHeaders[headerName]);
-        }
-      }
-    }
-    set(name, value) {
-      this._headersMap.set(normalizeName(name), { name, value: String(value).trim() });
-    }
-    get(name) {
-      var _a;
-      return (_a = this._headersMap.get(normalizeName(name))) === null || _a === undefined ? undefined : _a.value;
-    }
-    has(name) {
-      return this._headersMap.has(normalizeName(name));
-    }
-    delete(name) {
-      this._headersMap.delete(normalizeName(name));
-    }
-    toJSON(options = {}) {
-      const result = {};
-      if (options.preserveCase) {
-        for (const entry of this._headersMap.values()) {
-          result[entry.name] = entry.value;
-        }
-      } else {
-        for (const [normalizedName, entry] of this._headersMap) {
-          result[normalizedName] = entry.value;
-        }
-      }
-      return result;
-    }
-    toString() {
-      return JSON.stringify(this.toJSON({ preserveCase: true }));
-    }
-    [Symbol.iterator]() {
-      return headerIterator(this._headersMap);
-    }
-  }
-  function createHttpHeaders(rawHeaders) {
-    return new HttpHeadersImpl(rawHeaders);
-  }
+  exports.isReactNative = exports.isNodeRuntime = exports.isNodeLike = exports.isBun = exports.isDeno = exports.isWebWorker = exports.isBrowser = undefined;
+  exports.isBrowser = typeof window !== "undefined" && typeof window.document !== "undefined";
+  exports.isWebWorker = typeof self === "object" && typeof (self === null || self === undefined ? undefined : self.importScripts) === "function" && (((_a = self.constructor) === null || _a === undefined ? undefined : _a.name) === "DedicatedWorkerGlobalScope" || ((_b = self.constructor) === null || _b === undefined ? undefined : _b.name) === "ServiceWorkerGlobalScope" || ((_c = self.constructor) === null || _c === undefined ? undefined : _c.name) === "SharedWorkerGlobalScope");
+  exports.isDeno = typeof Deno !== "undefined" && typeof Deno.version !== "undefined" && typeof Deno.version.deno !== "undefined";
+  exports.isBun = typeof Bun !== "undefined" && typeof Bun.version !== "undefined";
+  exports.isNodeLike = typeof globalThis.process !== "undefined" && Boolean(globalThis.process.version) && Boolean((_d = globalThis.process.versions) === null || _d === undefined ? undefined : _d.node);
+  exports.isNodeRuntime = exports.isNodeLike && !exports.isBun && !exports.isDeno;
+  exports.isReactNative = typeof navigator !== "undefined" && (navigator === null || navigator === undefined ? undefined : navigator.product) === "ReactNative";
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/formDataPolicy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/formDataPolicy.js
 var require_formDataPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.formDataPolicyName = undefined;
   exports.formDataPolicy = formDataPolicy;
-  var core_util_1 = require_commonjs5();
+  var bytesEncoding_js_1 = require_bytesEncoding();
+  var checkEnvironment_js_1 = require_checkEnvironment();
   var httpHeaders_js_1 = require_httpHeaders();
   exports.formDataPolicyName = "formDataPolicy";
   function formDataToFormDataMap(formData) {
@@ -28427,7 +26936,7 @@ var require_formDataPolicy = __commonJS((exports) => {
     return {
       name: exports.formDataPolicyName,
       async sendRequest(request, next) {
-        if (core_util_1.isNodeLike && typeof FormData !== "undefined" && request.body instanceof FormData) {
+        if (checkEnvironment_js_1.isNodeLike && typeof FormData !== "undefined" && request.body instanceof FormData) {
           request.formData = formDataToFormDataMap(request.body);
           request.body = undefined;
         }
@@ -28471,7 +26980,7 @@ var require_formDataPolicy = __commonJS((exports) => {
             headers: (0, httpHeaders_js_1.createHttpHeaders)({
               "Content-Disposition": `form-data; name="${fieldName}"`
             }),
-            body: (0, core_util_1.stringToUint8Array)(value, "utf-8")
+            body: (0, bytesEncoding_js_1.stringToUint8Array)(value, "utf-8")
           });
         } else if (value === undefined || value === null || typeof value !== "object") {
           throw new Error(`Unexpected value for key ${fieldName}: ${value}. Value should be serialized to string first.`);
@@ -28499,15 +27008,15 @@ var require_ms = __commonJS((exports, module) => {
   var d = h * 24;
   var w = d * 7;
   var y = d * 365.25;
-  module.exports = function(val2, options) {
+  module.exports = function(val, options) {
     options = options || {};
-    var type = typeof val2;
-    if (type === "string" && val2.length > 0) {
-      return parse(val2);
-    } else if (type === "number" && isFinite(val2)) {
-      return options.long ? fmtLong(val2) : fmtShort(val2);
+    var type = typeof val;
+    if (type === "string" && val.length > 0) {
+      return parse(val);
+    } else if (type === "number" && isFinite(val)) {
+      return options.long ? fmtLong(val) : fmtShort(val);
     }
-    throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val2));
+    throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val));
   };
   function parse(str) {
     str = String(str);
@@ -28655,8 +27164,8 @@ var require_common = __commonJS((exports, module) => {
           index++;
           const formatter = createDebug.formatters[format];
           if (typeof formatter === "function") {
-            const val2 = args[index];
-            match = formatter.call(self2, val2);
+            const val = args[index];
+            match = formatter.call(self2, val);
             args.splice(index, 1);
             index--;
           }
@@ -28703,55 +27212,69 @@ var require_common = __commonJS((exports, module) => {
       createDebug.namespaces = namespaces;
       createDebug.names = [];
       createDebug.skips = [];
-      let i;
-      const split = (typeof namespaces === "string" ? namespaces : "").split(/[\s,]+/);
-      const len = split.length;
-      for (i = 0;i < len; i++) {
-        if (!split[i]) {
-          continue;
-        }
-        namespaces = split[i].replace(/\*/g, ".*?");
-        if (namespaces[0] === "-") {
-          createDebug.skips.push(new RegExp("^" + namespaces.slice(1) + "$"));
+      const split = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
+      for (const ns of split) {
+        if (ns[0] === "-") {
+          createDebug.skips.push(ns.slice(1));
         } else {
-          createDebug.names.push(new RegExp("^" + namespaces + "$"));
+          createDebug.names.push(ns);
         }
       }
     }
+    function matchesTemplate(search, template) {
+      let searchIndex = 0;
+      let templateIndex = 0;
+      let starIndex = -1;
+      let matchIndex = 0;
+      while (searchIndex < search.length) {
+        if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
+          if (template[templateIndex] === "*") {
+            starIndex = templateIndex;
+            matchIndex = searchIndex;
+            templateIndex++;
+          } else {
+            searchIndex++;
+            templateIndex++;
+          }
+        } else if (starIndex !== -1) {
+          templateIndex = starIndex + 1;
+          matchIndex++;
+          searchIndex = matchIndex;
+        } else {
+          return false;
+        }
+      }
+      while (templateIndex < template.length && template[templateIndex] === "*") {
+        templateIndex++;
+      }
+      return templateIndex === template.length;
+    }
     function disable() {
       const namespaces = [
-        ...createDebug.names.map(toNamespace),
-        ...createDebug.skips.map(toNamespace).map((namespace) => "-" + namespace)
+        ...createDebug.names,
+        ...createDebug.skips.map((namespace) => "-" + namespace)
       ].join(",");
       createDebug.enable("");
       return namespaces;
     }
     function enabled(name) {
-      if (name[name.length - 1] === "*") {
-        return true;
-      }
-      let i;
-      let len;
-      for (i = 0, len = createDebug.skips.length;i < len; i++) {
-        if (createDebug.skips[i].test(name)) {
+      for (const skip of createDebug.skips) {
+        if (matchesTemplate(name, skip)) {
           return false;
         }
       }
-      for (i = 0, len = createDebug.names.length;i < len; i++) {
-        if (createDebug.names[i].test(name)) {
+      for (const ns of createDebug.names) {
+        if (matchesTemplate(name, ns)) {
           return true;
         }
       }
       return false;
     }
-    function toNamespace(regexp) {
-      return regexp.toString().substring(2, regexp.toString().length - 2).replace(/\.\*\?$/, "*");
-    }
-    function coerce(val2) {
-      if (val2 instanceof Error) {
-        return val2.stack || val2.message;
+    function coerce(val) {
+      if (val instanceof Error) {
+        return val.stack || val.message;
       }
-      return val2;
+      return val;
     }
     function destroy() {
       console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
@@ -28886,8 +27409,7 @@ var require_browser = __commonJS((exports, module) => {
     });
     args.splice(lastC, 0, c);
   }
-  exports.log = console.debug || console.log || (() => {
-  });
+  exports.log = console.debug || console.log || (() => {});
   function save(namespaces) {
     try {
       if (namespaces) {
@@ -28895,15 +27417,13 @@ var require_browser = __commonJS((exports, module) => {
       } else {
         exports.storage.removeItem("debug");
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   }
   function load() {
     let r;
     try {
-      r = exports.storage.getItem("debug");
-    } catch (error) {
-    }
+      r = exports.storage.getItem("debug") || exports.storage.getItem("DEBUG");
+    } catch (error) {}
     if (!r && typeof process !== "undefined" && "env" in process) {
       r = process.env.DEBUG;
     }
@@ -28912,8 +27432,7 @@ var require_browser = __commonJS((exports, module) => {
   function localstorage() {
     try {
       return localStorage;
-    } catch (error) {
-    }
+    } catch (error) {}
   }
   module.exports = require_common()(exports);
   var { formatters } = module.exports;
@@ -28936,11 +27455,10 @@ var require_node = __commonJS((exports, module) => {
   exports.save = save;
   exports.load = load;
   exports.useColors = useColors;
-  exports.destroy = util.deprecate(() => {
-  }, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+  exports.destroy = util.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
   exports.colors = [6, 2, 3, 4, 5, 1];
   try {
-    const supportsColor = (()=>{throw new Error(`Cannot require module "supports-color"`);})();
+    const supportsColor = (()=>{throw new Error("Cannot require module "+"supports-color");})();
     if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
       exports.colors = [
         20,
@@ -29021,25 +27539,24 @@ var require_node = __commonJS((exports, module) => {
         221
       ];
     }
-  } catch (error) {
-  }
+  } catch (error) {}
   exports.inspectOpts = Object.keys(process.env).filter((key) => {
     return /^debug_/i.test(key);
   }).reduce((obj, key) => {
     const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_2, k) => {
       return k.toUpperCase();
     });
-    let val2 = process.env[key];
-    if (/^(yes|on|true|enabled)$/i.test(val2)) {
-      val2 = true;
-    } else if (/^(no|off|false|disabled)$/i.test(val2)) {
-      val2 = false;
-    } else if (val2 === "null") {
-      val2 = null;
+    let val = process.env[key];
+    if (/^(yes|on|true|enabled)$/i.test(val)) {
+      val = true;
+    } else if (/^(no|off|false|disabled)$/i.test(val)) {
+      val = false;
+    } else if (val === "null") {
+      val = null;
     } else {
-      val2 = Number(val2);
+      val = Number(val);
     }
-    obj[prop] = val2;
+    obj[prop] = val;
     return obj;
   }, {});
   function useColors() {
@@ -29051,7 +27568,9 @@ var require_node = __commonJS((exports, module) => {
       const c = this.color;
       const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
       const prefix = `  ${colorCode};1m${name} \x1B[0m`;
-      args[0] = prefix + args[0].split("\n").join("\n" + prefix);
+      args[0] = prefix + args[0].split(`
+`).join(`
+` + prefix);
       args.push(colorCode + "m+" + module.exports.humanize(this.diff) + "\x1B[0m");
     } else {
       args[0] = getDate() + name + " " + args[0];
@@ -29064,7 +27583,8 @@ var require_node = __commonJS((exports, module) => {
     return new Date().toISOString() + " ";
   }
   function log(...args) {
-    return process.stderr.write(util.formatWithOptions(exports.inspectOpts, ...args) + "\n");
+    return process.stderr.write(util.formatWithOptions(exports.inspectOpts, ...args) + `
+`);
   }
   function save(namespaces) {
     if (namespaces) {
@@ -29087,7 +27607,8 @@ var require_node = __commonJS((exports, module) => {
   var { formatters } = module.exports;
   formatters.o = function(v) {
     this.inspectOpts.colors = this.useColors;
-    return util.inspect(v, this.inspectOpts).split("\n").map((str) => str.trim()).join(" ");
+    return util.inspect(v, this.inspectOpts).split(`
+`).map((str) => str.trim()).join(" ");
   };
   formatters.O = function(v) {
     this.inspectOpts.colors = this.useColors;
@@ -29240,7 +27761,8 @@ var require_dist = __commonJS((exports) => {
       const { stack } = new Error;
       if (typeof stack !== "string")
         return false;
-      return stack.split("\n").some((l) => l.indexOf("(https.js:") !== -1 || l.indexOf("node:https:") !== -1);
+      return stack.split(`
+`).some((l) => l.indexOf("(https.js:") !== -1 || l.indexOf("node:https:") !== -1);
     }
     incrementSockets(name) {
       if (this.maxSockets === Infinity && this.maxTotalSockets === Infinity) {
@@ -29285,7 +27807,11 @@ var require_dist = __commonJS((exports) => {
       Promise.resolve().then(() => this.connect(req, connectOpts)).then((socket) => {
         this.decrementSockets(name, fakeSocket);
         if (socket instanceof http.Agent) {
-          return socket.addRequest(req, connectOpts);
+          try {
+            return socket.addRequest(req, connectOpts);
+          } catch (err) {
+            return cb(err);
+          }
         }
         this[INTERNAL].currentSocket = socket;
         super.createSocket(req, options, cb);
@@ -29361,13 +27887,16 @@ var require_parse_proxy_response = __commonJS((exports) => {
         buffers.push(b);
         buffersLength += b.length;
         const buffered = Buffer.concat(buffers, buffersLength);
-        const endOfHeaders = buffered.indexOf("\r\n\r\n");
+        const endOfHeaders = buffered.indexOf(`\r
+\r
+`);
         if (endOfHeaders === -1) {
           debug("have not received end of HTTP headers yet...");
           read();
           return;
         }
-        const headerParts = buffered.slice(0, endOfHeaders).toString("ascii").split("\r\n");
+        const headerParts = buffered.slice(0, endOfHeaders).toString("ascii").split(`\r
+`);
         const firstLine = headerParts.shift();
         if (!firstLine) {
           socket.destroy();
@@ -29462,6 +27991,15 @@ var require_dist2 = __commonJS((exports) => {
   var url_1 = __require("url");
   var parse_proxy_response_1 = require_parse_proxy_response();
   var debug = (0, debug_1.default)("https-proxy-agent");
+  var setServernameFromNonIpHost = (options) => {
+    if (options.servername === undefined && options.host && !net.isIP(options.host)) {
+      return {
+        ...options,
+        servername: options.host
+      };
+    }
+    return options;
+  };
 
   class HttpsProxyAgent extends agent_base_1.Agent {
     constructor(proxy, opts) {
@@ -29487,18 +28025,15 @@ var require_dist2 = __commonJS((exports) => {
       let socket;
       if (proxy.protocol === "https:") {
         debug("Creating `tls.Socket`: %o", this.connectOpts);
-        const servername = this.connectOpts.servername || this.connectOpts.host;
-        socket = tls.connect({
-          ...this.connectOpts,
-          servername
-        });
+        socket = tls.connect(setServernameFromNonIpHost(this.connectOpts));
       } else {
         debug("Creating `net.Socket`: %o", this.connectOpts);
         socket = net.connect(this.connectOpts);
       }
       const headers = typeof this.proxyHeaders === "function" ? this.proxyHeaders() : { ...this.proxyHeaders };
       const host = net.isIPv6(opts.host) ? `[${opts.host}]` : opts.host;
-      let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r\n`;
+      let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r
+`;
       if (proxy.username || proxy.password) {
         const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
         headers["Proxy-Authorization"] = `Basic ${Buffer.from(auth).toString("base64")}`;
@@ -29508,10 +28043,12 @@ var require_dist2 = __commonJS((exports) => {
         headers["Proxy-Connection"] = this.keepAlive ? "Keep-Alive" : "close";
       }
       for (const name of Object.keys(headers)) {
-        payload += `${name}: ${headers[name]}\r\n`;
+        payload += `${name}: ${headers[name]}\r
+`;
       }
       const proxyResponsePromise = (0, parse_proxy_response_1.parseProxyResponse)(socket);
-      socket.write(`${payload}\r\n`);
+      socket.write(`${payload}\r
+`);
       const { connect, buffered } = await proxyResponsePromise;
       req.emit("proxyConnect", connect);
       this.emit("proxyConnect", connect, req);
@@ -29519,11 +28056,9 @@ var require_dist2 = __commonJS((exports) => {
         req.once("socket", resume);
         if (opts.secureEndpoint) {
           debug("Upgrading socket connection to TLS");
-          const servername = opts.servername || opts.host;
           return tls.connect({
-            ...omit(opts, "host", "path", "port"),
-            socket,
-            servername
+            ...omit(setServernameFromNonIpHost(opts), "host", "path", "port"),
+            socket
           });
         }
         return socket;
@@ -29660,7 +28195,9 @@ var require_dist3 = __commonJS((exports) => {
       if (req.outputData && req.outputData.length > 0) {
         debug("Patching connection write() output buffer with updated header");
         first = req.outputData[0].data;
-        endOfHeaders = first.indexOf("\r\n\r\n") + 4;
+        endOfHeaders = first.indexOf(`\r
+\r
+`) + 4;
         req.outputData[0].data = req._header + first.substring(endOfHeaders);
         debug("Output buffer: %o", req.outputData[0].data);
       }
@@ -29690,7 +28227,7 @@ var require_dist3 = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/proxyPolicy.js
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/proxyPolicy.js
 var require_proxyPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.globalNoProxyList = exports.proxyPolicyName = undefined;
@@ -29839,6 +28376,1877 @@ var require_proxyPolicy = __commonJS((exports) => {
   }
 });
 
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/agentPolicy.js
+var require_agentPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.agentPolicyName = undefined;
+  exports.agentPolicy = agentPolicy;
+  exports.agentPolicyName = "agentPolicy";
+  function agentPolicy(agent) {
+    return {
+      name: exports.agentPolicyName,
+      sendRequest: async (req, next) => {
+        if (!req.agent) {
+          req.agent = agent;
+        }
+        return next(req);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/tlsPolicy.js
+var require_tlsPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.tlsPolicyName = undefined;
+  exports.tlsPolicy = tlsPolicy;
+  exports.tlsPolicyName = "tlsPolicy";
+  function tlsPolicy(tlsSettings) {
+    return {
+      name: exports.tlsPolicyName,
+      sendRequest: async (req, next) => {
+        if (!req.tlsSettings) {
+          req.tlsSettings = tlsSettings;
+        }
+        return next(req);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/typeGuards.js
+var require_typeGuards = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.isNodeReadableStream = isNodeReadableStream;
+  exports.isWebReadableStream = isWebReadableStream;
+  exports.isBinaryBody = isBinaryBody;
+  exports.isReadableStream = isReadableStream;
+  exports.isBlob = isBlob;
+  function isNodeReadableStream(x) {
+    return Boolean(x && typeof x["pipe"] === "function");
+  }
+  function isWebReadableStream(x) {
+    return Boolean(x && typeof x.getReader === "function" && typeof x.tee === "function");
+  }
+  function isBinaryBody(body) {
+    return body !== undefined && (body instanceof Uint8Array || isReadableStream(body) || typeof body === "function" || body instanceof Blob);
+  }
+  function isReadableStream(x) {
+    return isNodeReadableStream(x) || isWebReadableStream(x);
+  }
+  function isBlob(x) {
+    return typeof x.stream === "function";
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/concat.js
+var require_concat = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.concat = concat;
+  var tslib_1 = require_tslib();
+  var stream_1 = __require("stream");
+  var typeGuards_js_1 = require_typeGuards();
+  function streamAsyncIterator() {
+    return tslib_1.__asyncGenerator(this, arguments, function* streamAsyncIterator_1() {
+      const reader = this.getReader();
+      try {
+        while (true) {
+          const { done, value } = yield tslib_1.__await(reader.read());
+          if (done) {
+            return yield tslib_1.__await(undefined);
+          }
+          yield yield tslib_1.__await(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    });
+  }
+  function makeAsyncIterable(webStream) {
+    if (!webStream[Symbol.asyncIterator]) {
+      webStream[Symbol.asyncIterator] = streamAsyncIterator.bind(webStream);
+    }
+    if (!webStream.values) {
+      webStream.values = streamAsyncIterator.bind(webStream);
+    }
+  }
+  function ensureNodeStream(stream) {
+    if (stream instanceof ReadableStream) {
+      makeAsyncIterable(stream);
+      return stream_1.Readable.fromWeb(stream);
+    } else {
+      return stream;
+    }
+  }
+  function toStream(source) {
+    if (source instanceof Uint8Array) {
+      return stream_1.Readable.from(Buffer.from(source));
+    } else if ((0, typeGuards_js_1.isBlob)(source)) {
+      return ensureNodeStream(source.stream());
+    } else {
+      return ensureNodeStream(source);
+    }
+  }
+  async function concat(sources) {
+    return function() {
+      const streams = sources.map((x) => typeof x === "function" ? x() : x).map(toStream);
+      return stream_1.Readable.from(function() {
+        return tslib_1.__asyncGenerator(this, arguments, function* () {
+          var _a, e_1, _b, _c;
+          for (const stream of streams) {
+            try {
+              for (var _d = true, stream_2 = (e_1 = undefined, tslib_1.__asyncValues(stream)), stream_2_1;stream_2_1 = yield tslib_1.__await(stream_2.next()), _a = stream_2_1.done, !_a; _d = true) {
+                _c = stream_2_1.value;
+                _d = false;
+                const chunk = _c;
+                yield yield tslib_1.__await(chunk);
+              }
+            } catch (e_1_1) {
+              e_1 = { error: e_1_1 };
+            } finally {
+              try {
+                if (!_d && !_a && (_b = stream_2.return))
+                  yield tslib_1.__await(_b.call(stream_2));
+              } finally {
+                if (e_1)
+                  throw e_1.error;
+              }
+            }
+          }
+        });
+      }());
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/multipartPolicy.js
+var require_multipartPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.multipartPolicyName = undefined;
+  exports.multipartPolicy = multipartPolicy;
+  var bytesEncoding_js_1 = require_bytesEncoding();
+  var typeGuards_js_1 = require_typeGuards();
+  var uuidUtils_js_1 = require_uuidUtils();
+  var concat_js_1 = require_concat();
+  function generateBoundary() {
+    return `----AzSDKFormBoundary${(0, uuidUtils_js_1.randomUUID)()}`;
+  }
+  function encodeHeaders(headers) {
+    let result = "";
+    for (const [key, value] of headers) {
+      result += `${key}: ${value}\r
+`;
+    }
+    return result;
+  }
+  function getLength(source) {
+    if (source instanceof Uint8Array) {
+      return source.byteLength;
+    } else if ((0, typeGuards_js_1.isBlob)(source)) {
+      return source.size === -1 ? undefined : source.size;
+    } else {
+      return;
+    }
+  }
+  function getTotalLength(sources) {
+    let total = 0;
+    for (const source of sources) {
+      const partLength = getLength(source);
+      if (partLength === undefined) {
+        return;
+      } else {
+        total += partLength;
+      }
+    }
+    return total;
+  }
+  async function buildRequestBody(request, parts, boundary) {
+    const sources = [
+      (0, bytesEncoding_js_1.stringToUint8Array)(`--${boundary}`, "utf-8"),
+      ...parts.flatMap((part) => [
+        (0, bytesEncoding_js_1.stringToUint8Array)(`\r
+`, "utf-8"),
+        (0, bytesEncoding_js_1.stringToUint8Array)(encodeHeaders(part.headers), "utf-8"),
+        (0, bytesEncoding_js_1.stringToUint8Array)(`\r
+`, "utf-8"),
+        part.body,
+        (0, bytesEncoding_js_1.stringToUint8Array)(`\r
+--${boundary}`, "utf-8")
+      ]),
+      (0, bytesEncoding_js_1.stringToUint8Array)(`--\r
+\r
+`, "utf-8")
+    ];
+    const contentLength = getTotalLength(sources);
+    if (contentLength) {
+      request.headers.set("Content-Length", contentLength);
+    }
+    request.body = await (0, concat_js_1.concat)(sources);
+  }
+  exports.multipartPolicyName = "multipartPolicy";
+  var maxBoundaryLength = 70;
+  var validBoundaryCharacters = new Set(`abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'()+,-./:=?`);
+  function assertValidBoundary(boundary) {
+    if (boundary.length > maxBoundaryLength) {
+      throw new Error(`Multipart boundary "${boundary}" exceeds maximum length of 70 characters`);
+    }
+    if (Array.from(boundary).some((x) => !validBoundaryCharacters.has(x))) {
+      throw new Error(`Multipart boundary "${boundary}" contains invalid characters`);
+    }
+  }
+  function multipartPolicy() {
+    return {
+      name: exports.multipartPolicyName,
+      async sendRequest(request, next) {
+        var _a;
+        if (!request.multipartBody) {
+          return next(request);
+        }
+        if (request.body) {
+          throw new Error("multipartBody and regular body cannot be set at the same time");
+        }
+        let boundary = request.multipartBody.boundary;
+        const contentTypeHeader = (_a = request.headers.get("Content-Type")) !== null && _a !== undefined ? _a : "multipart/mixed";
+        const parsedHeader = contentTypeHeader.match(/^(multipart\/[^ ;]+)(?:; *boundary=(.+))?$/);
+        if (!parsedHeader) {
+          throw new Error(`Got multipart request body, but content-type header was not multipart: ${contentTypeHeader}`);
+        }
+        const [, contentType, parsedBoundary] = parsedHeader;
+        if (parsedBoundary && boundary && parsedBoundary !== boundary) {
+          throw new Error(`Multipart boundary was specified as ${parsedBoundary} in the header, but got ${boundary} in the request body`);
+        }
+        boundary !== null && boundary !== undefined || (boundary = parsedBoundary);
+        if (boundary) {
+          assertValidBoundary(boundary);
+        } else {
+          boundary = generateBoundary();
+        }
+        request.headers.set("Content-Type", `${contentType}; boundary=${boundary}`);
+        await buildRequestBody(request, request.multipartBody.parts, boundary);
+        request.multipartBody = undefined;
+        return next(request);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/createPipelineFromOptions.js
+var require_createPipelineFromOptions = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createPipelineFromOptions = createPipelineFromOptions;
+  var logPolicy_js_1 = require_logPolicy();
+  var pipeline_js_1 = require_pipeline();
+  var redirectPolicy_js_1 = require_redirectPolicy();
+  var userAgentPolicy_js_1 = require_userAgentPolicy();
+  var decompressResponsePolicy_js_1 = require_decompressResponsePolicy();
+  var defaultRetryPolicy_js_1 = require_defaultRetryPolicy();
+  var formDataPolicy_js_1 = require_formDataPolicy();
+  var checkEnvironment_js_1 = require_checkEnvironment();
+  var proxyPolicy_js_1 = require_proxyPolicy();
+  var agentPolicy_js_1 = require_agentPolicy();
+  var tlsPolicy_js_1 = require_tlsPolicy();
+  var multipartPolicy_js_1 = require_multipartPolicy();
+  function createPipelineFromOptions(options) {
+    const pipeline = (0, pipeline_js_1.createEmptyPipeline)();
+    if (checkEnvironment_js_1.isNodeLike) {
+      if (options.agent) {
+        pipeline.addPolicy((0, agentPolicy_js_1.agentPolicy)(options.agent));
+      }
+      if (options.tlsOptions) {
+        pipeline.addPolicy((0, tlsPolicy_js_1.tlsPolicy)(options.tlsOptions));
+      }
+      pipeline.addPolicy((0, proxyPolicy_js_1.proxyPolicy)(options.proxyOptions));
+      pipeline.addPolicy((0, decompressResponsePolicy_js_1.decompressResponsePolicy)());
+    }
+    pipeline.addPolicy((0, formDataPolicy_js_1.formDataPolicy)(), { beforePolicies: [multipartPolicy_js_1.multipartPolicyName] });
+    pipeline.addPolicy((0, userAgentPolicy_js_1.userAgentPolicy)(options.userAgentOptions));
+    pipeline.addPolicy((0, multipartPolicy_js_1.multipartPolicy)(), { afterPhase: "Deserialize" });
+    pipeline.addPolicy((0, defaultRetryPolicy_js_1.defaultRetryPolicy)(options.retryOptions), { phase: "Retry" });
+    if (checkEnvironment_js_1.isNodeLike) {
+      pipeline.addPolicy((0, redirectPolicy_js_1.redirectPolicy)(options.redirectOptions), { afterPhase: "Retry" });
+    }
+    pipeline.addPolicy((0, logPolicy_js_1.logPolicy)(options.loggingOptions), { afterPhase: "Sign" });
+    return pipeline;
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/client/apiVersionPolicy.js
+var require_apiVersionPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.apiVersionPolicyName = undefined;
+  exports.apiVersionPolicy = apiVersionPolicy;
+  exports.apiVersionPolicyName = "ApiVersionPolicy";
+  function apiVersionPolicy(options) {
+    return {
+      name: exports.apiVersionPolicyName,
+      sendRequest: (req, next) => {
+        const url = new URL(req.url);
+        if (!url.searchParams.get("api-version") && options.apiVersion) {
+          req.url = `${req.url}${Array.from(url.searchParams.keys()).length > 0 ? "&" : "?"}api-version=${options.apiVersion}`;
+        }
+        return next(req);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/auth/credentials.js
+var require_credentials = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.isOAuth2TokenCredential = isOAuth2TokenCredential;
+  exports.isBearerTokenCredential = isBearerTokenCredential;
+  exports.isBasicCredential = isBasicCredential;
+  exports.isApiKeyCredential = isApiKeyCredential;
+  function isOAuth2TokenCredential(credential) {
+    return "getOAuth2Token" in credential;
+  }
+  function isBearerTokenCredential(credential) {
+    return "getBearerToken" in credential;
+  }
+  function isBasicCredential(credential) {
+    return "username" in credential && "password" in credential;
+  }
+  function isApiKeyCredential(credential) {
+    return "key" in credential;
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/auth/checkInsecureConnection.js
+var require_checkInsecureConnection = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.ensureSecureConnection = ensureSecureConnection;
+  var log_js_1 = require_log2();
+  var insecureConnectionWarningEmmitted = false;
+  function allowInsecureConnection(request, options) {
+    if (options.allowInsecureConnection && request.allowInsecureConnection) {
+      const url = new URL(request.url);
+      if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+        return true;
+      }
+    }
+    return false;
+  }
+  function emitInsecureConnectionWarning() {
+    const warning = "Sending token over insecure transport. Assume any token issued is compromised.";
+    log_js_1.logger.warning(warning);
+    if (typeof (process === null || process === undefined ? undefined : process.emitWarning) === "function" && !insecureConnectionWarningEmmitted) {
+      insecureConnectionWarningEmmitted = true;
+      process.emitWarning(warning);
+    }
+  }
+  function ensureSecureConnection(request, options) {
+    if (!request.url.toLowerCase().startsWith("https://")) {
+      if (allowInsecureConnection(request, options)) {
+        emitInsecureConnectionWarning();
+      } else {
+        throw new Error("Authentication is not permitted for non-TLS protected (non-https) URLs when allowInsecureConnection is false.");
+      }
+    }
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/auth/apiKeyAuthenticationPolicy.js
+var require_apiKeyAuthenticationPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.apiKeyAuthenticationPolicyName = undefined;
+  exports.apiKeyAuthenticationPolicy = apiKeyAuthenticationPolicy;
+  var checkInsecureConnection_js_1 = require_checkInsecureConnection();
+  exports.apiKeyAuthenticationPolicyName = "apiKeyAuthenticationPolicy";
+  function apiKeyAuthenticationPolicy(options) {
+    return {
+      name: exports.apiKeyAuthenticationPolicyName,
+      async sendRequest(request, next) {
+        var _a, _b;
+        (0, checkInsecureConnection_js_1.ensureSecureConnection)(request, options);
+        const scheme = (_b = (_a = request.authSchemes) !== null && _a !== undefined ? _a : options.authSchemes) === null || _b === undefined ? undefined : _b.find((x) => x.kind === "apiKey");
+        if (!scheme) {
+          return next(request);
+        }
+        if (scheme.apiKeyLocation !== "header") {
+          throw new Error(`Unsupported API key location: ${scheme.apiKeyLocation}`);
+        }
+        request.headers.set(scheme.name, options.credential.key);
+        return next(request);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/auth/basicAuthenticationPolicy.js
+var require_basicAuthenticationPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.basicAuthenticationPolicyName = undefined;
+  exports.basicAuthenticationPolicy = basicAuthenticationPolicy;
+  var bytesEncoding_js_1 = require_bytesEncoding();
+  var checkInsecureConnection_js_1 = require_checkInsecureConnection();
+  exports.basicAuthenticationPolicyName = "bearerAuthenticationPolicy";
+  function basicAuthenticationPolicy(options) {
+    return {
+      name: exports.basicAuthenticationPolicyName,
+      async sendRequest(request, next) {
+        var _a, _b;
+        (0, checkInsecureConnection_js_1.ensureSecureConnection)(request, options);
+        const scheme = (_b = (_a = request.authSchemes) !== null && _a !== undefined ? _a : options.authSchemes) === null || _b === undefined ? undefined : _b.find((x) => x.kind === "http" && x.scheme === "basic");
+        if (!scheme) {
+          return next(request);
+        }
+        const { username, password } = options.credential;
+        const headerValue = (0, bytesEncoding_js_1.uint8ArrayToString)((0, bytesEncoding_js_1.stringToUint8Array)(`${username}:${password}`, "utf-8"), "base64");
+        request.headers.set("Authorization", `Basic ${headerValue}`);
+        return next(request);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/auth/bearerAuthenticationPolicy.js
+var require_bearerAuthenticationPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.bearerAuthenticationPolicyName = undefined;
+  exports.bearerAuthenticationPolicy = bearerAuthenticationPolicy;
+  var checkInsecureConnection_js_1 = require_checkInsecureConnection();
+  exports.bearerAuthenticationPolicyName = "bearerAuthenticationPolicy";
+  function bearerAuthenticationPolicy(options) {
+    return {
+      name: exports.bearerAuthenticationPolicyName,
+      async sendRequest(request, next) {
+        var _a, _b;
+        (0, checkInsecureConnection_js_1.ensureSecureConnection)(request, options);
+        const scheme = (_b = (_a = request.authSchemes) !== null && _a !== undefined ? _a : options.authSchemes) === null || _b === undefined ? undefined : _b.find((x) => x.kind === "http" && x.scheme === "bearer");
+        if (!scheme) {
+          return next(request);
+        }
+        const token = await options.credential.getBearerToken({
+          abortSignal: request.abortSignal
+        });
+        request.headers.set("Authorization", `Bearer ${token}`);
+        return next(request);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/auth/oauth2AuthenticationPolicy.js
+var require_oauth2AuthenticationPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.oauth2AuthenticationPolicyName = undefined;
+  exports.oauth2AuthenticationPolicy = oauth2AuthenticationPolicy;
+  var checkInsecureConnection_js_1 = require_checkInsecureConnection();
+  exports.oauth2AuthenticationPolicyName = "oauth2AuthenticationPolicy";
+  function oauth2AuthenticationPolicy(options) {
+    return {
+      name: exports.oauth2AuthenticationPolicyName,
+      async sendRequest(request, next) {
+        var _a, _b;
+        (0, checkInsecureConnection_js_1.ensureSecureConnection)(request, options);
+        const scheme = (_b = (_a = request.authSchemes) !== null && _a !== undefined ? _a : options.authSchemes) === null || _b === undefined ? undefined : _b.find((x) => x.kind === "oauth2");
+        if (!scheme) {
+          return next(request);
+        }
+        const token = await options.credential.getOAuth2Token(scheme.flows, {
+          abortSignal: request.abortSignal
+        });
+        request.headers.set("Authorization", `Bearer ${token}`);
+        return next(request);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/client/clientHelpers.js
+var require_clientHelpers = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createDefaultPipeline = createDefaultPipeline;
+  exports.getCachedDefaultHttpsClient = getCachedDefaultHttpsClient;
+  var defaultHttpClient_js_1 = require_defaultHttpClient();
+  var createPipelineFromOptions_js_1 = require_createPipelineFromOptions();
+  var apiVersionPolicy_js_1 = require_apiVersionPolicy();
+  var credentials_js_1 = require_credentials();
+  var apiKeyAuthenticationPolicy_js_1 = require_apiKeyAuthenticationPolicy();
+  var basicAuthenticationPolicy_js_1 = require_basicAuthenticationPolicy();
+  var bearerAuthenticationPolicy_js_1 = require_bearerAuthenticationPolicy();
+  var oauth2AuthenticationPolicy_js_1 = require_oauth2AuthenticationPolicy();
+  var cachedHttpClient;
+  function createDefaultPipeline(options = {}) {
+    const pipeline = (0, createPipelineFromOptions_js_1.createPipelineFromOptions)(options);
+    pipeline.addPolicy((0, apiVersionPolicy_js_1.apiVersionPolicy)(options));
+    const { credential, authSchemes, allowInsecureConnection } = options;
+    if (credential) {
+      if ((0, credentials_js_1.isApiKeyCredential)(credential)) {
+        pipeline.addPolicy((0, apiKeyAuthenticationPolicy_js_1.apiKeyAuthenticationPolicy)({ authSchemes, credential, allowInsecureConnection }));
+      } else if ((0, credentials_js_1.isBasicCredential)(credential)) {
+        pipeline.addPolicy((0, basicAuthenticationPolicy_js_1.basicAuthenticationPolicy)({ authSchemes, credential, allowInsecureConnection }));
+      } else if ((0, credentials_js_1.isBearerTokenCredential)(credential)) {
+        pipeline.addPolicy((0, bearerAuthenticationPolicy_js_1.bearerAuthenticationPolicy)({ authSchemes, credential, allowInsecureConnection }));
+      } else if ((0, credentials_js_1.isOAuth2TokenCredential)(credential)) {
+        pipeline.addPolicy((0, oauth2AuthenticationPolicy_js_1.oauth2AuthenticationPolicy)({ authSchemes, credential, allowInsecureConnection }));
+      }
+    }
+    return pipeline;
+  }
+  function getCachedDefaultHttpsClient() {
+    if (!cachedHttpClient) {
+      cachedHttpClient = (0, defaultHttpClient_js_1.createDefaultHttpClient)();
+    }
+    return cachedHttpClient;
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/client/multipart.js
+var require_multipart2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.buildBodyPart = buildBodyPart;
+  exports.buildMultipartBody = buildMultipartBody;
+  var restError_js_1 = require_restError();
+  var httpHeaders_js_1 = require_httpHeaders();
+  var bytesEncoding_js_1 = require_bytesEncoding();
+  var typeGuards_js_1 = require_typeGuards();
+  function getHeaderValue(descriptor, headerName) {
+    if (descriptor.headers) {
+      const actualHeaderName = Object.keys(descriptor.headers).find((x) => x.toLowerCase() === headerName.toLowerCase());
+      if (actualHeaderName) {
+        return descriptor.headers[actualHeaderName];
+      }
+    }
+    return;
+  }
+  function getPartContentType(descriptor) {
+    const contentTypeHeader = getHeaderValue(descriptor, "content-type");
+    if (contentTypeHeader) {
+      return contentTypeHeader;
+    }
+    if (descriptor.contentType === null) {
+      return;
+    }
+    if (descriptor.contentType) {
+      return descriptor.contentType;
+    }
+    const { body } = descriptor;
+    if (body === null || body === undefined) {
+      return;
+    }
+    if (typeof body === "string" || typeof body === "number" || typeof body === "boolean") {
+      return "text/plain; charset=UTF-8";
+    }
+    if (body instanceof Blob) {
+      return body.type || "application/octet-stream";
+    }
+    if ((0, typeGuards_js_1.isBinaryBody)(body)) {
+      return "application/octet-stream";
+    }
+    return "application/json";
+  }
+  function escapeDispositionField(value) {
+    return JSON.stringify(value);
+  }
+  function getContentDisposition(descriptor) {
+    var _a;
+    const contentDispositionHeader = getHeaderValue(descriptor, "content-disposition");
+    if (contentDispositionHeader) {
+      return contentDispositionHeader;
+    }
+    if (descriptor.dispositionType === undefined && descriptor.name === undefined && descriptor.filename === undefined) {
+      return;
+    }
+    const dispositionType = (_a = descriptor.dispositionType) !== null && _a !== undefined ? _a : "form-data";
+    let disposition = dispositionType;
+    if (descriptor.name) {
+      disposition += `; name=${escapeDispositionField(descriptor.name)}`;
+    }
+    let filename = undefined;
+    if (descriptor.filename) {
+      filename = descriptor.filename;
+    } else if (typeof File !== "undefined" && descriptor.body instanceof File) {
+      const filenameFromFile = descriptor.body.name;
+      if (filenameFromFile !== "") {
+        filename = filenameFromFile;
+      }
+    }
+    if (filename) {
+      disposition += `; filename=${escapeDispositionField(filename)}`;
+    }
+    return disposition;
+  }
+  function normalizeBody(body, contentType) {
+    if (body === undefined) {
+      return new Uint8Array([]);
+    }
+    if ((0, typeGuards_js_1.isBinaryBody)(body)) {
+      return body;
+    }
+    if (typeof body === "string" || typeof body === "number" || typeof body === "boolean") {
+      return (0, bytesEncoding_js_1.stringToUint8Array)(String(body), "utf-8");
+    }
+    if (contentType && /application\/(.+\+)?json(;.+)?/i.test(String(contentType))) {
+      return (0, bytesEncoding_js_1.stringToUint8Array)(JSON.stringify(body), "utf-8");
+    }
+    throw new restError_js_1.RestError(`Unsupported body/content-type combination: ${body}, ${contentType}`);
+  }
+  function buildBodyPart(descriptor) {
+    var _a;
+    const contentType = getPartContentType(descriptor);
+    const contentDisposition = getContentDisposition(descriptor);
+    const headers = (0, httpHeaders_js_1.createHttpHeaders)((_a = descriptor.headers) !== null && _a !== undefined ? _a : {});
+    if (contentType) {
+      headers.set("content-type", contentType);
+    }
+    if (contentDisposition) {
+      headers.set("content-disposition", contentDisposition);
+    }
+    const body = normalizeBody(descriptor.body, contentType);
+    return {
+      headers,
+      body
+    };
+  }
+  function buildMultipartBody(parts) {
+    return { parts: parts.map(buildBodyPart) };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/client/sendRequest.js
+var require_sendRequest = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.sendRequest = sendRequest;
+  var restError_js_1 = require_restError();
+  var httpHeaders_js_1 = require_httpHeaders();
+  var pipelineRequest_js_1 = require_pipelineRequest();
+  var clientHelpers_js_1 = require_clientHelpers();
+  var typeGuards_js_1 = require_typeGuards();
+  var multipart_js_1 = require_multipart2();
+  async function sendRequest(method, url, pipeline, options = {}, customHttpClient) {
+    var _a;
+    const httpClient = customHttpClient !== null && customHttpClient !== undefined ? customHttpClient : (0, clientHelpers_js_1.getCachedDefaultHttpsClient)();
+    const request = buildPipelineRequest(method, url, options);
+    try {
+      const response = await pipeline.sendRequest(httpClient, request);
+      const headers = response.headers.toJSON();
+      const stream = (_a = response.readableStreamBody) !== null && _a !== undefined ? _a : response.browserStreamBody;
+      const parsedBody = options.responseAsStream || stream !== undefined ? undefined : getResponseBody(response);
+      const body = stream !== null && stream !== undefined ? stream : parsedBody;
+      if (options === null || options === undefined ? undefined : options.onResponse) {
+        options.onResponse(Object.assign(Object.assign({}, response), { request, rawHeaders: headers, parsedBody }));
+      }
+      return {
+        request,
+        headers,
+        status: `${response.status}`,
+        body
+      };
+    } catch (e) {
+      if ((0, restError_js_1.isRestError)(e) && e.response && options.onResponse) {
+        const { response } = e;
+        const rawHeaders = response.headers.toJSON();
+        options === null || options === undefined || options.onResponse(Object.assign(Object.assign({}, response), { request, rawHeaders }), e);
+      }
+      throw e;
+    }
+  }
+  function getRequestContentType(options = {}) {
+    var _a, _b, _c;
+    return (_c = (_a = options.contentType) !== null && _a !== undefined ? _a : (_b = options.headers) === null || _b === undefined ? undefined : _b["content-type"]) !== null && _c !== undefined ? _c : getContentType(options.body);
+  }
+  function getContentType(body) {
+    if (ArrayBuffer.isView(body)) {
+      return "application/octet-stream";
+    }
+    if (typeof body === "string") {
+      try {
+        JSON.parse(body);
+        return "application/json";
+      } catch (error) {
+        return;
+      }
+    }
+    return "application/json";
+  }
+  function buildPipelineRequest(method, url, options = {}) {
+    var _a, _b, _c;
+    const requestContentType = getRequestContentType(options);
+    const { body, multipartBody } = getRequestBody(options.body, requestContentType);
+    const hasContent = body !== undefined || multipartBody !== undefined;
+    const headers = (0, httpHeaders_js_1.createHttpHeaders)(Object.assign(Object.assign(Object.assign({}, options.headers ? options.headers : {}), { accept: (_c = (_a = options.accept) !== null && _a !== undefined ? _a : (_b = options.headers) === null || _b === undefined ? undefined : _b.accept) !== null && _c !== undefined ? _c : "application/json" }), hasContent && requestContentType && {
+      "content-type": requestContentType
+    }));
+    return (0, pipelineRequest_js_1.createPipelineRequest)({
+      url,
+      method,
+      body,
+      multipartBody,
+      headers,
+      allowInsecureConnection: options.allowInsecureConnection,
+      abortSignal: options.abortSignal,
+      onUploadProgress: options.onUploadProgress,
+      onDownloadProgress: options.onDownloadProgress,
+      timeout: options.timeout,
+      enableBrowserStreams: true,
+      streamResponseStatusCodes: options.responseAsStream ? new Set([Number.POSITIVE_INFINITY]) : undefined
+    });
+  }
+  function getRequestBody(body, contentType = "") {
+    if (body === undefined) {
+      return { body: undefined };
+    }
+    if (typeof FormData !== "undefined" && body instanceof FormData) {
+      return { body };
+    }
+    if ((0, typeGuards_js_1.isReadableStream)(body)) {
+      return { body };
+    }
+    if (ArrayBuffer.isView(body)) {
+      return { body: body instanceof Uint8Array ? body : JSON.stringify(body) };
+    }
+    const firstType = contentType.split(";")[0];
+    switch (firstType) {
+      case "application/json":
+        return { body: JSON.stringify(body) };
+      case "multipart/form-data":
+        if (Array.isArray(body)) {
+          return { multipartBody: (0, multipart_js_1.buildMultipartBody)(body) };
+        }
+        return { body: JSON.stringify(body) };
+      case "text/plain":
+        return { body: String(body) };
+      default:
+        if (typeof body === "string") {
+          return { body };
+        }
+        return { body: JSON.stringify(body) };
+    }
+  }
+  function getResponseBody(response) {
+    var _a, _b;
+    const contentType = (_a = response.headers.get("content-type")) !== null && _a !== undefined ? _a : "";
+    const firstType = contentType.split(";")[0];
+    const bodyToParse = (_b = response.bodyAsText) !== null && _b !== undefined ? _b : "";
+    if (firstType === "text/plain") {
+      return String(bodyToParse);
+    }
+    try {
+      return bodyToParse ? JSON.parse(bodyToParse) : undefined;
+    } catch (error) {
+      if (firstType === "application/json") {
+        throw createParseError(response, error);
+      }
+      return String(bodyToParse);
+    }
+  }
+  function createParseError(response, err) {
+    var _a;
+    const msg = `Error "${err}" occurred while parsing the response body - ${response.bodyAsText}.`;
+    const errCode = (_a = err.code) !== null && _a !== undefined ? _a : restError_js_1.RestError.PARSE_ERROR;
+    return new restError_js_1.RestError(msg, {
+      code: errCode,
+      statusCode: response.status,
+      request: response.request,
+      response
+    });
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/client/urlHelpers.js
+var require_urlHelpers = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.buildRequestUrl = buildRequestUrl;
+  exports.buildBaseUrl = buildBaseUrl;
+  exports.replaceAll = replaceAll;
+  function isQueryParameterWithOptions(x) {
+    const value = x.value;
+    return value !== undefined && value.toString !== undefined && typeof value.toString === "function";
+  }
+  function buildRequestUrl(endpoint, routePath, pathParameters, options = {}) {
+    if (routePath.startsWith("https://") || routePath.startsWith("http://")) {
+      return routePath;
+    }
+    endpoint = buildBaseUrl(endpoint, options);
+    routePath = buildRoutePath(routePath, pathParameters, options);
+    const requestUrl = appendQueryParams(`${endpoint}/${routePath}`, options);
+    const url = new URL(requestUrl);
+    return url.toString().replace(/([^:]\/)\/+/g, "$1");
+  }
+  function getQueryParamValue(key, allowReserved, style, param) {
+    let separator;
+    if (style === "pipeDelimited") {
+      separator = "|";
+    } else if (style === "spaceDelimited") {
+      separator = "%20";
+    } else {
+      separator = ",";
+    }
+    let paramValues;
+    if (Array.isArray(param)) {
+      paramValues = param;
+    } else if (typeof param === "object" && param.toString === Object.prototype.toString) {
+      paramValues = Object.entries(param).flat();
+    } else {
+      paramValues = [param];
+    }
+    const value = paramValues.map((p) => {
+      if (p === null || p === undefined) {
+        return "";
+      }
+      if (!p.toString || typeof p.toString !== "function") {
+        throw new Error(`Query parameters must be able to be represented as string, ${key} can't`);
+      }
+      const rawValue = p.toISOString !== undefined ? p.toISOString() : p.toString();
+      return allowReserved ? rawValue : encodeURIComponent(rawValue);
+    }).join(separator);
+    return `${allowReserved ? key : encodeURIComponent(key)}=${value}`;
+  }
+  function appendQueryParams(url, options = {}) {
+    var _a, _b, _c, _d;
+    if (!options.queryParameters) {
+      return url;
+    }
+    const parsedUrl = new URL(url);
+    const queryParams = options.queryParameters;
+    const paramStrings = [];
+    for (const key of Object.keys(queryParams)) {
+      const param = queryParams[key];
+      if (param === undefined || param === null) {
+        continue;
+      }
+      const hasMetadata = isQueryParameterWithOptions(param);
+      const rawValue = hasMetadata ? param.value : param;
+      const explode = hasMetadata ? (_a = param.explode) !== null && _a !== undefined ? _a : false : false;
+      const style = hasMetadata && param.style ? param.style : "form";
+      if (explode) {
+        if (Array.isArray(rawValue)) {
+          for (const item of rawValue) {
+            paramStrings.push(getQueryParamValue(key, (_b = options.skipUrlEncoding) !== null && _b !== undefined ? _b : false, style, item));
+          }
+        } else if (typeof rawValue === "object") {
+          for (const [actualKey, value] of Object.entries(rawValue)) {
+            paramStrings.push(getQueryParamValue(actualKey, (_c = options.skipUrlEncoding) !== null && _c !== undefined ? _c : false, style, value));
+          }
+        } else {
+          throw new Error("explode can only be set to true for objects and arrays");
+        }
+      } else {
+        paramStrings.push(getQueryParamValue(key, (_d = options.skipUrlEncoding) !== null && _d !== undefined ? _d : false, style, rawValue));
+      }
+    }
+    if (parsedUrl.search !== "") {
+      parsedUrl.search += "&";
+    }
+    parsedUrl.search += paramStrings.join("&");
+    return parsedUrl.toString();
+  }
+  function buildBaseUrl(endpoint, options) {
+    var _a;
+    if (!options.pathParameters) {
+      return endpoint;
+    }
+    const pathParams = options.pathParameters;
+    for (const [key, param] of Object.entries(pathParams)) {
+      if (param === undefined || param === null) {
+        throw new Error(`Path parameters ${key} must not be undefined or null`);
+      }
+      if (!param.toString || typeof param.toString !== "function") {
+        throw new Error(`Path parameters must be able to be represented as string, ${key} can't`);
+      }
+      let value = param.toISOString !== undefined ? param.toISOString() : String(param);
+      if (!options.skipUrlEncoding) {
+        value = encodeURIComponent(param);
+      }
+      endpoint = (_a = replaceAll(endpoint, `{${key}}`, value)) !== null && _a !== undefined ? _a : "";
+    }
+    return endpoint;
+  }
+  function buildRoutePath(routePath, pathParameters, options = {}) {
+    var _a;
+    for (const pathParam of pathParameters) {
+      const allowReserved = typeof pathParam === "object" && ((_a = pathParam.allowReserved) !== null && _a !== undefined ? _a : false);
+      let value = typeof pathParam === "object" ? pathParam.value : pathParam;
+      if (!options.skipUrlEncoding && !allowReserved) {
+        value = encodeURIComponent(value);
+      }
+      routePath = routePath.replace(/\{[\w-]+\}/, String(value));
+    }
+    return routePath;
+  }
+  function replaceAll(value, searchValue, replaceValue) {
+    return !value || !searchValue ? value : value.split(searchValue).join(replaceValue || "");
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/client/getClient.js
+var require_getClient = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.getClient = getClient;
+  var clientHelpers_js_1 = require_clientHelpers();
+  var sendRequest_js_1 = require_sendRequest();
+  var urlHelpers_js_1 = require_urlHelpers();
+  var checkEnvironment_js_1 = require_checkEnvironment();
+  function getClient(endpoint, clientOptions = {}) {
+    var _a, _b, _c;
+    const pipeline = (_a = clientOptions.pipeline) !== null && _a !== undefined ? _a : (0, clientHelpers_js_1.createDefaultPipeline)(clientOptions);
+    if ((_b = clientOptions.additionalPolicies) === null || _b === undefined ? undefined : _b.length) {
+      for (const { policy, position } of clientOptions.additionalPolicies) {
+        const afterPhase = position === "perRetry" ? "Sign" : undefined;
+        pipeline.addPolicy(policy, {
+          afterPhase
+        });
+      }
+    }
+    const { allowInsecureConnection, httpClient } = clientOptions;
+    const endpointUrl = (_c = clientOptions.endpoint) !== null && _c !== undefined ? _c : endpoint;
+    const client = (path, ...args) => {
+      const getUrl = (requestOptions) => (0, urlHelpers_js_1.buildRequestUrl)(endpointUrl, path, args, Object.assign({ allowInsecureConnection }, requestOptions));
+      return {
+        get: (requestOptions = {}) => {
+          return buildOperation("GET", getUrl(requestOptions), pipeline, requestOptions, allowInsecureConnection, httpClient);
+        },
+        post: (requestOptions = {}) => {
+          return buildOperation("POST", getUrl(requestOptions), pipeline, requestOptions, allowInsecureConnection, httpClient);
+        },
+        put: (requestOptions = {}) => {
+          return buildOperation("PUT", getUrl(requestOptions), pipeline, requestOptions, allowInsecureConnection, httpClient);
+        },
+        patch: (requestOptions = {}) => {
+          return buildOperation("PATCH", getUrl(requestOptions), pipeline, requestOptions, allowInsecureConnection, httpClient);
+        },
+        delete: (requestOptions = {}) => {
+          return buildOperation("DELETE", getUrl(requestOptions), pipeline, requestOptions, allowInsecureConnection, httpClient);
+        },
+        head: (requestOptions = {}) => {
+          return buildOperation("HEAD", getUrl(requestOptions), pipeline, requestOptions, allowInsecureConnection, httpClient);
+        },
+        options: (requestOptions = {}) => {
+          return buildOperation("OPTIONS", getUrl(requestOptions), pipeline, requestOptions, allowInsecureConnection, httpClient);
+        },
+        trace: (requestOptions = {}) => {
+          return buildOperation("TRACE", getUrl(requestOptions), pipeline, requestOptions, allowInsecureConnection, httpClient);
+        }
+      };
+    };
+    return {
+      path: client,
+      pathUnchecked: client,
+      pipeline
+    };
+  }
+  function buildOperation(method, url, pipeline, options, allowInsecureConnection, httpClient) {
+    var _a;
+    allowInsecureConnection = (_a = options.allowInsecureConnection) !== null && _a !== undefined ? _a : allowInsecureConnection;
+    return {
+      then: function(onFulfilled, onrejected) {
+        return (0, sendRequest_js_1.sendRequest)(method, url, pipeline, Object.assign(Object.assign({}, options), { allowInsecureConnection }), httpClient).then(onFulfilled, onrejected);
+      },
+      async asBrowserStream() {
+        if (checkEnvironment_js_1.isNodeLike) {
+          throw new Error("`asBrowserStream` is supported only in the browser environment. Use `asNodeStream` instead to obtain the response body stream. If you require a Web stream of the response in Node, consider using `Readable.toWeb` on the result of `asNodeStream`.");
+        } else {
+          return (0, sendRequest_js_1.sendRequest)(method, url, pipeline, Object.assign(Object.assign({}, options), { allowInsecureConnection, responseAsStream: true }), httpClient);
+        }
+      },
+      async asNodeStream() {
+        if (checkEnvironment_js_1.isNodeLike) {
+          return (0, sendRequest_js_1.sendRequest)(method, url, pipeline, Object.assign(Object.assign({}, options), { allowInsecureConnection, responseAsStream: true }), httpClient);
+        } else {
+          throw new Error("`isNodeStream` is not supported in the browser environment. Use `asBrowserStream` to obtain the response body stream.");
+        }
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/client/operationOptionHelpers.js
+var require_operationOptionHelpers = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.operationOptionsToRequestParameters = operationOptionsToRequestParameters;
+  function operationOptionsToRequestParameters(options) {
+    var _a, _b, _c, _d, _e, _f;
+    return {
+      allowInsecureConnection: (_a = options.requestOptions) === null || _a === undefined ? undefined : _a.allowInsecureConnection,
+      timeout: (_b = options.requestOptions) === null || _b === undefined ? undefined : _b.timeout,
+      skipUrlEncoding: (_c = options.requestOptions) === null || _c === undefined ? undefined : _c.skipUrlEncoding,
+      abortSignal: options.abortSignal,
+      onUploadProgress: (_d = options.requestOptions) === null || _d === undefined ? undefined : _d.onUploadProgress,
+      onDownloadProgress: (_e = options.requestOptions) === null || _e === undefined ? undefined : _e.onDownloadProgress,
+      headers: Object.assign({}, (_f = options.requestOptions) === null || _f === undefined ? undefined : _f.headers),
+      onResponse: options.onResponse
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/client/restError.js
+var require_restError2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createRestError = createRestError;
+  var restError_js_1 = require_restError();
+  var httpHeaders_js_1 = require_httpHeaders();
+  function createRestError(messageOrResponse, response) {
+    var _a, _b, _c;
+    const resp = typeof messageOrResponse === "string" ? response : messageOrResponse;
+    const internalError = (_b = (_a = resp.body) === null || _a === undefined ? undefined : _a.error) !== null && _b !== undefined ? _b : resp.body;
+    const message = typeof messageOrResponse === "string" ? messageOrResponse : (_c = internalError === null || internalError === undefined ? undefined : internalError.message) !== null && _c !== undefined ? _c : `Unexpected status code: ${resp.status}`;
+    return new restError_js_1.RestError(message, {
+      statusCode: statusCodeToNumber(resp.status),
+      code: internalError === null || internalError === undefined ? undefined : internalError.code,
+      request: resp.request,
+      response: toPipelineResponse(resp)
+    });
+  }
+  function toPipelineResponse(response) {
+    var _a;
+    return {
+      headers: (0, httpHeaders_js_1.createHttpHeaders)(response.headers),
+      request: response.request,
+      status: (_a = statusCodeToNumber(response.status)) !== null && _a !== undefined ? _a : -1
+    };
+  }
+  function statusCodeToNumber(statusCode) {
+    const status = Number.parseInt(statusCode);
+    return Number.isNaN(status) ? undefined : status;
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/index.js
+var require_commonjs3 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createRestError = exports.operationOptionsToRequestParameters = exports.getClient = exports.createDefaultHttpClient = exports.uint8ArrayToString = exports.stringToUint8Array = exports.isRestError = exports.RestError = exports.createEmptyPipeline = exports.createPipelineRequest = exports.createHttpHeaders = exports.TypeSpecRuntimeLogger = exports.setLogLevel = exports.getLogLevel = exports.createClientLogger = exports.AbortError = undefined;
+  var tslib_1 = require_tslib();
+  var AbortError_js_1 = require_AbortError();
+  Object.defineProperty(exports, "AbortError", { enumerable: true, get: function() {
+    return AbortError_js_1.AbortError;
+  } });
+  var logger_js_1 = require_logger();
+  Object.defineProperty(exports, "createClientLogger", { enumerable: true, get: function() {
+    return logger_js_1.createClientLogger;
+  } });
+  Object.defineProperty(exports, "getLogLevel", { enumerable: true, get: function() {
+    return logger_js_1.getLogLevel;
+  } });
+  Object.defineProperty(exports, "setLogLevel", { enumerable: true, get: function() {
+    return logger_js_1.setLogLevel;
+  } });
+  Object.defineProperty(exports, "TypeSpecRuntimeLogger", { enumerable: true, get: function() {
+    return logger_js_1.TypeSpecRuntimeLogger;
+  } });
+  var httpHeaders_js_1 = require_httpHeaders();
+  Object.defineProperty(exports, "createHttpHeaders", { enumerable: true, get: function() {
+    return httpHeaders_js_1.createHttpHeaders;
+  } });
+  tslib_1.__exportStar(require_schemes(), exports);
+  tslib_1.__exportStar(require_oauth2Flows(), exports);
+  var pipelineRequest_js_1 = require_pipelineRequest();
+  Object.defineProperty(exports, "createPipelineRequest", { enumerable: true, get: function() {
+    return pipelineRequest_js_1.createPipelineRequest;
+  } });
+  var pipeline_js_1 = require_pipeline();
+  Object.defineProperty(exports, "createEmptyPipeline", { enumerable: true, get: function() {
+    return pipeline_js_1.createEmptyPipeline;
+  } });
+  var restError_js_1 = require_restError();
+  Object.defineProperty(exports, "RestError", { enumerable: true, get: function() {
+    return restError_js_1.RestError;
+  } });
+  Object.defineProperty(exports, "isRestError", { enumerable: true, get: function() {
+    return restError_js_1.isRestError;
+  } });
+  var bytesEncoding_js_1 = require_bytesEncoding();
+  Object.defineProperty(exports, "stringToUint8Array", { enumerable: true, get: function() {
+    return bytesEncoding_js_1.stringToUint8Array;
+  } });
+  Object.defineProperty(exports, "uint8ArrayToString", { enumerable: true, get: function() {
+    return bytesEncoding_js_1.uint8ArrayToString;
+  } });
+  var defaultHttpClient_js_1 = require_defaultHttpClient();
+  Object.defineProperty(exports, "createDefaultHttpClient", { enumerable: true, get: function() {
+    return defaultHttpClient_js_1.createDefaultHttpClient;
+  } });
+  var getClient_js_1 = require_getClient();
+  Object.defineProperty(exports, "getClient", { enumerable: true, get: function() {
+    return getClient_js_1.getClient;
+  } });
+  var operationOptionHelpers_js_1 = require_operationOptionHelpers();
+  Object.defineProperty(exports, "operationOptionsToRequestParameters", { enumerable: true, get: function() {
+    return operationOptionHelpers_js_1.operationOptionsToRequestParameters;
+  } });
+  var restError_js_2 = require_restError2();
+  Object.defineProperty(exports, "createRestError", { enumerable: true, get: function() {
+    return restError_js_2.createRestError;
+  } });
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/pipeline.js
+var require_pipeline2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createEmptyPipeline = createEmptyPipeline;
+  var ts_http_runtime_1 = require_commonjs3();
+  function createEmptyPipeline() {
+    return (0, ts_http_runtime_1.createEmptyPipeline)();
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/logger/internal.js
+var require_internal = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createLoggerContext = undefined;
+  var logger_js_1 = require_logger();
+  Object.defineProperty(exports, "createLoggerContext", { enumerable: true, get: function() {
+    return logger_js_1.createLoggerContext;
+  } });
+});
+
+// ../node_modules/@azure/logger/dist/commonjs/index.js
+var require_commonjs4 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.AzureLogger = undefined;
+  exports.setLogLevel = setLogLevel;
+  exports.getLogLevel = getLogLevel;
+  exports.createClientLogger = createClientLogger;
+  var logger_1 = require_internal();
+  var context = (0, logger_1.createLoggerContext)({
+    logLevelEnvVarName: "AZURE_LOG_LEVEL",
+    namespace: "azure"
+  });
+  exports.AzureLogger = context.logger;
+  function setLogLevel(level) {
+    context.setLogLevel(level);
+  }
+  function getLogLevel() {
+    return context.getLogLevel();
+  }
+  function createClientLogger(namespace) {
+    return context.createClientLogger(namespace);
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/log.js
+var require_log3 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.logger = undefined;
+  var logger_1 = require_commonjs4();
+  exports.logger = (0, logger_1.createClientLogger)("core-rest-pipeline");
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/exponentialRetryPolicy.js
+var require_exponentialRetryPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.exponentialRetryPolicyName = undefined;
+  exports.exponentialRetryPolicy = exponentialRetryPolicy;
+  var exponentialRetryStrategy_js_1 = require_exponentialRetryStrategy();
+  var retryPolicy_js_1 = require_retryPolicy();
+  var constants_js_1 = require_constants6();
+  exports.exponentialRetryPolicyName = "exponentialRetryPolicy";
+  function exponentialRetryPolicy(options = {}) {
+    var _a;
+    return (0, retryPolicy_js_1.retryPolicy)([
+      (0, exponentialRetryStrategy_js_1.exponentialRetryStrategy)(Object.assign(Object.assign({}, options), { ignoreSystemErrors: true }))
+    ], {
+      maxRetries: (_a = options.maxRetries) !== null && _a !== undefined ? _a : constants_js_1.DEFAULT_RETRY_POLICY_COUNT
+    });
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/systemErrorRetryPolicy.js
+var require_systemErrorRetryPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.systemErrorRetryPolicyName = undefined;
+  exports.systemErrorRetryPolicy = systemErrorRetryPolicy;
+  var exponentialRetryStrategy_js_1 = require_exponentialRetryStrategy();
+  var retryPolicy_js_1 = require_retryPolicy();
+  var constants_js_1 = require_constants6();
+  exports.systemErrorRetryPolicyName = "systemErrorRetryPolicy";
+  function systemErrorRetryPolicy(options = {}) {
+    var _a;
+    return {
+      name: exports.systemErrorRetryPolicyName,
+      sendRequest: (0, retryPolicy_js_1.retryPolicy)([
+        (0, exponentialRetryStrategy_js_1.exponentialRetryStrategy)(Object.assign(Object.assign({}, options), { ignoreHttpStatusCodes: true }))
+      ], {
+        maxRetries: (_a = options.maxRetries) !== null && _a !== undefined ? _a : constants_js_1.DEFAULT_RETRY_POLICY_COUNT
+      }).sendRequest
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/throttlingRetryPolicy.js
+var require_throttlingRetryPolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.throttlingRetryPolicyName = undefined;
+  exports.throttlingRetryPolicy = throttlingRetryPolicy;
+  var throttlingRetryStrategy_js_1 = require_throttlingRetryStrategy();
+  var retryPolicy_js_1 = require_retryPolicy();
+  var constants_js_1 = require_constants6();
+  exports.throttlingRetryPolicyName = "throttlingRetryPolicy";
+  function throttlingRetryPolicy(options = {}) {
+    var _a;
+    return {
+      name: exports.throttlingRetryPolicyName,
+      sendRequest: (0, retryPolicy_js_1.retryPolicy)([(0, throttlingRetryStrategy_js_1.throttlingRetryStrategy)()], {
+        maxRetries: (_a = options.maxRetries) !== null && _a !== undefined ? _a : constants_js_1.DEFAULT_RETRY_POLICY_COUNT
+      }).sendRequest
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/policies/internal.js
+var require_internal2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.userAgentPolicyName = exports.userAgentPolicy = exports.tlsPolicyName = exports.tlsPolicy = exports.redirectPolicyName = exports.redirectPolicy = exports.getDefaultProxySettings = exports.proxyPolicyName = exports.proxyPolicy = exports.multipartPolicyName = exports.multipartPolicy = exports.logPolicyName = exports.logPolicy = exports.formDataPolicyName = exports.formDataPolicy = exports.throttlingRetryPolicyName = exports.throttlingRetryPolicy = exports.systemErrorRetryPolicyName = exports.systemErrorRetryPolicy = exports.retryPolicy = exports.exponentialRetryPolicyName = exports.exponentialRetryPolicy = exports.defaultRetryPolicyName = exports.defaultRetryPolicy = exports.decompressResponsePolicyName = exports.decompressResponsePolicy = exports.agentPolicyName = exports.agentPolicy = undefined;
+  var agentPolicy_js_1 = require_agentPolicy();
+  Object.defineProperty(exports, "agentPolicy", { enumerable: true, get: function() {
+    return agentPolicy_js_1.agentPolicy;
+  } });
+  Object.defineProperty(exports, "agentPolicyName", { enumerable: true, get: function() {
+    return agentPolicy_js_1.agentPolicyName;
+  } });
+  var decompressResponsePolicy_js_1 = require_decompressResponsePolicy();
+  Object.defineProperty(exports, "decompressResponsePolicy", { enumerable: true, get: function() {
+    return decompressResponsePolicy_js_1.decompressResponsePolicy;
+  } });
+  Object.defineProperty(exports, "decompressResponsePolicyName", { enumerable: true, get: function() {
+    return decompressResponsePolicy_js_1.decompressResponsePolicyName;
+  } });
+  var defaultRetryPolicy_js_1 = require_defaultRetryPolicy();
+  Object.defineProperty(exports, "defaultRetryPolicy", { enumerable: true, get: function() {
+    return defaultRetryPolicy_js_1.defaultRetryPolicy;
+  } });
+  Object.defineProperty(exports, "defaultRetryPolicyName", { enumerable: true, get: function() {
+    return defaultRetryPolicy_js_1.defaultRetryPolicyName;
+  } });
+  var exponentialRetryPolicy_js_1 = require_exponentialRetryPolicy();
+  Object.defineProperty(exports, "exponentialRetryPolicy", { enumerable: true, get: function() {
+    return exponentialRetryPolicy_js_1.exponentialRetryPolicy;
+  } });
+  Object.defineProperty(exports, "exponentialRetryPolicyName", { enumerable: true, get: function() {
+    return exponentialRetryPolicy_js_1.exponentialRetryPolicyName;
+  } });
+  var retryPolicy_js_1 = require_retryPolicy();
+  Object.defineProperty(exports, "retryPolicy", { enumerable: true, get: function() {
+    return retryPolicy_js_1.retryPolicy;
+  } });
+  var systemErrorRetryPolicy_js_1 = require_systemErrorRetryPolicy();
+  Object.defineProperty(exports, "systemErrorRetryPolicy", { enumerable: true, get: function() {
+    return systemErrorRetryPolicy_js_1.systemErrorRetryPolicy;
+  } });
+  Object.defineProperty(exports, "systemErrorRetryPolicyName", { enumerable: true, get: function() {
+    return systemErrorRetryPolicy_js_1.systemErrorRetryPolicyName;
+  } });
+  var throttlingRetryPolicy_js_1 = require_throttlingRetryPolicy();
+  Object.defineProperty(exports, "throttlingRetryPolicy", { enumerable: true, get: function() {
+    return throttlingRetryPolicy_js_1.throttlingRetryPolicy;
+  } });
+  Object.defineProperty(exports, "throttlingRetryPolicyName", { enumerable: true, get: function() {
+    return throttlingRetryPolicy_js_1.throttlingRetryPolicyName;
+  } });
+  var formDataPolicy_js_1 = require_formDataPolicy();
+  Object.defineProperty(exports, "formDataPolicy", { enumerable: true, get: function() {
+    return formDataPolicy_js_1.formDataPolicy;
+  } });
+  Object.defineProperty(exports, "formDataPolicyName", { enumerable: true, get: function() {
+    return formDataPolicy_js_1.formDataPolicyName;
+  } });
+  var logPolicy_js_1 = require_logPolicy();
+  Object.defineProperty(exports, "logPolicy", { enumerable: true, get: function() {
+    return logPolicy_js_1.logPolicy;
+  } });
+  Object.defineProperty(exports, "logPolicyName", { enumerable: true, get: function() {
+    return logPolicy_js_1.logPolicyName;
+  } });
+  var multipartPolicy_js_1 = require_multipartPolicy();
+  Object.defineProperty(exports, "multipartPolicy", { enumerable: true, get: function() {
+    return multipartPolicy_js_1.multipartPolicy;
+  } });
+  Object.defineProperty(exports, "multipartPolicyName", { enumerable: true, get: function() {
+    return multipartPolicy_js_1.multipartPolicyName;
+  } });
+  var proxyPolicy_js_1 = require_proxyPolicy();
+  Object.defineProperty(exports, "proxyPolicy", { enumerable: true, get: function() {
+    return proxyPolicy_js_1.proxyPolicy;
+  } });
+  Object.defineProperty(exports, "proxyPolicyName", { enumerable: true, get: function() {
+    return proxyPolicy_js_1.proxyPolicyName;
+  } });
+  Object.defineProperty(exports, "getDefaultProxySettings", { enumerable: true, get: function() {
+    return proxyPolicy_js_1.getDefaultProxySettings;
+  } });
+  var redirectPolicy_js_1 = require_redirectPolicy();
+  Object.defineProperty(exports, "redirectPolicy", { enumerable: true, get: function() {
+    return redirectPolicy_js_1.redirectPolicy;
+  } });
+  Object.defineProperty(exports, "redirectPolicyName", { enumerable: true, get: function() {
+    return redirectPolicy_js_1.redirectPolicyName;
+  } });
+  var tlsPolicy_js_1 = require_tlsPolicy();
+  Object.defineProperty(exports, "tlsPolicy", { enumerable: true, get: function() {
+    return tlsPolicy_js_1.tlsPolicy;
+  } });
+  Object.defineProperty(exports, "tlsPolicyName", { enumerable: true, get: function() {
+    return tlsPolicy_js_1.tlsPolicyName;
+  } });
+  var userAgentPolicy_js_1 = require_userAgentPolicy();
+  Object.defineProperty(exports, "userAgentPolicy", { enumerable: true, get: function() {
+    return userAgentPolicy_js_1.userAgentPolicy;
+  } });
+  Object.defineProperty(exports, "userAgentPolicyName", { enumerable: true, get: function() {
+    return userAgentPolicy_js_1.userAgentPolicyName;
+  } });
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/logPolicy.js
+var require_logPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.logPolicyName = undefined;
+  exports.logPolicy = logPolicy;
+  var log_js_1 = require_log3();
+  var policies_1 = require_internal2();
+  exports.logPolicyName = policies_1.logPolicyName;
+  function logPolicy(options = {}) {
+    return (0, policies_1.logPolicy)(Object.assign({ logger: log_js_1.logger.info }, options));
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/redirectPolicy.js
+var require_redirectPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.redirectPolicyName = undefined;
+  exports.redirectPolicy = redirectPolicy;
+  var policies_1 = require_internal2();
+  exports.redirectPolicyName = policies_1.redirectPolicyName;
+  function redirectPolicy(options = {}) {
+    return (0, policies_1.redirectPolicy)(options);
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/userAgentPlatform.js
+var require_userAgentPlatform2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.getHeaderName = getHeaderName;
+  exports.setPlatformSpecificData = setPlatformSpecificData;
+  var tslib_1 = require_tslib();
+  var os = tslib_1.__importStar(__require("node:os"));
+  var process2 = tslib_1.__importStar(__require("node:process"));
+  function getHeaderName() {
+    return "User-Agent";
+  }
+  async function setPlatformSpecificData(map) {
+    if (process2 && process2.versions) {
+      const versions = process2.versions;
+      if (versions.bun) {
+        map.set("Bun", versions.bun);
+      } else if (versions.deno) {
+        map.set("Deno", versions.deno);
+      } else if (versions.node) {
+        map.set("Node", versions.node);
+      }
+    }
+    map.set("OS", `(${os.arch()}-${os.type()}-${os.release()})`);
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/constants.js
+var require_constants7 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.DEFAULT_RETRY_POLICY_COUNT = exports.SDK_VERSION = undefined;
+  exports.SDK_VERSION = "1.20.0";
+  exports.DEFAULT_RETRY_POLICY_COUNT = 3;
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/userAgent.js
+var require_userAgent2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.getUserAgentHeaderName = getUserAgentHeaderName;
+  exports.getUserAgentValue = getUserAgentValue;
+  var userAgentPlatform_js_1 = require_userAgentPlatform2();
+  var constants_js_1 = require_constants7();
+  function getUserAgentString(telemetryInfo) {
+    const parts = [];
+    for (const [key, value] of telemetryInfo) {
+      const token = value ? `${key}/${value}` : key;
+      parts.push(token);
+    }
+    return parts.join(" ");
+  }
+  function getUserAgentHeaderName() {
+    return (0, userAgentPlatform_js_1.getHeaderName)();
+  }
+  async function getUserAgentValue(prefix) {
+    const runtimeInfo = new Map;
+    runtimeInfo.set("core-rest-pipeline", constants_js_1.SDK_VERSION);
+    await (0, userAgentPlatform_js_1.setPlatformSpecificData)(runtimeInfo);
+    const defaultAgent = getUserAgentString(runtimeInfo);
+    const userAgentValue = prefix ? `${prefix} ${defaultAgent}` : defaultAgent;
+    return userAgentValue;
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/userAgentPolicy.js
+var require_userAgentPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.userAgentPolicyName = undefined;
+  exports.userAgentPolicy = userAgentPolicy;
+  var userAgent_js_1 = require_userAgent2();
+  var UserAgentHeaderName = (0, userAgent_js_1.getUserAgentHeaderName)();
+  exports.userAgentPolicyName = "userAgentPolicy";
+  function userAgentPolicy(options = {}) {
+    const userAgentValue = (0, userAgent_js_1.getUserAgentValue)(options.userAgentPrefix);
+    return {
+      name: exports.userAgentPolicyName,
+      async sendRequest(request, next) {
+        if (!request.headers.has(UserAgentHeaderName)) {
+          request.headers.set(UserAgentHeaderName, await userAgentValue);
+        }
+        return next(request);
+      }
+    };
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/sha256.js
+var require_sha256 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.computeSha256Hmac = computeSha256Hmac;
+  exports.computeSha256Hash = computeSha256Hash;
+  var node_crypto_1 = __require("node:crypto");
+  async function computeSha256Hmac(key, stringToSign, encoding) {
+    const decodedKey = Buffer.from(key, "base64");
+    return (0, node_crypto_1.createHmac)("sha256", decodedKey).update(stringToSign).digest(encoding);
+  }
+  async function computeSha256Hash(content, encoding) {
+    return (0, node_crypto_1.createHash)("sha256").update(content).digest(encoding);
+  }
+});
+
+// ../node_modules/@typespec/ts-http-runtime/dist/commonjs/util/internal.js
+var require_internal3 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.Sanitizer = exports.uint8ArrayToString = exports.stringToUint8Array = exports.isWebWorker = exports.isReactNative = exports.isDeno = exports.isNodeRuntime = exports.isNodeLike = exports.isBun = exports.isBrowser = exports.randomUUID = exports.computeSha256Hmac = exports.computeSha256Hash = exports.isError = exports.isObject = exports.getRandomIntegerInclusive = exports.calculateRetryDelay = undefined;
+  var delay_js_1 = require_delay();
+  Object.defineProperty(exports, "calculateRetryDelay", { enumerable: true, get: function() {
+    return delay_js_1.calculateRetryDelay;
+  } });
+  var random_js_1 = require_random();
+  Object.defineProperty(exports, "getRandomIntegerInclusive", { enumerable: true, get: function() {
+    return random_js_1.getRandomIntegerInclusive;
+  } });
+  var object_js_1 = require_object();
+  Object.defineProperty(exports, "isObject", { enumerable: true, get: function() {
+    return object_js_1.isObject;
+  } });
+  var error_js_1 = require_error();
+  Object.defineProperty(exports, "isError", { enumerable: true, get: function() {
+    return error_js_1.isError;
+  } });
+  var sha256_js_1 = require_sha256();
+  Object.defineProperty(exports, "computeSha256Hash", { enumerable: true, get: function() {
+    return sha256_js_1.computeSha256Hash;
+  } });
+  Object.defineProperty(exports, "computeSha256Hmac", { enumerable: true, get: function() {
+    return sha256_js_1.computeSha256Hmac;
+  } });
+  var uuidUtils_js_1 = require_uuidUtils();
+  Object.defineProperty(exports, "randomUUID", { enumerable: true, get: function() {
+    return uuidUtils_js_1.randomUUID;
+  } });
+  var checkEnvironment_js_1 = require_checkEnvironment();
+  Object.defineProperty(exports, "isBrowser", { enumerable: true, get: function() {
+    return checkEnvironment_js_1.isBrowser;
+  } });
+  Object.defineProperty(exports, "isBun", { enumerable: true, get: function() {
+    return checkEnvironment_js_1.isBun;
+  } });
+  Object.defineProperty(exports, "isNodeLike", { enumerable: true, get: function() {
+    return checkEnvironment_js_1.isNodeLike;
+  } });
+  Object.defineProperty(exports, "isNodeRuntime", { enumerable: true, get: function() {
+    return checkEnvironment_js_1.isNodeRuntime;
+  } });
+  Object.defineProperty(exports, "isDeno", { enumerable: true, get: function() {
+    return checkEnvironment_js_1.isDeno;
+  } });
+  Object.defineProperty(exports, "isReactNative", { enumerable: true, get: function() {
+    return checkEnvironment_js_1.isReactNative;
+  } });
+  Object.defineProperty(exports, "isWebWorker", { enumerable: true, get: function() {
+    return checkEnvironment_js_1.isWebWorker;
+  } });
+  var bytesEncoding_js_1 = require_bytesEncoding();
+  Object.defineProperty(exports, "stringToUint8Array", { enumerable: true, get: function() {
+    return bytesEncoding_js_1.stringToUint8Array;
+  } });
+  Object.defineProperty(exports, "uint8ArrayToString", { enumerable: true, get: function() {
+    return bytesEncoding_js_1.uint8ArrayToString;
+  } });
+  var sanitizer_js_1 = require_sanitizer();
+  Object.defineProperty(exports, "Sanitizer", { enumerable: true, get: function() {
+    return sanitizer_js_1.Sanitizer;
+  } });
+});
+
+// ../node_modules/@azure/core-util/dist/commonjs/aborterUtils.js
+var require_aborterUtils = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.cancelablePromiseRace = cancelablePromiseRace;
+  async function cancelablePromiseRace(abortablePromiseBuilders, options) {
+    var _a, _b;
+    const aborter = new AbortController;
+    function abortHandler() {
+      aborter.abort();
+    }
+    (_a = options === null || options === undefined ? undefined : options.abortSignal) === null || _a === undefined || _a.addEventListener("abort", abortHandler);
+    try {
+      return await Promise.race(abortablePromiseBuilders.map((p) => p({ abortSignal: aborter.signal })));
+    } finally {
+      aborter.abort();
+      (_b = options === null || options === undefined ? undefined : options.abortSignal) === null || _b === undefined || _b.removeEventListener("abort", abortHandler);
+    }
+  }
+});
+
+// ../node_modules/@azure/abort-controller/dist/commonjs/AbortError.js
+var require_AbortError2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.AbortError = undefined;
+
+  class AbortError extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "AbortError";
+    }
+  }
+  exports.AbortError = AbortError;
+});
+
+// ../node_modules/@azure/abort-controller/dist/commonjs/index.js
+var require_commonjs5 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.AbortError = undefined;
+  var AbortError_js_1 = require_AbortError2();
+  Object.defineProperty(exports, "AbortError", { enumerable: true, get: function() {
+    return AbortError_js_1.AbortError;
+  } });
+});
+
+// ../node_modules/@azure/core-util/dist/commonjs/createAbortablePromise.js
+var require_createAbortablePromise = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.createAbortablePromise = createAbortablePromise;
+  var abort_controller_1 = require_commonjs5();
+  function createAbortablePromise(buildPromise, options) {
+    const { cleanupBeforeAbort, abortSignal, abortErrorMsg } = options !== null && options !== undefined ? options : {};
+    return new Promise((resolve, reject) => {
+      function rejectOnAbort() {
+        reject(new abort_controller_1.AbortError(abortErrorMsg !== null && abortErrorMsg !== undefined ? abortErrorMsg : "The operation was aborted."));
+      }
+      function removeListeners() {
+        abortSignal === null || abortSignal === undefined || abortSignal.removeEventListener("abort", onAbort);
+      }
+      function onAbort() {
+        cleanupBeforeAbort === null || cleanupBeforeAbort === undefined || cleanupBeforeAbort();
+        removeListeners();
+        rejectOnAbort();
+      }
+      if (abortSignal === null || abortSignal === undefined ? undefined : abortSignal.aborted) {
+        return rejectOnAbort();
+      }
+      try {
+        buildPromise((x) => {
+          removeListeners();
+          resolve(x);
+        }, (x) => {
+          removeListeners();
+          reject(x);
+        });
+      } catch (err) {
+        reject(err);
+      }
+      abortSignal === null || abortSignal === undefined || abortSignal.addEventListener("abort", onAbort);
+    });
+  }
+});
+
+// ../node_modules/@azure/core-util/dist/commonjs/delay.js
+var require_delay2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.delay = delay;
+  exports.calculateRetryDelay = calculateRetryDelay;
+  var createAbortablePromise_js_1 = require_createAbortablePromise();
+  var util_1 = require_internal3();
+  var StandardAbortMessage = "The delay was aborted.";
+  function delay(timeInMs, options) {
+    let token;
+    const { abortSignal, abortErrorMsg } = options !== null && options !== undefined ? options : {};
+    return (0, createAbortablePromise_js_1.createAbortablePromise)((resolve) => {
+      token = setTimeout(resolve, timeInMs);
+    }, {
+      cleanupBeforeAbort: () => clearTimeout(token),
+      abortSignal,
+      abortErrorMsg: abortErrorMsg !== null && abortErrorMsg !== undefined ? abortErrorMsg : StandardAbortMessage
+    });
+  }
+  function calculateRetryDelay(retryAttempt, config) {
+    const exponentialDelay = config.retryDelayInMs * Math.pow(2, retryAttempt);
+    const clampedDelay = Math.min(config.maxRetryDelayInMs, exponentialDelay);
+    const retryAfterInMs = clampedDelay / 2 + (0, util_1.getRandomIntegerInclusive)(0, clampedDelay / 2);
+    return { retryAfterInMs };
+  }
+});
+
+// ../node_modules/@azure/core-util/dist/commonjs/error.js
+var require_error2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.getErrorMessage = getErrorMessage;
+  var util_1 = require_internal3();
+  function getErrorMessage(e) {
+    if ((0, util_1.isError)(e)) {
+      return e.message;
+    } else {
+      let stringified;
+      try {
+        if (typeof e === "object" && e) {
+          stringified = JSON.stringify(e);
+        } else {
+          stringified = String(e);
+        }
+      } catch (err) {
+        stringified = "[unable to stringify input]";
+      }
+      return `Unknown error ${stringified}`;
+    }
+  }
+});
+
+// ../node_modules/@azure/core-util/dist/commonjs/typeGuards.js
+var require_typeGuards2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.isDefined = isDefined;
+  exports.isObjectWithProperties = isObjectWithProperties;
+  exports.objectHasProperty = objectHasProperty;
+  function isDefined(thing) {
+    return typeof thing !== "undefined" && thing !== null;
+  }
+  function isObjectWithProperties(thing, properties) {
+    if (!isDefined(thing) || typeof thing !== "object") {
+      return false;
+    }
+    for (const property of properties) {
+      if (!objectHasProperty(thing, property)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  function objectHasProperty(thing, property) {
+    return isDefined(thing) && typeof thing === "object" && property in thing;
+  }
+});
+
+// ../node_modules/@azure/core-util/dist/commonjs/index.js
+var require_commonjs6 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.isWebWorker = exports.isReactNative = exports.isNodeRuntime = exports.isNodeLike = exports.isNode = exports.isDeno = exports.isBun = exports.isBrowser = exports.objectHasProperty = exports.isObjectWithProperties = exports.isDefined = exports.getErrorMessage = exports.delay = exports.createAbortablePromise = exports.cancelablePromiseRace = undefined;
+  exports.calculateRetryDelay = calculateRetryDelay;
+  exports.computeSha256Hash = computeSha256Hash;
+  exports.computeSha256Hmac = computeSha256Hmac;
+  exports.getRandomIntegerInclusive = getRandomIntegerInclusive;
+  exports.isError = isError;
+  exports.isObject = isObject;
+  exports.randomUUID = randomUUID;
+  exports.uint8ArrayToString = uint8ArrayToString;
+  exports.stringToUint8Array = stringToUint8Array;
+  var tslib_1 = require_tslib();
+  var tspRuntime = tslib_1.__importStar(require_internal3());
+  var aborterUtils_js_1 = require_aborterUtils();
+  Object.defineProperty(exports, "cancelablePromiseRace", { enumerable: true, get: function() {
+    return aborterUtils_js_1.cancelablePromiseRace;
+  } });
+  var createAbortablePromise_js_1 = require_createAbortablePromise();
+  Object.defineProperty(exports, "createAbortablePromise", { enumerable: true, get: function() {
+    return createAbortablePromise_js_1.createAbortablePromise;
+  } });
+  var delay_js_1 = require_delay2();
+  Object.defineProperty(exports, "delay", { enumerable: true, get: function() {
+    return delay_js_1.delay;
+  } });
+  var error_js_1 = require_error2();
+  Object.defineProperty(exports, "getErrorMessage", { enumerable: true, get: function() {
+    return error_js_1.getErrorMessage;
+  } });
+  var typeGuards_js_1 = require_typeGuards2();
+  Object.defineProperty(exports, "isDefined", { enumerable: true, get: function() {
+    return typeGuards_js_1.isDefined;
+  } });
+  Object.defineProperty(exports, "isObjectWithProperties", { enumerable: true, get: function() {
+    return typeGuards_js_1.isObjectWithProperties;
+  } });
+  Object.defineProperty(exports, "objectHasProperty", { enumerable: true, get: function() {
+    return typeGuards_js_1.objectHasProperty;
+  } });
+  function calculateRetryDelay(retryAttempt, config) {
+    return tspRuntime.calculateRetryDelay(retryAttempt, config);
+  }
+  function computeSha256Hash(content, encoding) {
+    return tspRuntime.computeSha256Hash(content, encoding);
+  }
+  function computeSha256Hmac(key, stringToSign, encoding) {
+    return tspRuntime.computeSha256Hmac(key, stringToSign, encoding);
+  }
+  function getRandomIntegerInclusive(min, max) {
+    return tspRuntime.getRandomIntegerInclusive(min, max);
+  }
+  function isError(e) {
+    return tspRuntime.isError(e);
+  }
+  function isObject(input) {
+    return tspRuntime.isObject(input);
+  }
+  function randomUUID() {
+    return tspRuntime.randomUUID();
+  }
+  exports.isBrowser = tspRuntime.isBrowser;
+  exports.isBun = tspRuntime.isBun;
+  exports.isDeno = tspRuntime.isDeno;
+  exports.isNode = tspRuntime.isNodeLike;
+  exports.isNodeLike = tspRuntime.isNodeLike;
+  exports.isNodeRuntime = tspRuntime.isNodeRuntime;
+  exports.isReactNative = tspRuntime.isReactNative;
+  exports.isWebWorker = tspRuntime.isWebWorker;
+  function uint8ArrayToString(bytes, format) {
+    return tspRuntime.uint8ArrayToString(bytes, format);
+  }
+  function stringToUint8Array(value, format) {
+    return tspRuntime.stringToUint8Array(value, format);
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/file.js
+var require_file2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.hasRawContent = hasRawContent;
+  exports.getRawContent = getRawContent;
+  exports.createFileFromStream = createFileFromStream;
+  exports.createFile = createFile;
+  var core_util_1 = require_commonjs6();
+  function isNodeReadableStream(x) {
+    return Boolean(x && typeof x["pipe"] === "function");
+  }
+  var unimplementedMethods = {
+    arrayBuffer: () => {
+      throw new Error("Not implemented");
+    },
+    bytes: () => {
+      throw new Error("Not implemented");
+    },
+    slice: () => {
+      throw new Error("Not implemented");
+    },
+    text: () => {
+      throw new Error("Not implemented");
+    }
+  };
+  var rawContent = Symbol("rawContent");
+  function hasRawContent(x) {
+    return typeof x[rawContent] === "function";
+  }
+  function getRawContent(blob) {
+    if (hasRawContent(blob)) {
+      return blob[rawContent]();
+    } else {
+      return blob;
+    }
+  }
+  function createFileFromStream(stream, name, options = {}) {
+    var _a, _b, _c, _d;
+    return Object.assign(Object.assign({}, unimplementedMethods), { type: (_a = options.type) !== null && _a !== undefined ? _a : "", lastModified: (_b = options.lastModified) !== null && _b !== undefined ? _b : new Date().getTime(), webkitRelativePath: (_c = options.webkitRelativePath) !== null && _c !== undefined ? _c : "", size: (_d = options.size) !== null && _d !== undefined ? _d : -1, name, stream: () => {
+      const s = stream();
+      if (isNodeReadableStream(s)) {
+        throw new Error("Not supported: a Node stream was provided as input to createFileFromStream.");
+      }
+      return s;
+    }, [rawContent]: stream });
+  }
+  function createFile(content, name, options = {}) {
+    var _a, _b, _c;
+    if (core_util_1.isNodeLike) {
+      return Object.assign(Object.assign({}, unimplementedMethods), { type: (_a = options.type) !== null && _a !== undefined ? _a : "", lastModified: (_b = options.lastModified) !== null && _b !== undefined ? _b : new Date().getTime(), webkitRelativePath: (_c = options.webkitRelativePath) !== null && _c !== undefined ? _c : "", size: content.byteLength, name, arrayBuffer: async () => content.buffer, stream: () => new Blob([content]).stream(), [rawContent]: () => content });
+    } else {
+      return new File([content], name, options);
+    }
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/multipartPolicy.js
+var require_multipartPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.multipartPolicyName = undefined;
+  exports.multipartPolicy = multipartPolicy;
+  var policies_1 = require_internal2();
+  var file_js_1 = require_file2();
+  exports.multipartPolicyName = policies_1.multipartPolicyName;
+  function multipartPolicy() {
+    const tspPolicy = (0, policies_1.multipartPolicy)();
+    return {
+      name: exports.multipartPolicyName,
+      sendRequest: async (request, next) => {
+        if (request.multipartBody) {
+          for (const part of request.multipartBody.parts) {
+            if ((0, file_js_1.hasRawContent)(part.body)) {
+              part.body = (0, file_js_1.getRawContent)(part.body);
+            }
+          }
+        }
+        return tspPolicy.sendRequest(request, next);
+      }
+    };
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/decompressResponsePolicy.js
+var require_decompressResponsePolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.decompressResponsePolicyName = undefined;
+  exports.decompressResponsePolicy = decompressResponsePolicy;
+  var policies_1 = require_internal2();
+  exports.decompressResponsePolicyName = policies_1.decompressResponsePolicyName;
+  function decompressResponsePolicy() {
+    return (0, policies_1.decompressResponsePolicy)();
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/defaultRetryPolicy.js
+var require_defaultRetryPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.defaultRetryPolicyName = undefined;
+  exports.defaultRetryPolicy = defaultRetryPolicy;
+  var policies_1 = require_internal2();
+  exports.defaultRetryPolicyName = policies_1.defaultRetryPolicyName;
+  function defaultRetryPolicy(options = {}) {
+    return (0, policies_1.defaultRetryPolicy)(options);
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/formDataPolicy.js
+var require_formDataPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.formDataPolicyName = undefined;
+  exports.formDataPolicy = formDataPolicy;
+  var policies_1 = require_internal2();
+  exports.formDataPolicyName = policies_1.formDataPolicyName;
+  function formDataPolicy() {
+    return (0, policies_1.formDataPolicy)();
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/proxyPolicy.js
+var require_proxyPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.proxyPolicyName = undefined;
+  exports.getDefaultProxySettings = getDefaultProxySettings;
+  exports.proxyPolicy = proxyPolicy;
+  var policies_1 = require_internal2();
+  exports.proxyPolicyName = policies_1.proxyPolicyName;
+  function getDefaultProxySettings(proxyUrl) {
+    return (0, policies_1.getDefaultProxySettings)(proxyUrl);
+  }
+  function proxyPolicy(proxySettings, options) {
+    return (0, policies_1.proxyPolicy)(proxySettings, options);
+  }
+});
+
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/setClientRequestIdPolicy.js
 var require_setClientRequestIdPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
@@ -29858,22 +30266,27 @@ var require_setClientRequestIdPolicy = __commonJS((exports) => {
   }
 });
 
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/agentPolicy.js
+var require_agentPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.agentPolicyName = undefined;
+  exports.agentPolicy = agentPolicy;
+  var policies_1 = require_internal2();
+  exports.agentPolicyName = policies_1.agentPolicyName;
+  function agentPolicy(agent) {
+    return (0, policies_1.agentPolicy)(agent);
+  }
+});
+
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/tlsPolicy.js
-var require_tlsPolicy = __commonJS((exports) => {
+var require_tlsPolicy2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.tlsPolicyName = undefined;
   exports.tlsPolicy = tlsPolicy;
-  exports.tlsPolicyName = "tlsPolicy";
+  var policies_1 = require_internal2();
+  exports.tlsPolicyName = policies_1.tlsPolicyName;
   function tlsPolicy(tlsSettings) {
-    return {
-      name: exports.tlsPolicyName,
-      sendRequest: async (req, next) => {
-        if (!req.tlsSettings) {
-          req.tlsSettings = tlsSettings;
-        }
-        return next(req);
-      }
-    };
+    return (0, policies_1.tlsPolicy)(tlsSettings);
   }
 });
 
@@ -29938,17 +30351,12 @@ var require_instrumenter = __commonJS((exports) => {
   var state_js_1 = require_state();
   function createDefaultTracingSpan() {
     return {
-      end: () => {
-      },
+      end: () => {},
       isRecording: () => false,
-      recordException: () => {
-      },
-      setAttribute: () => {
-      },
-      setStatus: () => {
-      },
-      addEvent: () => {
-      }
+      recordException: () => {},
+      setAttribute: () => {},
+      setStatus: () => {},
+      addEvent: () => {}
     };
   }
   function createDefaultInstrumenter() {
@@ -30039,7 +30447,7 @@ var require_tracingClient = __commonJS((exports) => {
 });
 
 // ../node_modules/@azure/core-tracing/dist/commonjs/index.js
-var require_commonjs6 = __commonJS((exports) => {
+var require_commonjs7 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.createTracingClient = exports.useInstrumenter = undefined;
   var instrumenter_js_1 = require_instrumenter();
@@ -30052,46 +30460,24 @@ var require_commonjs6 = __commonJS((exports) => {
   } });
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/inspect.js
-var require_inspect = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.custom = undefined;
-  var node_util_1 = __require("node:util");
-  exports.custom = node_util_1.inspect.custom;
-});
-
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/restError.js
-var require_restError = __commonJS((exports) => {
+var require_restError3 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.RestError = undefined;
   exports.isRestError = isRestError;
-  var core_util_1 = require_commonjs5();
-  var inspect_js_1 = require_inspect();
-  var sanitizer_js_1 = require_sanitizer();
-  var errorSanitizer = new sanitizer_js_1.Sanitizer;
+  var ts_http_runtime_1 = require_commonjs3();
 
   class RestError extends Error {
     constructor(message, options = {}) {
       super(message);
-      this.name = "RestError";
-      this.code = options.code;
-      this.statusCode = options.statusCode;
-      Object.defineProperty(this, "request", { value: options.request, enumerable: false });
-      Object.defineProperty(this, "response", { value: options.response, enumerable: false });
-      Object.setPrototypeOf(this, RestError.prototype);
-    }
-    [inspect_js_1.custom]() {
-      return `RestError: ${this.message} \n ${errorSanitizer.sanitize(Object.assign(Object.assign({}, this), { request: this.request, response: this.response }))}`;
+      return new ts_http_runtime_1.RestError(message, options);
     }
   }
   exports.RestError = RestError;
   RestError.REQUEST_SEND_ERROR = "REQUEST_SEND_ERROR";
   RestError.PARSE_ERROR = "PARSE_ERROR";
   function isRestError(e) {
-    if (e instanceof RestError) {
-      return true;
-    }
-    return (0, core_util_1.isError)(e) && e.name === "RestError";
+    return (0, ts_http_runtime_1.isRestError)(e);
   }
 });
 
@@ -30100,17 +30486,17 @@ var require_tracingPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.tracingPolicyName = undefined;
   exports.tracingPolicy = tracingPolicy;
-  var core_tracing_1 = require_commonjs6();
-  var constants_js_1 = require_constants6();
-  var userAgent_js_1 = require_userAgent();
-  var log_js_1 = require_log2();
-  var core_util_1 = require_commonjs5();
-  var restError_js_1 = require_restError();
-  var sanitizer_js_1 = require_sanitizer();
+  var core_tracing_1 = require_commonjs7();
+  var constants_js_1 = require_constants7();
+  var userAgent_js_1 = require_userAgent2();
+  var log_js_1 = require_log3();
+  var core_util_1 = require_commonjs6();
+  var restError_js_1 = require_restError3();
+  var util_1 = require_internal3();
   exports.tracingPolicyName = "tracingPolicy";
   function tracingPolicy(options = {}) {
     const userAgentPromise = (0, userAgent_js_1.getUserAgentValue)(options.userAgentPrefix);
-    const sanitizer = new sanitizer_js_1.Sanitizer({
+    const sanitizer = new util_1.Sanitizer({
       additionalAllowedQueryParameters: options.additionalAllowedQueryParameters
     });
     const tracingClient = tryCreateTracingClient();
@@ -30199,9 +30585,11 @@ var require_tracingPolicy = __commonJS((exports) => {
       if (serviceRequestId) {
         span.setAttribute("serviceRequestId", serviceRequestId);
       }
-      span.setStatus({
-        status: "success"
-      });
+      if (response.status >= 400) {
+        span.setStatus({
+          status: "error"
+        });
+      }
       span.end();
     } catch (e) {
       log_js_1.logger.warning(`Skipping tracing span processing due to an error: ${(0, core_util_1.getErrorMessage)(e)}`);
@@ -30209,33 +30597,93 @@ var require_tracingPolicy = __commonJS((exports) => {
   }
 });
 
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/util/wrapAbortSignal.js
+var require_wrapAbortSignal = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.wrapAbortSignalLike = wrapAbortSignalLike;
+  function wrapAbortSignalLike(abortSignalLike) {
+    if (abortSignalLike instanceof AbortSignal) {
+      return { abortSignal: abortSignalLike };
+    }
+    if (abortSignalLike.aborted) {
+      return { abortSignal: AbortSignal.abort(abortSignalLike.reason) };
+    }
+    const controller = new AbortController;
+    let needsCleanup = true;
+    function cleanup() {
+      if (needsCleanup) {
+        abortSignalLike.removeEventListener("abort", listener);
+        needsCleanup = false;
+      }
+    }
+    function listener() {
+      controller.abort(abortSignalLike.reason);
+      cleanup();
+    }
+    abortSignalLike.addEventListener("abort", listener);
+    return { abortSignal: controller.signal, cleanup };
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/wrapAbortSignalLikePolicy.js
+var require_wrapAbortSignalLikePolicy = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.wrapAbortSignalLikePolicyName = undefined;
+  exports.wrapAbortSignalLikePolicy = wrapAbortSignalLikePolicy;
+  var wrapAbortSignal_js_1 = require_wrapAbortSignal();
+  exports.wrapAbortSignalLikePolicyName = "wrapAbortSignalLikePolicy";
+  function wrapAbortSignalLikePolicy() {
+    return {
+      name: exports.wrapAbortSignalLikePolicyName,
+      sendRequest: async (request, next) => {
+        if (!request.abortSignal) {
+          return next(request);
+        }
+        const { abortSignal, cleanup } = (0, wrapAbortSignal_js_1.wrapAbortSignalLike)(request.abortSignal);
+        request.abortSignal = abortSignal;
+        try {
+          return await next(request);
+        } finally {
+          cleanup === null || cleanup === undefined || cleanup();
+        }
+      }
+    };
+  }
+});
+
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/createPipelineFromOptions.js
-var require_createPipelineFromOptions = __commonJS((exports) => {
+var require_createPipelineFromOptions2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.createPipelineFromOptions = createPipelineFromOptions;
-  var logPolicy_js_1 = require_logPolicy();
-  var pipeline_js_1 = require_pipeline();
-  var redirectPolicy_js_1 = require_redirectPolicy();
-  var userAgentPolicy_js_1 = require_userAgentPolicy();
-  var multipartPolicy_js_1 = require_multipartPolicy();
-  var decompressResponsePolicy_js_1 = require_decompressResponsePolicy();
-  var defaultRetryPolicy_js_1 = require_defaultRetryPolicy();
-  var formDataPolicy_js_1 = require_formDataPolicy();
-  var core_util_1 = require_commonjs5();
-  var proxyPolicy_js_1 = require_proxyPolicy();
+  var logPolicy_js_1 = require_logPolicy2();
+  var pipeline_js_1 = require_pipeline2();
+  var redirectPolicy_js_1 = require_redirectPolicy2();
+  var userAgentPolicy_js_1 = require_userAgentPolicy2();
+  var multipartPolicy_js_1 = require_multipartPolicy2();
+  var decompressResponsePolicy_js_1 = require_decompressResponsePolicy2();
+  var defaultRetryPolicy_js_1 = require_defaultRetryPolicy2();
+  var formDataPolicy_js_1 = require_formDataPolicy2();
+  var core_util_1 = require_commonjs6();
+  var proxyPolicy_js_1 = require_proxyPolicy2();
   var setClientRequestIdPolicy_js_1 = require_setClientRequestIdPolicy();
-  var tlsPolicy_js_1 = require_tlsPolicy();
+  var agentPolicy_js_1 = require_agentPolicy2();
+  var tlsPolicy_js_1 = require_tlsPolicy2();
   var tracingPolicy_js_1 = require_tracingPolicy();
+  var wrapAbortSignalLikePolicy_js_1 = require_wrapAbortSignalLikePolicy();
   function createPipelineFromOptions(options) {
     var _a;
     const pipeline = (0, pipeline_js_1.createEmptyPipeline)();
     if (core_util_1.isNodeLike) {
+      if (options.agent) {
+        pipeline.addPolicy((0, agentPolicy_js_1.agentPolicy)(options.agent));
+      }
       if (options.tlsOptions) {
         pipeline.addPolicy((0, tlsPolicy_js_1.tlsPolicy)(options.tlsOptions));
       }
       pipeline.addPolicy((0, proxyPolicy_js_1.proxyPolicy)(options.proxyOptions));
       pipeline.addPolicy((0, decompressResponsePolicy_js_1.decompressResponsePolicy)());
     }
+    pipeline.addPolicy((0, wrapAbortSignalLikePolicy_js_1.wrapAbortSignalLikePolicy)());
     pipeline.addPolicy((0, formDataPolicy_js_1.formDataPolicy)(), { beforePolicies: [multipartPolicy_js_1.multipartPolicyName] });
     pipeline.addPolicy((0, userAgentPolicy_js_1.userAgentPolicy)(options.userAgentOptions));
     pipeline.addPolicy((0, setClientRequestIdPolicy_js_1.setClientRequestIdPolicy)((_a = options.telemetryOptions) === null || _a === undefined ? undefined : _a.clientRequestIdHeaderName));
@@ -30252,402 +30700,94 @@ var require_createPipelineFromOptions = __commonJS((exports) => {
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/nodeHttpClient.js
-var require_nodeHttpClient = __commonJS((exports) => {
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/defaultHttpClient.js
+var require_defaultHttpClient2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getBodyLength = getBodyLength;
-  exports.createNodeHttpClient = createNodeHttpClient;
-  var tslib_1 = require_tslib();
-  var http = tslib_1.__importStar(__require("node:http"));
-  var https = tslib_1.__importStar(__require("node:https"));
-  var zlib = tslib_1.__importStar(__require("node:zlib"));
-  var node_stream_1 = __require("node:stream");
-  var abort_controller_1 = require_commonjs4();
-  var httpHeaders_js_1 = require_httpHeaders();
-  var restError_js_1 = require_restError();
-  var log_js_1 = require_log2();
-  var DEFAULT_TLS_SETTINGS = {};
-  function isReadableStream(body) {
-    return body && typeof body.pipe === "function";
-  }
-  function isStreamComplete(stream) {
-    return new Promise((resolve) => {
-      const handler = () => {
-        resolve();
-        stream.removeListener("close", handler);
-        stream.removeListener("end", handler);
-        stream.removeListener("error", handler);
-      };
-      stream.on("close", handler);
-      stream.on("end", handler);
-      stream.on("error", handler);
-    });
-  }
-  function isArrayBuffer(body) {
-    return body && typeof body.byteLength === "number";
-  }
-
-  class ReportTransform extends node_stream_1.Transform {
-    _transform(chunk, _encoding, callback) {
-      this.push(chunk);
-      this.loadedBytes += chunk.length;
-      try {
-        this.progressCallback({ loadedBytes: this.loadedBytes });
-        callback();
-      } catch (e) {
-        callback(e);
-      }
-    }
-    constructor(progressCallback) {
-      super();
-      this.loadedBytes = 0;
-      this.progressCallback = progressCallback;
-    }
-  }
-
-  class NodeHttpClient {
-    constructor() {
-      this.cachedHttpsAgents = new WeakMap;
-    }
-    async sendRequest(request) {
-      var _a, _b, _c;
-      const abortController = new AbortController;
-      let abortListener;
-      if (request.abortSignal) {
-        if (request.abortSignal.aborted) {
-          throw new abort_controller_1.AbortError("The operation was aborted.");
-        }
-        abortListener = (event) => {
-          if (event.type === "abort") {
-            abortController.abort();
-          }
-        };
-        request.abortSignal.addEventListener("abort", abortListener);
-      }
-      if (request.timeout > 0) {
-        setTimeout(() => {
-          abortController.abort();
-        }, request.timeout);
-      }
-      const acceptEncoding = request.headers.get("Accept-Encoding");
-      const shouldDecompress = (acceptEncoding === null || acceptEncoding === undefined ? undefined : acceptEncoding.includes("gzip")) || (acceptEncoding === null || acceptEncoding === undefined ? undefined : acceptEncoding.includes("deflate"));
-      let body = typeof request.body === "function" ? request.body() : request.body;
-      if (body && !request.headers.has("Content-Length")) {
-        const bodyLength = getBodyLength(body);
-        if (bodyLength !== null) {
-          request.headers.set("Content-Length", bodyLength);
+  exports.createDefaultHttpClient = createDefaultHttpClient;
+  var ts_http_runtime_1 = require_commonjs3();
+  var wrapAbortSignal_js_1 = require_wrapAbortSignal();
+  function createDefaultHttpClient() {
+    const client = (0, ts_http_runtime_1.createDefaultHttpClient)();
+    return {
+      async sendRequest(request) {
+        const { abortSignal, cleanup } = request.abortSignal ? (0, wrapAbortSignal_js_1.wrapAbortSignalLike)(request.abortSignal) : {};
+        try {
+          request.abortSignal = abortSignal;
+          return await client.sendRequest(request);
+        } finally {
+          cleanup === null || cleanup === undefined || cleanup();
         }
       }
-      let responseStream;
-      try {
-        if (body && request.onUploadProgress) {
-          const onUploadProgress = request.onUploadProgress;
-          const uploadReportStream = new ReportTransform(onUploadProgress);
-          uploadReportStream.on("error", (e) => {
-            log_js_1.logger.error("Error in upload progress", e);
-          });
-          if (isReadableStream(body)) {
-            body.pipe(uploadReportStream);
-          } else {
-            uploadReportStream.end(body);
-          }
-          body = uploadReportStream;
-        }
-        const res = await this.makeRequest(request, abortController, body);
-        const headers = getResponseHeaders(res);
-        const status = (_a = res.statusCode) !== null && _a !== undefined ? _a : 0;
-        const response = {
-          status,
-          headers,
-          request
-        };
-        if (request.method === "HEAD") {
-          res.resume();
-          return response;
-        }
-        responseStream = shouldDecompress ? getDecodedResponseStream(res, headers) : res;
-        const onDownloadProgress = request.onDownloadProgress;
-        if (onDownloadProgress) {
-          const downloadReportStream = new ReportTransform(onDownloadProgress);
-          downloadReportStream.on("error", (e) => {
-            log_js_1.logger.error("Error in download progress", e);
-          });
-          responseStream.pipe(downloadReportStream);
-          responseStream = downloadReportStream;
-        }
-        if (((_b = request.streamResponseStatusCodes) === null || _b === undefined ? undefined : _b.has(Number.POSITIVE_INFINITY)) || ((_c = request.streamResponseStatusCodes) === null || _c === undefined ? undefined : _c.has(response.status))) {
-          response.readableStreamBody = responseStream;
-        } else {
-          response.bodyAsText = await streamToText(responseStream);
-        }
-        return response;
-      } finally {
-        if (request.abortSignal && abortListener) {
-          let uploadStreamDone = Promise.resolve();
-          if (isReadableStream(body)) {
-            uploadStreamDone = isStreamComplete(body);
-          }
-          let downloadStreamDone = Promise.resolve();
-          if (isReadableStream(responseStream)) {
-            downloadStreamDone = isStreamComplete(responseStream);
-          }
-          Promise.all([uploadStreamDone, downloadStreamDone]).then(() => {
-            var _a2;
-            if (abortListener) {
-              (_a2 = request.abortSignal) === null || _a2 === undefined || _a2.removeEventListener("abort", abortListener);
-            }
-          }).catch((e) => {
-            log_js_1.logger.warning("Error when cleaning up abortListener on httpRequest", e);
-          });
-        }
-      }
-    }
-    makeRequest(request, abortController, body) {
-      var _a;
-      const url = new URL(request.url);
-      const isInsecure = url.protocol !== "https:";
-      if (isInsecure && !request.allowInsecureConnection) {
-        throw new Error(`Cannot connect to ${request.url} while allowInsecureConnection is false.`);
-      }
-      const agent = (_a = request.agent) !== null && _a !== undefined ? _a : this.getOrCreateAgent(request, isInsecure);
-      const options = {
-        agent,
-        hostname: url.hostname,
-        path: `${url.pathname}${url.search}`,
-        port: url.port,
-        method: request.method,
-        headers: request.headers.toJSON({ preserveCase: true })
-      };
-      return new Promise((resolve, reject) => {
-        const req = isInsecure ? http.request(options, resolve) : https.request(options, resolve);
-        req.once("error", (err) => {
-          var _a2;
-          reject(new restError_js_1.RestError(err.message, { code: (_a2 = err.code) !== null && _a2 !== undefined ? _a2 : restError_js_1.RestError.REQUEST_SEND_ERROR, request }));
-        });
-        abortController.signal.addEventListener("abort", () => {
-          const abortError = new abort_controller_1.AbortError("The operation was aborted.");
-          req.destroy(abortError);
-          reject(abortError);
-        });
-        if (body && isReadableStream(body)) {
-          body.pipe(req);
-        } else if (body) {
-          if (typeof body === "string" || Buffer.isBuffer(body)) {
-            req.end(body);
-          } else if (isArrayBuffer(body)) {
-            req.end(ArrayBuffer.isView(body) ? Buffer.from(body.buffer) : Buffer.from(body));
-          } else {
-            log_js_1.logger.error("Unrecognized body type", body);
-            reject(new restError_js_1.RestError("Unrecognized body type"));
-          }
-        } else {
-          req.end();
-        }
-      });
-    }
-    getOrCreateAgent(request, isInsecure) {
-      var _a;
-      const disableKeepAlive = request.disableKeepAlive;
-      if (isInsecure) {
-        if (disableKeepAlive) {
-          return http.globalAgent;
-        }
-        if (!this.cachedHttpAgent) {
-          this.cachedHttpAgent = new http.Agent({ keepAlive: true });
-        }
-        return this.cachedHttpAgent;
-      } else {
-        if (disableKeepAlive && !request.tlsSettings) {
-          return https.globalAgent;
-        }
-        const tlsSettings = (_a = request.tlsSettings) !== null && _a !== undefined ? _a : DEFAULT_TLS_SETTINGS;
-        let agent = this.cachedHttpsAgents.get(tlsSettings);
-        if (agent && agent.options.keepAlive === !disableKeepAlive) {
-          return agent;
-        }
-        log_js_1.logger.info("No cached TLS Agent exist, creating a new Agent");
-        agent = new https.Agent(Object.assign({
-          keepAlive: !disableKeepAlive
-        }, tlsSettings));
-        this.cachedHttpsAgents.set(tlsSettings, agent);
-        return agent;
-      }
-    }
-  }
-  function getResponseHeaders(res) {
-    const headers = (0, httpHeaders_js_1.createHttpHeaders)();
-    for (const header of Object.keys(res.headers)) {
-      const value = res.headers[header];
-      if (Array.isArray(value)) {
-        if (value.length > 0) {
-          headers.set(header, value[0]);
-        }
-      } else if (value) {
-        headers.set(header, value);
-      }
-    }
-    return headers;
-  }
-  function getDecodedResponseStream(stream, headers) {
-    const contentEncoding = headers.get("Content-Encoding");
-    if (contentEncoding === "gzip") {
-      const unzip = zlib.createGunzip();
-      stream.pipe(unzip);
-      return unzip;
-    } else if (contentEncoding === "deflate") {
-      const inflate = zlib.createInflate();
-      stream.pipe(inflate);
-      return inflate;
-    }
-    return stream;
-  }
-  function streamToText(stream) {
-    return new Promise((resolve, reject) => {
-      const buffer = [];
-      stream.on("data", (chunk) => {
-        if (Buffer.isBuffer(chunk)) {
-          buffer.push(chunk);
-        } else {
-          buffer.push(Buffer.from(chunk));
-        }
-      });
-      stream.on("end", () => {
-        resolve(Buffer.concat(buffer).toString("utf8"));
-      });
-      stream.on("error", (e) => {
-        if (e && (e === null || e === undefined ? undefined : e.name) === "AbortError") {
-          reject(e);
-        } else {
-          reject(new restError_js_1.RestError(`Error reading response as text: ${e.message}`, {
-            code: restError_js_1.RestError.PARSE_ERROR
-          }));
-        }
-      });
-    });
-  }
-  function getBodyLength(body) {
-    if (!body) {
-      return 0;
-    } else if (Buffer.isBuffer(body)) {
-      return body.length;
-    } else if (isReadableStream(body)) {
-      return null;
-    } else if (isArrayBuffer(body)) {
-      return body.byteLength;
-    } else if (typeof body === "string") {
-      return Buffer.from(body).length;
-    } else {
-      return null;
-    }
-  }
-  function createNodeHttpClient() {
-    return new NodeHttpClient;
+    };
   }
 });
 
-// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/defaultHttpClient.js
-var require_defaultHttpClient = __commonJS((exports) => {
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/httpHeaders.js
+var require_httpHeaders2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createDefaultHttpClient = createDefaultHttpClient;
-  var nodeHttpClient_js_1 = require_nodeHttpClient();
-  function createDefaultHttpClient() {
-    return (0, nodeHttpClient_js_1.createNodeHttpClient)();
+  exports.createHttpHeaders = createHttpHeaders;
+  var ts_http_runtime_1 = require_commonjs3();
+  function createHttpHeaders(rawHeaders) {
+    return (0, ts_http_runtime_1.createHttpHeaders)(rawHeaders);
   }
 });
 
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/pipelineRequest.js
-var require_pipelineRequest = __commonJS((exports) => {
+var require_pipelineRequest2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.createPipelineRequest = createPipelineRequest;
-  var httpHeaders_js_1 = require_httpHeaders();
-  var core_util_1 = require_commonjs5();
-
-  class PipelineRequestImpl {
-    constructor(options) {
-      var _a, _b, _c, _d, _e, _f, _g;
-      this.url = options.url;
-      this.body = options.body;
-      this.headers = (_a = options.headers) !== null && _a !== undefined ? _a : (0, httpHeaders_js_1.createHttpHeaders)();
-      this.method = (_b = options.method) !== null && _b !== undefined ? _b : "GET";
-      this.timeout = (_c = options.timeout) !== null && _c !== undefined ? _c : 0;
-      this.multipartBody = options.multipartBody;
-      this.formData = options.formData;
-      this.disableKeepAlive = (_d = options.disableKeepAlive) !== null && _d !== undefined ? _d : false;
-      this.proxySettings = options.proxySettings;
-      this.streamResponseStatusCodes = options.streamResponseStatusCodes;
-      this.withCredentials = (_e = options.withCredentials) !== null && _e !== undefined ? _e : false;
-      this.abortSignal = options.abortSignal;
-      this.tracingOptions = options.tracingOptions;
-      this.onUploadProgress = options.onUploadProgress;
-      this.onDownloadProgress = options.onDownloadProgress;
-      this.requestId = options.requestId || (0, core_util_1.randomUUID)();
-      this.allowInsecureConnection = (_f = options.allowInsecureConnection) !== null && _f !== undefined ? _f : false;
-      this.enableBrowserStreams = (_g = options.enableBrowserStreams) !== null && _g !== undefined ? _g : false;
-    }
-  }
+  var ts_http_runtime_1 = require_commonjs3();
   function createPipelineRequest(options) {
-    return new PipelineRequestImpl(options);
+    return (0, ts_http_runtime_1.createPipelineRequest)(options);
   }
 });
 
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/exponentialRetryPolicy.js
-var require_exponentialRetryPolicy = __commonJS((exports) => {
+var require_exponentialRetryPolicy2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.exponentialRetryPolicyName = undefined;
   exports.exponentialRetryPolicy = exponentialRetryPolicy;
-  var exponentialRetryStrategy_js_1 = require_exponentialRetryStrategy();
-  var retryPolicy_js_1 = require_retryPolicy();
-  var constants_js_1 = require_constants6();
-  exports.exponentialRetryPolicyName = "exponentialRetryPolicy";
+  var policies_1 = require_internal2();
+  exports.exponentialRetryPolicyName = policies_1.exponentialRetryPolicyName;
   function exponentialRetryPolicy(options = {}) {
-    var _a;
-    return (0, retryPolicy_js_1.retryPolicy)([
-      (0, exponentialRetryStrategy_js_1.exponentialRetryStrategy)(Object.assign(Object.assign({}, options), { ignoreSystemErrors: true }))
-    ], {
-      maxRetries: (_a = options.maxRetries) !== null && _a !== undefined ? _a : constants_js_1.DEFAULT_RETRY_POLICY_COUNT
-    });
+    return (0, policies_1.exponentialRetryPolicy)(options);
   }
 });
 
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/systemErrorRetryPolicy.js
-var require_systemErrorRetryPolicy = __commonJS((exports) => {
+var require_systemErrorRetryPolicy2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.systemErrorRetryPolicyName = undefined;
   exports.systemErrorRetryPolicy = systemErrorRetryPolicy;
-  var exponentialRetryStrategy_js_1 = require_exponentialRetryStrategy();
-  var retryPolicy_js_1 = require_retryPolicy();
-  var constants_js_1 = require_constants6();
-  exports.systemErrorRetryPolicyName = "systemErrorRetryPolicy";
+  var policies_1 = require_internal2();
+  exports.systemErrorRetryPolicyName = policies_1.systemErrorRetryPolicyName;
   function systemErrorRetryPolicy(options = {}) {
-    var _a;
-    return {
-      name: exports.systemErrorRetryPolicyName,
-      sendRequest: (0, retryPolicy_js_1.retryPolicy)([
-        (0, exponentialRetryStrategy_js_1.exponentialRetryStrategy)(Object.assign(Object.assign({}, options), { ignoreHttpStatusCodes: true }))
-      ], {
-        maxRetries: (_a = options.maxRetries) !== null && _a !== undefined ? _a : constants_js_1.DEFAULT_RETRY_POLICY_COUNT
-      }).sendRequest
-    };
+    return (0, policies_1.systemErrorRetryPolicy)(options);
   }
 });
 
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/throttlingRetryPolicy.js
-var require_throttlingRetryPolicy = __commonJS((exports) => {
+var require_throttlingRetryPolicy2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.throttlingRetryPolicyName = undefined;
   exports.throttlingRetryPolicy = throttlingRetryPolicy;
-  var throttlingRetryStrategy_js_1 = require_throttlingRetryStrategy();
-  var retryPolicy_js_1 = require_retryPolicy();
-  var constants_js_1 = require_constants6();
-  exports.throttlingRetryPolicyName = "throttlingRetryPolicy";
+  var policies_1 = require_internal2();
+  exports.throttlingRetryPolicyName = policies_1.throttlingRetryPolicyName;
   function throttlingRetryPolicy(options = {}) {
-    var _a;
-    return {
-      name: exports.throttlingRetryPolicyName,
-      sendRequest: (0, retryPolicy_js_1.retryPolicy)([(0, throttlingRetryStrategy_js_1.throttlingRetryStrategy)()], {
-        maxRetries: (_a = options.maxRetries) !== null && _a !== undefined ? _a : constants_js_1.DEFAULT_RETRY_POLICY_COUNT
-      }).sendRequest
-    };
+    return (0, policies_1.throttlingRetryPolicy)(options);
+  }
+});
+
+// ../node_modules/@azure/core-rest-pipeline/dist/commonjs/policies/retryPolicy.js
+var require_retryPolicy2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.retryPolicy = retryPolicy;
+  var logger_1 = require_commonjs4();
+  var constants_js_1 = require_constants7();
+  var policies_1 = require_internal2();
+  var retryPolicyLogger = (0, logger_1.createClientLogger)("core-rest-pipeline retryPolicy");
+  function retryPolicy(strategies, options = { maxRetries: constants_js_1.DEFAULT_RETRY_POLICY_COUNT }) {
+    return (0, policies_1.retryPolicy)(strategies, Object.assign({ logger: retryPolicyLogger }, options));
   }
 });
 
@@ -30656,7 +30796,7 @@ var require_tokenCycler = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.DEFAULT_CYCLER_OPTIONS = undefined;
   exports.createTokenCycler = createTokenCycler;
-  var helpers_js_1 = require_helpers();
+  var core_util_1 = require_commonjs6();
   exports.DEFAULT_CYCLER_OPTIONS = {
     forcedRefreshWindowInMs: 1000,
     retryIntervalInMs: 3000,
@@ -30680,7 +30820,7 @@ var require_tokenCycler = __commonJS((exports) => {
     }
     let token = await tryGetAccessToken();
     while (token === null) {
-      await (0, helpers_js_1.delay)(retryIntervalInMs);
+      await (0, core_util_1.delay)(retryIntervalInMs);
       token = await tryGetAccessToken();
     }
     return token;
@@ -30749,32 +30889,58 @@ var require_bearerTokenAuthenticationPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.bearerTokenAuthenticationPolicyName = undefined;
   exports.bearerTokenAuthenticationPolicy = bearerTokenAuthenticationPolicy;
+  exports.parseChallenges = parseChallenges;
   var tokenCycler_js_1 = require_tokenCycler();
-  var log_js_1 = require_log2();
+  var log_js_1 = require_log3();
+  var restError_js_1 = require_restError3();
   exports.bearerTokenAuthenticationPolicyName = "bearerTokenAuthenticationPolicy";
+  async function trySendRequest(request, next) {
+    try {
+      return [await next(request), undefined];
+    } catch (e) {
+      if ((0, restError_js_1.isRestError)(e) && e.response) {
+        return [e.response, e];
+      } else {
+        throw e;
+      }
+    }
+  }
   async function defaultAuthorizeRequest(options) {
     const { scopes, getAccessToken, request } = options;
     const getTokenOptions = {
       abortSignal: request.abortSignal,
-      tracingOptions: request.tracingOptions
+      tracingOptions: request.tracingOptions,
+      enableCae: true
     };
     const accessToken = await getAccessToken(scopes, getTokenOptions);
     if (accessToken) {
       options.request.headers.set("Authorization", `Bearer ${accessToken.token}`);
     }
   }
-  function getChallenge(response) {
-    const challenge = response.headers.get("WWW-Authenticate");
-    if (response.status === 401 && challenge) {
-      return challenge;
+  function isChallengeResponse(response) {
+    return response.status === 401 && response.headers.has("WWW-Authenticate");
+  }
+  async function authorizeRequestOnCaeChallenge(onChallengeOptions, caeClaims) {
+    var _a;
+    const { scopes } = onChallengeOptions;
+    const accessToken = await onChallengeOptions.getAccessToken(scopes, {
+      enableCae: true,
+      claims: caeClaims
+    });
+    if (!accessToken) {
+      return false;
     }
-    return;
+    onChallengeOptions.request.headers.set("Authorization", `${(_a = accessToken.tokenType) !== null && _a !== undefined ? _a : "Bearer"} ${accessToken.token}`);
+    return true;
   }
   function bearerTokenAuthenticationPolicy(options) {
-    var _a;
+    var _a, _b, _c;
     const { credential, scopes, challengeCallbacks } = options;
     const logger = options.logger || log_js_1.logger;
-    const callbacks = Object.assign({ authorizeRequest: (_a = challengeCallbacks === null || challengeCallbacks === undefined ? undefined : challengeCallbacks.authorizeRequest) !== null && _a !== undefined ? _a : defaultAuthorizeRequest, authorizeRequestOnChallenge: challengeCallbacks === null || challengeCallbacks === undefined ? undefined : challengeCallbacks.authorizeRequestOnChallenge }, challengeCallbacks);
+    const callbacks = {
+      authorizeRequest: (_b = (_a = challengeCallbacks === null || challengeCallbacks === undefined ? undefined : challengeCallbacks.authorizeRequest) === null || _a === undefined ? undefined : _a.bind(challengeCallbacks)) !== null && _b !== undefined ? _b : defaultAuthorizeRequest,
+      authorizeRequestOnChallenge: (_c = challengeCallbacks === null || challengeCallbacks === undefined ? undefined : challengeCallbacks.authorizeRequestOnChallenge) === null || _c === undefined ? undefined : _c.bind(challengeCallbacks)
+    };
     const getAccessToken = credential ? (0, tokenCycler_js_1.createTokenCycler)(credential) : () => Promise.resolve(null);
     return {
       name: exports.bearerTokenAuthenticationPolicyName,
@@ -30790,22 +30956,61 @@ var require_bearerTokenAuthenticationPolicy = __commonJS((exports) => {
         });
         let response;
         let error;
-        try {
-          response = await next(request);
-        } catch (err) {
-          error = err;
-          response = err.response;
-        }
-        if (callbacks.authorizeRequestOnChallenge && (response === null || response === undefined ? undefined : response.status) === 401 && getChallenge(response)) {
-          const shouldSendRequest = await callbacks.authorizeRequestOnChallenge({
-            scopes: Array.isArray(scopes) ? scopes : [scopes],
-            request,
-            response,
-            getAccessToken,
-            logger
-          });
-          if (shouldSendRequest) {
-            return next(request);
+        let shouldSendRequest;
+        [response, error] = await trySendRequest(request, next);
+        if (isChallengeResponse(response)) {
+          let claims = getCaeChallengeClaims(response.headers.get("WWW-Authenticate"));
+          if (claims) {
+            let parsedClaim;
+            try {
+              parsedClaim = atob(claims);
+            } catch (e) {
+              logger.warning(`The WWW-Authenticate header contains "claims" that cannot be parsed. Unable to perform the Continuous Access Evaluation authentication flow. Unparsable claims: ${claims}`);
+              return response;
+            }
+            shouldSendRequest = await authorizeRequestOnCaeChallenge({
+              scopes: Array.isArray(scopes) ? scopes : [scopes],
+              response,
+              request,
+              getAccessToken,
+              logger
+            }, parsedClaim);
+            if (shouldSendRequest) {
+              [response, error] = await trySendRequest(request, next);
+            }
+          } else if (callbacks.authorizeRequestOnChallenge) {
+            shouldSendRequest = await callbacks.authorizeRequestOnChallenge({
+              scopes: Array.isArray(scopes) ? scopes : [scopes],
+              request,
+              response,
+              getAccessToken,
+              logger
+            });
+            if (shouldSendRequest) {
+              [response, error] = await trySendRequest(request, next);
+            }
+            if (isChallengeResponse(response)) {
+              claims = getCaeChallengeClaims(response.headers.get("WWW-Authenticate"));
+              if (claims) {
+                let parsedClaim;
+                try {
+                  parsedClaim = atob(claims);
+                } catch (e) {
+                  logger.warning(`The WWW-Authenticate header contains "claims" that cannot be parsed. Unable to perform the Continuous Access Evaluation authentication flow. Unparsable claims: ${claims}`);
+                  return response;
+                }
+                shouldSendRequest = await authorizeRequestOnCaeChallenge({
+                  scopes: Array.isArray(scopes) ? scopes : [scopes],
+                  response,
+                  request,
+                  getAccessToken,
+                  logger
+                }, parsedClaim);
+                if (shouldSendRequest) {
+                  [response, error] = await trySendRequest(request, next);
+                }
+              }
+            }
           }
         }
         if (error) {
@@ -30815,6 +31020,31 @@ var require_bearerTokenAuthenticationPolicy = __commonJS((exports) => {
         }
       }
     };
+  }
+  function parseChallenges(challenges) {
+    const challengeRegex = /(\w+)\s+((?:\w+=(?:"[^"]*"|[^,]*),?\s*)+)/g;
+    const paramRegex = /(\w+)="([^"]*)"/g;
+    const parsedChallenges = [];
+    let match;
+    while ((match = challengeRegex.exec(challenges)) !== null) {
+      const scheme = match[1];
+      const paramsString = match[2];
+      const params = {};
+      let paramMatch;
+      while ((paramMatch = paramRegex.exec(paramsString)) !== null) {
+        params[paramMatch[1]] = paramMatch[2];
+      }
+      parsedChallenges.push({ scheme, params });
+    }
+    return parsedChallenges;
+  }
+  function getCaeChallengeClaims(challenges) {
+    var _a;
+    if (!challenges) {
+      return;
+    }
+    const parsedChallenges = parseChallenges(challenges);
+    return (_a = parsedChallenges.find((x) => x.scheme === "Bearer" && x.params.claims && x.params.error === "insufficient_claims")) === null || _a === undefined ? undefined : _a.params.claims;
   }
 });
 
@@ -30831,7 +31061,8 @@ var require_ndJsonPolicy = __commonJS((exports) => {
         if (typeof request.body === "string" && request.body.startsWith("[")) {
           const body = JSON.parse(request.body);
           if (Array.isArray(body)) {
-            request.body = body.map((item) => JSON.stringify(item) + "\n").join("");
+            request.body = body.map((item) => JSON.stringify(item) + `
+`).join("");
           }
         }
         return next(request);
@@ -30846,7 +31077,7 @@ var require_auxiliaryAuthenticationHeaderPolicy = __commonJS((exports) => {
   exports.auxiliaryAuthenticationHeaderPolicyName = undefined;
   exports.auxiliaryAuthenticationHeaderPolicy = auxiliaryAuthenticationHeaderPolicy;
   var tokenCycler_js_1 = require_tokenCycler();
-  var log_js_1 = require_log2();
+  var log_js_1 = require_log3();
   exports.auxiliaryAuthenticationHeaderPolicyName = "auxiliaryAuthenticationHeaderPolicy";
   var AUTHORIZATION_AUXILIARY_HEADER = "x-ms-authorization-auxiliary";
   async function sendAuthorizeRequest(options) {
@@ -30899,44 +31130,44 @@ var require_auxiliaryAuthenticationHeaderPolicy = __commonJS((exports) => {
 });
 
 // ../node_modules/@azure/core-rest-pipeline/dist/commonjs/index.js
-var require_commonjs7 = __commonJS((exports) => {
+var require_commonjs8 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createFileFromStream = exports.createFile = exports.auxiliaryAuthenticationHeaderPolicyName = exports.auxiliaryAuthenticationHeaderPolicy = exports.ndJsonPolicyName = exports.ndJsonPolicy = exports.bearerTokenAuthenticationPolicyName = exports.bearerTokenAuthenticationPolicy = exports.formDataPolicyName = exports.formDataPolicy = exports.tlsPolicyName = exports.tlsPolicy = exports.userAgentPolicyName = exports.userAgentPolicy = exports.defaultRetryPolicy = exports.tracingPolicyName = exports.tracingPolicy = exports.retryPolicy = exports.throttlingRetryPolicyName = exports.throttlingRetryPolicy = exports.systemErrorRetryPolicyName = exports.systemErrorRetryPolicy = exports.redirectPolicyName = exports.redirectPolicy = exports.getDefaultProxySettings = exports.proxyPolicyName = exports.proxyPolicy = exports.multipartPolicyName = exports.multipartPolicy = exports.logPolicyName = exports.logPolicy = exports.setClientRequestIdPolicyName = exports.setClientRequestIdPolicy = exports.exponentialRetryPolicyName = exports.exponentialRetryPolicy = exports.decompressResponsePolicyName = exports.decompressResponsePolicy = exports.isRestError = exports.RestError = exports.createPipelineRequest = exports.createHttpHeaders = exports.createDefaultHttpClient = exports.createPipelineFromOptions = exports.createEmptyPipeline = undefined;
-  var pipeline_js_1 = require_pipeline();
+  exports.createFileFromStream = exports.createFile = exports.agentPolicyName = exports.agentPolicy = exports.auxiliaryAuthenticationHeaderPolicyName = exports.auxiliaryAuthenticationHeaderPolicy = exports.ndJsonPolicyName = exports.ndJsonPolicy = exports.bearerTokenAuthenticationPolicyName = exports.bearerTokenAuthenticationPolicy = exports.formDataPolicyName = exports.formDataPolicy = exports.tlsPolicyName = exports.tlsPolicy = exports.userAgentPolicyName = exports.userAgentPolicy = exports.defaultRetryPolicy = exports.tracingPolicyName = exports.tracingPolicy = exports.retryPolicy = exports.throttlingRetryPolicyName = exports.throttlingRetryPolicy = exports.systemErrorRetryPolicyName = exports.systemErrorRetryPolicy = exports.redirectPolicyName = exports.redirectPolicy = exports.getDefaultProxySettings = exports.proxyPolicyName = exports.proxyPolicy = exports.multipartPolicyName = exports.multipartPolicy = exports.logPolicyName = exports.logPolicy = exports.setClientRequestIdPolicyName = exports.setClientRequestIdPolicy = exports.exponentialRetryPolicyName = exports.exponentialRetryPolicy = exports.decompressResponsePolicyName = exports.decompressResponsePolicy = exports.isRestError = exports.RestError = exports.createPipelineRequest = exports.createHttpHeaders = exports.createDefaultHttpClient = exports.createPipelineFromOptions = exports.createEmptyPipeline = undefined;
+  var pipeline_js_1 = require_pipeline2();
   Object.defineProperty(exports, "createEmptyPipeline", { enumerable: true, get: function() {
     return pipeline_js_1.createEmptyPipeline;
   } });
-  var createPipelineFromOptions_js_1 = require_createPipelineFromOptions();
+  var createPipelineFromOptions_js_1 = require_createPipelineFromOptions2();
   Object.defineProperty(exports, "createPipelineFromOptions", { enumerable: true, get: function() {
     return createPipelineFromOptions_js_1.createPipelineFromOptions;
   } });
-  var defaultHttpClient_js_1 = require_defaultHttpClient();
+  var defaultHttpClient_js_1 = require_defaultHttpClient2();
   Object.defineProperty(exports, "createDefaultHttpClient", { enumerable: true, get: function() {
     return defaultHttpClient_js_1.createDefaultHttpClient;
   } });
-  var httpHeaders_js_1 = require_httpHeaders();
+  var httpHeaders_js_1 = require_httpHeaders2();
   Object.defineProperty(exports, "createHttpHeaders", { enumerable: true, get: function() {
     return httpHeaders_js_1.createHttpHeaders;
   } });
-  var pipelineRequest_js_1 = require_pipelineRequest();
+  var pipelineRequest_js_1 = require_pipelineRequest2();
   Object.defineProperty(exports, "createPipelineRequest", { enumerable: true, get: function() {
     return pipelineRequest_js_1.createPipelineRequest;
   } });
-  var restError_js_1 = require_restError();
+  var restError_js_1 = require_restError3();
   Object.defineProperty(exports, "RestError", { enumerable: true, get: function() {
     return restError_js_1.RestError;
   } });
   Object.defineProperty(exports, "isRestError", { enumerable: true, get: function() {
     return restError_js_1.isRestError;
   } });
-  var decompressResponsePolicy_js_1 = require_decompressResponsePolicy();
+  var decompressResponsePolicy_js_1 = require_decompressResponsePolicy2();
   Object.defineProperty(exports, "decompressResponsePolicy", { enumerable: true, get: function() {
     return decompressResponsePolicy_js_1.decompressResponsePolicy;
   } });
   Object.defineProperty(exports, "decompressResponsePolicyName", { enumerable: true, get: function() {
     return decompressResponsePolicy_js_1.decompressResponsePolicyName;
   } });
-  var exponentialRetryPolicy_js_1 = require_exponentialRetryPolicy();
+  var exponentialRetryPolicy_js_1 = require_exponentialRetryPolicy2();
   Object.defineProperty(exports, "exponentialRetryPolicy", { enumerable: true, get: function() {
     return exponentialRetryPolicy_js_1.exponentialRetryPolicy;
   } });
@@ -30950,21 +31181,21 @@ var require_commonjs7 = __commonJS((exports) => {
   Object.defineProperty(exports, "setClientRequestIdPolicyName", { enumerable: true, get: function() {
     return setClientRequestIdPolicy_js_1.setClientRequestIdPolicyName;
   } });
-  var logPolicy_js_1 = require_logPolicy();
+  var logPolicy_js_1 = require_logPolicy2();
   Object.defineProperty(exports, "logPolicy", { enumerable: true, get: function() {
     return logPolicy_js_1.logPolicy;
   } });
   Object.defineProperty(exports, "logPolicyName", { enumerable: true, get: function() {
     return logPolicy_js_1.logPolicyName;
   } });
-  var multipartPolicy_js_1 = require_multipartPolicy();
+  var multipartPolicy_js_1 = require_multipartPolicy2();
   Object.defineProperty(exports, "multipartPolicy", { enumerable: true, get: function() {
     return multipartPolicy_js_1.multipartPolicy;
   } });
   Object.defineProperty(exports, "multipartPolicyName", { enumerable: true, get: function() {
     return multipartPolicy_js_1.multipartPolicyName;
   } });
-  var proxyPolicy_js_1 = require_proxyPolicy();
+  var proxyPolicy_js_1 = require_proxyPolicy2();
   Object.defineProperty(exports, "proxyPolicy", { enumerable: true, get: function() {
     return proxyPolicy_js_1.proxyPolicy;
   } });
@@ -30974,28 +31205,28 @@ var require_commonjs7 = __commonJS((exports) => {
   Object.defineProperty(exports, "getDefaultProxySettings", { enumerable: true, get: function() {
     return proxyPolicy_js_1.getDefaultProxySettings;
   } });
-  var redirectPolicy_js_1 = require_redirectPolicy();
+  var redirectPolicy_js_1 = require_redirectPolicy2();
   Object.defineProperty(exports, "redirectPolicy", { enumerable: true, get: function() {
     return redirectPolicy_js_1.redirectPolicy;
   } });
   Object.defineProperty(exports, "redirectPolicyName", { enumerable: true, get: function() {
     return redirectPolicy_js_1.redirectPolicyName;
   } });
-  var systemErrorRetryPolicy_js_1 = require_systemErrorRetryPolicy();
+  var systemErrorRetryPolicy_js_1 = require_systemErrorRetryPolicy2();
   Object.defineProperty(exports, "systemErrorRetryPolicy", { enumerable: true, get: function() {
     return systemErrorRetryPolicy_js_1.systemErrorRetryPolicy;
   } });
   Object.defineProperty(exports, "systemErrorRetryPolicyName", { enumerable: true, get: function() {
     return systemErrorRetryPolicy_js_1.systemErrorRetryPolicyName;
   } });
-  var throttlingRetryPolicy_js_1 = require_throttlingRetryPolicy();
+  var throttlingRetryPolicy_js_1 = require_throttlingRetryPolicy2();
   Object.defineProperty(exports, "throttlingRetryPolicy", { enumerable: true, get: function() {
     return throttlingRetryPolicy_js_1.throttlingRetryPolicy;
   } });
   Object.defineProperty(exports, "throttlingRetryPolicyName", { enumerable: true, get: function() {
     return throttlingRetryPolicy_js_1.throttlingRetryPolicyName;
   } });
-  var retryPolicy_js_1 = require_retryPolicy();
+  var retryPolicy_js_1 = require_retryPolicy2();
   Object.defineProperty(exports, "retryPolicy", { enumerable: true, get: function() {
     return retryPolicy_js_1.retryPolicy;
   } });
@@ -31006,25 +31237,25 @@ var require_commonjs7 = __commonJS((exports) => {
   Object.defineProperty(exports, "tracingPolicyName", { enumerable: true, get: function() {
     return tracingPolicy_js_1.tracingPolicyName;
   } });
-  var defaultRetryPolicy_js_1 = require_defaultRetryPolicy();
+  var defaultRetryPolicy_js_1 = require_defaultRetryPolicy2();
   Object.defineProperty(exports, "defaultRetryPolicy", { enumerable: true, get: function() {
     return defaultRetryPolicy_js_1.defaultRetryPolicy;
   } });
-  var userAgentPolicy_js_1 = require_userAgentPolicy();
+  var userAgentPolicy_js_1 = require_userAgentPolicy2();
   Object.defineProperty(exports, "userAgentPolicy", { enumerable: true, get: function() {
     return userAgentPolicy_js_1.userAgentPolicy;
   } });
   Object.defineProperty(exports, "userAgentPolicyName", { enumerable: true, get: function() {
     return userAgentPolicy_js_1.userAgentPolicyName;
   } });
-  var tlsPolicy_js_1 = require_tlsPolicy();
+  var tlsPolicy_js_1 = require_tlsPolicy2();
   Object.defineProperty(exports, "tlsPolicy", { enumerable: true, get: function() {
     return tlsPolicy_js_1.tlsPolicy;
   } });
   Object.defineProperty(exports, "tlsPolicyName", { enumerable: true, get: function() {
     return tlsPolicy_js_1.tlsPolicyName;
   } });
-  var formDataPolicy_js_1 = require_formDataPolicy();
+  var formDataPolicy_js_1 = require_formDataPolicy2();
   Object.defineProperty(exports, "formDataPolicy", { enumerable: true, get: function() {
     return formDataPolicy_js_1.formDataPolicy;
   } });
@@ -31051,6 +31282,13 @@ var require_commonjs7 = __commonJS((exports) => {
   } });
   Object.defineProperty(exports, "auxiliaryAuthenticationHeaderPolicyName", { enumerable: true, get: function() {
     return auxiliaryAuthenticationHeaderPolicy_js_1.auxiliaryAuthenticationHeaderPolicyName;
+  } });
+  var agentPolicy_js_1 = require_agentPolicy2();
+  Object.defineProperty(exports, "agentPolicy", { enumerable: true, get: function() {
+    return agentPolicy_js_1.agentPolicy;
+  } });
+  Object.defineProperty(exports, "agentPolicyName", { enumerable: true, get: function() {
+    return agentPolicy_js_1.agentPolicyName;
   } });
   var file_js_1 = require_file2();
   Object.defineProperty(exports, "createFile", { enumerable: true, get: function() {
@@ -31087,7 +31325,7 @@ var require_azureKeyCredential = __commonJS((exports) => {
 var require_keyCredential = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.isKeyCredential = isKeyCredential;
-  var core_util_1 = require_commonjs5();
+  var core_util_1 = require_commonjs6();
   function isKeyCredential(credential) {
     return (0, core_util_1.isObjectWithProperties)(credential, ["key"]) && typeof credential.key === "string";
   }
@@ -31098,7 +31336,7 @@ var require_azureNamedKeyCredential = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.AzureNamedKeyCredential = undefined;
   exports.isNamedKeyCredential = isNamedKeyCredential;
-  var core_util_1 = require_commonjs5();
+  var core_util_1 = require_commonjs6();
 
   class AzureNamedKeyCredential {
     get key() {
@@ -31133,7 +31371,7 @@ var require_azureSASCredential = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.AzureSASCredential = undefined;
   exports.isSASCredential = isSASCredential;
-  var core_util_1 = require_commonjs5();
+  var core_util_1 = require_commonjs6();
 
   class AzureSASCredential {
     get signature() {
@@ -31177,7 +31415,7 @@ var require_tokenCredential = __commonJS((exports) => {
 });
 
 // ../node_modules/@azure/core-auth/dist/commonjs/index.js
-var require_commonjs8 = __commonJS((exports) => {
+var require_commonjs9 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.isTokenCredential = exports.isSASCredential = exports.AzureSASCredential = exports.isNamedKeyCredential = exports.AzureNamedKeyCredential = exports.isKeyCredential = exports.AzureKeyCredential = undefined;
   var azureKeyCredential_js_1 = require_azureKeyCredential();
@@ -31211,7 +31449,9 @@ var require_commonjs8 = __commonJS((exports) => {
 // ../node_modules/@azure/core-http-compat/dist/commonjs/policies/disableKeepAlivePolicy.js
 var require_disableKeepAlivePolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.pipelineContainsDisableKeepAlivePolicy = exports.createDisableKeepAlivePolicy = exports.disableKeepAlivePolicyName = undefined;
+  exports.disableKeepAlivePolicyName = undefined;
+  exports.createDisableKeepAlivePolicy = createDisableKeepAlivePolicy;
+  exports.pipelineContainsDisableKeepAlivePolicy = pipelineContainsDisableKeepAlivePolicy;
   exports.disableKeepAlivePolicyName = "DisableKeepAlivePolicy";
   function createDisableKeepAlivePolicy() {
     return {
@@ -31222,34 +31462,31 @@ var require_disableKeepAlivePolicy = __commonJS((exports) => {
       }
     };
   }
-  exports.createDisableKeepAlivePolicy = createDisableKeepAlivePolicy;
   function pipelineContainsDisableKeepAlivePolicy(pipeline) {
     return pipeline.getOrderedPolicies().some((policy) => policy.name === exports.disableKeepAlivePolicyName);
   }
-  exports.pipelineContainsDisableKeepAlivePolicy = pipelineContainsDisableKeepAlivePolicy;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/base64.js
 var require_base642 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.decodeStringToString = exports.decodeString = exports.encodeByteArray = exports.encodeString = undefined;
+  exports.encodeString = encodeString;
+  exports.encodeByteArray = encodeByteArray;
+  exports.decodeString = decodeString;
+  exports.decodeStringToString = decodeStringToString;
   function encodeString(value) {
     return Buffer.from(value).toString("base64");
   }
-  exports.encodeString = encodeString;
   function encodeByteArray(value) {
     const bufferValue = value instanceof Buffer ? value : Buffer.from(value.buffer);
     return bufferValue.toString("base64");
   }
-  exports.encodeByteArray = encodeByteArray;
   function decodeString(value) {
     return Buffer.from(value, "base64");
   }
-  exports.decodeString = decodeString;
   function decodeStringToString(value) {
     return Buffer.from(value, "base64").toString();
   }
-  exports.decodeStringToString = decodeStringToString;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/interfaces.js
@@ -31263,21 +31500,21 @@ var require_interfaces = __commonJS((exports) => {
 // ../node_modules/@azure/core-client/dist/commonjs/utils.js
 var require_utils3 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.flattenResponse = exports.isValidUuid = exports.isDuration = exports.isPrimitiveBody = undefined;
+  exports.isPrimitiveBody = isPrimitiveBody;
+  exports.isDuration = isDuration;
+  exports.isValidUuid = isValidUuid;
+  exports.flattenResponse = flattenResponse;
   function isPrimitiveBody(value, mapperTypeName) {
     return mapperTypeName !== "Composite" && mapperTypeName !== "Dictionary" && (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || (mapperTypeName === null || mapperTypeName === undefined ? undefined : mapperTypeName.match(/^(Date|DateTime|DateTimeRfc1123|UnixTime|ByteArray|Base64Url)$/i)) !== null || value === undefined || value === null);
   }
-  exports.isPrimitiveBody = isPrimitiveBody;
   var validateISODuration = /^(-|\+)?P(?:([-+]?[0-9,.]*)Y)?(?:([-+]?[0-9,.]*)M)?(?:([-+]?[0-9,.]*)W)?(?:([-+]?[0-9,.]*)D)?(?:T(?:([-+]?[0-9,.]*)H)?(?:([-+]?[0-9,.]*)M)?(?:([-+]?[0-9,.]*)S)?)?$/;
   function isDuration(value) {
     return validateISODuration.test(value);
   }
-  exports.isDuration = isDuration;
   var validUuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
   function isValidUuid(uuid) {
     return validUuidRegex.test(uuid);
   }
-  exports.isValidUuid = isValidUuid;
   function handleNullableResponseAndWrappableBody(responseObject) {
     const combinedHeadersAndBody = Object.assign(Object.assign({}, responseObject.headers), responseObject.body);
     if (responseObject.hasNullableType && Object.getOwnPropertyNames(combinedHeadersAndBody).length === 0) {
@@ -31321,13 +31558,13 @@ var require_utils3 = __commonJS((exports) => {
       shouldWrapBody: isPrimitiveBody(fullResponse.parsedBody, expectedBodyTypeName)
     });
   }
-  exports.flattenResponse = flattenResponse;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/serializer.js
 var require_serializer = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.MapperTypeNames = exports.createSerializer = undefined;
+  exports.MapperTypeNames = undefined;
+  exports.createSerializer = createSerializer;
   var tslib_1 = require_tslib();
   var base64 = tslib_1.__importStar(require_base642());
   var interfaces_js_1 = require_interfaces();
@@ -31509,7 +31746,6 @@ var require_serializer = __commonJS((exports) => {
   function createSerializer(modelMappers = {}, isXML = false) {
     return new SerializerImpl(modelMappers, isXML);
   }
-  exports.createSerializer = createSerializer;
   function trimEnd(str, ch) {
     let len = str.length;
     while (len - 1 >= 0 && str[len - 1] === ch) {
@@ -32053,7 +32289,8 @@ var require_state2 = __commonJS((exports) => {
 // ../node_modules/@azure/core-client/dist/commonjs/operationHelpers.js
 var require_operationHelpers = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getOperationRequestInfo = exports.getOperationArgumentValueFromParameter = undefined;
+  exports.getOperationArgumentValueFromParameter = getOperationArgumentValueFromParameter;
+  exports.getOperationRequestInfo = getOperationRequestInfo;
   var state_js_1 = require_state2();
   function getOperationArgumentValueFromParameter(operationArguments, parameter, fallbackObject) {
     let parameterPath = parameter.parameterPath;
@@ -32099,7 +32336,6 @@ var require_operationHelpers = __commonJS((exports) => {
     }
     return value;
   }
-  exports.getOperationArgumentValueFromParameter = getOperationArgumentValueFromParameter;
   function getPropertyFromParameterPath(parent, parameterPath) {
     const result = { propertyFound: false };
     let i = 0;
@@ -32132,15 +32368,15 @@ var require_operationHelpers = __commonJS((exports) => {
     }
     return info;
   }
-  exports.getOperationRequestInfo = getOperationRequestInfo;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/deserializationPolicy.js
 var require_deserializationPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.deserializationPolicy = exports.deserializationPolicyName = undefined;
+  exports.deserializationPolicyName = undefined;
+  exports.deserializationPolicy = deserializationPolicy;
   var interfaces_js_1 = require_interfaces();
-  var core_rest_pipeline_1 = require_commonjs7();
+  var core_rest_pipeline_1 = require_commonjs8();
   var serializer_js_1 = require_serializer();
   var operationHelpers_js_1 = require_operationHelpers();
   var defaultJsonContentTypes = ["application/json", "text/json"];
@@ -32167,7 +32403,6 @@ var require_deserializationPolicy = __commonJS((exports) => {
       }
     };
   }
-  exports.deserializationPolicy = deserializationPolicy;
   function getOperationResponseMap(parsedResponse) {
     let result;
     const request = parsedResponse.request;
@@ -32243,7 +32478,7 @@ var require_deserializationPolicy = __commonJS((exports) => {
     return expectedStatusCodes.length === 0 || expectedStatusCodes.length === 1 && expectedStatusCodes[0] === "default";
   }
   function handleErrorResponse(parsedResponse, operationSpec, responseSpec, options) {
-    var _a;
+    var _a, _b, _c, _d, _e;
     const isSuccessByStatus = 200 <= parsedResponse.status && parsedResponse.status < 300;
     const isExpectedStatusCode = isOperationSpecEmpty(operationSpec) ? isSuccessByStatus : !!responseSpec;
     if (isExpectedStatusCode) {
@@ -32262,11 +32497,11 @@ var require_deserializationPolicy = __commonJS((exports) => {
       request: parsedResponse.request,
       response: parsedResponse
     });
-    if (!errorResponseSpec) {
+    if (!errorResponseSpec && !(((_c = (_b = parsedResponse.parsedBody) === null || _b === undefined ? undefined : _b.error) === null || _c === undefined ? undefined : _c.code) && ((_e = (_d = parsedResponse.parsedBody) === null || _d === undefined ? undefined : _d.error) === null || _e === undefined ? undefined : _e.message))) {
       throw error;
     }
-    const defaultBodyMapper = errorResponseSpec.bodyMapper;
-    const defaultHeadersMapper = errorResponseSpec.headersMapper;
+    const defaultBodyMapper = errorResponseSpec === null || errorResponseSpec === undefined ? undefined : errorResponseSpec.bodyMapper;
+    const defaultHeadersMapper = errorResponseSpec === null || errorResponseSpec === undefined ? undefined : errorResponseSpec.headersMapper;
     try {
       if (parsedResponse.parsedBody) {
         const parsedBody = parsedResponse.parsedBody;
@@ -32336,7 +32571,8 @@ var require_deserializationPolicy = __commonJS((exports) => {
 // ../node_modules/@azure/core-client/dist/commonjs/interfaceHelpers.js
 var require_interfaceHelpers = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getPathStringFromParameter = exports.getStreamingResponseStatusCodes = undefined;
+  exports.getStreamingResponseStatusCodes = getStreamingResponseStatusCodes;
+  exports.getPathStringFromParameter = getPathStringFromParameter;
   var serializer_js_1 = require_serializer();
   function getStreamingResponseStatusCodes(operationSpec) {
     const result = new Set;
@@ -32348,7 +32584,6 @@ var require_interfaceHelpers = __commonJS((exports) => {
     }
     return result;
   }
-  exports.getStreamingResponseStatusCodes = getStreamingResponseStatusCodes;
   function getPathStringFromParameter(parameter) {
     const { parameterPath, mapper } = parameter;
     let result;
@@ -32361,13 +32596,15 @@ var require_interfaceHelpers = __commonJS((exports) => {
     }
     return result;
   }
-  exports.getPathStringFromParameter = getPathStringFromParameter;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/serializationPolicy.js
 var require_serializationPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.serializeRequestBody = exports.serializeHeaders = exports.serializationPolicy = exports.serializationPolicyName = undefined;
+  exports.serializationPolicyName = undefined;
+  exports.serializationPolicy = serializationPolicy;
+  exports.serializeHeaders = serializeHeaders;
+  exports.serializeRequestBody = serializeRequestBody;
   var interfaces_js_1 = require_interfaces();
   var operationHelpers_js_1 = require_operationHelpers();
   var serializer_js_1 = require_serializer();
@@ -32389,7 +32626,6 @@ var require_serializationPolicy = __commonJS((exports) => {
       }
     };
   }
-  exports.serializationPolicy = serializationPolicy;
   function serializeHeaders(request, operationArguments, operationSpec) {
     var _a, _b;
     if (operationSpec.headerParameters) {
@@ -32415,7 +32651,6 @@ var require_serializationPolicy = __commonJS((exports) => {
       }
     }
   }
-  exports.serializeHeaders = serializeHeaders;
   function serializeRequestBody(request, operationArguments, operationSpec, stringifyXML = function() {
     throw new Error("XML serialization unsupported!");
   }) {
@@ -32470,7 +32705,6 @@ var require_serializationPolicy = __commonJS((exports) => {
       }
     }
   }
-  exports.serializeRequestBody = serializeRequestBody;
   function getXmlValueWithNamespace(xmlNamespace, xmlnsKey, typeName, serializedValue, options) {
     if (xmlNamespace && !["Composite", "Sequence", "Dictionary"].includes(typeName)) {
       const result = {};
@@ -32494,11 +32728,11 @@ var require_serializationPolicy = __commonJS((exports) => {
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/pipeline.js
-var require_pipeline2 = __commonJS((exports) => {
+var require_pipeline3 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createClientPipeline = undefined;
+  exports.createClientPipeline = createClientPipeline;
   var deserializationPolicy_js_1 = require_deserializationPolicy();
-  var core_rest_pipeline_1 = require_commonjs7();
+  var core_rest_pipeline_1 = require_commonjs8();
   var serializationPolicy_js_1 = require_serializationPolicy();
   function createClientPipeline(options = {}) {
     const pipeline = (0, core_rest_pipeline_1.createPipelineFromOptions)(options !== null && options !== undefined ? options : {});
@@ -32514,14 +32748,13 @@ var require_pipeline2 = __commonJS((exports) => {
     });
     return pipeline;
   }
-  exports.createClientPipeline = createClientPipeline;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/httpClientCache.js
 var require_httpClientCache = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.getCachedDefaultHttpClient = undefined;
-  var core_rest_pipeline_1 = require_commonjs7();
+  exports.getCachedDefaultHttpClient = getCachedDefaultHttpClient;
+  var core_rest_pipeline_1 = require_commonjs8();
   var cachedHttpClient;
   function getCachedDefaultHttpClient() {
     if (!cachedHttpClient) {
@@ -32529,13 +32762,13 @@ var require_httpClientCache = __commonJS((exports) => {
     }
     return cachedHttpClient;
   }
-  exports.getCachedDefaultHttpClient = getCachedDefaultHttpClient;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/urlHelpers.js
-var require_urlHelpers = __commonJS((exports) => {
+var require_urlHelpers2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.appendQueryParams = exports.getRequestUrl = undefined;
+  exports.getRequestUrl = getRequestUrl;
+  exports.appendQueryParams = appendQueryParams;
   var operationHelpers_js_1 = require_operationHelpers();
   var interfaceHelpers_js_1 = require_interfaceHelpers();
   var CollectionFormatToDelimiterMap = {
@@ -32565,7 +32798,6 @@ var require_urlHelpers = __commonJS((exports) => {
     requestUrl = appendQueryParams(requestUrl, queryParams, sequenceParams, isAbsolutePath);
     return requestUrl;
   }
-  exports.getRequestUrl = getRequestUrl;
   function replaceAll(input, replacements) {
     let result = input;
     for (const [searchValue, replaceValue] of replacements) {
@@ -32731,14 +32963,13 @@ var require_urlHelpers = __commonJS((exports) => {
     parsedUrl.search = searchPieces.length ? `?${searchPieces.join("&")}` : "";
     return parsedUrl.toString();
   }
-  exports.appendQueryParams = appendQueryParams;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/log.js
-var require_log3 = __commonJS((exports) => {
+var require_log4 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.logger = undefined;
-  var logger_1 = require_commonjs3();
+  var logger_1 = require_commonjs4();
   exports.logger = (0, logger_1.createClientLogger)("core-client");
 });
 
@@ -32746,14 +32977,14 @@ var require_log3 = __commonJS((exports) => {
 var require_serviceClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.ServiceClient = undefined;
-  var core_rest_pipeline_1 = require_commonjs7();
-  var pipeline_js_1 = require_pipeline2();
+  var core_rest_pipeline_1 = require_commonjs8();
+  var pipeline_js_1 = require_pipeline3();
   var utils_js_1 = require_utils3();
   var httpClientCache_js_1 = require_httpClientCache();
   var operationHelpers_js_1 = require_operationHelpers();
-  var urlHelpers_js_1 = require_urlHelpers();
+  var urlHelpers_js_1 = require_urlHelpers2();
   var interfaceHelpers_js_1 = require_interfaceHelpers();
-  var log_js_1 = require_log3();
+  var log_js_1 = require_log4();
 
   class ServiceClient {
     constructor(options = {}) {
@@ -32874,8 +33105,9 @@ var require_serviceClient = __commonJS((exports) => {
 // ../node_modules/@azure/core-client/dist/commonjs/authorizeRequestOnClaimChallenge.js
 var require_authorizeRequestOnClaimChallenge = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.authorizeRequestOnClaimChallenge = exports.parseCAEChallenge = undefined;
-  var log_js_1 = require_log3();
+  exports.parseCAEChallenge = parseCAEChallenge;
+  exports.authorizeRequestOnClaimChallenge = authorizeRequestOnClaimChallenge;
+  var log_js_1 = require_log4();
   var base64_js_1 = require_base642();
   function parseCAEChallenge(challenges) {
     const bearerChallenges = `, ${challenges.trim()}`.split(", Bearer ").filter((x) => x);
@@ -32885,8 +33117,8 @@ var require_authorizeRequestOnClaimChallenge = __commonJS((exports) => {
       return keyValuePairs.reduce((a, b) => Object.assign(Object.assign({}, a), b), {});
     });
   }
-  exports.parseCAEChallenge = parseCAEChallenge;
   async function authorizeRequestOnClaimChallenge(onChallengeOptions) {
+    var _a;
     const { scopes, response } = onChallengeOptions;
     const logger = onChallengeOptions.logger || log_js_1.logger;
     const challenge = response.headers.get("WWW-Authenticate");
@@ -32906,10 +33138,9 @@ var require_authorizeRequestOnClaimChallenge = __commonJS((exports) => {
     if (!accessToken) {
       return false;
     }
-    onChallengeOptions.request.headers.set("Authorization", `Bearer ${accessToken.token}`);
+    onChallengeOptions.request.headers.set("Authorization", `${(_a = accessToken.tokenType) !== null && _a !== undefined ? _a : "Bearer"} ${accessToken.token}`);
     return true;
   }
-  exports.authorizeRequestOnClaimChallenge = authorizeRequestOnClaimChallenge;
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/authorizeRequestOnTenantChallenge.js
@@ -32926,6 +33157,7 @@ var require_authorizeRequestOnTenantChallenge = __commonJS((exports) => {
     return /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/.test(text);
   }
   var authorizeRequestOnTenantChallenge = async (challengeOptions) => {
+    var _a;
     const requestOptions = requestToOptions(challengeOptions.request);
     const challenge = getChallenge(challengeOptions.response);
     if (challenge) {
@@ -32939,7 +33171,7 @@ var require_authorizeRequestOnTenantChallenge = __commonJS((exports) => {
       if (!accessToken) {
         return false;
       }
-      challengeOptions.request.headers.set(Constants.HeaderConstants.AUTHORIZATION, `Bearer ${accessToken.token}`);
+      challengeOptions.request.headers.set(Constants.HeaderConstants.AUTHORIZATION, `${(_a = accessToken.tokenType) !== null && _a !== undefined ? _a : "Bearer"} ${accessToken.token}`);
       return true;
     }
     return false;
@@ -32991,7 +33223,7 @@ var require_authorizeRequestOnTenantChallenge = __commonJS((exports) => {
 });
 
 // ../node_modules/@azure/core-client/dist/commonjs/index.js
-var require_commonjs9 = __commonJS((exports) => {
+var require_commonjs10 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.authorizeRequestOnTenantChallenge = exports.authorizeRequestOnClaimChallenge = exports.serializationPolicyName = exports.serializationPolicy = exports.deserializationPolicyName = exports.deserializationPolicy = exports.XML_CHARKEY = exports.XML_ATTRKEY = exports.createClientPipeline = exports.ServiceClient = exports.MapperTypeNames = exports.createSerializer = undefined;
   var serializer_js_1 = require_serializer();
@@ -33005,7 +33237,7 @@ var require_commonjs9 = __commonJS((exports) => {
   Object.defineProperty(exports, "ServiceClient", { enumerable: true, get: function() {
     return serviceClient_js_1.ServiceClient;
   } });
-  var pipeline_js_1 = require_pipeline2();
+  var pipeline_js_1 = require_pipeline3();
   Object.defineProperty(exports, "createClientPipeline", { enumerable: true, get: function() {
     return pipeline_js_1.createClientPipeline;
   } });
@@ -33043,8 +33275,11 @@ var require_commonjs9 = __commonJS((exports) => {
 // ../node_modules/@azure/core-http-compat/dist/commonjs/util.js
 var require_util9 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.HttpHeaders = exports.toHttpHeadersLike = exports.toWebResourceLike = exports.toPipelineRequest = undefined;
-  var core_rest_pipeline_1 = require_commonjs7();
+  exports.HttpHeaders = undefined;
+  exports.toPipelineRequest = toPipelineRequest;
+  exports.toWebResourceLike = toWebResourceLike;
+  exports.toHttpHeadersLike = toHttpHeadersLike;
+  var core_rest_pipeline_1 = require_commonjs8();
   var originalRequestSymbol = Symbol("Original PipelineRequest");
   var originalClientRequestSymbol = Symbol.for("@azure/core-client original request");
   function toPipelineRequest(webResource, options = {}) {
@@ -33069,7 +33304,9 @@ var require_util9 = __commonJS((exports) => {
         onDownloadProgress: webResource.onDownloadProgress,
         onUploadProgress: webResource.onUploadProgress,
         proxySettings: webResource.proxySettings,
-        streamResponseStatusCodes: webResource.streamResponseStatusCodes
+        streamResponseStatusCodes: webResource.streamResponseStatusCodes,
+        agent: webResource.agent,
+        requestOverrides: webResource.requestOverrides
       });
       if (options.originalRequest) {
         newRequest[originalClientRequestSymbol] = options.originalRequest;
@@ -33077,7 +33314,6 @@ var require_util9 = __commonJS((exports) => {
       return newRequest;
     }
   }
-  exports.toPipelineRequest = toPipelineRequest;
   function toWebResourceLike(request, options) {
     var _a;
     const originalRequest = (_a = options === null || options === undefined ? undefined : options.originalRequest) !== null && _a !== undefined ? _a : request;
@@ -33096,14 +33332,15 @@ var require_util9 = __commonJS((exports) => {
       onUploadProgress: request.onUploadProgress,
       proxySettings: request.proxySettings,
       streamResponseStatusCodes: request.streamResponseStatusCodes,
+      agent: request.agent,
+      requestOverrides: request.requestOverrides,
       clone() {
         throw new Error("Cannot clone a non-proxied WebResourceLike");
       },
       prepare() {
         throw new Error("WebResourceLike.prepare() is not supported by @azure/core-http-compat");
       },
-      validateRequestProperties() {
-      }
+      validateRequestProperties() {}
     };
     if (options === null || options === undefined ? undefined : options.createProxy) {
       return new Proxy(webResource, {
@@ -33136,7 +33373,9 @@ var require_util9 = __commonJS((exports) => {
             "onDownloadProgress",
             "onUploadProgress",
             "proxySettings",
-            "streamResponseStatusCodes"
+            "streamResponseStatusCodes",
+            "agent",
+            "requestOverrides"
           ];
           if (typeof prop === "string" && passThroughProps.includes(prop)) {
             request[prop] = value;
@@ -33148,11 +33387,9 @@ var require_util9 = __commonJS((exports) => {
       return webResource;
     }
   }
-  exports.toWebResourceLike = toWebResourceLike;
   function toHttpHeadersLike(headers) {
     return new HttpHeaders(headers.toJSON({ preserveCase: true }));
   }
-  exports.toHttpHeadersLike = toHttpHeadersLike;
   function getHeaderKey(headerName) {
     return headerName.toLowerCase();
   }
@@ -33243,8 +33480,9 @@ var require_util9 = __commonJS((exports) => {
 // ../node_modules/@azure/core-http-compat/dist/commonjs/response.js
 var require_response2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.toPipelineResponse = exports.toCompatResponse = undefined;
-  var core_rest_pipeline_1 = require_commonjs7();
+  exports.toCompatResponse = toCompatResponse;
+  exports.toPipelineResponse = toPipelineResponse;
+  var core_rest_pipeline_1 = require_commonjs8();
   var util_js_1 = require_util9();
   var originalResponse = Symbol("Original FullOperationResponse");
   function toCompatResponse(response, options) {
@@ -33278,7 +33516,6 @@ var require_response2 = __commonJS((exports) => {
       });
     }
   }
-  exports.toCompatResponse = toCompatResponse;
   function toPipelineResponse(compatResponse) {
     const extendedCompatResponse = compatResponse;
     const response = extendedCompatResponse[originalResponse];
@@ -33290,7 +33527,6 @@ var require_response2 = __commonJS((exports) => {
       return Object.assign(Object.assign({}, compatResponse), { headers, request: (0, util_js_1.toPipelineRequest)(compatResponse.request) });
     }
   }
-  exports.toPipelineResponse = toPipelineResponse;
 });
 
 // ../node_modules/@azure/core-http-compat/dist/commonjs/extendedClient.js
@@ -33298,8 +33534,8 @@ var require_extendedClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.ExtendedServiceClient = undefined;
   var disableKeepAlivePolicy_js_1 = require_disableKeepAlivePolicy();
-  var core_rest_pipeline_1 = require_commonjs7();
-  var core_client_1 = require_commonjs9();
+  var core_rest_pipeline_1 = require_commonjs8();
+  var core_client_1 = require_commonjs10();
   var response_js_1 = require_response2();
 
   class ExtendedServiceClient extends core_client_1.ServiceClient {
@@ -33341,7 +33577,8 @@ var require_extendedClient = __commonJS((exports) => {
 // ../node_modules/@azure/core-http-compat/dist/commonjs/policies/requestPolicyFactoryPolicy.js
 var require_requestPolicyFactoryPolicy = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createRequestPolicyFactoryPolicy = exports.requestPolicyFactoryPolicyName = exports.HttpPipelineLogLevel = undefined;
+  exports.requestPolicyFactoryPolicyName = exports.HttpPipelineLogLevel = undefined;
+  exports.createRequestPolicyFactoryPolicy = createRequestPolicyFactoryPolicy;
   var util_js_1 = require_util9();
   var response_js_1 = require_response2();
   var HttpPipelineLogLevel;
@@ -33352,8 +33589,7 @@ var require_requestPolicyFactoryPolicy = __commonJS((exports) => {
     HttpPipelineLogLevel2[HttpPipelineLogLevel2["WARNING"] = 2] = "WARNING";
   })(HttpPipelineLogLevel || (exports.HttpPipelineLogLevel = HttpPipelineLogLevel = {}));
   var mockRequestPolicyOptions = {
-    log(_logLevel, _message) {
-    },
+    log(_logLevel, _message) {},
     shouldLog(_logLevel) {
       return false;
     }
@@ -33379,13 +33615,12 @@ var require_requestPolicyFactoryPolicy = __commonJS((exports) => {
       }
     };
   }
-  exports.createRequestPolicyFactoryPolicy = createRequestPolicyFactoryPolicy;
 });
 
 // ../node_modules/@azure/core-http-compat/dist/commonjs/httpClientAdapter.js
 var require_httpClientAdapter = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.convertHttpClient = undefined;
+  exports.convertHttpClient = convertHttpClient;
   var response_js_1 = require_response2();
   var util_js_1 = require_util9();
   function convertHttpClient(requestPolicyClient) {
@@ -33396,11 +33631,10 @@ var require_httpClientAdapter = __commonJS((exports) => {
       }
     };
   }
-  exports.convertHttpClient = convertHttpClient;
 });
 
 // ../node_modules/@azure/core-http-compat/dist/commonjs/index.js
-var require_commonjs10 = __commonJS((exports) => {
+var require_commonjs11 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.toHttpHeadersLike = exports.convertHttpClient = exports.disableKeepAlivePolicyName = exports.HttpPipelineLogLevel = exports.createRequestPolicyFactoryPolicy = exports.requestPolicyFactoryPolicyName = exports.ExtendedServiceClient = undefined;
   var extendedClient_js_1 = require_extendedClient();
@@ -33431,1682 +33665,948 @@ var require_commonjs10 = __commonJS((exports) => {
   } });
 });
 
-// ../node_modules/fast-xml-parser/src/util.js
-var require_util10 = __commonJS((exports) => {
-  var nameStartChar = ":A-Za-z_\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02FF\\u0370-\\u037D\\u037F-\\u1FFF\\u200C-\\u200D\\u2070-\\u218F\\u2C00-\\u2FEF\\u3001-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFFD";
-  var nameChar = nameStartChar + "\\-.\\d\\u00B7\\u0300-\\u036F\\u203F-\\u2040";
-  var nameRegexp = "[" + nameStartChar + "][" + nameChar + "]*";
-  var regexName = new RegExp("^" + nameRegexp + "$");
-  var getAllMatches = function(string, regex) {
-    const matches = [];
-    let match = regex.exec(string);
-    while (match) {
-      const allmatches = [];
-      allmatches.startIndex = regex.lastIndex - match[0].length;
-      const len = match.length;
-      for (let index = 0;index < len; index++) {
-        allmatches.push(match[index]);
-      }
-      matches.push(allmatches);
-      match = regex.exec(string);
-    }
-    return matches;
-  };
-  var isName = function(string) {
-    const match = regexName.exec(string);
-    return !(match === null || typeof match === "undefined");
-  };
-  exports.isExist = function(v) {
-    return typeof v !== "undefined";
-  };
-  exports.isEmptyObject = function(obj) {
-    return Object.keys(obj).length === 0;
-  };
-  exports.merge = function(target, a, arrayMode) {
-    if (a) {
-      const keys = Object.keys(a);
-      const len = keys.length;
-      for (let i = 0;i < len; i++) {
-        if (arrayMode === "strict") {
-          target[keys[i]] = [a[keys[i]]];
-        } else {
-          target[keys[i]] = a[keys[i]];
-        }
-      }
-    }
-  };
-  exports.getValue = function(v) {
-    if (exports.isExist(v)) {
-      return v;
-    } else {
-      return "";
-    }
-  };
-  exports.isName = isName;
-  exports.getAllMatches = getAllMatches;
-  exports.nameRegexp = nameRegexp;
-});
-
-// ../node_modules/fast-xml-parser/src/validator.js
-var require_validator = __commonJS((exports) => {
-  var util = require_util10();
-  var defaultOptions = {
-    allowBooleanAttributes: false,
-    unpairedTags: []
-  };
-  exports.validate = function(xmlData, options) {
-    options = Object.assign({}, defaultOptions, options);
-    const tags = [];
-    let tagFound = false;
-    let reachedRoot = false;
-    if (xmlData[0] === "\uFEFF") {
-      xmlData = xmlData.substr(1);
-    }
-    for (let i = 0;i < xmlData.length; i++) {
-      if (xmlData[i] === "<" && xmlData[i + 1] === "?") {
-        i += 2;
-        i = readPI(xmlData, i);
-        if (i.err)
-          return i;
-      } else if (xmlData[i] === "<") {
-        let tagStartPos = i;
-        i++;
-        if (xmlData[i] === "!") {
-          i = readCommentAndCDATA(xmlData, i);
-          continue;
-        } else {
-          let closingTag = false;
-          if (xmlData[i] === "/") {
-            closingTag = true;
-            i++;
-          }
-          let tagName = "";
-          for (;i < xmlData.length && xmlData[i] !== ">" && xmlData[i] !== " " && xmlData[i] !== "\t" && xmlData[i] !== "\n" && xmlData[i] !== "\r"; i++) {
-            tagName += xmlData[i];
-          }
-          tagName = tagName.trim();
-          if (tagName[tagName.length - 1] === "/") {
-            tagName = tagName.substring(0, tagName.length - 1);
-            i--;
-          }
-          if (!validateTagName(tagName)) {
-            let msg;
-            if (tagName.trim().length === 0) {
-              msg = "Invalid space after '<'.";
-            } else {
-              msg = "Tag '" + tagName + "' is an invalid name.";
-            }
-            return getErrorObject("InvalidTag", msg, getLineNumberForPosition(xmlData, i));
-          }
-          const result = readAttributeStr(xmlData, i);
-          if (result === false) {
-            return getErrorObject("InvalidAttr", "Attributes for '" + tagName + "' have open quote.", getLineNumberForPosition(xmlData, i));
-          }
-          let attrStr = result.value;
-          i = result.index;
-          if (attrStr[attrStr.length - 1] === "/") {
-            const attrStrStart = i - attrStr.length;
-            attrStr = attrStr.substring(0, attrStr.length - 1);
-            const isValid = validateAttributeString(attrStr, options);
-            if (isValid === true) {
-              tagFound = true;
-            } else {
-              return getErrorObject(isValid.err.code, isValid.err.msg, getLineNumberForPosition(xmlData, attrStrStart + isValid.err.line));
-            }
-          } else if (closingTag) {
-            if (!result.tagClosed) {
-              return getErrorObject("InvalidTag", "Closing tag '" + tagName + "' doesn't have proper closing.", getLineNumberForPosition(xmlData, i));
-            } else if (attrStr.trim().length > 0) {
-              return getErrorObject("InvalidTag", "Closing tag '" + tagName + "' can't have attributes or invalid starting.", getLineNumberForPosition(xmlData, tagStartPos));
-            } else if (tags.length === 0) {
-              return getErrorObject("InvalidTag", "Closing tag '" + tagName + "' has not been opened.", getLineNumberForPosition(xmlData, tagStartPos));
-            } else {
-              const otg = tags.pop();
-              if (tagName !== otg.tagName) {
-                let openPos = getLineNumberForPosition(xmlData, otg.tagStartPos);
-                return getErrorObject("InvalidTag", "Expected closing tag '" + otg.tagName + "' (opened in line " + openPos.line + ", col " + openPos.col + ") instead of closing tag '" + tagName + "'.", getLineNumberForPosition(xmlData, tagStartPos));
-              }
-              if (tags.length == 0) {
-                reachedRoot = true;
-              }
-            }
-          } else {
-            const isValid = validateAttributeString(attrStr, options);
-            if (isValid !== true) {
-              return getErrorObject(isValid.err.code, isValid.err.msg, getLineNumberForPosition(xmlData, i - attrStr.length + isValid.err.line));
-            }
-            if (reachedRoot === true) {
-              return getErrorObject("InvalidXml", "Multiple possible root nodes found.", getLineNumberForPosition(xmlData, i));
-            } else if (options.unpairedTags.indexOf(tagName) !== -1) {
-            } else {
-              tags.push({ tagName, tagStartPos });
-            }
-            tagFound = true;
-          }
-          for (i++;i < xmlData.length; i++) {
-            if (xmlData[i] === "<") {
-              if (xmlData[i + 1] === "!") {
-                i++;
-                i = readCommentAndCDATA(xmlData, i);
-                continue;
-              } else if (xmlData[i + 1] === "?") {
-                i = readPI(xmlData, ++i);
-                if (i.err)
-                  return i;
-              } else {
-                break;
-              }
-            } else if (xmlData[i] === "&") {
-              const afterAmp = validateAmpersand(xmlData, i);
-              if (afterAmp == -1)
-                return getErrorObject("InvalidChar", "char '&' is not expected.", getLineNumberForPosition(xmlData, i));
-              i = afterAmp;
-            } else {
-              if (reachedRoot === true && !isWhiteSpace(xmlData[i])) {
-                return getErrorObject("InvalidXml", "Extra text at the end", getLineNumberForPosition(xmlData, i));
-              }
-            }
-          }
-          if (xmlData[i] === "<") {
-            i--;
-          }
-        }
-      } else {
-        if (isWhiteSpace(xmlData[i])) {
-          continue;
-        }
-        return getErrorObject("InvalidChar", "char '" + xmlData[i] + "' is not expected.", getLineNumberForPosition(xmlData, i));
-      }
-    }
-    if (!tagFound) {
-      return getErrorObject("InvalidXml", "Start tag expected.", 1);
-    } else if (tags.length == 1) {
-      return getErrorObject("InvalidTag", "Unclosed tag '" + tags[0].tagName + "'.", getLineNumberForPosition(xmlData, tags[0].tagStartPos));
-    } else if (tags.length > 0) {
-      return getErrorObject("InvalidXml", "Invalid '" + JSON.stringify(tags.map((t) => t.tagName), null, 4).replace(/\r?\n/g, "") + "' found.", { line: 1, col: 1 });
-    }
-    return true;
-  };
-  function isWhiteSpace(char) {
-    return char === " " || char === "\t" || char === "\n" || char === "\r";
-  }
-  function readPI(xmlData, i) {
-    const start = i;
-    for (;i < xmlData.length; i++) {
-      if (xmlData[i] == "?" || xmlData[i] == " ") {
-        const tagname = xmlData.substr(start, i - start);
-        if (i > 5 && tagname === "xml") {
-          return getErrorObject("InvalidXml", "XML declaration allowed only at the start of the document.", getLineNumberForPosition(xmlData, i));
-        } else if (xmlData[i] == "?" && xmlData[i + 1] == ">") {
-          i++;
-          break;
-        } else {
-          continue;
-        }
-      }
-    }
-    return i;
-  }
-  function readCommentAndCDATA(xmlData, i) {
-    if (xmlData.length > i + 5 && xmlData[i + 1] === "-" && xmlData[i + 2] === "-") {
-      for (i += 3;i < xmlData.length; i++) {
-        if (xmlData[i] === "-" && xmlData[i + 1] === "-" && xmlData[i + 2] === ">") {
-          i += 2;
-          break;
-        }
-      }
-    } else if (xmlData.length > i + 8 && xmlData[i + 1] === "D" && xmlData[i + 2] === "O" && xmlData[i + 3] === "C" && xmlData[i + 4] === "T" && xmlData[i + 5] === "Y" && xmlData[i + 6] === "P" && xmlData[i + 7] === "E") {
-      let angleBracketsCount = 1;
-      for (i += 8;i < xmlData.length; i++) {
-        if (xmlData[i] === "<") {
-          angleBracketsCount++;
-        } else if (xmlData[i] === ">") {
-          angleBracketsCount--;
-          if (angleBracketsCount === 0) {
-            break;
-          }
-        }
-      }
-    } else if (xmlData.length > i + 9 && xmlData[i + 1] === "[" && xmlData[i + 2] === "C" && xmlData[i + 3] === "D" && xmlData[i + 4] === "A" && xmlData[i + 5] === "T" && xmlData[i + 6] === "A" && xmlData[i + 7] === "[") {
-      for (i += 8;i < xmlData.length; i++) {
-        if (xmlData[i] === "]" && xmlData[i + 1] === "]" && xmlData[i + 2] === ">") {
-          i += 2;
-          break;
-        }
-      }
-    }
-    return i;
-  }
-  var doubleQuote = '"';
-  var singleQuote = "'";
-  function readAttributeStr(xmlData, i) {
-    let attrStr = "";
-    let startChar = "";
-    let tagClosed = false;
-    for (;i < xmlData.length; i++) {
-      if (xmlData[i] === doubleQuote || xmlData[i] === singleQuote) {
-        if (startChar === "") {
-          startChar = xmlData[i];
-        } else if (startChar !== xmlData[i]) {
-        } else {
-          startChar = "";
-        }
-      } else if (xmlData[i] === ">") {
-        if (startChar === "") {
-          tagClosed = true;
-          break;
-        }
-      }
-      attrStr += xmlData[i];
-    }
-    if (startChar !== "") {
-      return false;
-    }
-    return {
-      value: attrStr,
-      index: i,
-      tagClosed
-    };
-  }
-  var validAttrStrRegxp = new RegExp('(\\s*)([^\\s=]+)(\\s*=)?(\\s*([\'"])(([\\s\\S])*?)\\5)?', "g");
-  function validateAttributeString(attrStr, options) {
-    const matches = util.getAllMatches(attrStr, validAttrStrRegxp);
-    const attrNames = {};
-    for (let i = 0;i < matches.length; i++) {
-      if (matches[i][1].length === 0) {
-        return getErrorObject("InvalidAttr", "Attribute '" + matches[i][2] + "' has no space in starting.", getPositionFromMatch(matches[i]));
-      } else if (matches[i][3] !== undefined && matches[i][4] === undefined) {
-        return getErrorObject("InvalidAttr", "Attribute '" + matches[i][2] + "' is without value.", getPositionFromMatch(matches[i]));
-      } else if (matches[i][3] === undefined && !options.allowBooleanAttributes) {
-        return getErrorObject("InvalidAttr", "boolean attribute '" + matches[i][2] + "' is not allowed.", getPositionFromMatch(matches[i]));
-      }
-      const attrName = matches[i][2];
-      if (!validateAttrName(attrName)) {
-        return getErrorObject("InvalidAttr", "Attribute '" + attrName + "' is an invalid name.", getPositionFromMatch(matches[i]));
-      }
-      if (!attrNames.hasOwnProperty(attrName)) {
-        attrNames[attrName] = 1;
-      } else {
-        return getErrorObject("InvalidAttr", "Attribute '" + attrName + "' is repeated.", getPositionFromMatch(matches[i]));
-      }
-    }
-    return true;
-  }
-  function validateNumberAmpersand(xmlData, i) {
-    let re = /\d/;
-    if (xmlData[i] === "x") {
-      i++;
-      re = /[\da-fA-F]/;
-    }
-    for (;i < xmlData.length; i++) {
-      if (xmlData[i] === ";")
-        return i;
-      if (!xmlData[i].match(re))
-        break;
-    }
-    return -1;
-  }
-  function validateAmpersand(xmlData, i) {
-    i++;
-    if (xmlData[i] === ";")
-      return -1;
-    if (xmlData[i] === "#") {
-      i++;
-      return validateNumberAmpersand(xmlData, i);
-    }
-    let count = 0;
-    for (;i < xmlData.length; i++, count++) {
-      if (xmlData[i].match(/\w/) && count < 20)
-        continue;
-      if (xmlData[i] === ";")
-        break;
-      return -1;
-    }
-    return i;
-  }
-  function getErrorObject(code, message, lineNumber) {
-    return {
-      err: {
-        code,
-        msg: message,
-        line: lineNumber.line || lineNumber,
-        col: lineNumber.col
-      }
-    };
-  }
-  function validateAttrName(attrName) {
-    return util.isName(attrName);
-  }
-  function validateTagName(tagname) {
-    return util.isName(tagname);
-  }
-  function getLineNumberForPosition(xmlData, index) {
-    const lines = xmlData.substring(0, index).split(/\r?\n/);
-    return {
-      line: lines.length,
-      col: lines[lines.length - 1].length + 1
-    };
-  }
-  function getPositionFromMatch(match) {
-    return match.startIndex + match[1].length;
-  }
-});
-
-// ../node_modules/fast-xml-parser/src/xmlparser/OptionsBuilder.js
-var require_OptionsBuilder = __commonJS((exports) => {
-  var defaultOptions = {
-    preserveOrder: false,
-    attributeNamePrefix: "@_",
-    attributesGroupName: false,
-    textNodeName: "#text",
-    ignoreAttributes: true,
-    removeNSPrefix: false,
-    allowBooleanAttributes: false,
-    parseTagValue: true,
-    parseAttributeValue: false,
-    trimValues: true,
-    cdataPropName: false,
-    numberParseOptions: {
-      hex: true,
-      leadingZeros: true,
-      eNotation: true
-    },
-    tagValueProcessor: function(tagName, val2) {
-      return val2;
-    },
-    attributeValueProcessor: function(attrName, val2) {
-      return val2;
-    },
-    stopNodes: [],
-    alwaysCreateTextNode: false,
-    isArray: () => false,
-    commentPropName: false,
-    unpairedTags: [],
-    processEntities: true,
-    htmlEntities: false,
-    ignoreDeclaration: false,
-    ignorePiTags: false,
-    transformTagName: false,
-    transformAttributeName: false,
-    updateTag: function(tagName, jPath, attrs) {
-      return tagName;
-    }
-  };
-  var buildOptions = function(options) {
-    return Object.assign({}, defaultOptions, options);
-  };
-  exports.buildOptions = buildOptions;
-  exports.defaultOptions = defaultOptions;
-});
-
-// ../node_modules/fast-xml-parser/src/xmlparser/xmlNode.js
-var require_xmlNode = __commonJS((exports, module) => {
-  class XmlNode {
-    constructor(tagname) {
-      this.tagname = tagname;
-      this.child = [];
-      this[":@"] = {};
-    }
-    add(key, val2) {
-      if (key === "__proto__")
-        key = "#__proto__";
-      this.child.push({ [key]: val2 });
-    }
-    addChild(node) {
-      if (node.tagname === "__proto__")
-        node.tagname = "#__proto__";
-      if (node[":@"] && Object.keys(node[":@"]).length > 0) {
-        this.child.push({ [node.tagname]: node.child, [":@"]: node[":@"] });
-      } else {
-        this.child.push({ [node.tagname]: node.child });
-      }
-    }
-  }
-  module.exports = XmlNode;
-});
-
-// ../node_modules/fast-xml-parser/src/xmlparser/DocTypeReader.js
-var require_DocTypeReader = __commonJS((exports, module) => {
-  var util = require_util10();
-  function readDocType(xmlData, i) {
-    const entities = {};
-    if (xmlData[i + 3] === "O" && xmlData[i + 4] === "C" && xmlData[i + 5] === "T" && xmlData[i + 6] === "Y" && xmlData[i + 7] === "P" && xmlData[i + 8] === "E") {
-      i = i + 9;
-      let angleBracketsCount = 1;
-      let hasBody = false, comment = false;
-      let exp = "";
-      for (;i < xmlData.length; i++) {
-        if (xmlData[i] === "<" && !comment) {
-          if (hasBody && isEntity(xmlData, i)) {
-            i += 7;
-            [entityName, val, i] = readEntityExp(xmlData, i + 1);
-            if (val.indexOf("&") === -1)
-              entities[validateEntityName(entityName)] = {
-                regx: RegExp(`&${entityName};`, "g"),
-                val
-              };
-          } else if (hasBody && isElement(xmlData, i))
-            i += 8;
-          else if (hasBody && isAttlist(xmlData, i))
-            i += 8;
-          else if (hasBody && isNotation(xmlData, i))
-            i += 9;
-          else if (isComment)
-            comment = true;
-          else
-            throw new Error("Invalid DOCTYPE");
-          angleBracketsCount++;
-          exp = "";
-        } else if (xmlData[i] === ">") {
-          if (comment) {
-            if (xmlData[i - 1] === "-" && xmlData[i - 2] === "-") {
-              comment = false;
-              angleBracketsCount--;
-            }
-          } else {
-            angleBracketsCount--;
-          }
-          if (angleBracketsCount === 0) {
-            break;
-          }
-        } else if (xmlData[i] === "[") {
-          hasBody = true;
-        } else {
-          exp += xmlData[i];
-        }
-      }
-      if (angleBracketsCount !== 0) {
-        throw new Error(`Unclosed DOCTYPE`);
-      }
-    } else {
-      throw new Error(`Invalid Tag instead of DOCTYPE`);
-    }
-    return { entities, i };
-  }
-  function readEntityExp(xmlData, i) {
-    let entityName2 = "";
-    for (;i < xmlData.length && (xmlData[i] !== "'" && xmlData[i] !== '"'); i++) {
-      entityName2 += xmlData[i];
-    }
-    entityName2 = entityName2.trim();
-    if (entityName2.indexOf(" ") !== -1)
-      throw new Error("External entites are not supported");
-    const startChar = xmlData[i++];
-    let val2 = "";
-    for (;i < xmlData.length && xmlData[i] !== startChar; i++) {
-      val2 += xmlData[i];
-    }
-    return [entityName2, val2, i];
-  }
-  function isComment(xmlData, i) {
-    if (xmlData[i + 1] === "!" && xmlData[i + 2] === "-" && xmlData[i + 3] === "-")
-      return true;
-    return false;
-  }
-  function isEntity(xmlData, i) {
-    if (xmlData[i + 1] === "!" && xmlData[i + 2] === "E" && xmlData[i + 3] === "N" && xmlData[i + 4] === "T" && xmlData[i + 5] === "I" && xmlData[i + 6] === "T" && xmlData[i + 7] === "Y")
-      return true;
-    return false;
-  }
-  function isElement(xmlData, i) {
-    if (xmlData[i + 1] === "!" && xmlData[i + 2] === "E" && xmlData[i + 3] === "L" && xmlData[i + 4] === "E" && xmlData[i + 5] === "M" && xmlData[i + 6] === "E" && xmlData[i + 7] === "N" && xmlData[i + 8] === "T")
-      return true;
-    return false;
-  }
-  function isAttlist(xmlData, i) {
-    if (xmlData[i + 1] === "!" && xmlData[i + 2] === "A" && xmlData[i + 3] === "T" && xmlData[i + 4] === "T" && xmlData[i + 5] === "L" && xmlData[i + 6] === "I" && xmlData[i + 7] === "S" && xmlData[i + 8] === "T")
-      return true;
-    return false;
-  }
-  function isNotation(xmlData, i) {
-    if (xmlData[i + 1] === "!" && xmlData[i + 2] === "N" && xmlData[i + 3] === "O" && xmlData[i + 4] === "T" && xmlData[i + 5] === "A" && xmlData[i + 6] === "T" && xmlData[i + 7] === "I" && xmlData[i + 8] === "O" && xmlData[i + 9] === "N")
-      return true;
-    return false;
-  }
-  function validateEntityName(name) {
-    if (util.isName(name))
-      return name;
-    else
-      throw new Error(`Invalid entity name ${name}`);
-  }
-  module.exports = readDocType;
-});
-
-// ../node_modules/strnum/strnum.js
-var require_strnum = __commonJS((exports, module) => {
-  var hexRegex = /^[-+]?0x[a-fA-F0-9]+$/;
-  var numRegex = /^([\-\+])?(0*)(\.[0-9]+([eE]\-?[0-9]+)?|[0-9]+(\.[0-9]+([eE]\-?[0-9]+)?)?)$/;
-  if (!Number.parseInt && window.parseInt) {
-    Number.parseInt = window.parseInt;
-  }
-  if (!Number.parseFloat && window.parseFloat) {
-    Number.parseFloat = window.parseFloat;
-  }
-  var consider = {
-    hex: true,
-    leadingZeros: true,
-    decimalPoint: ".",
-    eNotation: true
-  };
-  function toNumber(str, options = {}) {
-    options = Object.assign({}, consider, options);
-    if (!str || typeof str !== "string")
-      return str;
-    let trimmedStr = str.trim();
-    if (options.skipLike !== undefined && options.skipLike.test(trimmedStr))
-      return str;
-    else if (options.hex && hexRegex.test(trimmedStr)) {
-      return Number.parseInt(trimmedStr, 16);
-    } else {
-      const match = numRegex.exec(trimmedStr);
-      if (match) {
-        const sign = match[1];
-        const leadingZeros = match[2];
-        let numTrimmedByZeros = trimZeros(match[3]);
-        const eNotation = match[4] || match[6];
-        if (!options.leadingZeros && leadingZeros.length > 0 && sign && trimmedStr[2] !== ".")
-          return str;
-        else if (!options.leadingZeros && leadingZeros.length > 0 && !sign && trimmedStr[1] !== ".")
-          return str;
-        else {
-          const num = Number(trimmedStr);
-          const numStr = "" + num;
-          if (numStr.search(/[eE]/) !== -1) {
-            if (options.eNotation)
-              return num;
-            else
-              return str;
-          } else if (eNotation) {
-            if (options.eNotation)
-              return num;
-            else
-              return str;
-          } else if (trimmedStr.indexOf(".") !== -1) {
-            if (numStr === "0" && numTrimmedByZeros === "")
-              return num;
-            else if (numStr === numTrimmedByZeros)
-              return num;
-            else if (sign && numStr === "-" + numTrimmedByZeros)
-              return num;
-            else
-              return str;
-          }
-          if (leadingZeros) {
-            if (numTrimmedByZeros === numStr)
-              return num;
-            else if (sign + numTrimmedByZeros === numStr)
-              return num;
-            else
-              return str;
-          }
-          if (trimmedStr === numStr)
-            return num;
-          else if (trimmedStr === sign + numStr)
-            return num;
-          return str;
-        }
-      } else {
-        return str;
-      }
-    }
-  }
-  function trimZeros(numStr) {
-    if (numStr && numStr.indexOf(".") !== -1) {
-      numStr = numStr.replace(/0+$/, "");
-      if (numStr === ".")
-        numStr = "0";
-      else if (numStr[0] === ".")
-        numStr = "0" + numStr;
-      else if (numStr[numStr.length - 1] === ".")
-        numStr = numStr.substr(0, numStr.length - 1);
-      return numStr;
-    }
-    return numStr;
-  }
-  module.exports = toNumber;
-});
-
-// ../node_modules/fast-xml-parser/src/ignoreAttributes.js
-var require_ignoreAttributes = __commonJS((exports, module) => {
-  function getIgnoreAttributesFn(ignoreAttributes) {
-    if (typeof ignoreAttributes === "function") {
-      return ignoreAttributes;
-    }
-    if (Array.isArray(ignoreAttributes)) {
-      return (attrName) => {
-        for (const pattern of ignoreAttributes) {
-          if (typeof pattern === "string" && attrName === pattern) {
-            return true;
-          }
-          if (pattern instanceof RegExp && pattern.test(attrName)) {
-            return true;
-          }
-        }
-      };
-    }
-    return () => false;
-  }
-  module.exports = getIgnoreAttributesFn;
-});
-
-// ../node_modules/fast-xml-parser/src/xmlparser/OrderedObjParser.js
-var require_OrderedObjParser = __commonJS((exports, module) => {
-  var util = require_util10();
-  var xmlNode = require_xmlNode();
-  var readDocType = require_DocTypeReader();
-  var toNumber = require_strnum();
-  var getIgnoreAttributesFn = require_ignoreAttributes();
-
-  class OrderedObjParser {
-    constructor(options) {
-      this.options = options;
-      this.currentNode = null;
-      this.tagsNodeStack = [];
-      this.docTypeEntities = {};
-      this.lastEntities = {
-        apos: { regex: /&(apos|#39|#x27);/g, val: "'" },
-        gt: { regex: /&(gt|#62|#x3E);/g, val: ">" },
-        lt: { regex: /&(lt|#60|#x3C);/g, val: "<" },
-        quot: { regex: /&(quot|#34|#x22);/g, val: "\"" }
-      };
-      this.ampEntity = { regex: /&(amp|#38|#x26);/g, val: "&" };
-      this.htmlEntities = {
-        space: { regex: /&(nbsp|#160);/g, val: " " },
-        cent: { regex: /&(cent|#162);/g, val: "\xA2" },
-        pound: { regex: /&(pound|#163);/g, val: "\xA3" },
-        yen: { regex: /&(yen|#165);/g, val: "\xA5" },
-        euro: { regex: /&(euro|#8364);/g, val: "\u20AC" },
-        copyright: { regex: /&(copy|#169);/g, val: "\xA9" },
-        reg: { regex: /&(reg|#174);/g, val: "\xAE" },
-        inr: { regex: /&(inr|#8377);/g, val: "\u20B9" },
-        num_dec: { regex: /&#([0-9]{1,7});/g, val: (_2, str) => String.fromCharCode(Number.parseInt(str, 10)) },
-        num_hex: { regex: /&#x([0-9a-fA-F]{1,6});/g, val: (_2, str) => String.fromCharCode(Number.parseInt(str, 16)) }
-      };
-      this.addExternalEntities = addExternalEntities;
-      this.parseXml = parseXml;
-      this.parseTextData = parseTextData;
-      this.resolveNameSpace = resolveNameSpace;
-      this.buildAttributesMap = buildAttributesMap;
-      this.isItStopNode = isItStopNode;
-      this.replaceEntitiesValue = replaceEntitiesValue;
-      this.readStopNodeData = readStopNodeData;
-      this.saveTextToParentTag = saveTextToParentTag;
-      this.addChild = addChild;
-      this.ignoreAttributesFn = getIgnoreAttributesFn(this.options.ignoreAttributes);
-    }
-  }
-  function addExternalEntities(externalEntities) {
-    const entKeys = Object.keys(externalEntities);
-    for (let i = 0;i < entKeys.length; i++) {
-      const ent = entKeys[i];
-      this.lastEntities[ent] = {
-        regex: new RegExp("&" + ent + ";", "g"),
-        val: externalEntities[ent]
-      };
-    }
-  }
-  function parseTextData(val2, tagName, jPath, dontTrim, hasAttributes, isLeafNode, escapeEntities) {
-    if (val2 !== undefined) {
-      if (this.options.trimValues && !dontTrim) {
-        val2 = val2.trim();
-      }
-      if (val2.length > 0) {
-        if (!escapeEntities)
-          val2 = this.replaceEntitiesValue(val2);
-        const newval = this.options.tagValueProcessor(tagName, val2, jPath, hasAttributes, isLeafNode);
-        if (newval === null || newval === undefined) {
-          return val2;
-        } else if (typeof newval !== typeof val2 || newval !== val2) {
-          return newval;
-        } else if (this.options.trimValues) {
-          return parseValue(val2, this.options.parseTagValue, this.options.numberParseOptions);
-        } else {
-          const trimmedVal = val2.trim();
-          if (trimmedVal === val2) {
-            return parseValue(val2, this.options.parseTagValue, this.options.numberParseOptions);
-          } else {
-            return val2;
-          }
-        }
-      }
-    }
-  }
-  function resolveNameSpace(tagname) {
-    if (this.options.removeNSPrefix) {
-      const tags = tagname.split(":");
-      const prefix = tagname.charAt(0) === "/" ? "/" : "";
-      if (tags[0] === "xmlns") {
-        return "";
-      }
-      if (tags.length === 2) {
-        tagname = prefix + tags[1];
-      }
-    }
-    return tagname;
-  }
-  var attrsRegx = new RegExp('([^\\s=]+)\\s*(=\\s*([\'"])([\\s\\S]*?)\\3)?', "gm");
-  function buildAttributesMap(attrStr, jPath, tagName) {
-    if (this.options.ignoreAttributes !== true && typeof attrStr === "string") {
-      const matches = util.getAllMatches(attrStr, attrsRegx);
-      const len = matches.length;
-      const attrs = {};
-      for (let i = 0;i < len; i++) {
-        const attrName = this.resolveNameSpace(matches[i][1]);
-        if (this.ignoreAttributesFn(attrName, jPath)) {
-          continue;
-        }
-        let oldVal = matches[i][4];
-        let aName = this.options.attributeNamePrefix + attrName;
-        if (attrName.length) {
-          if (this.options.transformAttributeName) {
-            aName = this.options.transformAttributeName(aName);
-          }
-          if (aName === "__proto__")
-            aName = "#__proto__";
-          if (oldVal !== undefined) {
-            if (this.options.trimValues) {
-              oldVal = oldVal.trim();
-            }
-            oldVal = this.replaceEntitiesValue(oldVal);
-            const newVal = this.options.attributeValueProcessor(attrName, oldVal, jPath);
-            if (newVal === null || newVal === undefined) {
-              attrs[aName] = oldVal;
-            } else if (typeof newVal !== typeof oldVal || newVal !== oldVal) {
-              attrs[aName] = newVal;
-            } else {
-              attrs[aName] = parseValue(oldVal, this.options.parseAttributeValue, this.options.numberParseOptions);
-            }
-          } else if (this.options.allowBooleanAttributes) {
-            attrs[aName] = true;
-          }
-        }
-      }
-      if (!Object.keys(attrs).length) {
-        return;
-      }
-      if (this.options.attributesGroupName) {
-        const attrCollection = {};
-        attrCollection[this.options.attributesGroupName] = attrs;
-        return attrCollection;
-      }
-      return attrs;
-    }
-  }
-  var parseXml = function(xmlData) {
-    xmlData = xmlData.replace(/\r\n?/g, "\n");
-    const xmlObj = new xmlNode("!xml");
-    let currentNode = xmlObj;
-    let textData = "";
-    let jPath = "";
-    for (let i = 0;i < xmlData.length; i++) {
-      const ch = xmlData[i];
-      if (ch === "<") {
-        if (xmlData[i + 1] === "/") {
-          const closeIndex = findClosingIndex(xmlData, ">", i, "Closing Tag is not closed.");
-          let tagName = xmlData.substring(i + 2, closeIndex).trim();
-          if (this.options.removeNSPrefix) {
-            const colonIndex = tagName.indexOf(":");
-            if (colonIndex !== -1) {
-              tagName = tagName.substr(colonIndex + 1);
-            }
-          }
-          if (this.options.transformTagName) {
-            tagName = this.options.transformTagName(tagName);
-          }
-          if (currentNode) {
-            textData = this.saveTextToParentTag(textData, currentNode, jPath);
-          }
-          const lastTagName = jPath.substring(jPath.lastIndexOf(".") + 1);
-          if (tagName && this.options.unpairedTags.indexOf(tagName) !== -1) {
-            throw new Error(`Unpaired tag can not be used as closing tag: </${tagName}>`);
-          }
-          let propIndex = 0;
-          if (lastTagName && this.options.unpairedTags.indexOf(lastTagName) !== -1) {
-            propIndex = jPath.lastIndexOf(".", jPath.lastIndexOf(".") - 1);
-            this.tagsNodeStack.pop();
-          } else {
-            propIndex = jPath.lastIndexOf(".");
-          }
-          jPath = jPath.substring(0, propIndex);
-          currentNode = this.tagsNodeStack.pop();
-          textData = "";
-          i = closeIndex;
-        } else if (xmlData[i + 1] === "?") {
-          let tagData = readTagExp(xmlData, i, false, "?>");
-          if (!tagData)
-            throw new Error("Pi Tag is not closed.");
-          textData = this.saveTextToParentTag(textData, currentNode, jPath);
-          if (this.options.ignoreDeclaration && tagData.tagName === "?xml" || this.options.ignorePiTags) {
-          } else {
-            const childNode = new xmlNode(tagData.tagName);
-            childNode.add(this.options.textNodeName, "");
-            if (tagData.tagName !== tagData.tagExp && tagData.attrExpPresent) {
-              childNode[":@"] = this.buildAttributesMap(tagData.tagExp, jPath, tagData.tagName);
-            }
-            this.addChild(currentNode, childNode, jPath);
-          }
-          i = tagData.closeIndex + 1;
-        } else if (xmlData.substr(i + 1, 3) === "!--") {
-          const endIndex = findClosingIndex(xmlData, "-->", i + 4, "Comment is not closed.");
-          if (this.options.commentPropName) {
-            const comment = xmlData.substring(i + 4, endIndex - 2);
-            textData = this.saveTextToParentTag(textData, currentNode, jPath);
-            currentNode.add(this.options.commentPropName, [{ [this.options.textNodeName]: comment }]);
-          }
-          i = endIndex;
-        } else if (xmlData.substr(i + 1, 2) === "!D") {
-          const result = readDocType(xmlData, i);
-          this.docTypeEntities = result.entities;
-          i = result.i;
-        } else if (xmlData.substr(i + 1, 2) === "![") {
-          const closeIndex = findClosingIndex(xmlData, "]]>", i, "CDATA is not closed.") - 2;
-          const tagExp = xmlData.substring(i + 9, closeIndex);
-          textData = this.saveTextToParentTag(textData, currentNode, jPath);
-          let val2 = this.parseTextData(tagExp, currentNode.tagname, jPath, true, false, true, true);
-          if (val2 == undefined)
-            val2 = "";
-          if (this.options.cdataPropName) {
-            currentNode.add(this.options.cdataPropName, [{ [this.options.textNodeName]: tagExp }]);
-          } else {
-            currentNode.add(this.options.textNodeName, val2);
-          }
-          i = closeIndex + 2;
-        } else {
-          let result = readTagExp(xmlData, i, this.options.removeNSPrefix);
-          let tagName = result.tagName;
-          const rawTagName = result.rawTagName;
-          let tagExp = result.tagExp;
-          let attrExpPresent = result.attrExpPresent;
-          let closeIndex = result.closeIndex;
-          if (this.options.transformTagName) {
-            tagName = this.options.transformTagName(tagName);
-          }
-          if (currentNode && textData) {
-            if (currentNode.tagname !== "!xml") {
-              textData = this.saveTextToParentTag(textData, currentNode, jPath, false);
-            }
-          }
-          const lastTag = currentNode;
-          if (lastTag && this.options.unpairedTags.indexOf(lastTag.tagname) !== -1) {
-            currentNode = this.tagsNodeStack.pop();
-            jPath = jPath.substring(0, jPath.lastIndexOf("."));
-          }
-          if (tagName !== xmlObj.tagname) {
-            jPath += jPath ? "." + tagName : tagName;
-          }
-          if (this.isItStopNode(this.options.stopNodes, jPath, tagName)) {
-            let tagContent = "";
-            if (tagExp.length > 0 && tagExp.lastIndexOf("/") === tagExp.length - 1) {
-              if (tagName[tagName.length - 1] === "/") {
-                tagName = tagName.substr(0, tagName.length - 1);
-                jPath = jPath.substr(0, jPath.length - 1);
-                tagExp = tagName;
-              } else {
-                tagExp = tagExp.substr(0, tagExp.length - 1);
-              }
-              i = result.closeIndex;
-            } else if (this.options.unpairedTags.indexOf(tagName) !== -1) {
-              i = result.closeIndex;
-            } else {
-              const result2 = this.readStopNodeData(xmlData, rawTagName, closeIndex + 1);
-              if (!result2)
-                throw new Error(`Unexpected end of ${rawTagName}`);
-              i = result2.i;
-              tagContent = result2.tagContent;
-            }
-            const childNode = new xmlNode(tagName);
-            if (tagName !== tagExp && attrExpPresent) {
-              childNode[":@"] = this.buildAttributesMap(tagExp, jPath, tagName);
-            }
-            if (tagContent) {
-              tagContent = this.parseTextData(tagContent, tagName, jPath, true, attrExpPresent, true, true);
-            }
-            jPath = jPath.substr(0, jPath.lastIndexOf("."));
-            childNode.add(this.options.textNodeName, tagContent);
-            this.addChild(currentNode, childNode, jPath);
-          } else {
-            if (tagExp.length > 0 && tagExp.lastIndexOf("/") === tagExp.length - 1) {
-              if (tagName[tagName.length - 1] === "/") {
-                tagName = tagName.substr(0, tagName.length - 1);
-                jPath = jPath.substr(0, jPath.length - 1);
-                tagExp = tagName;
-              } else {
-                tagExp = tagExp.substr(0, tagExp.length - 1);
-              }
-              if (this.options.transformTagName) {
-                tagName = this.options.transformTagName(tagName);
-              }
-              const childNode = new xmlNode(tagName);
-              if (tagName !== tagExp && attrExpPresent) {
-                childNode[":@"] = this.buildAttributesMap(tagExp, jPath, tagName);
-              }
-              this.addChild(currentNode, childNode, jPath);
-              jPath = jPath.substr(0, jPath.lastIndexOf("."));
-            } else {
-              const childNode = new xmlNode(tagName);
-              this.tagsNodeStack.push(currentNode);
-              if (tagName !== tagExp && attrExpPresent) {
-                childNode[":@"] = this.buildAttributesMap(tagExp, jPath, tagName);
-              }
-              this.addChild(currentNode, childNode, jPath);
-              currentNode = childNode;
-            }
-            textData = "";
-            i = closeIndex;
-          }
-        }
-      } else {
-        textData += xmlData[i];
-      }
-    }
-    return xmlObj.child;
-  };
-  function addChild(currentNode, childNode, jPath) {
-    const result = this.options.updateTag(childNode.tagname, jPath, childNode[":@"]);
-    if (result === false) {
-    } else if (typeof result === "string") {
-      childNode.tagname = result;
-      currentNode.addChild(childNode);
-    } else {
-      currentNode.addChild(childNode);
-    }
-  }
-  var replaceEntitiesValue = function(val2) {
-    if (this.options.processEntities) {
-      for (let entityName2 in this.docTypeEntities) {
-        const entity = this.docTypeEntities[entityName2];
-        val2 = val2.replace(entity.regx, entity.val);
-      }
-      for (let entityName2 in this.lastEntities) {
-        const entity = this.lastEntities[entityName2];
-        val2 = val2.replace(entity.regex, entity.val);
-      }
-      if (this.options.htmlEntities) {
-        for (let entityName2 in this.htmlEntities) {
-          const entity = this.htmlEntities[entityName2];
-          val2 = val2.replace(entity.regex, entity.val);
-        }
-      }
-      val2 = val2.replace(this.ampEntity.regex, this.ampEntity.val);
-    }
-    return val2;
-  };
-  function saveTextToParentTag(textData, currentNode, jPath, isLeafNode) {
-    if (textData) {
-      if (isLeafNode === undefined)
-        isLeafNode = Object.keys(currentNode.child).length === 0;
-      textData = this.parseTextData(textData, currentNode.tagname, jPath, false, currentNode[":@"] ? Object.keys(currentNode[":@"]).length !== 0 : false, isLeafNode);
-      if (textData !== undefined && textData !== "")
-        currentNode.add(this.options.textNodeName, textData);
-      textData = "";
-    }
-    return textData;
-  }
-  function isItStopNode(stopNodes, jPath, currentTagName) {
-    const allNodesExp = "*." + currentTagName;
-    for (const stopNodePath in stopNodes) {
-      const stopNodeExp = stopNodes[stopNodePath];
-      if (allNodesExp === stopNodeExp || jPath === stopNodeExp)
-        return true;
-    }
-    return false;
-  }
-  function tagExpWithClosingIndex(xmlData, i, closingChar = ">") {
-    let attrBoundary;
-    let tagExp = "";
-    for (let index = i;index < xmlData.length; index++) {
-      let ch = xmlData[index];
-      if (attrBoundary) {
-        if (ch === attrBoundary)
-          attrBoundary = "";
-      } else if (ch === '"' || ch === "'") {
-        attrBoundary = ch;
-      } else if (ch === closingChar[0]) {
-        if (closingChar[1]) {
-          if (xmlData[index + 1] === closingChar[1]) {
-            return {
-              data: tagExp,
-              index
-            };
-          }
-        } else {
-          return {
-            data: tagExp,
-            index
-          };
-        }
-      } else if (ch === "\t") {
-        ch = " ";
-      }
-      tagExp += ch;
-    }
-  }
-  function findClosingIndex(xmlData, str, i, errMsg) {
-    const closingIndex = xmlData.indexOf(str, i);
-    if (closingIndex === -1) {
-      throw new Error(errMsg);
-    } else {
-      return closingIndex + str.length - 1;
-    }
-  }
-  function readTagExp(xmlData, i, removeNSPrefix, closingChar = ">") {
-    const result = tagExpWithClosingIndex(xmlData, i + 1, closingChar);
-    if (!result)
-      return;
-    let tagExp = result.data;
-    const closeIndex = result.index;
-    const separatorIndex = tagExp.search(/\s/);
-    let tagName = tagExp;
-    let attrExpPresent = true;
-    if (separatorIndex !== -1) {
-      tagName = tagExp.substring(0, separatorIndex);
-      tagExp = tagExp.substring(separatorIndex + 1).trimStart();
-    }
-    const rawTagName = tagName;
-    if (removeNSPrefix) {
-      const colonIndex = tagName.indexOf(":");
-      if (colonIndex !== -1) {
-        tagName = tagName.substr(colonIndex + 1);
-        attrExpPresent = tagName !== result.data.substr(colonIndex + 1);
-      }
-    }
-    return {
-      tagName,
-      tagExp,
-      closeIndex,
-      attrExpPresent,
-      rawTagName
-    };
-  }
-  function readStopNodeData(xmlData, tagName, i) {
-    const startIndex = i;
-    let openTagCount = 1;
-    for (;i < xmlData.length; i++) {
-      if (xmlData[i] === "<") {
-        if (xmlData[i + 1] === "/") {
-          const closeIndex = findClosingIndex(xmlData, ">", i, `${tagName} is not closed`);
-          let closeTagName = xmlData.substring(i + 2, closeIndex).trim();
-          if (closeTagName === tagName) {
-            openTagCount--;
-            if (openTagCount === 0) {
-              return {
-                tagContent: xmlData.substring(startIndex, i),
-                i: closeIndex
-              };
-            }
-          }
-          i = closeIndex;
-        } else if (xmlData[i + 1] === "?") {
-          const closeIndex = findClosingIndex(xmlData, "?>", i + 1, "StopNode is not closed.");
-          i = closeIndex;
-        } else if (xmlData.substr(i + 1, 3) === "!--") {
-          const closeIndex = findClosingIndex(xmlData, "-->", i + 3, "StopNode is not closed.");
-          i = closeIndex;
-        } else if (xmlData.substr(i + 1, 2) === "![") {
-          const closeIndex = findClosingIndex(xmlData, "]]>", i, "StopNode is not closed.") - 2;
-          i = closeIndex;
-        } else {
-          const tagData = readTagExp(xmlData, i, ">");
-          if (tagData) {
-            const openTagName = tagData && tagData.tagName;
-            if (openTagName === tagName && tagData.tagExp[tagData.tagExp.length - 1] !== "/") {
-              openTagCount++;
-            }
-            i = tagData.closeIndex;
-          }
-        }
-      }
-    }
-  }
-  function parseValue(val2, shouldParse, options) {
-    if (shouldParse && typeof val2 === "string") {
-      const newval = val2.trim();
-      if (newval === "true")
-        return true;
-      else if (newval === "false")
-        return false;
-      else
-        return toNumber(val2, options);
-    } else {
-      if (util.isExist(val2)) {
-        return val2;
-      } else {
-        return "";
-      }
-    }
-  }
-  module.exports = OrderedObjParser;
-});
-
-// ../node_modules/fast-xml-parser/src/xmlparser/node2json.js
-var require_node2json = __commonJS((exports) => {
-  function prettify(node, options) {
-    return compress(node, options);
-  }
-  function compress(arr, options, jPath) {
-    let text;
-    const compressedObj = {};
-    for (let i = 0;i < arr.length; i++) {
-      const tagObj = arr[i];
-      const property = propName(tagObj);
-      let newJpath = "";
-      if (jPath === undefined)
-        newJpath = property;
-      else
-        newJpath = jPath + "." + property;
-      if (property === options.textNodeName) {
-        if (text === undefined)
-          text = tagObj[property];
-        else
-          text += "" + tagObj[property];
-      } else if (property === undefined) {
-        continue;
-      } else if (tagObj[property]) {
-        let val2 = compress(tagObj[property], options, newJpath);
-        const isLeaf = isLeafTag(val2, options);
-        if (tagObj[":@"]) {
-          assignAttributes(val2, tagObj[":@"], newJpath, options);
-        } else if (Object.keys(val2).length === 1 && val2[options.textNodeName] !== undefined && !options.alwaysCreateTextNode) {
-          val2 = val2[options.textNodeName];
-        } else if (Object.keys(val2).length === 0) {
-          if (options.alwaysCreateTextNode)
-            val2[options.textNodeName] = "";
-          else
-            val2 = "";
-        }
-        if (compressedObj[property] !== undefined && compressedObj.hasOwnProperty(property)) {
-          if (!Array.isArray(compressedObj[property])) {
-            compressedObj[property] = [compressedObj[property]];
-          }
-          compressedObj[property].push(val2);
-        } else {
-          if (options.isArray(property, newJpath, isLeaf)) {
-            compressedObj[property] = [val2];
-          } else {
-            compressedObj[property] = val2;
-          }
-        }
-      }
-    }
-    if (typeof text === "string") {
-      if (text.length > 0)
-        compressedObj[options.textNodeName] = text;
-    } else if (text !== undefined)
-      compressedObj[options.textNodeName] = text;
-    return compressedObj;
-  }
-  function propName(obj) {
-    const keys = Object.keys(obj);
-    for (let i = 0;i < keys.length; i++) {
-      const key = keys[i];
-      if (key !== ":@")
-        return key;
-    }
-  }
-  function assignAttributes(obj, attrMap, jpath, options) {
-    if (attrMap) {
-      const keys = Object.keys(attrMap);
-      const len = keys.length;
-      for (let i = 0;i < len; i++) {
-        const atrrName = keys[i];
-        if (options.isArray(atrrName, jpath + "." + atrrName, true, true)) {
-          obj[atrrName] = [attrMap[atrrName]];
-        } else {
-          obj[atrrName] = attrMap[atrrName];
-        }
-      }
-    }
-  }
-  function isLeafTag(obj, options) {
-    const { textNodeName } = options;
-    const propCount = Object.keys(obj).length;
-    if (propCount === 0) {
-      return true;
-    }
-    if (propCount === 1 && (obj[textNodeName] || typeof obj[textNodeName] === "boolean" || obj[textNodeName] === 0)) {
-      return true;
-    }
-    return false;
-  }
-  exports.prettify = prettify;
-});
-
-// ../node_modules/fast-xml-parser/src/xmlparser/XMLParser.js
-var require_XMLParser = __commonJS((exports, module) => {
-  var { buildOptions } = require_OptionsBuilder();
-  var OrderedObjParser = require_OrderedObjParser();
-  var { prettify } = require_node2json();
-  var validator = require_validator();
-
-  class XMLParser {
-    constructor(options) {
-      this.externalEntities = {};
-      this.options = buildOptions(options);
-    }
-    parse(xmlData, validationOption) {
-      if (typeof xmlData === "string") {
-      } else if (xmlData.toString) {
-        xmlData = xmlData.toString();
-      } else {
-        throw new Error("XML data is accepted in String or Bytes[] form.");
-      }
-      if (validationOption) {
-        if (validationOption === true)
-          validationOption = {};
-        const result = validator.validate(xmlData, validationOption);
-        if (result !== true) {
-          throw Error(`${result.err.msg}:${result.err.line}:${result.err.col}`);
-        }
-      }
-      const orderedObjParser = new OrderedObjParser(this.options);
-      orderedObjParser.addExternalEntities(this.externalEntities);
-      const orderedResult = orderedObjParser.parseXml(xmlData);
-      if (this.options.preserveOrder || orderedResult === undefined)
-        return orderedResult;
-      else
-        return prettify(orderedResult, this.options);
-    }
-    addEntity(key, value) {
-      if (value.indexOf("&") !== -1) {
-        throw new Error("Entity value can't have '&'");
-      } else if (key.indexOf("&") !== -1 || key.indexOf(";") !== -1) {
-        throw new Error("An entity must be set without '&' and ';'. Eg. use '#xD' for '&#xD;'");
-      } else if (value === "&") {
-        throw new Error("An entity with value '&' is not permitted");
-      } else {
-        this.externalEntities[key] = value;
-      }
-    }
-  }
-  module.exports = XMLParser;
-});
-
-// ../node_modules/fast-xml-parser/src/xmlbuilder/orderedJs2Xml.js
-var require_orderedJs2Xml = __commonJS((exports, module) => {
-  var EOL = "\n";
-  function toXml(jArray, options) {
-    let indentation = "";
-    if (options.format && options.indentBy.length > 0) {
-      indentation = EOL;
-    }
-    return arrToStr(jArray, options, "", indentation);
-  }
-  function arrToStr(arr, options, jPath, indentation) {
-    let xmlStr = "";
-    let isPreviousElementTag = false;
-    for (let i = 0;i < arr.length; i++) {
-      const tagObj = arr[i];
-      const tagName = propName(tagObj);
-      if (tagName === undefined)
-        continue;
-      let newJPath = "";
-      if (jPath.length === 0)
-        newJPath = tagName;
-      else
-        newJPath = `${jPath}.${tagName}`;
-      if (tagName === options.textNodeName) {
-        let tagText = tagObj[tagName];
-        if (!isStopNode(newJPath, options)) {
-          tagText = options.tagValueProcessor(tagName, tagText);
-          tagText = replaceEntitiesValue(tagText, options);
-        }
-        if (isPreviousElementTag) {
-          xmlStr += indentation;
-        }
-        xmlStr += tagText;
-        isPreviousElementTag = false;
-        continue;
-      } else if (tagName === options.cdataPropName) {
-        if (isPreviousElementTag) {
-          xmlStr += indentation;
-        }
-        xmlStr += `<![CDATA[${tagObj[tagName][0][options.textNodeName]}]]>`;
-        isPreviousElementTag = false;
-        continue;
-      } else if (tagName === options.commentPropName) {
-        xmlStr += indentation + `<!--${tagObj[tagName][0][options.textNodeName]}-->`;
-        isPreviousElementTag = true;
-        continue;
-      } else if (tagName[0] === "?") {
-        const attStr2 = attr_to_str(tagObj[":@"], options);
-        const tempInd = tagName === "?xml" ? "" : indentation;
-        let piTextNodeName = tagObj[tagName][0][options.textNodeName];
-        piTextNodeName = piTextNodeName.length !== 0 ? " " + piTextNodeName : "";
-        xmlStr += tempInd + `<${tagName}${piTextNodeName}${attStr2}?>`;
-        isPreviousElementTag = true;
-        continue;
-      }
-      let newIdentation = indentation;
-      if (newIdentation !== "") {
-        newIdentation += options.indentBy;
-      }
-      const attStr = attr_to_str(tagObj[":@"], options);
-      const tagStart = indentation + `<${tagName}${attStr}`;
-      const tagValue = arrToStr(tagObj[tagName], options, newJPath, newIdentation);
-      if (options.unpairedTags.indexOf(tagName) !== -1) {
-        if (options.suppressUnpairedNode)
-          xmlStr += tagStart + ">";
-        else
-          xmlStr += tagStart + "/>";
-      } else if ((!tagValue || tagValue.length === 0) && options.suppressEmptyNode) {
-        xmlStr += tagStart + "/>";
-      } else if (tagValue && tagValue.endsWith(">")) {
-        xmlStr += tagStart + `>${tagValue}${indentation}</${tagName}>`;
-      } else {
-        xmlStr += tagStart + ">";
-        if (tagValue && indentation !== "" && (tagValue.includes("/>") || tagValue.includes("</"))) {
-          xmlStr += indentation + options.indentBy + tagValue + indentation;
-        } else {
-          xmlStr += tagValue;
-        }
-        xmlStr += `</${tagName}>`;
-      }
-      isPreviousElementTag = true;
-    }
-    return xmlStr;
-  }
-  function propName(obj) {
-    const keys = Object.keys(obj);
-    for (let i = 0;i < keys.length; i++) {
-      const key = keys[i];
-      if (!obj.hasOwnProperty(key))
-        continue;
-      if (key !== ":@")
-        return key;
-    }
-  }
-  function attr_to_str(attrMap, options) {
-    let attrStr = "";
-    if (attrMap && !options.ignoreAttributes) {
-      for (let attr in attrMap) {
-        if (!attrMap.hasOwnProperty(attr))
-          continue;
-        let attrVal = options.attributeValueProcessor(attr, attrMap[attr]);
-        attrVal = replaceEntitiesValue(attrVal, options);
-        if (attrVal === true && options.suppressBooleanAttributes) {
-          attrStr += ` ${attr.substr(options.attributeNamePrefix.length)}`;
-        } else {
-          attrStr += ` ${attr.substr(options.attributeNamePrefix.length)}="${attrVal}"`;
-        }
-      }
-    }
-    return attrStr;
-  }
-  function isStopNode(jPath, options) {
-    jPath = jPath.substr(0, jPath.length - options.textNodeName.length - 1);
-    let tagName = jPath.substr(jPath.lastIndexOf(".") + 1);
-    for (let index in options.stopNodes) {
-      if (options.stopNodes[index] === jPath || options.stopNodes[index] === "*." + tagName)
-        return true;
-    }
-    return false;
-  }
-  function replaceEntitiesValue(textValue, options) {
-    if (textValue && textValue.length > 0 && options.processEntities) {
-      for (let i = 0;i < options.entities.length; i++) {
-        const entity = options.entities[i];
-        textValue = textValue.replace(entity.regex, entity.val);
-      }
-    }
-    return textValue;
-  }
-  module.exports = toXml;
-});
-
-// ../node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
-var require_json2xml = __commonJS((exports, module) => {
-  var buildFromOrderedJs = require_orderedJs2Xml();
-  var getIgnoreAttributesFn = require_ignoreAttributes();
-  var defaultOptions = {
-    attributeNamePrefix: "@_",
-    attributesGroupName: false,
-    textNodeName: "#text",
-    ignoreAttributes: true,
-    cdataPropName: false,
-    format: false,
-    indentBy: "  ",
-    suppressEmptyNode: false,
-    suppressUnpairedNode: true,
-    suppressBooleanAttributes: true,
-    tagValueProcessor: function(key, a) {
-      return a;
-    },
-    attributeValueProcessor: function(attrName, a) {
-      return a;
-    },
-    preserveOrder: false,
-    commentPropName: false,
-    unpairedTags: [],
-    entities: [
-      { regex: new RegExp("&", "g"), val: "&amp;" },
-      { regex: new RegExp(">", "g"), val: "&gt;" },
-      { regex: new RegExp("<", "g"), val: "&lt;" },
-      { regex: new RegExp("\'", "g"), val: "&apos;" },
-      { regex: new RegExp("\"", "g"), val: "&quot;" }
-    ],
-    processEntities: true,
-    stopNodes: [],
-    oneListGroup: false
-  };
-  function Builder(options) {
-    this.options = Object.assign({}, defaultOptions, options);
-    if (this.options.ignoreAttributes === true || this.options.attributesGroupName) {
-      this.isAttribute = function() {
-        return false;
-      };
-    } else {
-      this.ignoreAttributesFn = getIgnoreAttributesFn(this.options.ignoreAttributes);
-      this.attrPrefixLen = this.options.attributeNamePrefix.length;
-      this.isAttribute = isAttribute;
-    }
-    this.processTextOrObjNode = processTextOrObjNode;
-    if (this.options.format) {
-      this.indentate = indentate;
-      this.tagEndChar = ">\n";
-      this.newLine = "\n";
-    } else {
-      this.indentate = function() {
-        return "";
-      };
-      this.tagEndChar = ">";
-      this.newLine = "";
-    }
-  }
-  Builder.prototype.build = function(jObj) {
-    if (this.options.preserveOrder) {
-      return buildFromOrderedJs(jObj, this.options);
-    } else {
-      if (Array.isArray(jObj) && this.options.arrayNodeName && this.options.arrayNodeName.length > 1) {
-        jObj = {
-          [this.options.arrayNodeName]: jObj
-        };
-      }
-      return this.j2x(jObj, 0, []).val;
-    }
-  };
-  Builder.prototype.j2x = function(jObj, level, ajPath) {
-    let attrStr = "";
-    let val2 = "";
-    const jPath = ajPath.join(".");
-    for (let key in jObj) {
-      if (!Object.prototype.hasOwnProperty.call(jObj, key))
-        continue;
-      if (typeof jObj[key] === "undefined") {
-        if (this.isAttribute(key)) {
-          val2 += "";
-        }
-      } else if (jObj[key] === null) {
-        if (this.isAttribute(key)) {
-          val2 += "";
-        } else if (key[0] === "?") {
-          val2 += this.indentate(level) + "<" + key + "?" + this.tagEndChar;
-        } else {
-          val2 += this.indentate(level) + "<" + key + "/" + this.tagEndChar;
-        }
-      } else if (jObj[key] instanceof Date) {
-        val2 += this.buildTextValNode(jObj[key], key, "", level);
-      } else if (typeof jObj[key] !== "object") {
-        const attr = this.isAttribute(key);
-        if (attr && !this.ignoreAttributesFn(attr, jPath)) {
-          attrStr += this.buildAttrPairStr(attr, "" + jObj[key]);
-        } else if (!attr) {
-          if (key === this.options.textNodeName) {
-            let newval = this.options.tagValueProcessor(key, "" + jObj[key]);
-            val2 += this.replaceEntitiesValue(newval);
-          } else {
-            val2 += this.buildTextValNode(jObj[key], key, "", level);
-          }
-        }
-      } else if (Array.isArray(jObj[key])) {
-        const arrLen = jObj[key].length;
-        let listTagVal = "";
-        let listTagAttr = "";
-        for (let j = 0;j < arrLen; j++) {
-          const item = jObj[key][j];
-          if (typeof item === "undefined") {
-          } else if (item === null) {
-            if (key[0] === "?")
-              val2 += this.indentate(level) + "<" + key + "?" + this.tagEndChar;
-            else
-              val2 += this.indentate(level) + "<" + key + "/" + this.tagEndChar;
-          } else if (typeof item === "object") {
-            if (this.options.oneListGroup) {
-              const result = this.j2x(item, level + 1, ajPath.concat(key));
-              listTagVal += result.val;
-              if (this.options.attributesGroupName && item.hasOwnProperty(this.options.attributesGroupName)) {
-                listTagAttr += result.attrStr;
-              }
-            } else {
-              listTagVal += this.processTextOrObjNode(item, key, level, ajPath);
-            }
-          } else {
-            if (this.options.oneListGroup) {
-              let textValue = this.options.tagValueProcessor(key, item);
-              textValue = this.replaceEntitiesValue(textValue);
-              listTagVal += textValue;
-            } else {
-              listTagVal += this.buildTextValNode(item, key, "", level);
-            }
-          }
-        }
-        if (this.options.oneListGroup) {
-          listTagVal = this.buildObjectNode(listTagVal, key, listTagAttr, level);
-        }
-        val2 += listTagVal;
-      } else {
-        if (this.options.attributesGroupName && key === this.options.attributesGroupName) {
-          const Ks = Object.keys(jObj[key]);
-          const L = Ks.length;
-          for (let j = 0;j < L; j++) {
-            attrStr += this.buildAttrPairStr(Ks[j], "" + jObj[key][Ks[j]]);
-          }
-        } else {
-          val2 += this.processTextOrObjNode(jObj[key], key, level, ajPath);
-        }
-      }
-    }
-    return { attrStr, val: val2 };
-  };
-  Builder.prototype.buildAttrPairStr = function(attrName, val2) {
-    val2 = this.options.attributeValueProcessor(attrName, "" + val2);
-    val2 = this.replaceEntitiesValue(val2);
-    if (this.options.suppressBooleanAttributes && val2 === "true") {
-      return " " + attrName;
-    } else
-      return " " + attrName + '="' + val2 + '"';
-  };
-  function processTextOrObjNode(object, key, level, ajPath) {
-    const result = this.j2x(object, level + 1, ajPath.concat(key));
-    if (object[this.options.textNodeName] !== undefined && Object.keys(object).length === 1) {
-      return this.buildTextValNode(object[this.options.textNodeName], key, result.attrStr, level);
-    } else {
-      return this.buildObjectNode(result.val, key, result.attrStr, level);
-    }
-  }
-  Builder.prototype.buildObjectNode = function(val2, key, attrStr, level) {
-    if (val2 === "") {
-      if (key[0] === "?")
-        return this.indentate(level) + "<" + key + attrStr + "?" + this.tagEndChar;
-      else {
-        return this.indentate(level) + "<" + key + attrStr + this.closeTag(key) + this.tagEndChar;
-      }
-    } else {
-      let tagEndExp = "</" + key + this.tagEndChar;
-      let piClosingChar = "";
-      if (key[0] === "?") {
-        piClosingChar = "?";
-        tagEndExp = "";
-      }
-      if ((attrStr || attrStr === "") && val2.indexOf("<") === -1) {
-        return this.indentate(level) + "<" + key + attrStr + piClosingChar + ">" + val2 + tagEndExp;
-      } else if (this.options.commentPropName !== false && key === this.options.commentPropName && piClosingChar.length === 0) {
-        return this.indentate(level) + `<!--${val2}-->` + this.newLine;
-      } else {
-        return this.indentate(level) + "<" + key + attrStr + piClosingChar + this.tagEndChar + val2 + this.indentate(level) + tagEndExp;
-      }
-    }
-  };
-  Builder.prototype.closeTag = function(key) {
-    let closeTag = "";
-    if (this.options.unpairedTags.indexOf(key) !== -1) {
-      if (!this.options.suppressUnpairedNode)
-        closeTag = "/";
-    } else if (this.options.suppressEmptyNode) {
-      closeTag = "/";
-    } else {
-      closeTag = `></${key}`;
-    }
-    return closeTag;
-  };
-  Builder.prototype.buildTextValNode = function(val2, key, attrStr, level) {
-    if (this.options.cdataPropName !== false && key === this.options.cdataPropName) {
-      return this.indentate(level) + `<![CDATA[${val2}]]>` + this.newLine;
-    } else if (this.options.commentPropName !== false && key === this.options.commentPropName) {
-      return this.indentate(level) + `<!--${val2}-->` + this.newLine;
-    } else if (key[0] === "?") {
-      return this.indentate(level) + "<" + key + attrStr + "?" + this.tagEndChar;
-    } else {
-      let textValue = this.options.tagValueProcessor(key, val2);
-      textValue = this.replaceEntitiesValue(textValue);
-      if (textValue === "") {
-        return this.indentate(level) + "<" + key + attrStr + this.closeTag(key) + this.tagEndChar;
-      } else {
-        return this.indentate(level) + "<" + key + attrStr + ">" + textValue + "</" + key + this.tagEndChar;
-      }
-    }
-  };
-  Builder.prototype.replaceEntitiesValue = function(textValue) {
-    if (textValue && textValue.length > 0 && this.options.processEntities) {
-      for (let i = 0;i < this.options.entities.length; i++) {
-        const entity = this.options.entities[i];
-        textValue = textValue.replace(entity.regex, entity.val);
-      }
-    }
-    return textValue;
-  };
-  function indentate(level) {
-    return this.options.indentBy.repeat(level);
-  }
-  function isAttribute(name) {
-    if (name.startsWith(this.options.attributeNamePrefix) && name !== this.options.textNodeName) {
-      return name.substr(this.attrPrefixLen);
-    } else {
-      return false;
-    }
-  }
-  module.exports = Builder;
-});
-
-// ../node_modules/fast-xml-parser/src/fxp.js
+// ../node_modules/fast-xml-parser/lib/fxp.cjs
 var require_fxp = __commonJS((exports, module) => {
-  var validator = require_validator();
-  var XMLParser = require_XMLParser();
-  var XMLBuilder = require_json2xml();
-  module.exports = {
-    XMLParser,
-    XMLValidator: validator,
-    XMLBuilder
-  };
+  (() => {
+    var t = { d: (e2, n2) => {
+      for (var i2 in n2)
+        t.o(n2, i2) && !t.o(e2, i2) && Object.defineProperty(e2, i2, { enumerable: true, get: n2[i2] });
+    }, o: (t2, e2) => Object.prototype.hasOwnProperty.call(t2, e2), r: (t2) => {
+      typeof Symbol != "undefined" && Symbol.toStringTag && Object.defineProperty(t2, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(t2, "__esModule", { value: true });
+    } }, e = {};
+    t.r(e), t.d(e, { XMLBuilder: () => ft, XMLParser: () => st, XMLValidator: () => mt });
+    const n = ":A-Za-z_\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02FF\\u0370-\\u037D\\u037F-\\u1FFF\\u200C-\\u200D\\u2070-\\u218F\\u2C00-\\u2FEF\\u3001-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFFD", i = new RegExp("^[" + n + "][" + n + "\\-.\\d\\u00B7\\u0300-\\u036F\\u203F-\\u2040]*$");
+    function s(t2, e2) {
+      const n2 = [];
+      let i2 = e2.exec(t2);
+      for (;i2; ) {
+        const s2 = [];
+        s2.startIndex = e2.lastIndex - i2[0].length;
+        const r2 = i2.length;
+        for (let t3 = 0;t3 < r2; t3++)
+          s2.push(i2[t3]);
+        n2.push(s2), i2 = e2.exec(t2);
+      }
+      return n2;
+    }
+    const r = function(t2) {
+      return !(i.exec(t2) == null);
+    }, o = { allowBooleanAttributes: false, unpairedTags: [] };
+    function a(t2, e2) {
+      e2 = Object.assign({}, o, e2);
+      const n2 = [];
+      let i2 = false, s2 = false;
+      t2[0] === "\uFEFF" && (t2 = t2.substr(1));
+      for (let o2 = 0;o2 < t2.length; o2++)
+        if (t2[o2] === "<" && t2[o2 + 1] === "?") {
+          if (o2 += 2, o2 = u(t2, o2), o2.err)
+            return o2;
+        } else {
+          if (t2[o2] !== "<") {
+            if (l(t2[o2]))
+              continue;
+            return x("InvalidChar", "char '" + t2[o2] + "' is not expected.", N(t2, o2));
+          }
+          {
+            let a2 = o2;
+            if (o2++, t2[o2] === "!") {
+              o2 = h(t2, o2);
+              continue;
+            }
+            {
+              let d2 = false;
+              t2[o2] === "/" && (d2 = true, o2++);
+              let f2 = "";
+              for (;o2 < t2.length && t2[o2] !== ">" && t2[o2] !== " " && t2[o2] !== "\t" && t2[o2] !== `
+` && t2[o2] !== "\r"; o2++)
+                f2 += t2[o2];
+              if (f2 = f2.trim(), f2[f2.length - 1] === "/" && (f2 = f2.substring(0, f2.length - 1), o2--), !r(f2)) {
+                let e3;
+                return e3 = f2.trim().length === 0 ? "Invalid space after '<'." : "Tag '" + f2 + "' is an invalid name.", x("InvalidTag", e3, N(t2, o2));
+              }
+              const p2 = c(t2, o2);
+              if (p2 === false)
+                return x("InvalidAttr", "Attributes for '" + f2 + "' have open quote.", N(t2, o2));
+              let b2 = p2.value;
+              if (o2 = p2.index, b2[b2.length - 1] === "/") {
+                const n3 = o2 - b2.length;
+                b2 = b2.substring(0, b2.length - 1);
+                const s3 = g(b2, e2);
+                if (s3 !== true)
+                  return x(s3.err.code, s3.err.msg, N(t2, n3 + s3.err.line));
+                i2 = true;
+              } else if (d2) {
+                if (!p2.tagClosed)
+                  return x("InvalidTag", "Closing tag '" + f2 + "' doesn't have proper closing.", N(t2, o2));
+                if (b2.trim().length > 0)
+                  return x("InvalidTag", "Closing tag '" + f2 + "' can't have attributes or invalid starting.", N(t2, a2));
+                if (n2.length === 0)
+                  return x("InvalidTag", "Closing tag '" + f2 + "' has not been opened.", N(t2, a2));
+                {
+                  const e3 = n2.pop();
+                  if (f2 !== e3.tagName) {
+                    let n3 = N(t2, e3.tagStartPos);
+                    return x("InvalidTag", "Expected closing tag '" + e3.tagName + "' (opened in line " + n3.line + ", col " + n3.col + ") instead of closing tag '" + f2 + "'.", N(t2, a2));
+                  }
+                  n2.length == 0 && (s2 = true);
+                }
+              } else {
+                const r2 = g(b2, e2);
+                if (r2 !== true)
+                  return x(r2.err.code, r2.err.msg, N(t2, o2 - b2.length + r2.err.line));
+                if (s2 === true)
+                  return x("InvalidXml", "Multiple possible root nodes found.", N(t2, o2));
+                e2.unpairedTags.indexOf(f2) !== -1 || n2.push({ tagName: f2, tagStartPos: a2 }), i2 = true;
+              }
+              for (o2++;o2 < t2.length; o2++)
+                if (t2[o2] === "<") {
+                  if (t2[o2 + 1] === "!") {
+                    o2++, o2 = h(t2, o2);
+                    continue;
+                  }
+                  if (t2[o2 + 1] !== "?")
+                    break;
+                  if (o2 = u(t2, ++o2), o2.err)
+                    return o2;
+                } else if (t2[o2] === "&") {
+                  const e3 = m(t2, o2);
+                  if (e3 == -1)
+                    return x("InvalidChar", "char '&' is not expected.", N(t2, o2));
+                  o2 = e3;
+                } else if (s2 === true && !l(t2[o2]))
+                  return x("InvalidXml", "Extra text at the end", N(t2, o2));
+              t2[o2] === "<" && o2--;
+            }
+          }
+        }
+      return i2 ? n2.length == 1 ? x("InvalidTag", "Unclosed tag '" + n2[0].tagName + "'.", N(t2, n2[0].tagStartPos)) : !(n2.length > 0) || x("InvalidXml", "Invalid '" + JSON.stringify(n2.map((t3) => t3.tagName), null, 4).replace(/\r?\n/g, "") + "' found.", { line: 1, col: 1 }) : x("InvalidXml", "Start tag expected.", 1);
+    }
+    function l(t2) {
+      return t2 === " " || t2 === "\t" || t2 === `
+` || t2 === "\r";
+    }
+    function u(t2, e2) {
+      const n2 = e2;
+      for (;e2 < t2.length; e2++)
+        if (t2[e2] != "?" && t2[e2] != " ")
+          ;
+        else {
+          const i2 = t2.substr(n2, e2 - n2);
+          if (e2 > 5 && i2 === "xml")
+            return x("InvalidXml", "XML declaration allowed only at the start of the document.", N(t2, e2));
+          if (t2[e2] == "?" && t2[e2 + 1] == ">") {
+            e2++;
+            break;
+          }
+        }
+      return e2;
+    }
+    function h(t2, e2) {
+      if (t2.length > e2 + 5 && t2[e2 + 1] === "-" && t2[e2 + 2] === "-") {
+        for (e2 += 3;e2 < t2.length; e2++)
+          if (t2[e2] === "-" && t2[e2 + 1] === "-" && t2[e2 + 2] === ">") {
+            e2 += 2;
+            break;
+          }
+      } else if (t2.length > e2 + 8 && t2[e2 + 1] === "D" && t2[e2 + 2] === "O" && t2[e2 + 3] === "C" && t2[e2 + 4] === "T" && t2[e2 + 5] === "Y" && t2[e2 + 6] === "P" && t2[e2 + 7] === "E") {
+        let n2 = 1;
+        for (e2 += 8;e2 < t2.length; e2++)
+          if (t2[e2] === "<")
+            n2++;
+          else if (t2[e2] === ">" && (n2--, n2 === 0))
+            break;
+      } else if (t2.length > e2 + 9 && t2[e2 + 1] === "[" && t2[e2 + 2] === "C" && t2[e2 + 3] === "D" && t2[e2 + 4] === "A" && t2[e2 + 5] === "T" && t2[e2 + 6] === "A" && t2[e2 + 7] === "[") {
+        for (e2 += 8;e2 < t2.length; e2++)
+          if (t2[e2] === "]" && t2[e2 + 1] === "]" && t2[e2 + 2] === ">") {
+            e2 += 2;
+            break;
+          }
+      }
+      return e2;
+    }
+    const d = '"', f = "'";
+    function c(t2, e2) {
+      let n2 = "", i2 = "", s2 = false;
+      for (;e2 < t2.length; e2++) {
+        if (t2[e2] === d || t2[e2] === f)
+          i2 === "" ? i2 = t2[e2] : i2 !== t2[e2] || (i2 = "");
+        else if (t2[e2] === ">" && i2 === "") {
+          s2 = true;
+          break;
+        }
+        n2 += t2[e2];
+      }
+      return i2 === "" && { value: n2, index: e2, tagClosed: s2 };
+    }
+    const p = new RegExp(`(\\s*)([^\\s=]+)(\\s*=)?(\\s*(['"])(([\\s\\S])*?)\\5)?`, "g");
+    function g(t2, e2) {
+      const n2 = s(t2, p), i2 = {};
+      for (let t3 = 0;t3 < n2.length; t3++) {
+        if (n2[t3][1].length === 0)
+          return x("InvalidAttr", "Attribute '" + n2[t3][2] + "' has no space in starting.", E(n2[t3]));
+        if (n2[t3][3] !== undefined && n2[t3][4] === undefined)
+          return x("InvalidAttr", "Attribute '" + n2[t3][2] + "' is without value.", E(n2[t3]));
+        if (n2[t3][3] === undefined && !e2.allowBooleanAttributes)
+          return x("InvalidAttr", "boolean attribute '" + n2[t3][2] + "' is not allowed.", E(n2[t3]));
+        const s2 = n2[t3][2];
+        if (!b(s2))
+          return x("InvalidAttr", "Attribute '" + s2 + "' is an invalid name.", E(n2[t3]));
+        if (i2.hasOwnProperty(s2))
+          return x("InvalidAttr", "Attribute '" + s2 + "' is repeated.", E(n2[t3]));
+        i2[s2] = 1;
+      }
+      return true;
+    }
+    function m(t2, e2) {
+      if (t2[++e2] === ";")
+        return -1;
+      if (t2[e2] === "#")
+        return function(t3, e3) {
+          let n3 = /\d/;
+          for (t3[e3] === "x" && (e3++, n3 = /[\da-fA-F]/);e3 < t3.length; e3++) {
+            if (t3[e3] === ";")
+              return e3;
+            if (!t3[e3].match(n3))
+              break;
+          }
+          return -1;
+        }(t2, ++e2);
+      let n2 = 0;
+      for (;e2 < t2.length; e2++, n2++)
+        if (!(t2[e2].match(/\w/) && n2 < 20)) {
+          if (t2[e2] === ";")
+            break;
+          return -1;
+        }
+      return e2;
+    }
+    function x(t2, e2, n2) {
+      return { err: { code: t2, msg: e2, line: n2.line || n2, col: n2.col } };
+    }
+    function b(t2) {
+      return r(t2);
+    }
+    function N(t2, e2) {
+      const n2 = t2.substring(0, e2).split(/\r?\n/);
+      return { line: n2.length, col: n2[n2.length - 1].length + 1 };
+    }
+    function E(t2) {
+      return t2.startIndex + t2[1].length;
+    }
+    const v = { preserveOrder: false, attributeNamePrefix: "@_", attributesGroupName: false, textNodeName: "#text", ignoreAttributes: true, removeNSPrefix: false, allowBooleanAttributes: false, parseTagValue: true, parseAttributeValue: false, trimValues: true, cdataPropName: false, numberParseOptions: { hex: true, leadingZeros: true, eNotation: true }, tagValueProcessor: function(t2, e2) {
+      return e2;
+    }, attributeValueProcessor: function(t2, e2) {
+      return e2;
+    }, stopNodes: [], alwaysCreateTextNode: false, isArray: () => false, commentPropName: false, unpairedTags: [], processEntities: true, htmlEntities: false, ignoreDeclaration: false, ignorePiTags: false, transformTagName: false, transformAttributeName: false, updateTag: function(t2, e2, n2) {
+      return t2;
+    }, captureMetaData: false };
+    let y;
+    y = typeof Symbol != "function" ? "@@xmlMetadata" : Symbol("XML Node Metadata");
+
+    class T {
+      constructor(t2) {
+        this.tagname = t2, this.child = [], this[":@"] = {};
+      }
+      add(t2, e2) {
+        t2 === "__proto__" && (t2 = "#__proto__"), this.child.push({ [t2]: e2 });
+      }
+      addChild(t2, e2) {
+        t2.tagname === "__proto__" && (t2.tagname = "#__proto__"), t2[":@"] && Object.keys(t2[":@"]).length > 0 ? this.child.push({ [t2.tagname]: t2.child, ":@": t2[":@"] }) : this.child.push({ [t2.tagname]: t2.child }), e2 !== undefined && (this.child[this.child.length - 1][y] = { startIndex: e2 });
+      }
+      static getMetaDataSymbol() {
+        return y;
+      }
+    }
+    function w(t2, e2) {
+      const n2 = {};
+      if (t2[e2 + 3] !== "O" || t2[e2 + 4] !== "C" || t2[e2 + 5] !== "T" || t2[e2 + 6] !== "Y" || t2[e2 + 7] !== "P" || t2[e2 + 8] !== "E")
+        throw new Error("Invalid Tag instead of DOCTYPE");
+      {
+        e2 += 9;
+        let i2 = 1, s2 = false, r2 = false, o2 = "";
+        for (;e2 < t2.length; e2++)
+          if (t2[e2] !== "<" || r2)
+            if (t2[e2] === ">") {
+              if (r2 ? t2[e2 - 1] === "-" && t2[e2 - 2] === "-" && (r2 = false, i2--) : i2--, i2 === 0)
+                break;
+            } else
+              t2[e2] === "[" ? s2 = true : o2 += t2[e2];
+          else {
+            if (s2 && C(t2, "!ENTITY", e2)) {
+              let i3, s3;
+              e2 += 7, [i3, s3, e2] = O(t2, e2 + 1), s3.indexOf("&") === -1 && (n2[i3] = { regx: RegExp(`&${i3};`, "g"), val: s3 });
+            } else if (s2 && C(t2, "!ELEMENT", e2)) {
+              e2 += 8;
+              const { index: n3 } = S(t2, e2 + 1);
+              e2 = n3;
+            } else if (s2 && C(t2, "!ATTLIST", e2))
+              e2 += 8;
+            else if (s2 && C(t2, "!NOTATION", e2)) {
+              e2 += 9;
+              const { index: n3 } = A(t2, e2 + 1);
+              e2 = n3;
+            } else {
+              if (!C(t2, "!--", e2))
+                throw new Error("Invalid DOCTYPE");
+              r2 = true;
+            }
+            i2++, o2 = "";
+          }
+        if (i2 !== 0)
+          throw new Error("Unclosed DOCTYPE");
+      }
+      return { entities: n2, i: e2 };
+    }
+    const P = (t2, e2) => {
+      for (;e2 < t2.length && /\s/.test(t2[e2]); )
+        e2++;
+      return e2;
+    };
+    function O(t2, e2) {
+      e2 = P(t2, e2);
+      let n2 = "";
+      for (;e2 < t2.length && !/\s/.test(t2[e2]) && t2[e2] !== '"' && t2[e2] !== "'"; )
+        n2 += t2[e2], e2++;
+      if ($(n2), e2 = P(t2, e2), t2.substring(e2, e2 + 6).toUpperCase() === "SYSTEM")
+        throw new Error("External entities are not supported");
+      if (t2[e2] === "%")
+        throw new Error("Parameter entities are not supported");
+      let i2 = "";
+      return [e2, i2] = I(t2, e2, "entity"), [n2, i2, --e2];
+    }
+    function A(t2, e2) {
+      e2 = P(t2, e2);
+      let n2 = "";
+      for (;e2 < t2.length && !/\s/.test(t2[e2]); )
+        n2 += t2[e2], e2++;
+      $(n2), e2 = P(t2, e2);
+      const i2 = t2.substring(e2, e2 + 6).toUpperCase();
+      if (i2 !== "SYSTEM" && i2 !== "PUBLIC")
+        throw new Error(`Expected SYSTEM or PUBLIC, found "${i2}"`);
+      e2 += i2.length, e2 = P(t2, e2);
+      let s2 = null, r2 = null;
+      if (i2 === "PUBLIC")
+        [e2, s2] = I(t2, e2, "publicIdentifier"), t2[e2 = P(t2, e2)] !== '"' && t2[e2] !== "'" || ([e2, r2] = I(t2, e2, "systemIdentifier"));
+      else if (i2 === "SYSTEM" && ([e2, r2] = I(t2, e2, "systemIdentifier"), !r2))
+        throw new Error("Missing mandatory system identifier for SYSTEM notation");
+      return { notationName: n2, publicIdentifier: s2, systemIdentifier: r2, index: --e2 };
+    }
+    function I(t2, e2, n2) {
+      let i2 = "";
+      const s2 = t2[e2];
+      if (s2 !== '"' && s2 !== "'")
+        throw new Error(`Expected quoted string, found "${s2}"`);
+      for (e2++;e2 < t2.length && t2[e2] !== s2; )
+        i2 += t2[e2], e2++;
+      if (t2[e2] !== s2)
+        throw new Error(`Unterminated ${n2} value`);
+      return [++e2, i2];
+    }
+    function S(t2, e2) {
+      e2 = P(t2, e2);
+      let n2 = "";
+      for (;e2 < t2.length && !/\s/.test(t2[e2]); )
+        n2 += t2[e2], e2++;
+      if (!$(n2))
+        throw new Error(`Invalid element name: "${n2}"`);
+      let i2 = "";
+      if (t2[e2 = P(t2, e2)] === "E" && C(t2, "MPTY", e2))
+        e2 += 6;
+      else if (t2[e2] === "A" && C(t2, "NY", e2))
+        e2 += 4;
+      else {
+        if (t2[e2] !== "(")
+          throw new Error(`Invalid Element Expression, found "${t2[e2]}"`);
+        for (e2++;e2 < t2.length && t2[e2] !== ")"; )
+          i2 += t2[e2], e2++;
+        if (t2[e2] !== ")")
+          throw new Error("Unterminated content model");
+      }
+      return { elementName: n2, contentModel: i2.trim(), index: e2 };
+    }
+    function C(t2, e2, n2) {
+      for (let i2 = 0;i2 < e2.length; i2++)
+        if (e2[i2] !== t2[n2 + i2 + 1])
+          return false;
+      return true;
+    }
+    function $(t2) {
+      if (r(t2))
+        return t2;
+      throw new Error(`Invalid entity name ${t2}`);
+    }
+    const j = /^[-+]?0x[a-fA-F0-9]+$/, D = /^([\-\+])?(0*)([0-9]*(\.[0-9]*)?)$/, V = { hex: true, leadingZeros: true, decimalPoint: ".", eNotation: true };
+    const M = /^([-+])?(0*)(\d*(\.\d*)?[eE][-\+]?\d+)$/;
+    function _2(t2) {
+      return typeof t2 == "function" ? t2 : Array.isArray(t2) ? (e2) => {
+        for (const n2 of t2) {
+          if (typeof n2 == "string" && e2 === n2)
+            return true;
+          if (n2 instanceof RegExp && n2.test(e2))
+            return true;
+        }
+      } : () => false;
+    }
+
+    class k {
+      constructor(t2) {
+        this.options = t2, this.currentNode = null, this.tagsNodeStack = [], this.docTypeEntities = {}, this.lastEntities = { apos: { regex: /&(apos|#39|#x27);/g, val: "'" }, gt: { regex: /&(gt|#62|#x3E);/g, val: ">" }, lt: { regex: /&(lt|#60|#x3C);/g, val: "<" }, quot: { regex: /&(quot|#34|#x22);/g, val: '"' } }, this.ampEntity = { regex: /&(amp|#38|#x26);/g, val: "&" }, this.htmlEntities = { space: { regex: /&(nbsp|#160);/g, val: " " }, cent: { regex: /&(cent|#162);/g, val: "¢" }, pound: { regex: /&(pound|#163);/g, val: "£" }, yen: { regex: /&(yen|#165);/g, val: "¥" }, euro: { regex: /&(euro|#8364);/g, val: "€" }, copyright: { regex: /&(copy|#169);/g, val: "©" }, reg: { regex: /&(reg|#174);/g, val: "®" }, inr: { regex: /&(inr|#8377);/g, val: "₹" }, num_dec: { regex: /&#([0-9]{1,7});/g, val: (t3, e2) => String.fromCodePoint(Number.parseInt(e2, 10)) }, num_hex: { regex: /&#x([0-9a-fA-F]{1,6});/g, val: (t3, e2) => String.fromCodePoint(Number.parseInt(e2, 16)) } }, this.addExternalEntities = F, this.parseXml = X, this.parseTextData = L, this.resolveNameSpace = B, this.buildAttributesMap = G, this.isItStopNode = Z, this.replaceEntitiesValue = R, this.readStopNodeData = J, this.saveTextToParentTag = q, this.addChild = Y, this.ignoreAttributesFn = _2(this.options.ignoreAttributes);
+      }
+    }
+    function F(t2) {
+      const e2 = Object.keys(t2);
+      for (let n2 = 0;n2 < e2.length; n2++) {
+        const i2 = e2[n2];
+        this.lastEntities[i2] = { regex: new RegExp("&" + i2 + ";", "g"), val: t2[i2] };
+      }
+    }
+    function L(t2, e2, n2, i2, s2, r2, o2) {
+      if (t2 !== undefined && (this.options.trimValues && !i2 && (t2 = t2.trim()), t2.length > 0)) {
+        o2 || (t2 = this.replaceEntitiesValue(t2));
+        const i3 = this.options.tagValueProcessor(e2, t2, n2, s2, r2);
+        return i3 == null ? t2 : typeof i3 != typeof t2 || i3 !== t2 ? i3 : this.options.trimValues || t2.trim() === t2 ? H(t2, this.options.parseTagValue, this.options.numberParseOptions) : t2;
+      }
+    }
+    function B(t2) {
+      if (this.options.removeNSPrefix) {
+        const e2 = t2.split(":"), n2 = t2.charAt(0) === "/" ? "/" : "";
+        if (e2[0] === "xmlns")
+          return "";
+        e2.length === 2 && (t2 = n2 + e2[1]);
+      }
+      return t2;
+    }
+    const U = new RegExp(`([^\\s=]+)\\s*(=\\s*(['"])([\\s\\S]*?)\\3)?`, "gm");
+    function G(t2, e2, n2) {
+      if (this.options.ignoreAttributes !== true && typeof t2 == "string") {
+        const n3 = s(t2, U), i2 = n3.length, r2 = {};
+        for (let t3 = 0;t3 < i2; t3++) {
+          const i3 = this.resolveNameSpace(n3[t3][1]);
+          if (this.ignoreAttributesFn(i3, e2))
+            continue;
+          let s2 = n3[t3][4], o2 = this.options.attributeNamePrefix + i3;
+          if (i3.length)
+            if (this.options.transformAttributeName && (o2 = this.options.transformAttributeName(o2)), o2 === "__proto__" && (o2 = "#__proto__"), s2 !== undefined) {
+              this.options.trimValues && (s2 = s2.trim()), s2 = this.replaceEntitiesValue(s2);
+              const t4 = this.options.attributeValueProcessor(i3, s2, e2);
+              r2[o2] = t4 == null ? s2 : typeof t4 != typeof s2 || t4 !== s2 ? t4 : H(s2, this.options.parseAttributeValue, this.options.numberParseOptions);
+            } else
+              this.options.allowBooleanAttributes && (r2[o2] = true);
+        }
+        if (!Object.keys(r2).length)
+          return;
+        if (this.options.attributesGroupName) {
+          const t3 = {};
+          return t3[this.options.attributesGroupName] = r2, t3;
+        }
+        return r2;
+      }
+    }
+    const X = function(t2) {
+      t2 = t2.replace(/\r\n?/g, `
+`);
+      const e2 = new T("!xml");
+      let n2 = e2, i2 = "", s2 = "";
+      for (let r2 = 0;r2 < t2.length; r2++)
+        if (t2[r2] === "<")
+          if (t2[r2 + 1] === "/") {
+            const e3 = W(t2, ">", r2, "Closing Tag is not closed.");
+            let o2 = t2.substring(r2 + 2, e3).trim();
+            if (this.options.removeNSPrefix) {
+              const t3 = o2.indexOf(":");
+              t3 !== -1 && (o2 = o2.substr(t3 + 1));
+            }
+            this.options.transformTagName && (o2 = this.options.transformTagName(o2)), n2 && (i2 = this.saveTextToParentTag(i2, n2, s2));
+            const a2 = s2.substring(s2.lastIndexOf(".") + 1);
+            if (o2 && this.options.unpairedTags.indexOf(o2) !== -1)
+              throw new Error(`Unpaired tag can not be used as closing tag: </${o2}>`);
+            let l2 = 0;
+            a2 && this.options.unpairedTags.indexOf(a2) !== -1 ? (l2 = s2.lastIndexOf(".", s2.lastIndexOf(".") - 1), this.tagsNodeStack.pop()) : l2 = s2.lastIndexOf("."), s2 = s2.substring(0, l2), n2 = this.tagsNodeStack.pop(), i2 = "", r2 = e3;
+          } else if (t2[r2 + 1] === "?") {
+            let e3 = z(t2, r2, false, "?>");
+            if (!e3)
+              throw new Error("Pi Tag is not closed.");
+            if (i2 = this.saveTextToParentTag(i2, n2, s2), this.options.ignoreDeclaration && e3.tagName === "?xml" || this.options.ignorePiTags)
+              ;
+            else {
+              const t3 = new T(e3.tagName);
+              t3.add(this.options.textNodeName, ""), e3.tagName !== e3.tagExp && e3.attrExpPresent && (t3[":@"] = this.buildAttributesMap(e3.tagExp, s2, e3.tagName)), this.addChild(n2, t3, s2, r2);
+            }
+            r2 = e3.closeIndex + 1;
+          } else if (t2.substr(r2 + 1, 3) === "!--") {
+            const e3 = W(t2, "-->", r2 + 4, "Comment is not closed.");
+            if (this.options.commentPropName) {
+              const o2 = t2.substring(r2 + 4, e3 - 2);
+              i2 = this.saveTextToParentTag(i2, n2, s2), n2.add(this.options.commentPropName, [{ [this.options.textNodeName]: o2 }]);
+            }
+            r2 = e3;
+          } else if (t2.substr(r2 + 1, 2) === "!D") {
+            const e3 = w(t2, r2);
+            this.docTypeEntities = e3.entities, r2 = e3.i;
+          } else if (t2.substr(r2 + 1, 2) === "![") {
+            const e3 = W(t2, "]]>", r2, "CDATA is not closed.") - 2, o2 = t2.substring(r2 + 9, e3);
+            i2 = this.saveTextToParentTag(i2, n2, s2);
+            let a2 = this.parseTextData(o2, n2.tagname, s2, true, false, true, true);
+            a2 == null && (a2 = ""), this.options.cdataPropName ? n2.add(this.options.cdataPropName, [{ [this.options.textNodeName]: o2 }]) : n2.add(this.options.textNodeName, a2), r2 = e3 + 2;
+          } else {
+            let o2 = z(t2, r2, this.options.removeNSPrefix), a2 = o2.tagName;
+            const l2 = o2.rawTagName;
+            let { tagExp: u2, attrExpPresent: h2, closeIndex: d2 } = o2;
+            this.options.transformTagName && (a2 = this.options.transformTagName(a2)), n2 && i2 && n2.tagname !== "!xml" && (i2 = this.saveTextToParentTag(i2, n2, s2, false));
+            const f2 = n2;
+            f2 && this.options.unpairedTags.indexOf(f2.tagname) !== -1 && (n2 = this.tagsNodeStack.pop(), s2 = s2.substring(0, s2.lastIndexOf("."))), a2 !== e2.tagname && (s2 += s2 ? "." + a2 : a2);
+            const c2 = r2;
+            if (this.isItStopNode(this.options.stopNodes, s2, a2)) {
+              let e3 = "";
+              if (u2.length > 0 && u2.lastIndexOf("/") === u2.length - 1)
+                a2[a2.length - 1] === "/" ? (a2 = a2.substr(0, a2.length - 1), s2 = s2.substr(0, s2.length - 1), u2 = a2) : u2 = u2.substr(0, u2.length - 1), r2 = o2.closeIndex;
+              else if (this.options.unpairedTags.indexOf(a2) !== -1)
+                r2 = o2.closeIndex;
+              else {
+                const n3 = this.readStopNodeData(t2, l2, d2 + 1);
+                if (!n3)
+                  throw new Error(`Unexpected end of ${l2}`);
+                r2 = n3.i, e3 = n3.tagContent;
+              }
+              const i3 = new T(a2);
+              a2 !== u2 && h2 && (i3[":@"] = this.buildAttributesMap(u2, s2, a2)), e3 && (e3 = this.parseTextData(e3, a2, s2, true, h2, true, true)), s2 = s2.substr(0, s2.lastIndexOf(".")), i3.add(this.options.textNodeName, e3), this.addChild(n2, i3, s2, c2);
+            } else {
+              if (u2.length > 0 && u2.lastIndexOf("/") === u2.length - 1) {
+                a2[a2.length - 1] === "/" ? (a2 = a2.substr(0, a2.length - 1), s2 = s2.substr(0, s2.length - 1), u2 = a2) : u2 = u2.substr(0, u2.length - 1), this.options.transformTagName && (a2 = this.options.transformTagName(a2));
+                const t3 = new T(a2);
+                a2 !== u2 && h2 && (t3[":@"] = this.buildAttributesMap(u2, s2, a2)), this.addChild(n2, t3, s2, c2), s2 = s2.substr(0, s2.lastIndexOf("."));
+              } else {
+                const t3 = new T(a2);
+                this.tagsNodeStack.push(n2), a2 !== u2 && h2 && (t3[":@"] = this.buildAttributesMap(u2, s2, a2)), this.addChild(n2, t3, s2, c2), n2 = t3;
+              }
+              i2 = "", r2 = d2;
+            }
+          }
+        else
+          i2 += t2[r2];
+      return e2.child;
+    };
+    function Y(t2, e2, n2, i2) {
+      this.options.captureMetaData || (i2 = undefined);
+      const s2 = this.options.updateTag(e2.tagname, n2, e2[":@"]);
+      s2 === false || (typeof s2 == "string" ? (e2.tagname = s2, t2.addChild(e2, i2)) : t2.addChild(e2, i2));
+    }
+    const R = function(t2) {
+      if (this.options.processEntities) {
+        for (let e2 in this.docTypeEntities) {
+          const n2 = this.docTypeEntities[e2];
+          t2 = t2.replace(n2.regx, n2.val);
+        }
+        for (let e2 in this.lastEntities) {
+          const n2 = this.lastEntities[e2];
+          t2 = t2.replace(n2.regex, n2.val);
+        }
+        if (this.options.htmlEntities)
+          for (let e2 in this.htmlEntities) {
+            const n2 = this.htmlEntities[e2];
+            t2 = t2.replace(n2.regex, n2.val);
+          }
+        t2 = t2.replace(this.ampEntity.regex, this.ampEntity.val);
+      }
+      return t2;
+    };
+    function q(t2, e2, n2, i2) {
+      return t2 && (i2 === undefined && (i2 = e2.child.length === 0), (t2 = this.parseTextData(t2, e2.tagname, n2, false, !!e2[":@"] && Object.keys(e2[":@"]).length !== 0, i2)) !== undefined && t2 !== "" && e2.add(this.options.textNodeName, t2), t2 = ""), t2;
+    }
+    function Z(t2, e2, n2) {
+      const i2 = "*." + n2;
+      for (const n3 in t2) {
+        const s2 = t2[n3];
+        if (i2 === s2 || e2 === s2)
+          return true;
+      }
+      return false;
+    }
+    function W(t2, e2, n2, i2) {
+      const s2 = t2.indexOf(e2, n2);
+      if (s2 === -1)
+        throw new Error(i2);
+      return s2 + e2.length - 1;
+    }
+    function z(t2, e2, n2, i2 = ">") {
+      const s2 = function(t3, e3, n3 = ">") {
+        let i3, s3 = "";
+        for (let r3 = e3;r3 < t3.length; r3++) {
+          let e4 = t3[r3];
+          if (i3)
+            e4 === i3 && (i3 = "");
+          else if (e4 === '"' || e4 === "'")
+            i3 = e4;
+          else if (e4 === n3[0]) {
+            if (!n3[1])
+              return { data: s3, index: r3 };
+            if (t3[r3 + 1] === n3[1])
+              return { data: s3, index: r3 };
+          } else
+            e4 === "\t" && (e4 = " ");
+          s3 += e4;
+        }
+      }(t2, e2 + 1, i2);
+      if (!s2)
+        return;
+      let r2 = s2.data;
+      const o2 = s2.index, a2 = r2.search(/\s/);
+      let l2 = r2, u2 = true;
+      a2 !== -1 && (l2 = r2.substring(0, a2), r2 = r2.substring(a2 + 1).trimStart());
+      const h2 = l2;
+      if (n2) {
+        const t3 = l2.indexOf(":");
+        t3 !== -1 && (l2 = l2.substr(t3 + 1), u2 = l2 !== s2.data.substr(t3 + 1));
+      }
+      return { tagName: l2, tagExp: r2, closeIndex: o2, attrExpPresent: u2, rawTagName: h2 };
+    }
+    function J(t2, e2, n2) {
+      const i2 = n2;
+      let s2 = 1;
+      for (;n2 < t2.length; n2++)
+        if (t2[n2] === "<")
+          if (t2[n2 + 1] === "/") {
+            const r2 = W(t2, ">", n2, `${e2} is not closed`);
+            if (t2.substring(n2 + 2, r2).trim() === e2 && (s2--, s2 === 0))
+              return { tagContent: t2.substring(i2, n2), i: r2 };
+            n2 = r2;
+          } else if (t2[n2 + 1] === "?")
+            n2 = W(t2, "?>", n2 + 1, "StopNode is not closed.");
+          else if (t2.substr(n2 + 1, 3) === "!--")
+            n2 = W(t2, "-->", n2 + 3, "StopNode is not closed.");
+          else if (t2.substr(n2 + 1, 2) === "![")
+            n2 = W(t2, "]]>", n2, "StopNode is not closed.") - 2;
+          else {
+            const i3 = z(t2, n2, ">");
+            i3 && ((i3 && i3.tagName) === e2 && i3.tagExp[i3.tagExp.length - 1] !== "/" && s2++, n2 = i3.closeIndex);
+          }
+    }
+    function H(t2, e2, n2) {
+      if (e2 && typeof t2 == "string") {
+        const e3 = t2.trim();
+        return e3 === "true" || e3 !== "false" && function(t3, e4 = {}) {
+          if (e4 = Object.assign({}, V, e4), !t3 || typeof t3 != "string")
+            return t3;
+          let n3 = t3.trim();
+          if (e4.skipLike !== undefined && e4.skipLike.test(n3))
+            return t3;
+          if (t3 === "0")
+            return 0;
+          if (e4.hex && j.test(n3))
+            return function(t4) {
+              if (parseInt)
+                return parseInt(t4, 16);
+              if (Number.parseInt)
+                return Number.parseInt(t4, 16);
+              if (window && window.parseInt)
+                return window.parseInt(t4, 16);
+              throw new Error("parseInt, Number.parseInt, window.parseInt are not supported");
+            }(n3);
+          if (n3.search(/.+[eE].+/) !== -1)
+            return function(t4, e5, n4) {
+              if (!n4.eNotation)
+                return t4;
+              const i3 = e5.match(M);
+              if (i3) {
+                let s2 = i3[1] || "";
+                const r2 = i3[3].indexOf("e") === -1 ? "E" : "e", o2 = i3[2], a2 = s2 ? t4[o2.length + 1] === r2 : t4[o2.length] === r2;
+                return o2.length > 1 && a2 ? t4 : o2.length !== 1 || !i3[3].startsWith(`.${r2}`) && i3[3][0] !== r2 ? n4.leadingZeros && !a2 ? (e5 = (i3[1] || "") + i3[3], Number(e5)) : t4 : Number(e5);
+              }
+              return t4;
+            }(t3, n3, e4);
+          {
+            const s2 = D.exec(n3);
+            if (s2) {
+              const r2 = s2[1] || "", o2 = s2[2];
+              let a2 = (i2 = s2[3]) && i2.indexOf(".") !== -1 ? ((i2 = i2.replace(/0+$/, "")) === "." ? i2 = "0" : i2[0] === "." ? i2 = "0" + i2 : i2[i2.length - 1] === "." && (i2 = i2.substring(0, i2.length - 1)), i2) : i2;
+              const l2 = r2 ? t3[o2.length + 1] === "." : t3[o2.length] === ".";
+              if (!e4.leadingZeros && (o2.length > 1 || o2.length === 1 && !l2))
+                return t3;
+              {
+                const i3 = Number(n3), s3 = String(i3);
+                if (i3 === 0 || i3 === -0)
+                  return i3;
+                if (s3.search(/[eE]/) !== -1)
+                  return e4.eNotation ? i3 : t3;
+                if (n3.indexOf(".") !== -1)
+                  return s3 === "0" || s3 === a2 || s3 === `${r2}${a2}` ? i3 : t3;
+                let l3 = o2 ? a2 : n3;
+                return o2 ? l3 === s3 || r2 + l3 === s3 ? i3 : t3 : l3 === s3 || l3 === r2 + s3 ? i3 : t3;
+              }
+            }
+            return t3;
+          }
+          var i2;
+        }(t2, n2);
+      }
+      return t2 !== undefined ? t2 : "";
+    }
+    const K = T.getMetaDataSymbol();
+    function Q(t2, e2) {
+      return tt(t2, e2);
+    }
+    function tt(t2, e2, n2) {
+      let i2;
+      const s2 = {};
+      for (let r2 = 0;r2 < t2.length; r2++) {
+        const o2 = t2[r2], a2 = et(o2);
+        let l2 = "";
+        if (l2 = n2 === undefined ? a2 : n2 + "." + a2, a2 === e2.textNodeName)
+          i2 === undefined ? i2 = o2[a2] : i2 += "" + o2[a2];
+        else {
+          if (a2 === undefined)
+            continue;
+          if (o2[a2]) {
+            let t3 = tt(o2[a2], e2, l2);
+            const n3 = it(t3, e2);
+            o2[K] !== undefined && (t3[K] = o2[K]), o2[":@"] ? nt(t3, o2[":@"], l2, e2) : Object.keys(t3).length !== 1 || t3[e2.textNodeName] === undefined || e2.alwaysCreateTextNode ? Object.keys(t3).length === 0 && (e2.alwaysCreateTextNode ? t3[e2.textNodeName] = "" : t3 = "") : t3 = t3[e2.textNodeName], s2[a2] !== undefined && s2.hasOwnProperty(a2) ? (Array.isArray(s2[a2]) || (s2[a2] = [s2[a2]]), s2[a2].push(t3)) : e2.isArray(a2, l2, n3) ? s2[a2] = [t3] : s2[a2] = t3;
+          }
+        }
+      }
+      return typeof i2 == "string" ? i2.length > 0 && (s2[e2.textNodeName] = i2) : i2 !== undefined && (s2[e2.textNodeName] = i2), s2;
+    }
+    function et(t2) {
+      const e2 = Object.keys(t2);
+      for (let t3 = 0;t3 < e2.length; t3++) {
+        const n2 = e2[t3];
+        if (n2 !== ":@")
+          return n2;
+      }
+    }
+    function nt(t2, e2, n2, i2) {
+      if (e2) {
+        const s2 = Object.keys(e2), r2 = s2.length;
+        for (let o2 = 0;o2 < r2; o2++) {
+          const r3 = s2[o2];
+          i2.isArray(r3, n2 + "." + r3, true, true) ? t2[r3] = [e2[r3]] : t2[r3] = e2[r3];
+        }
+      }
+    }
+    function it(t2, e2) {
+      const { textNodeName: n2 } = e2, i2 = Object.keys(t2).length;
+      return i2 === 0 || !(i2 !== 1 || !t2[n2] && typeof t2[n2] != "boolean" && t2[n2] !== 0);
+    }
+
+    class st {
+      constructor(t2) {
+        this.externalEntities = {}, this.options = function(t3) {
+          return Object.assign({}, v, t3);
+        }(t2);
+      }
+      parse(t2, e2) {
+        if (typeof t2 == "string")
+          ;
+        else {
+          if (!t2.toString)
+            throw new Error("XML data is accepted in String or Bytes[] form.");
+          t2 = t2.toString();
+        }
+        if (e2) {
+          e2 === true && (e2 = {});
+          const n3 = a(t2, e2);
+          if (n3 !== true)
+            throw Error(`${n3.err.msg}:${n3.err.line}:${n3.err.col}`);
+        }
+        const n2 = new k(this.options);
+        n2.addExternalEntities(this.externalEntities);
+        const i2 = n2.parseXml(t2);
+        return this.options.preserveOrder || i2 === undefined ? i2 : Q(i2, this.options);
+      }
+      addEntity(t2, e2) {
+        if (e2.indexOf("&") !== -1)
+          throw new Error("Entity value can't have '&'");
+        if (t2.indexOf("&") !== -1 || t2.indexOf(";") !== -1)
+          throw new Error("An entity must be set without '&' and ';'. Eg. use '#xD' for '&#xD;'");
+        if (e2 === "&")
+          throw new Error("An entity with value '&' is not permitted");
+        this.externalEntities[t2] = e2;
+      }
+      static getMetaDataSymbol() {
+        return T.getMetaDataSymbol();
+      }
+    }
+    function rt(t2, e2) {
+      let n2 = "";
+      return e2.format && e2.indentBy.length > 0 && (n2 = `
+`), ot(t2, e2, "", n2);
+    }
+    function ot(t2, e2, n2, i2) {
+      let s2 = "", r2 = false;
+      for (let o2 = 0;o2 < t2.length; o2++) {
+        const a2 = t2[o2], l2 = at(a2);
+        if (l2 === undefined)
+          continue;
+        let u2 = "";
+        if (u2 = n2.length === 0 ? l2 : `${n2}.${l2}`, l2 === e2.textNodeName) {
+          let t3 = a2[l2];
+          ut(u2, e2) || (t3 = e2.tagValueProcessor(l2, t3), t3 = ht(t3, e2)), r2 && (s2 += i2), s2 += t3, r2 = false;
+          continue;
+        }
+        if (l2 === e2.cdataPropName) {
+          r2 && (s2 += i2), s2 += `<![CDATA[${a2[l2][0][e2.textNodeName]}]]>`, r2 = false;
+          continue;
+        }
+        if (l2 === e2.commentPropName) {
+          s2 += i2 + `<!--${a2[l2][0][e2.textNodeName]}-->`, r2 = true;
+          continue;
+        }
+        if (l2[0] === "?") {
+          const t3 = lt(a2[":@"], e2), n3 = l2 === "?xml" ? "" : i2;
+          let o3 = a2[l2][0][e2.textNodeName];
+          o3 = o3.length !== 0 ? " " + o3 : "", s2 += n3 + `<${l2}${o3}${t3}?>`, r2 = true;
+          continue;
+        }
+        let h2 = i2;
+        h2 !== "" && (h2 += e2.indentBy);
+        const d2 = i2 + `<${l2}${lt(a2[":@"], e2)}`, f2 = ot(a2[l2], e2, u2, h2);
+        e2.unpairedTags.indexOf(l2) !== -1 ? e2.suppressUnpairedNode ? s2 += d2 + ">" : s2 += d2 + "/>" : f2 && f2.length !== 0 || !e2.suppressEmptyNode ? f2 && f2.endsWith(">") ? s2 += d2 + `>${f2}${i2}</${l2}>` : (s2 += d2 + ">", f2 && i2 !== "" && (f2.includes("/>") || f2.includes("</")) ? s2 += i2 + e2.indentBy + f2 + i2 : s2 += f2, s2 += `</${l2}>`) : s2 += d2 + "/>", r2 = true;
+      }
+      return s2;
+    }
+    function at(t2) {
+      const e2 = Object.keys(t2);
+      for (let n2 = 0;n2 < e2.length; n2++) {
+        const i2 = e2[n2];
+        if (t2.hasOwnProperty(i2) && i2 !== ":@")
+          return i2;
+      }
+    }
+    function lt(t2, e2) {
+      let n2 = "";
+      if (t2 && !e2.ignoreAttributes)
+        for (let i2 in t2) {
+          if (!t2.hasOwnProperty(i2))
+            continue;
+          let s2 = e2.attributeValueProcessor(i2, t2[i2]);
+          s2 = ht(s2, e2), s2 === true && e2.suppressBooleanAttributes ? n2 += ` ${i2.substr(e2.attributeNamePrefix.length)}` : n2 += ` ${i2.substr(e2.attributeNamePrefix.length)}="${s2}"`;
+        }
+      return n2;
+    }
+    function ut(t2, e2) {
+      let n2 = (t2 = t2.substr(0, t2.length - e2.textNodeName.length - 1)).substr(t2.lastIndexOf(".") + 1);
+      for (let i2 in e2.stopNodes)
+        if (e2.stopNodes[i2] === t2 || e2.stopNodes[i2] === "*." + n2)
+          return true;
+      return false;
+    }
+    function ht(t2, e2) {
+      if (t2 && t2.length > 0 && e2.processEntities)
+        for (let n2 = 0;n2 < e2.entities.length; n2++) {
+          const i2 = e2.entities[n2];
+          t2 = t2.replace(i2.regex, i2.val);
+        }
+      return t2;
+    }
+    const dt = { attributeNamePrefix: "@_", attributesGroupName: false, textNodeName: "#text", ignoreAttributes: true, cdataPropName: false, format: false, indentBy: "  ", suppressEmptyNode: false, suppressUnpairedNode: true, suppressBooleanAttributes: true, tagValueProcessor: function(t2, e2) {
+      return e2;
+    }, attributeValueProcessor: function(t2, e2) {
+      return e2;
+    }, preserveOrder: false, commentPropName: false, unpairedTags: [], entities: [{ regex: new RegExp("&", "g"), val: "&amp;" }, { regex: new RegExp(">", "g"), val: "&gt;" }, { regex: new RegExp("<", "g"), val: "&lt;" }, { regex: new RegExp("'", "g"), val: "&apos;" }, { regex: new RegExp('"', "g"), val: "&quot;" }], processEntities: true, stopNodes: [], oneListGroup: false };
+    function ft(t2) {
+      this.options = Object.assign({}, dt, t2), this.options.ignoreAttributes === true || this.options.attributesGroupName ? this.isAttribute = function() {
+        return false;
+      } : (this.ignoreAttributesFn = _2(this.options.ignoreAttributes), this.attrPrefixLen = this.options.attributeNamePrefix.length, this.isAttribute = gt), this.processTextOrObjNode = ct, this.options.format ? (this.indentate = pt, this.tagEndChar = `>
+`, this.newLine = `
+`) : (this.indentate = function() {
+        return "";
+      }, this.tagEndChar = ">", this.newLine = "");
+    }
+    function ct(t2, e2, n2, i2) {
+      const s2 = this.j2x(t2, n2 + 1, i2.concat(e2));
+      return t2[this.options.textNodeName] !== undefined && Object.keys(t2).length === 1 ? this.buildTextValNode(t2[this.options.textNodeName], e2, s2.attrStr, n2) : this.buildObjectNode(s2.val, e2, s2.attrStr, n2);
+    }
+    function pt(t2) {
+      return this.options.indentBy.repeat(t2);
+    }
+    function gt(t2) {
+      return !(!t2.startsWith(this.options.attributeNamePrefix) || t2 === this.options.textNodeName) && t2.substr(this.attrPrefixLen);
+    }
+    ft.prototype.build = function(t2) {
+      return this.options.preserveOrder ? rt(t2, this.options) : (Array.isArray(t2) && this.options.arrayNodeName && this.options.arrayNodeName.length > 1 && (t2 = { [this.options.arrayNodeName]: t2 }), this.j2x(t2, 0, []).val);
+    }, ft.prototype.j2x = function(t2, e2, n2) {
+      let i2 = "", s2 = "";
+      const r2 = n2.join(".");
+      for (let o2 in t2)
+        if (Object.prototype.hasOwnProperty.call(t2, o2))
+          if (t2[o2] === undefined)
+            this.isAttribute(o2) && (s2 += "");
+          else if (t2[o2] === null)
+            this.isAttribute(o2) || o2 === this.options.cdataPropName ? s2 += "" : o2[0] === "?" ? s2 += this.indentate(e2) + "<" + o2 + "?" + this.tagEndChar : s2 += this.indentate(e2) + "<" + o2 + "/" + this.tagEndChar;
+          else if (t2[o2] instanceof Date)
+            s2 += this.buildTextValNode(t2[o2], o2, "", e2);
+          else if (typeof t2[o2] != "object") {
+            const n3 = this.isAttribute(o2);
+            if (n3 && !this.ignoreAttributesFn(n3, r2))
+              i2 += this.buildAttrPairStr(n3, "" + t2[o2]);
+            else if (!n3)
+              if (o2 === this.options.textNodeName) {
+                let e3 = this.options.tagValueProcessor(o2, "" + t2[o2]);
+                s2 += this.replaceEntitiesValue(e3);
+              } else
+                s2 += this.buildTextValNode(t2[o2], o2, "", e2);
+          } else if (Array.isArray(t2[o2])) {
+            const i3 = t2[o2].length;
+            let r3 = "", a2 = "";
+            for (let l2 = 0;l2 < i3; l2++) {
+              const i4 = t2[o2][l2];
+              if (i4 === undefined)
+                ;
+              else if (i4 === null)
+                o2[0] === "?" ? s2 += this.indentate(e2) + "<" + o2 + "?" + this.tagEndChar : s2 += this.indentate(e2) + "<" + o2 + "/" + this.tagEndChar;
+              else if (typeof i4 == "object")
+                if (this.options.oneListGroup) {
+                  const t3 = this.j2x(i4, e2 + 1, n2.concat(o2));
+                  r3 += t3.val, this.options.attributesGroupName && i4.hasOwnProperty(this.options.attributesGroupName) && (a2 += t3.attrStr);
+                } else
+                  r3 += this.processTextOrObjNode(i4, o2, e2, n2);
+              else if (this.options.oneListGroup) {
+                let t3 = this.options.tagValueProcessor(o2, i4);
+                t3 = this.replaceEntitiesValue(t3), r3 += t3;
+              } else
+                r3 += this.buildTextValNode(i4, o2, "", e2);
+            }
+            this.options.oneListGroup && (r3 = this.buildObjectNode(r3, o2, a2, e2)), s2 += r3;
+          } else if (this.options.attributesGroupName && o2 === this.options.attributesGroupName) {
+            const e3 = Object.keys(t2[o2]), n3 = e3.length;
+            for (let s3 = 0;s3 < n3; s3++)
+              i2 += this.buildAttrPairStr(e3[s3], "" + t2[o2][e3[s3]]);
+          } else
+            s2 += this.processTextOrObjNode(t2[o2], o2, e2, n2);
+      return { attrStr: i2, val: s2 };
+    }, ft.prototype.buildAttrPairStr = function(t2, e2) {
+      return e2 = this.options.attributeValueProcessor(t2, "" + e2), e2 = this.replaceEntitiesValue(e2), this.options.suppressBooleanAttributes && e2 === "true" ? " " + t2 : " " + t2 + '="' + e2 + '"';
+    }, ft.prototype.buildObjectNode = function(t2, e2, n2, i2) {
+      if (t2 === "")
+        return e2[0] === "?" ? this.indentate(i2) + "<" + e2 + n2 + "?" + this.tagEndChar : this.indentate(i2) + "<" + e2 + n2 + this.closeTag(e2) + this.tagEndChar;
+      {
+        let s2 = "</" + e2 + this.tagEndChar, r2 = "";
+        return e2[0] === "?" && (r2 = "?", s2 = ""), !n2 && n2 !== "" || t2.indexOf("<") !== -1 ? this.options.commentPropName !== false && e2 === this.options.commentPropName && r2.length === 0 ? this.indentate(i2) + `<!--${t2}-->` + this.newLine : this.indentate(i2) + "<" + e2 + n2 + r2 + this.tagEndChar + t2 + this.indentate(i2) + s2 : this.indentate(i2) + "<" + e2 + n2 + r2 + ">" + t2 + s2;
+      }
+    }, ft.prototype.closeTag = function(t2) {
+      let e2 = "";
+      return this.options.unpairedTags.indexOf(t2) !== -1 ? this.options.suppressUnpairedNode || (e2 = "/") : e2 = this.options.suppressEmptyNode ? "/" : `></${t2}`, e2;
+    }, ft.prototype.buildTextValNode = function(t2, e2, n2, i2) {
+      if (this.options.cdataPropName !== false && e2 === this.options.cdataPropName)
+        return this.indentate(i2) + `<![CDATA[${t2}]]>` + this.newLine;
+      if (this.options.commentPropName !== false && e2 === this.options.commentPropName)
+        return this.indentate(i2) + `<!--${t2}-->` + this.newLine;
+      if (e2[0] === "?")
+        return this.indentate(i2) + "<" + e2 + n2 + "?" + this.tagEndChar;
+      {
+        let s2 = this.options.tagValueProcessor(e2, t2);
+        return s2 = this.replaceEntitiesValue(s2), s2 === "" ? this.indentate(i2) + "<" + e2 + n2 + this.closeTag(e2) + this.tagEndChar : this.indentate(i2) + "<" + e2 + n2 + ">" + s2 + "</" + e2 + this.tagEndChar;
+      }
+    }, ft.prototype.replaceEntitiesValue = function(t2) {
+      if (t2 && t2.length > 0 && this.options.processEntities)
+        for (let e2 = 0;e2 < this.options.entities.length; e2++) {
+          const n2 = this.options.entities[e2];
+          t2 = t2.replace(n2.regex, n2.val);
+        }
+      return t2;
+    };
+    const mt = { validate: a };
+    module.exports = e;
+  })();
 });
 
 // ../node_modules/@azure/core-xml/dist/commonjs/xml.common.js
@@ -35138,7 +34638,7 @@ var require_xml = __commonJS((exports) => {
     return Object.assign(Object.assign({}, getCommonOptions(options)), { attributeNamePrefix: "@_", format: true, suppressEmptyNode: true, indentBy: "", rootNodeName: (_a = options.rootName) !== null && _a !== undefined ? _a : "root", cdataPropName: (_b = options.cdataPropName) !== null && _b !== undefined ? _b : "__cdata" });
   }
   function getParserOptions(options = {}) {
-    return Object.assign(Object.assign({}, getCommonOptions(options)), { parseAttributeValue: false, parseTagValue: false, attributeNamePrefix: "", stopNodes: options.stopNodes, processEntities: true });
+    return Object.assign(Object.assign({}, getCommonOptions(options)), { parseAttributeValue: false, parseTagValue: false, attributeNamePrefix: "", stopNodes: options.stopNodes, processEntities: true, trimValues: false });
   }
   function stringifyXML(obj, opts = {}) {
     const parserOptions = getSerializerOptions(opts);
@@ -35171,7 +34671,7 @@ var require_xml = __commonJS((exports) => {
 });
 
 // ../node_modules/@azure/core-xml/dist/commonjs/index.js
-var require_commonjs11 = __commonJS((exports) => {
+var require_commonjs12 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.XML_CHARKEY = exports.XML_ATTRKEY = exports.parseXML = exports.stringifyXML = undefined;
   var xml_js_1 = require_xml();
@@ -35190,28 +34690,119 @@ var require_commonjs11 = __commonJS((exports) => {
   } });
 });
 
-// ../node_modules/@azure/core-lro/dist/commonjs/logger.js
-var require_logger = __commonJS((exports) => {
+// ../node_modules/@azure/core-lro/node_modules/@azure/abort-controller/dist/index.js
+var require_dist4 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.logger = undefined;
-  var logger_1 = require_commonjs3();
-  exports.logger = (0, logger_1.createClientLogger)("core-lro");
+  var listenersMap = new WeakMap;
+  var abortedMap = new WeakMap;
+
+  class AbortSignal2 {
+    constructor() {
+      this.onabort = null;
+      listenersMap.set(this, []);
+      abortedMap.set(this, false);
+    }
+    get aborted() {
+      if (!abortedMap.has(this)) {
+        throw new TypeError("Expected `this` to be an instance of AbortSignal.");
+      }
+      return abortedMap.get(this);
+    }
+    static get none() {
+      return new AbortSignal2;
+    }
+    addEventListener(_type, listener) {
+      if (!listenersMap.has(this)) {
+        throw new TypeError("Expected `this` to be an instance of AbortSignal.");
+      }
+      const listeners = listenersMap.get(this);
+      listeners.push(listener);
+    }
+    removeEventListener(_type, listener) {
+      if (!listenersMap.has(this)) {
+        throw new TypeError("Expected `this` to be an instance of AbortSignal.");
+      }
+      const listeners = listenersMap.get(this);
+      const index = listeners.indexOf(listener);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    }
+    dispatchEvent(_event) {
+      throw new Error("This is a stub dispatchEvent implementation that should not be used.  It only exists for type-checking purposes.");
+    }
+  }
+  function abortSignal(signal) {
+    if (signal.aborted) {
+      return;
+    }
+    if (signal.onabort) {
+      signal.onabort.call(signal);
+    }
+    const listeners = listenersMap.get(signal);
+    if (listeners) {
+      listeners.slice().forEach((listener) => {
+        listener.call(signal, { type: "abort" });
+      });
+    }
+    abortedMap.set(signal, true);
+  }
+
+  class AbortError extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "AbortError";
+    }
+  }
+
+  class AbortController2 {
+    constructor(parentSignals) {
+      this._signal = new AbortSignal2;
+      if (!parentSignals) {
+        return;
+      }
+      if (!Array.isArray(parentSignals)) {
+        parentSignals = arguments;
+      }
+      for (const parentSignal of parentSignals) {
+        if (parentSignal.aborted) {
+          this.abort();
+        } else {
+          parentSignal.addEventListener("abort", () => {
+            this.abort();
+          });
+        }
+      }
+    }
+    get signal() {
+      return this._signal;
+    }
+    abort() {
+      abortSignal(this._signal);
+    }
+    static timeout(ms) {
+      const signal = new AbortSignal2;
+      const timer = setTimeout(abortSignal, ms, signal);
+      if (typeof timer.unref === "function") {
+        timer.unref();
+      }
+      return signal;
+    }
+  }
+  exports.AbortController = AbortController2;
+  exports.AbortError = AbortError;
+  exports.AbortSignal = AbortSignal2;
 });
 
-// ../node_modules/@azure/core-lro/dist/commonjs/poller/constants.js
-var require_constants7 = __commonJS((exports) => {
+// ../node_modules/@azure/core-lro/dist/index.js
+var require_dist5 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  exports.terminalStates = exports.POLL_INTERVAL_IN_MS = undefined;
-  exports.POLL_INTERVAL_IN_MS = 2000;
-  exports.terminalStates = ["succeeded", "canceled", "failed"];
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/poller/operation.js
-var require_operation = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.pollOperation = exports.initOperation = exports.deserializeState = undefined;
-  var logger_js_1 = require_logger();
-  var constants_js_1 = require_constants7();
+  var logger$1 = require_commonjs4();
+  var abortController = require_dist4();
+  var coreUtil = require_commonjs6();
+  var logger = logger$1.createClientLogger("core-lro");
+  var POLL_INTERVAL_IN_MS = 2000;
+  var terminalStates = ["succeeded", "canceled", "failed"];
   function deserializeState(serializedState) {
     try {
       return JSON.parse(serializedState).state;
@@ -35219,11 +34810,10 @@ var require_operation = __commonJS((exports) => {
       throw new Error(`Unable to deserialize input state: ${serializedState}`);
     }
   }
-  exports.deserializeState = deserializeState;
   function setStateError(inputs) {
-    const { state, stateProxy, isOperationError } = inputs;
+    const { state, stateProxy, isOperationError: isOperationError2 } = inputs;
     return (error) => {
-      if (isOperationError(error)) {
+      if (isOperationError2(error)) {
         stateProxy.setError(state, error);
         stateProxy.setFailed(state);
       }
@@ -35268,7 +34858,7 @@ var require_operation = __commonJS((exports) => {
         const errStr = `The long-running operation has failed${postfix}`;
         stateProxy.setError(state, new Error(errStr));
         stateProxy.setFailed(state);
-        logger_js_1.logger.warning(errStr);
+        logger.warning(errStr);
         break;
       }
       case "canceled": {
@@ -35289,7 +34879,7 @@ var require_operation = __commonJS((exports) => {
     return processResult ? processResult(response, state) : response;
   }
   async function initOperation(inputs) {
-    const { init, stateProxy, processResult, getOperationStatus, withOperationLocation, setErrorAsResult } = inputs;
+    const { init, stateProxy, processResult, getOperationStatus: getOperationStatus2, withOperationLocation, setErrorAsResult } = inputs;
     const { operationLocation, resourceLocation, metadata, response } = await init();
     if (operationLocation)
       withOperationLocation === null || withOperationLocation === undefined || withOperationLocation(operationLocation, false);
@@ -35298,27 +34888,29 @@ var require_operation = __commonJS((exports) => {
       operationLocation,
       resourceLocation
     };
-    logger_js_1.logger.verbose(`LRO: Operation description:`, config);
+    logger.verbose(`LRO: Operation description:`, config);
     const state = stateProxy.initState(config);
-    const status = getOperationStatus({ response, state, operationLocation });
+    const status = getOperationStatus2({ response, state, operationLocation });
     processOperationStatus({ state, status, stateProxy, response, setErrorAsResult, processResult });
     return state;
   }
-  exports.initOperation = initOperation;
   async function pollOperationHelper(inputs) {
-    const { poll, state, stateProxy, operationLocation, getOperationStatus, getResourceLocation, isOperationError, options } = inputs;
+    const { poll, state, stateProxy, operationLocation, getOperationStatus: getOperationStatus2, getResourceLocation: getResourceLocation2, isOperationError: isOperationError2, options } = inputs;
     const response = await poll(operationLocation, options).catch(setStateError({
       state,
       stateProxy,
-      isOperationError
+      isOperationError: isOperationError2
     }));
-    const status = getOperationStatus(response, state);
-    logger_js_1.logger.verbose(`LRO: Status:\n\tPolling from: ${state.config.operationLocation}\n\tOperation status: ${status}\n\tPolling status: ${constants_js_1.terminalStates.includes(status) ? "Stopped" : "Running"}`);
+    const status = getOperationStatus2(response, state);
+    logger.verbose(`LRO: Status:
+	Polling from: ${state.config.operationLocation}
+	Operation status: ${status}
+	Polling status: ${terminalStates.includes(status) ? "Stopped" : "Running"}`);
     if (status === "succeeded") {
-      const resourceLocation = getResourceLocation(response, state);
+      const resourceLocation = getResourceLocation2(response, state);
       if (resourceLocation !== undefined) {
         return {
-          response: await poll(resourceLocation).catch(setStateError({ state, stateProxy, isOperationError })),
+          response: await poll(resourceLocation).catch(setStateError({ state, stateProxy, isOperationError: isOperationError2 })),
           status
         };
       }
@@ -35326,17 +34918,17 @@ var require_operation = __commonJS((exports) => {
     return { response, status };
   }
   async function pollOperation(inputs) {
-    const { poll, state, stateProxy, options, getOperationStatus, getResourceLocation, getOperationLocation, isOperationError, withOperationLocation, getPollingInterval, processResult, getError, updateState, setDelay, isDone, setErrorAsResult } = inputs;
+    const { poll, state, stateProxy, options, getOperationStatus: getOperationStatus2, getResourceLocation: getResourceLocation2, getOperationLocation: getOperationLocation2, isOperationError: isOperationError2, withOperationLocation, getPollingInterval, processResult, getError, updateState, setDelay, isDone, setErrorAsResult } = inputs;
     const { operationLocation } = state.config;
     if (operationLocation !== undefined) {
       const { response, status } = await pollOperationHelper({
         poll,
-        getOperationStatus,
+        getOperationStatus: getOperationStatus2,
         state,
         stateProxy,
         operationLocation,
-        getResourceLocation,
-        isOperationError,
+        getResourceLocation: getResourceLocation2,
+        isOperationError: isOperationError2,
         options
       });
       processOperationStatus({
@@ -35349,11 +34941,11 @@ var require_operation = __commonJS((exports) => {
         getError,
         setErrorAsResult
       });
-      if (!constants_js_1.terminalStates.includes(status)) {
+      if (!terminalStates.includes(status)) {
         const intervalInMs = getPollingInterval === null || getPollingInterval === undefined ? undefined : getPollingInterval(response);
         if (intervalInMs)
           setDelay(intervalInMs);
-        const location = getOperationLocation === null || getOperationLocation === undefined ? undefined : getOperationLocation(response, state);
+        const location = getOperationLocation2 === null || getOperationLocation2 === undefined ? undefined : getOperationLocation2(response, state);
         if (location !== undefined) {
           const isUpdated = operationLocation !== location;
           state.config.operationLocation = location;
@@ -35364,15 +34956,6 @@ var require_operation = __commonJS((exports) => {
       updateState === null || updateState === undefined || updateState(state, response);
     }
   }
-  exports.pollOperation = pollOperation;
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/http/operation.js
-var require_operation2 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.pollHttpOperation = exports.isOperationError = exports.getResourceLocation = exports.getOperationStatus = exports.getOperationLocation = exports.initHttpOperation = exports.getStatusFromInitialResponse = exports.getErrorFromResponse = exports.parseRetryAfter = exports.inferLroMode = undefined;
-  var operation_js_1 = require_operation();
-  var logger_js_1 = require_logger();
   function getOperationLocationPollingUrl(inputs) {
     const { azureAsyncOperation, operationLocation } = inputs;
     return operationLocation !== null && operationLocation !== undefined ? operationLocation : azureAsyncOperation;
@@ -35450,7 +35033,6 @@ var require_operation2 = __commonJS((exports) => {
       return;
     }
   }
-  exports.inferLroMode = inferLroMode;
   function transformStatus(inputs) {
     const { status, statusCode } = inputs;
     if (typeof status !== "string" && status !== undefined) {
@@ -35473,7 +35055,7 @@ var require_operation2 = __commonJS((exports) => {
       case "cancelled":
         return "canceled";
       default: {
-        logger_js_1.logger.verbose(`LRO: unrecognized operation status: ${status}`);
+        logger.verbose(`LRO: unrecognized operation status: ${status}`);
         return status;
       }
     }
@@ -35506,20 +35088,18 @@ var require_operation2 = __commonJS((exports) => {
     }
     return;
   }
-  exports.parseRetryAfter = parseRetryAfter;
   function getErrorFromResponse(response) {
-    const error = accessBodyProperty(response, "error");
+    const error = response.flatResponse.error;
     if (!error) {
-      logger_js_1.logger.warning(`The long-running operation failed but there is no error property in the response's body`);
+      logger.warning(`The long-running operation failed but there is no error property in the response's body`);
       return;
     }
     if (!error.code || !error.message) {
-      logger_js_1.logger.warning(`The long-running operation failed but the error property in the response's body doesn't contain code or message`);
+      logger.warning(`The long-running operation failed but the error property in the response's body doesn't contain code or message`);
       return;
     }
     return error;
   }
-  exports.getErrorFromResponse = getErrorFromResponse;
   function calculatePollingIntervalFromDate(retryAfterDate) {
     const timeNow = Math.floor(new Date().getTime());
     const retryAfterTime = retryAfterDate.getTime();
@@ -35545,10 +35125,9 @@ var require_operation2 = __commonJS((exports) => {
     const status = helper();
     return status === "running" && operationLocation === undefined ? "succeeded" : status;
   }
-  exports.getStatusFromInitialResponse = getStatusFromInitialResponse;
   async function initHttpOperation(inputs) {
     const { stateProxy, resourceLocationConfig, processResult, lro, setErrorAsResult } = inputs;
-    return (0, operation_js_1.initOperation)({
+    return initOperation({
       init: async () => {
         const response = await lro.sendInitialRequest();
         const config = inferLroMode({
@@ -35565,7 +35144,6 @@ var require_operation2 = __commonJS((exports) => {
       setErrorAsResult
     });
   }
-  exports.initHttpOperation = initHttpOperation;
   function getOperationLocation({ rawResponse }, state) {
     var _a;
     const mode = (_a = state.config.metadata) === null || _a === undefined ? undefined : _a["mode"];
@@ -35585,7 +35163,6 @@ var require_operation2 = __commonJS((exports) => {
       }
     }
   }
-  exports.getOperationLocation = getOperationLocation;
   function getOperationStatus({ rawResponse }, state) {
     var _a;
     const mode = (_a = state.config.metadata) === null || _a === undefined ? undefined : _a["mode"];
@@ -35603,26 +35180,21 @@ var require_operation2 = __commonJS((exports) => {
         throw new Error(`Internal error: Unexpected operation mode: ${mode}`);
     }
   }
-  exports.getOperationStatus = getOperationStatus;
-  function accessBodyProperty({ flatResponse, rawResponse }, prop) {
-    var _a, _b;
-    return (_a = flatResponse === null || flatResponse === undefined ? undefined : flatResponse[prop]) !== null && _a !== undefined ? _a : (_b = rawResponse.body) === null || _b === undefined ? undefined : _b[prop];
-  }
-  function getResourceLocation(res, state) {
-    const loc = accessBodyProperty(res, "resourceLocation");
-    if (loc && typeof loc === "string") {
-      state.config.resourceLocation = loc;
+  function getResourceLocation({ flatResponse }, state) {
+    if (typeof flatResponse === "object") {
+      const resourceLocation = flatResponse.resourceLocation;
+      if (resourceLocation !== undefined) {
+        state.config.resourceLocation = resourceLocation;
+      }
     }
     return state.config.resourceLocation;
   }
-  exports.getResourceLocation = getResourceLocation;
   function isOperationError(e) {
     return e.name === "RestError";
   }
-  exports.isOperationError = isOperationError;
   async function pollHttpOperation(inputs) {
     const { lro, stateProxy, options, processResult, updateState, setDelay, state, setErrorAsResult } = inputs;
-    return (0, operation_js_1.pollOperation)({
+    return pollOperation({
       state,
       stateProxy,
       setDelay,
@@ -35639,17 +35211,7 @@ var require_operation2 = __commonJS((exports) => {
       setErrorAsResult
     });
   }
-  exports.pollHttpOperation = pollHttpOperation;
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/poller/poller.js
-var require_poller = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.buildCreatePoller = undefined;
-  var operation_js_1 = require_operation();
-  var constants_js_1 = require_constants7();
-  var core_util_1 = require_commonjs5();
-  var createStateProxy = () => ({
+  var createStateProxy$1 = () => ({
     initState: (config) => ({ status: "running", config }),
     setCanceled: (state) => state.status = "canceled",
     setError: (state, error) => state.error = error,
@@ -35665,10 +35227,10 @@ var require_poller = __commonJS((exports) => {
     isSucceeded: (state) => state.status === "succeeded"
   });
   function buildCreatePoller(inputs) {
-    const { getOperationLocation, getStatusFromInitialResponse, getStatusFromPollResponse, isOperationError, getResourceLocation, getPollingInterval, getError, resolveOnUnsuccessful } = inputs;
+    const { getOperationLocation: getOperationLocation2, getStatusFromInitialResponse: getStatusFromInitialResponse2, getStatusFromPollResponse, isOperationError: isOperationError2, getResourceLocation: getResourceLocation2, getPollingInterval, getError, resolveOnUnsuccessful } = inputs;
     return async ({ init, poll }, options) => {
-      const { processResult, updateState, withOperationLocation: withOperationLocationCallback, intervalInMs = constants_js_1.POLL_INTERVAL_IN_MS, restoreFrom } = options || {};
-      const stateProxy = createStateProxy();
+      const { processResult, updateState, withOperationLocation: withOperationLocationCallback, intervalInMs = POLL_INTERVAL_IN_MS, restoreFrom } = options || {};
+      const stateProxy = createStateProxy$1();
       const withOperationLocation = withOperationLocationCallback ? (() => {
         let called = false;
         return (operationLocation, isUpdated) => {
@@ -35679,16 +35241,16 @@ var require_poller = __commonJS((exports) => {
           called = true;
         };
       })() : undefined;
-      const state = restoreFrom ? (0, operation_js_1.deserializeState)(restoreFrom) : await (0, operation_js_1.initOperation)({
+      const state = restoreFrom ? deserializeState(restoreFrom) : await initOperation({
         init,
         stateProxy,
         processResult,
-        getOperationStatus: getStatusFromInitialResponse,
+        getOperationStatus: getStatusFromInitialResponse2,
         withOperationLocation,
         setErrorAsResult: !resolveOnUnsuccessful
       });
       let resultPromise;
-      const abortController = new AbortController;
+      const abortController$1 = new abortController.AbortController;
       const handlers = new Map;
       const handleProgressEvents = async () => handlers.forEach((h) => h(state));
       const cancelErrMsg = "Operation was canceled";
@@ -35699,7 +35261,7 @@ var require_poller = __commonJS((exports) => {
         isDone: () => ["succeeded", "failed", "canceled"].includes(state.status),
         isStopped: () => resultPromise === undefined,
         stopPolling: () => {
-          abortController.abort();
+          abortController$1.abort();
         },
         toString: () => JSON.stringify({
           state
@@ -35711,25 +35273,13 @@ var require_poller = __commonJS((exports) => {
         },
         pollUntilDone: (pollOptions) => resultPromise !== null && resultPromise !== undefined ? resultPromise : resultPromise = (async () => {
           const { abortSignal: inputAbortSignal } = pollOptions || {};
-          function abortListener() {
-            abortController.abort();
-          }
-          const abortSignal = abortController.signal;
-          if (inputAbortSignal === null || inputAbortSignal === undefined ? undefined : inputAbortSignal.aborted) {
-            abortController.abort();
-          } else if (!abortSignal.aborted) {
-            inputAbortSignal === null || inputAbortSignal === undefined || inputAbortSignal.addEventListener("abort", abortListener, { once: true });
-          }
-          try {
-            if (!poller.isDone()) {
+          const { signal: abortSignal } = inputAbortSignal ? new abortController.AbortController([inputAbortSignal, abortController$1.signal]) : abortController$1;
+          if (!poller.isDone()) {
+            await poller.poll({ abortSignal });
+            while (!poller.isDone()) {
+              await coreUtil.delay(currentPollIntervalInMs, { abortSignal });
               await poller.poll({ abortSignal });
-              while (!poller.isDone()) {
-                await (0, core_util_1.delay)(currentPollIntervalInMs, { abortSignal });
-                await poller.poll({ abortSignal });
-              }
             }
-          } finally {
-            inputAbortSignal === null || inputAbortSignal === undefined || inputAbortSignal.removeEventListener("abort", abortListener);
           }
           if (resolveOnUnsuccessful) {
             return poller.getResult();
@@ -35763,16 +35313,16 @@ var require_poller = __commonJS((exports) => {
                 throw state.error;
             }
           }
-          await (0, operation_js_1.pollOperation)({
+          await pollOperation({
             poll,
             state,
             stateProxy,
-            getOperationLocation,
-            isOperationError,
+            getOperationLocation: getOperationLocation2,
+            isOperationError: isOperationError2,
             withOperationLocation,
             getPollingInterval,
             getOperationStatus: getStatusFromPollResponse,
-            getResourceLocation,
+            getResourceLocation: getResourceLocation2,
             processResult,
             getError,
             updateState,
@@ -35796,30 +35346,21 @@ var require_poller = __commonJS((exports) => {
       return poller;
     };
   }
-  exports.buildCreatePoller = buildCreatePoller;
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/http/poller.js
-var require_poller2 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createHttpPoller = undefined;
-  var operation_js_1 = require_operation2();
-  var poller_js_1 = require_poller();
   async function createHttpPoller(lro, options) {
     const { resourceLocationConfig, intervalInMs, processResult, restoreFrom, updateState, withOperationLocation, resolveOnUnsuccessful = false } = options || {};
-    return (0, poller_js_1.buildCreatePoller)({
-      getStatusFromInitialResponse: operation_js_1.getStatusFromInitialResponse,
-      getStatusFromPollResponse: operation_js_1.getOperationStatus,
-      isOperationError: operation_js_1.isOperationError,
-      getOperationLocation: operation_js_1.getOperationLocation,
-      getResourceLocation: operation_js_1.getResourceLocation,
-      getPollingInterval: operation_js_1.parseRetryAfter,
-      getError: operation_js_1.getErrorFromResponse,
+    return buildCreatePoller({
+      getStatusFromInitialResponse,
+      getStatusFromPollResponse: getOperationStatus,
+      isOperationError,
+      getOperationLocation,
+      getResourceLocation,
+      getPollingInterval: parseRetryAfter,
+      getError: getErrorFromResponse,
       resolveOnUnsuccessful
     })({
       init: async () => {
         const response = await lro.sendInitialRequest();
-        const config = (0, operation_js_1.inferLroMode)({
+        const config = inferLroMode({
           rawResponse: response.rawResponse,
           requestPath: lro.requestPath,
           requestMethod: lro.requestMethod,
@@ -35836,15 +35377,6 @@ var require_poller2 = __commonJS((exports) => {
       processResult: processResult ? ({ flatResponse }, state) => processResult(flatResponse, state) : ({ flatResponse }) => flatResponse
     });
   }
-  exports.createHttpPoller = createHttpPoller;
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/legacy/lroEngine/operation.js
-var require_operation3 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.GenericPollOperation = undefined;
-  var operation_js_1 = require_operation2();
-  var logger_js_1 = require_logger();
   var createStateProxy = () => ({
     initState: (config) => ({ config, isStarted: true }),
     setCanceled: (state) => state.isCancelled = true,
@@ -35852,8 +35384,7 @@ var require_operation3 = __commonJS((exports) => {
     setResult: (state, result) => state.result = result,
     setRunning: (state) => state.isStarted = true,
     setSucceeded: (state) => state.isCompleted = true,
-    setFailed: () => {
-    },
+    setFailed: () => {},
     getError: (state) => state.error,
     getResult: (state) => state.result,
     isCanceled: (state) => !!state.isCancelled,
@@ -35879,7 +35410,7 @@ var require_operation3 = __commonJS((exports) => {
       var _a;
       const stateProxy = createStateProxy();
       if (!this.state.isStarted) {
-        this.state = Object.assign(Object.assign({}, this.state), await (0, operation_js_1.initHttpOperation)({
+        this.state = Object.assign(Object.assign({}, this.state), await initHttpOperation({
           lro: this.lro,
           stateProxy,
           resourceLocationConfig: this.lroResourceLocationConfig,
@@ -35890,7 +35421,7 @@ var require_operation3 = __commonJS((exports) => {
       const updateState = this.updateState;
       const isDone = this.isDone;
       if (!this.state.isCompleted && this.state.error === undefined) {
-        await (0, operation_js_1.pollHttpOperation)({
+        await pollHttpOperation({
           lro: this.lro,
           state: this.state,
           stateProxy,
@@ -35908,7 +35439,7 @@ var require_operation3 = __commonJS((exports) => {
       return this;
     }
     async cancel() {
-      logger_js_1.logger.error("`cancelOperation` is deprecated because it wasn't implemented");
+      logger.error("`cancelOperation` is deprecated because it wasn't implemented");
       return this;
     }
     toString() {
@@ -35917,13 +35448,6 @@ var require_operation3 = __commonJS((exports) => {
       });
     }
   }
-  exports.GenericPollOperation = GenericPollOperation;
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/legacy/poller.js
-var require_poller3 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.Poller = exports.PollerCancelledError = exports.PollerStoppedError = undefined;
 
   class PollerStoppedError extends Error {
     constructor(message) {
@@ -35932,7 +35456,6 @@ var require_poller3 = __commonJS((exports) => {
       Object.setPrototypeOf(this, PollerStoppedError.prototype);
     }
   }
-  exports.PollerStoppedError = PollerStoppedError;
 
   class PollerCancelledError extends Error {
     constructor(message) {
@@ -35941,7 +35464,6 @@ var require_poller3 = __commonJS((exports) => {
       Object.setPrototypeOf(this, PollerCancelledError.prototype);
     }
   }
-  exports.PollerCancelledError = PollerCancelledError;
 
   class Poller {
     constructor(operation) {
@@ -35953,8 +35475,7 @@ var require_poller3 = __commonJS((exports) => {
         this.resolve = resolve;
         this.reject = reject;
       });
-      this.promise.catch(() => {
-      });
+      this.promise.catch(() => {});
     }
     async startPolling(pollOptions = {}) {
       if (this.stopped) {
@@ -36059,23 +35580,12 @@ var require_poller3 = __commonJS((exports) => {
       return this.operation.toString();
     }
   }
-  exports.Poller = Poller;
-});
 
-// ../node_modules/@azure/core-lro/dist/commonjs/legacy/lroEngine/lroEngine.js
-var require_lroEngine = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.LroEngine = undefined;
-  var operation_js_1 = require_operation3();
-  var constants_js_1 = require_constants7();
-  var poller_js_1 = require_poller3();
-  var operation_js_2 = require_operation();
-
-  class LroEngine extends poller_js_1.Poller {
+  class LroEngine extends Poller {
     constructor(lro, options) {
-      const { intervalInMs = constants_js_1.POLL_INTERVAL_IN_MS, resumeFrom, resolveOnUnsuccessful = false, isDone, lroResourceLocationConfig, processResult, updateState } = options || {};
-      const state = resumeFrom ? (0, operation_js_2.deserializeState)(resumeFrom) : {};
-      const operation = new operation_js_1.GenericPollOperation(state, lro, !resolveOnUnsuccessful, lroResourceLocationConfig, processResult, updateState, isDone);
+      const { intervalInMs = POLL_INTERVAL_IN_MS, resumeFrom, resolveOnUnsuccessful = false, isDone, lroResourceLocationConfig, processResult, updateState } = options || {};
+      const state = resumeFrom ? deserializeState(resumeFrom) : {};
+      const operation = new GenericPollOperation(state, lro, !resolveOnUnsuccessful, lroResourceLocationConfig, processResult, updateState, isDone);
       super(operation);
       this.resolveOnUnsuccessful = resolveOnUnsuccessful;
       this.config = { intervalInMs };
@@ -36086,53 +35596,28 @@ var require_lroEngine = __commonJS((exports) => {
     }
   }
   exports.LroEngine = LroEngine;
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/legacy/lroEngine/index.js
-var require_lroEngine2 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.LroEngine = undefined;
-  var lroEngine_js_1 = require_lroEngine();
-  Object.defineProperty(exports, "LroEngine", { enumerable: true, get: function() {
-    return lroEngine_js_1.LroEngine;
-  } });
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/legacy/pollOperation.js
-var require_pollOperation = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-});
-
-// ../node_modules/@azure/core-lro/dist/commonjs/index.js
-var require_commonjs12 = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.createHttpPoller = undefined;
-  var tslib_1 = require_tslib();
-  var poller_js_1 = require_poller2();
-  Object.defineProperty(exports, "createHttpPoller", { enumerable: true, get: function() {
-    return poller_js_1.createHttpPoller;
-  } });
-  tslib_1.__exportStar(require_lroEngine2(), exports);
-  tslib_1.__exportStar(require_poller3(), exports);
-  tslib_1.__exportStar(require_pollOperation(), exports);
+  exports.Poller = Poller;
+  exports.PollerCancelledError = PollerCancelledError;
+  exports.PollerStoppedError = PollerStoppedError;
+  exports.createHttpPoller = createHttpPoller;
 });
 
 // ../node_modules/@azure/storage-blob/dist/index.js
-var require_dist4 = __commonJS((exports) => {
+var require_dist6 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var coreRestPipeline = require_commonjs7();
+  var coreRestPipeline = require_commonjs8();
   var tslib = require_tslib();
-  var coreAuth = require_commonjs8();
-  var coreUtil = require_commonjs5();
-  var coreHttpCompat = require_commonjs10();
-  var coreClient = require_commonjs9();
-  var coreXml = require_commonjs11();
-  var logger$1 = require_commonjs3();
-  var abortController = require_commonjs4();
+  var coreAuth = require_commonjs9();
+  var coreUtil = require_commonjs6();
+  var coreHttpCompat = require_commonjs11();
+  var coreClient = require_commonjs10();
+  var coreXml = require_commonjs12();
+  var logger$1 = require_commonjs4();
+  var abortController = require_commonjs5();
   var crypto = __require("crypto");
-  var coreTracing = require_commonjs6();
+  var coreTracing = require_commonjs7();
   var stream = __require("stream");
-  var coreLro = require_commonjs12();
+  var coreLro = require_dist5();
   var events = __require("events");
   var fs = __require("fs");
   var util = __require("util");
@@ -36173,8 +35658,8 @@ var require_dist4 = __commonJS((exports) => {
       this._options.log(logLevel, message);
     }
   }
-  var SDK_VERSION = "12.25.0";
-  var SERVICE_VERSION = "2024-11-04";
+  var SDK_VERSION = "12.27.0";
+  var SERVICE_VERSION = "2025-05-05";
   var BLOCK_BLOB_MAX_UPLOAD_BLOB_BYTES = 256 * 1024 * 1024;
   var BLOCK_BLOB_MAX_STAGE_BLOCK_BYTES = 4000 * 1024 * 1024;
   var BLOCK_BLOB_MAX_BLOCKS = 50000;
@@ -36186,22 +35671,16 @@ var require_dist4 = __commonJS((exports) => {
   var URLConstants = {
     Parameters: {
       FORCE_BROWSER_NO_CACHE: "_",
-      SIGNATURE: "sig",
       SNAPSHOT: "snapshot",
       VERSIONID: "versionid",
       TIMEOUT: "timeout"
     }
   };
   var HTTPURLConnection = {
-    HTTP_ACCEPTED: 202,
-    HTTP_CONFLICT: 409,
-    HTTP_NOT_FOUND: 404,
-    HTTP_PRECON_FAILED: 412,
-    HTTP_RANGE_NOT_SATISFIABLE: 416
+    HTTP_ACCEPTED: 202
   };
   var HeaderConstants = {
     AUTHORIZATION: "Authorization",
-    AUTHORIZATION_SCHEME: "Bearer",
     CONTENT_ENCODING: "Content-Encoding",
     CONTENT_ID: "Content-ID",
     CONTENT_LANGUAGE: "Content-Language",
@@ -36217,20 +35696,17 @@ var require_dist4 = __commonJS((exports) => {
     IF_UNMODIFIED_SINCE: "if-unmodified-since",
     PREFIX_FOR_STORAGE: "x-ms-",
     RANGE: "Range",
-    USER_AGENT: "User-Agent",
-    X_MS_CLIENT_REQUEST_ID: "x-ms-client-request-id",
-    X_MS_COPY_SOURCE: "x-ms-copy-source",
     X_MS_DATE: "x-ms-date",
     X_MS_ERROR_CODE: "x-ms-error-code",
-    X_MS_VERSION: "x-ms-version",
-    X_MS_CopySourceErrorCode: "x-ms-copy-source-error-code"
+    X_MS_VERSION: "x-ms-version"
   };
   var ETagNone = "";
   var ETagAny = "*";
   var SIZE_1_MB = 1 * 1024 * 1024;
   var BATCH_MAX_REQUEST = 256;
   var BATCH_MAX_PAYLOAD_IN_BYTES = 4 * SIZE_1_MB;
-  var HTTP_LINE_ENDING = "\r\n";
+  var HTTP_LINE_ENDING = `\r
+`;
   var HTTP_VERSION_1_1 = "HTTP/1.1";
   var EncryptionAlgorithmAES25 = "AES256";
   var DevelopmentConnectionString = `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;`;
@@ -37436,7 +36912,9 @@ var require_dist4 = __commonJS((exports) => {
         this.getHeaderValueToSign(request, HeaderConstants.IF_NONE_MATCH),
         this.getHeaderValueToSign(request, HeaderConstants.IF_UNMODIFIED_SINCE),
         this.getHeaderValueToSign(request, HeaderConstants.RANGE)
-      ].join("\n") + "\n" + this.getCanonicalizedHeadersString(request) + this.getCanonicalizedResourceString(request);
+      ].join(`
+`) + `
+` + this.getCanonicalizedHeadersString(request) + this.getCanonicalizedResourceString(request);
       const signature = this.factory.computeHMACSHA256(stringToSign);
       request.headers.set(HeaderConstants.AUTHORIZATION, `SharedKey ${this.factory.accountName}:${signature}`);
       return request;
@@ -37466,7 +36944,8 @@ var require_dist4 = __commonJS((exports) => {
       });
       let canonicalizedHeadersStringToSign = "";
       headersArray.forEach((header) => {
-        canonicalizedHeadersStringToSign += `${header.name.toLowerCase().trimRight()}:${header.value.trimLeft()}\n`;
+        canonicalizedHeadersStringToSign += `${header.name.toLowerCase().trimRight()}:${header.value.trimLeft()}
+`;
       });
       return canonicalizedHeadersStringToSign;
     }
@@ -37487,7 +36966,8 @@ var require_dist4 = __commonJS((exports) => {
         }
         queryKeys.sort();
         for (const key of queryKeys) {
-          canonicalizedResourceString += `\n${key}:${decodeURIComponent(lowercaseQueries[key])}`;
+          canonicalizedResourceString += `
+${key}:${decodeURIComponent(lowercaseQueries[key])}`;
         }
       }
       return canonicalizedResourceString;
@@ -37695,7 +37175,9 @@ var require_dist4 = __commonJS((exports) => {
         getHeaderValueToSign(request, HeaderConstants.IF_NONE_MATCH),
         getHeaderValueToSign(request, HeaderConstants.IF_UNMODIFIED_SINCE),
         getHeaderValueToSign(request, HeaderConstants.RANGE)
-      ].join("\n") + "\n" + getCanonicalizedHeadersString(request) + getCanonicalizedResourceString(request);
+      ].join(`
+`) + `
+` + getCanonicalizedHeadersString(request) + getCanonicalizedResourceString(request);
       const signature = crypto.createHmac("sha256", options.accountKey).update(stringToSign, "utf8").digest("base64");
       request.headers.set(HeaderConstants.AUTHORIZATION, `SharedKey ${options.accountName}:${signature}`);
     }
@@ -37727,7 +37209,8 @@ var require_dist4 = __commonJS((exports) => {
       });
       let canonicalizedHeadersStringToSign = "";
       headersArray.forEach((header) => {
-        canonicalizedHeadersStringToSign += `${header.name.toLowerCase().trimRight()}:${header.value.trimLeft()}\n`;
+        canonicalizedHeadersStringToSign += `${header.name.toLowerCase().trimRight()}:${header.value.trimLeft()}
+`;
       });
       return canonicalizedHeadersStringToSign;
     }
@@ -37748,7 +37231,8 @@ var require_dist4 = __commonJS((exports) => {
         }
         queryKeys.sort();
         for (const key of queryKeys) {
-          canonicalizedResourceString += `\n${key}:${decodeURIComponent(lowercaseQueries[key])}`;
+          canonicalizedResourceString += `
+${key}:${decodeURIComponent(lowercaseQueries[key])}`;
         }
       }
       return canonicalizedResourceString;
@@ -37977,8 +37461,7 @@ var require_dist4 = __commonJS((exports) => {
       }
     };
     const mockRequestPolicyOptions = {
-      log(_logLevel, _message) {
-      },
+      log(_logLevel, _message) {},
       shouldLog(_logLevel) {
         return false;
       }
@@ -46464,7 +45947,7 @@ var require_dist4 = __commonJS((exports) => {
   var version = {
     parameterPath: "version",
     mapper: {
-      defaultValue: "2024-11-04",
+      defaultValue: "2025-05-05",
       isConstant: true,
       serializedName: "x-ms-version",
       type: {
@@ -49139,7 +48622,12 @@ var require_dist4 = __commonJS((exports) => {
         headersMapper: BlobSetImmutabilityPolicyExceptionHeaders
       }
     },
-    queryParameters: [timeoutInSeconds, comp12],
+    queryParameters: [
+      timeoutInSeconds,
+      snapshot,
+      versionId,
+      comp12
+    ],
     urlParameters: [url],
     headerParameters: [
       version,
@@ -49164,7 +48652,12 @@ var require_dist4 = __commonJS((exports) => {
         headersMapper: BlobDeleteImmutabilityPolicyExceptionHeaders
       }
     },
-    queryParameters: [timeoutInSeconds, comp12],
+    queryParameters: [
+      timeoutInSeconds,
+      snapshot,
+      versionId,
+      comp12
+    ],
     urlParameters: [url],
     headerParameters: [
       version,
@@ -49186,7 +48679,12 @@ var require_dist4 = __commonJS((exports) => {
         headersMapper: BlobSetLegalHoldExceptionHeaders
       }
     },
-    queryParameters: [timeoutInSeconds, comp13],
+    queryParameters: [
+      timeoutInSeconds,
+      snapshot,
+      versionId,
+      comp13
+    ],
     urlParameters: [url],
     headerParameters: [
       version,
@@ -50554,14 +50052,14 @@ var require_dist4 = __commonJS((exports) => {
       const defaults = {
         requestContentType: "application/json; charset=utf-8"
       };
-      const packageDetails = `azsdk-js-azure-storage-blob/12.25.0`;
+      const packageDetails = `azsdk-js-azure-storage-blob/12.27.0`;
       const userAgentPrefix = options.userAgentOptions && options.userAgentOptions.userAgentPrefix ? `${options.userAgentOptions.userAgentPrefix} ${packageDetails}` : `${packageDetails}`;
       const optionsWithDefaults = Object.assign(Object.assign(Object.assign({}, defaults), options), { userAgentOptions: {
         userAgentPrefix
       }, endpoint: (_b = (_a = options.endpoint) !== null && _a !== undefined ? _a : options.baseUri) !== null && _b !== undefined ? _b : "{url}" });
       super(optionsWithDefaults);
       this.url = url2;
-      this.version = options.version || "2024-11-04";
+      this.version = options.version || "2025-05-05";
       this.service = new ServiceImpl(this);
       this.container = new ContainerImpl(this);
       this.blob = new BlobImpl(this);
@@ -51163,7 +50661,8 @@ var require_dist4 = __commonJS((exports) => {
       blobSASSignatureValues.contentEncoding ? blobSASSignatureValues.contentEncoding : "",
       blobSASSignatureValues.contentLanguage ? blobSASSignatureValues.contentLanguage : "",
       blobSASSignatureValues.contentType ? blobSASSignatureValues.contentType : ""
-    ].join("\n");
+    ].join(`
+`);
     const signature = sharedKeyCredential.computeHMACSHA256(stringToSign);
     return {
       sasQueryParameters: new SASQueryParameters(blobSASSignatureValues.version, signature, verifiedPermissions, undefined, undefined, blobSASSignatureValues.protocol, blobSASSignatureValues.startsOn, blobSASSignatureValues.expiresOn, blobSASSignatureValues.ipRange, blobSASSignatureValues.identifier, resource, blobSASSignatureValues.cacheControl, blobSASSignatureValues.contentDisposition, blobSASSignatureValues.contentEncoding, blobSASSignatureValues.contentLanguage, blobSASSignatureValues.contentType),
@@ -51210,7 +50709,8 @@ var require_dist4 = __commonJS((exports) => {
       blobSASSignatureValues.contentEncoding ? blobSASSignatureValues.contentEncoding : "",
       blobSASSignatureValues.contentLanguage ? blobSASSignatureValues.contentLanguage : "",
       blobSASSignatureValues.contentType ? blobSASSignatureValues.contentType : ""
-    ].join("\n");
+    ].join(`
+`);
     const signature = sharedKeyCredential.computeHMACSHA256(stringToSign);
     return {
       sasQueryParameters: new SASQueryParameters(blobSASSignatureValues.version, signature, verifiedPermissions, undefined, undefined, blobSASSignatureValues.protocol, blobSASSignatureValues.startsOn, blobSASSignatureValues.expiresOn, blobSASSignatureValues.ipRange, blobSASSignatureValues.identifier, resource, blobSASSignatureValues.cacheControl, blobSASSignatureValues.contentDisposition, blobSASSignatureValues.contentEncoding, blobSASSignatureValues.contentLanguage, blobSASSignatureValues.contentType),
@@ -51258,7 +50758,8 @@ var require_dist4 = __commonJS((exports) => {
       blobSASSignatureValues.contentEncoding ? blobSASSignatureValues.contentEncoding : "",
       blobSASSignatureValues.contentLanguage ? blobSASSignatureValues.contentLanguage : "",
       blobSASSignatureValues.contentType ? blobSASSignatureValues.contentType : ""
-    ].join("\n");
+    ].join(`
+`);
     const signature = sharedKeyCredential.computeHMACSHA256(stringToSign);
     return {
       sasQueryParameters: new SASQueryParameters(blobSASSignatureValues.version, signature, verifiedPermissions, undefined, undefined, blobSASSignatureValues.protocol, blobSASSignatureValues.startsOn, blobSASSignatureValues.expiresOn, blobSASSignatureValues.ipRange, blobSASSignatureValues.identifier, resource, blobSASSignatureValues.cacheControl, blobSASSignatureValues.contentDisposition, blobSASSignatureValues.contentEncoding, blobSASSignatureValues.contentLanguage, blobSASSignatureValues.contentType, undefined, undefined, undefined, blobSASSignatureValues.encryptionScope),
@@ -51310,7 +50811,8 @@ var require_dist4 = __commonJS((exports) => {
       blobSASSignatureValues.contentEncoding,
       blobSASSignatureValues.contentLanguage,
       blobSASSignatureValues.contentType
-    ].join("\n");
+    ].join(`
+`);
     const signature = userDelegationKeyCredential.computeHMACSHA256(stringToSign);
     return {
       sasQueryParameters: new SASQueryParameters(blobSASSignatureValues.version, signature, verifiedPermissions, undefined, undefined, blobSASSignatureValues.protocol, blobSASSignatureValues.startsOn, blobSASSignatureValues.expiresOn, blobSASSignatureValues.ipRange, blobSASSignatureValues.identifier, resource, blobSASSignatureValues.cacheControl, blobSASSignatureValues.contentDisposition, blobSASSignatureValues.contentEncoding, blobSASSignatureValues.contentLanguage, blobSASSignatureValues.contentType, userDelegationKeyCredential.userDelegationKey),
@@ -51365,7 +50867,8 @@ var require_dist4 = __commonJS((exports) => {
       blobSASSignatureValues.contentEncoding,
       blobSASSignatureValues.contentLanguage,
       blobSASSignatureValues.contentType
-    ].join("\n");
+    ].join(`
+`);
     const signature = userDelegationKeyCredential.computeHMACSHA256(stringToSign);
     return {
       sasQueryParameters: new SASQueryParameters(blobSASSignatureValues.version, signature, verifiedPermissions, undefined, undefined, blobSASSignatureValues.protocol, blobSASSignatureValues.startsOn, blobSASSignatureValues.expiresOn, blobSASSignatureValues.ipRange, blobSASSignatureValues.identifier, resource, blobSASSignatureValues.cacheControl, blobSASSignatureValues.contentDisposition, blobSASSignatureValues.contentEncoding, blobSASSignatureValues.contentLanguage, blobSASSignatureValues.contentType, userDelegationKeyCredential.userDelegationKey, blobSASSignatureValues.preauthorizedAgentObjectId, blobSASSignatureValues.correlationId),
@@ -51421,7 +50924,8 @@ var require_dist4 = __commonJS((exports) => {
       blobSASSignatureValues.contentEncoding,
       blobSASSignatureValues.contentLanguage,
       blobSASSignatureValues.contentType
-    ].join("\n");
+    ].join(`
+`);
     const signature = userDelegationKeyCredential.computeHMACSHA256(stringToSign);
     return {
       sasQueryParameters: new SASQueryParameters(blobSASSignatureValues.version, signature, verifiedPermissions, undefined, undefined, blobSASSignatureValues.protocol, blobSASSignatureValues.startsOn, blobSASSignatureValues.expiresOn, blobSASSignatureValues.ipRange, blobSASSignatureValues.identifier, resource, blobSASSignatureValues.cacheControl, blobSASSignatureValues.contentDisposition, blobSASSignatureValues.contentEncoding, blobSASSignatureValues.contentLanguage, blobSASSignatureValues.contentType, userDelegationKeyCredential.userDelegationKey, blobSASSignatureValues.preauthorizedAgentObjectId, blobSASSignatureValues.correlationId, blobSASSignatureValues.encryptionScope),
@@ -51973,8 +51477,7 @@ var require_dist4 = __commonJS((exports) => {
       const type = schema.type;
       try {
         return AvroType.fromStringSchema(type);
-      } catch (_a) {
-      }
+      } catch (_a) {}
       switch (type) {
         case AvroComplex.RECORD:
           if (schema.aliases) {
@@ -53411,7 +52914,7 @@ var require_dist4 = __commonJS((exports) => {
           try {
             buffer2 = Buffer.alloc(count);
           } catch (error) {
-            throw new Error(`Unable to allocate the buffer of size: ${count}(in bytes). Please try passing your own buffer to the "downloadToBuffer" method or try using other methods like "download" or "downloadToFile".\t ${error.message}`);
+            throw new Error(`Unable to allocate the buffer of size: ${count}(in bytes). Please try passing your own buffer to the "downloadToBuffer" method or try using other methods like "download" or "downloadToFile".	 ${error.message}`);
           }
         }
         if (buffer2.length < count) {
@@ -53525,6 +53028,15 @@ var require_dist4 = __commonJS((exports) => {
         throw new RangeError("Can only generate the SAS when the client is initialized with a shared key credential");
       }
       return generateBlobSASQueryParametersInternal(Object.assign({ containerName: this._containerName, blobName: this._name, snapshotTime: this._snapshot, versionId: this._versionId }, options), this.credential).stringToSign;
+    }
+    generateUserDelegationSasUrl(options, userDelegationKey) {
+      return new Promise((resolve) => {
+        const sas = generateBlobSASQueryParameters(Object.assign({ containerName: this._containerName, blobName: this._name, snapshotTime: this._snapshot, versionId: this._versionId }, options), userDelegationKey, this.accountName).toString();
+        resolve(appendToURLQuery(this.url, sas));
+      });
+    }
+    generateUserDelegationSasStringToSign(options, userDelegationKey) {
+      return generateBlobSASQueryParametersInternal(Object.assign({ containerName: this._containerName, blobName: this._name, snapshotTime: this._snapshot, versionId: this._versionId }, options), userDelegationKey, this.accountName).stringToSign;
     }
     async deleteImmutabilityPolicy(options = {}) {
       return tracingClient.withSpan("BlobClient-deleteImmutabilityPolicy", options, async (updatedOptions) => {
@@ -55355,6 +54867,15 @@ var require_dist4 = __commonJS((exports) => {
       }
       return generateBlobSASQueryParametersInternal(Object.assign({ containerName: this._containerName }, options), this.credential).stringToSign;
     }
+    generateUserDelegationSasUrl(options, userDelegationKey) {
+      return new Promise((resolve) => {
+        const sas = generateBlobSASQueryParameters(Object.assign({ containerName: this._containerName }, options), userDelegationKey, this.accountName).toString();
+        resolve(appendToURLQuery(this.url, sas));
+      });
+    }
+    generateUserDelegationSasStringToSign(options, userDelegationKey) {
+      return generateBlobSASQueryParametersInternal(Object.assign({ containerName: this._containerName }, options), userDelegationKey, this.accountName).stringToSign;
+    }
     getBlobBatchClient() {
       return new BlobBatchClient(this.url, this.pipeline);
     }
@@ -55639,7 +55160,8 @@ var require_dist4 = __commonJS((exports) => {
         version2,
         accountSASSignatureValues.encryptionScope ? accountSASSignatureValues.encryptionScope : "",
         ""
-      ].join("\n");
+      ].join(`
+`);
     } else {
       stringToSign = [
         sharedKeyCredential.accountName,
@@ -55652,7 +55174,8 @@ var require_dist4 = __commonJS((exports) => {
         accountSASSignatureValues.protocol ? accountSASSignatureValues.protocol : "",
         version2,
         ""
-      ].join("\n");
+      ].join(`
+`);
     }
     const signature = sharedKeyCredential.computeHMACSHA256(stringToSign);
     return {
@@ -56075,12 +55598,12 @@ var require_blob_upload = __commonJS((exports) => {
   };
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.uploadZipToBlobStorage = undefined;
-  var storage_blob_1 = require_dist4();
+  var storage_blob_1 = require_dist6();
   var config_1 = require_config();
   var core = __importStar(require_core());
   var crypto = __importStar(__require("crypto"));
   var stream = __importStar(__require("stream"));
-  var errors_1 = require_errors3();
+  var errors_1 = require_errors2();
   function uploadZipToBlobStorage(authenticatedUploadURL, zipUploadStream) {
     return __awaiter(this, undefined, undefined, function* () {
       let uploadByteCount = 0;
@@ -56136,7 +55659,7 @@ var require_blob_upload = __commonJS((exports) => {
       core.info("Finished uploading artifact content to blob storage!");
       hashStream.end();
       sha256Hash = hashStream.read();
-      core.info(`SHA256 hash of uploaded artifact zip is ${sha256Hash}`);
+      core.info(`SHA256 digest of uploaded artifact zip is ${sha256Hash}`);
       if (uploadByteCount === 0) {
         core.warning(`No data was uploaded to blob storage. Reported upload byte count is 0.`);
       }
@@ -56149,7 +55672,7 @@ var require_blob_upload = __commonJS((exports) => {
   exports.uploadZipToBlobStorage = uploadZipToBlobStorage;
 });
 
-// ../node_modules/minimatch/lib/path.js
+// ../node_modules/readdir-glob/node_modules/minimatch/lib/path.js
 var require_path = __commonJS((exports, module) => {
   var isWindows = typeof process === "object" && process && process.platform === "win32";
   module.exports = isWindows ? { sep: "\\" } : { sep: "/" };
@@ -56216,11 +55739,11 @@ var require_balanced_match = __commonJS((exports, module) => {
 var require_brace_expansion = __commonJS((exports, module) => {
   var balanced = require_balanced_match();
   module.exports = expandTop;
-  var escSlash = "\0SLASH" + Math.random() + "\0";
-  var escOpen = "\0OPEN" + Math.random() + "\0";
-  var escClose = "\0CLOSE" + Math.random() + "\0";
-  var escComma = "\0COMMA" + Math.random() + "\0";
-  var escPeriod = "\0PERIOD" + Math.random() + "\0";
+  var escSlash = "\x00SLASH" + Math.random() + "\x00";
+  var escOpen = "\x00OPEN" + Math.random() + "\x00";
+  var escClose = "\x00CLOSE" + Math.random() + "\x00";
+  var escComma = "\x00COMMA" + Math.random() + "\x00";
+  var escPeriod = "\x00PERIOD" + Math.random() + "\x00";
   function numeric(str) {
     return parseInt(str, 10) == str ? parseInt(str, 10) : str.charCodeAt(0);
   }
@@ -56361,7 +55884,7 @@ var require_brace_expansion = __commonJS((exports, module) => {
   }
 });
 
-// ../node_modules/minimatch/minimatch.js
+// ../node_modules/readdir-glob/node_modules/minimatch/minimatch.js
 var require_minimatch = __commonJS((exports, module) => {
   var minimatch = module.exports = (p, pattern, options = {}) => {
     assertValidPattern(pattern);
@@ -56471,8 +55994,7 @@ var require_minimatch = __commonJS((exports, module) => {
       this.partial = !!options.partial;
       this.make();
     }
-    debug() {
-    }
+    debug() {}
     make() {
       const pattern = this.pattern;
       const options = this.options;
@@ -56536,7 +56058,8 @@ var require_minimatch = __commonJS((exports, module) => {
           }
           while (fr < fl) {
             var swallowee = file[fr];
-            this.debug("\nglobstar while", file, fr, pattern, pr, swallowee);
+            this.debug(`
+globstar while`, file, fr, pattern, pr, swallowee);
             if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {
               this.debug("globstar found match!", fr, fl, swallowee);
               return true;
@@ -56550,7 +56073,8 @@ var require_minimatch = __commonJS((exports, module) => {
             }
           }
           if (partial) {
-            this.debug("\n>>> no match, partial?", file, fr, pattern, pr);
+            this.debug(`
+>>> no match, partial?`, file, fr, pattern, pr);
             if (fr === fl)
               return true;
           }
@@ -56626,7 +56150,7 @@ var require_minimatch = __commonJS((exports, module) => {
         }
       };
       for (let i = 0, c;i < pattern.length && (c = pattern.charAt(i)); i++) {
-        this.debug("%s\t%s %s %j", pattern, i, re, c);
+        this.debug("%s	%s %s %j", pattern, i, re, c);
         if (escaping) {
           if (c === "/") {
             return false;
@@ -56655,7 +56179,7 @@ var require_minimatch = __commonJS((exports, module) => {
           case "+":
           case "@":
           case "!":
-            this.debug("%s\t%s %s %j <-- stateChar", pattern, i, re, c);
+            this.debug("%s	%s %s %j <-- stateChar", pattern, i, re, c);
             if (inClass) {
               this.debug("  in class");
               if (c === "!" && i === classStart + 1)
@@ -56777,7 +56301,8 @@ var require_minimatch = __commonJS((exports, module) => {
           }
           return $1 + $1 + $2 + "|";
         });
-        this.debug("tail=%j\n   %s", tail, tail, pl, re);
+        this.debug(`tail=%j
+   %s`, tail, tail, pl, re);
         const t = pl.type === "*" ? star : pl.type === "?" ? qmark : "\\" + pl.type;
         hasMagic = true;
         re = re.slice(0, pl.reStart) + t + "\\(" + tail;
@@ -57647,7 +57172,8 @@ var require_async = __commonJS((exports, module) => {
       let endBlockComment = string.indexOf("*/");
       while (index2 < string.length) {
         if (string[index2] === "/" && string[index2 + 1] === "/") {
-          let endIndex = string.indexOf("\n", index2);
+          let endIndex = string.indexOf(`
+`, index2);
           index2 = endIndex === -1 ? string.length : endIndex;
         } else if (endBlockComment !== -1 && string[index2] === "/" && string[index2 + 1] === "*") {
           let endIndex = string.indexOf("*/", index2);
@@ -57672,7 +57198,9 @@ var require_async = __commonJS((exports, module) => {
         match = src.match(ARROW_FN_ARGS);
       }
       if (!match)
-        throw new Error("could not parse args in autoInject\nSource:\n" + src);
+        throw new Error(`could not parse args in autoInject
+Source:
+` + src);
       let [, args] = match;
       return args.replace(/\s/g, "").split(FN_ARG_SPLIT).map((arg) => arg.replace(FN_ARG, "").trim());
     }
@@ -58084,8 +57612,8 @@ var require_async = __commonJS((exports, module) => {
     var mapLimit$1 = awaitify(mapLimit, 4);
     function concatLimit(coll, limit, iteratee, callback) {
       var _iteratee = wrapAsync(iteratee);
-      return mapLimit$1(coll, limit, (val2, iterCb) => {
-        _iteratee(val2, (err, ...args) => {
+      return mapLimit$1(coll, limit, (val, iterCb) => {
+        _iteratee(val, (err, ...args) => {
           if (err)
             return iterCb(err);
           return iterCb(err, args);
@@ -58306,11 +57834,11 @@ var require_async = __commonJS((exports, module) => {
     var forever$1 = awaitify(forever, 2);
     function groupByLimit(coll, limit, iteratee, callback) {
       var _iteratee = wrapAsync(iteratee);
-      return mapLimit$1(coll, limit, (val2, iterCb) => {
-        _iteratee(val2, (err, key) => {
+      return mapLimit$1(coll, limit, (val, iterCb) => {
+        _iteratee(val, (err, key) => {
           if (err)
             return iterCb(err);
-          return iterCb(err, { key, val: val2 });
+          return iterCb(err, { key, val });
         });
       }, (err, mapResults) => {
         var result = {};
@@ -58318,11 +57846,11 @@ var require_async = __commonJS((exports, module) => {
         for (var i = 0;i < mapResults.length; i++) {
           if (mapResults[i]) {
             var { key } = mapResults[i];
-            var { val: val2 } = mapResults[i];
+            var { val } = mapResults[i];
             if (hasOwnProperty.call(result, key)) {
-              result[key].push(val2);
+              result[key].push(val);
             } else {
-              result[key] = [val2];
+              result[key] = [val];
             }
           }
         }
@@ -58341,8 +57869,8 @@ var require_async = __commonJS((exports, module) => {
       callback = once(callback);
       var newObj = {};
       var _iteratee = wrapAsync(iteratee);
-      return eachOfLimit$2(limit)(obj, (val2, key, next) => {
-        _iteratee(val2, key, (err, result) => {
+      return eachOfLimit$2(limit)(obj, (val, key, next) => {
+        _iteratee(val, key, (err, result) => {
           if (err)
             return next(err);
           newObj[key] = result;
@@ -59068,8 +58596,7 @@ var require_polyfills = __commonJS((exports, module) => {
   };
   try {
     process.cwd();
-  } catch (er) {
-  }
+  } catch (er) {}
   if (typeof process.chdir === "function") {
     chdir = process.chdir;
     process.chdir = function(d) {
@@ -59111,16 +58638,14 @@ var require_polyfills = __commonJS((exports, module) => {
         if (cb)
           process.nextTick(cb);
       };
-      fs.lchmodSync = function() {
-      };
+      fs.lchmodSync = function() {};
     }
     if (fs.chown && !fs.lchown) {
       fs.lchown = function(path, uid, gid, cb) {
         if (cb)
           process.nextTick(cb);
       };
-      fs.lchownSync = function() {
-      };
+      fs.lchownSync = function() {};
     }
     if (platform === "win32") {
       fs.rename = typeof fs.rename !== "function" ? fs.rename : function(fs$rename) {
@@ -59212,8 +58737,7 @@ var require_polyfills = __commonJS((exports, module) => {
           if (threw) {
             try {
               fs2.closeSync(fd);
-            } catch (er) {
-            }
+            } catch (er) {}
           } else {
             fs2.closeSync(fd);
           }
@@ -59249,8 +58773,7 @@ var require_polyfills = __commonJS((exports, module) => {
             if (threw) {
               try {
                 fs2.closeSync(fd);
-              } catch (er) {
-              }
+              } catch (er) {}
             } else {
               fs2.closeSync(fd);
             }
@@ -59262,8 +58785,7 @@ var require_polyfills = __commonJS((exports, module) => {
           if (cb)
             process.nextTick(cb);
         };
-        fs2.lutimesSync = function() {
-        };
+        fs2.lutimesSync = function() {};
       }
     }
     function chmodFix(orig) {
@@ -59497,8 +59019,7 @@ var require_graceful_fs = __commonJS((exports, module) => {
     gracefulQueue = "___graceful-fs.queue";
     previousSymbol = "___graceful-fs.previous";
   }
-  function noop() {
-  }
+  function noop() {}
   function publishQueue(context, queue2) {
     Object.defineProperty(context, gracefulQueue, {
       get: function() {
@@ -59512,7 +59033,8 @@ var require_graceful_fs = __commonJS((exports, module) => {
   else if (/\bgfs4\b/i.test(process.env.NODE_DEBUG || ""))
     debug = function() {
       var m = util.format.apply(util, arguments);
-      m = "GFS4: " + m.split(/\n/).join("\nGFS4: ");
+      m = "GFS4: " + m.split(/\n/).join(`
+GFS4: `);
       console.error(m);
     };
   if (!fs[gracefulQueue]) {
@@ -59686,8 +59208,8 @@ var require_graceful_fs = __commonJS((exports, module) => {
       get: function() {
         return ReadStream;
       },
-      set: function(val2) {
-        ReadStream = val2;
+      set: function(val) {
+        ReadStream = val;
       },
       enumerable: true,
       configurable: true
@@ -59696,8 +59218,8 @@ var require_graceful_fs = __commonJS((exports, module) => {
       get: function() {
         return WriteStream;
       },
-      set: function(val2) {
-        WriteStream = val2;
+      set: function(val) {
+        WriteStream = val;
       },
       enumerable: true,
       configurable: true
@@ -59707,8 +59229,8 @@ var require_graceful_fs = __commonJS((exports, module) => {
       get: function() {
         return FileReadStream;
       },
-      set: function(val2) {
-        FileReadStream = val2;
+      set: function(val) {
+        FileReadStream = val;
       },
       enumerable: true,
       configurable: true
@@ -59718,8 +59240,8 @@ var require_graceful_fs = __commonJS((exports, module) => {
       get: function() {
         return FileWriteStream;
       },
-      set: function(val2) {
-        FileWriteStream = val2;
+      set: function(val) {
+        FileWriteStream = val;
       },
       enumerable: true,
       configurable: true
@@ -59839,7 +59361,7 @@ var require_graceful_fs = __commonJS((exports, module) => {
   }
 });
 
-// ../node_modules/archiver-utils/node_modules/is-stream/index.js
+// ../node_modules/is-stream/index.js
 var require_is_stream = __commonJS((exports, module) => {
   var isStream = (stream) => stream !== null && typeof stream === "object" && typeof stream.pipe === "function";
   isStream.writable = (stream) => isStream(stream) && stream.writable !== false && typeof stream._write === "function" && typeof stream._writableState === "object";
@@ -59899,7 +59421,7 @@ var require_isarray = __commonJS((exports, module) => {
   };
 });
 
-// ../node_modules/lazystream/node_modules/readable-stream/node_modules/safe-buffer/index.js
+// ../node_modules/lazystream/node_modules/safe-buffer/index.js
 var require_safe_buffer = __commonJS((exports, module) => {
   var buffer = __require("buffer");
   var Buffer2 = buffer.Buffer;
@@ -59955,7 +59477,7 @@ var require_safe_buffer = __commonJS((exports, module) => {
 });
 
 // ../node_modules/core-util-is/lib/util.js
-var require_util11 = __commonJS((exports) => {
+var require_util10 = __commonJS((exports) => {
   function isArray(arg) {
     if (Array.isArray) {
       return Array.isArray(arg);
@@ -60041,8 +59563,7 @@ var require_inherits_browser = __commonJS((exports, module) => {
     module.exports = function inherits(ctor, superCtor) {
       if (superCtor) {
         ctor.super_ = superCtor;
-        var TempCtor = function() {
-        };
+        var TempCtor = function() {};
         TempCtor.prototype = superCtor.prototype;
         ctor.prototype = new TempCtor;
         ctor.prototype.constructor = ctor;
@@ -60233,15 +59754,14 @@ var require__stream_writable = __commonJS((exports, module) => {
   var asyncWrite = ["v0.10", "v0.9."].indexOf(process.version.slice(0, 5)) > -1 ? setImmediate : pna.nextTick;
   var Duplex;
   Writable.WritableState = WritableState;
-  var util = Object.create(require_util11());
+  var util = Object.create(require_util10());
   util.inherits = require_inherits();
   var internalUtil = {
     deprecate: require_node2()
   };
   var Stream = __require("stream");
   var Buffer2 = require_safe_buffer().Buffer;
-  var OurUint8Array = (typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : {}).Uint8Array || function() {
-  };
+  var OurUint8Array = (typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : {}).Uint8Array || function() {};
   function _uint8ArrayToBuffer(chunk) {
     return Buffer2.from(chunk);
   }
@@ -60250,8 +59770,7 @@ var require__stream_writable = __commonJS((exports, module) => {
   }
   var destroyImpl = require_destroy();
   util.inherits(Writable, Stream);
-  function nop() {
-  }
+  function nop() {}
   function WritableState(options, stream) {
     Duplex = Duplex || require__stream_duplex();
     options = options || {};
@@ -60312,8 +59831,7 @@ var require__stream_writable = __commonJS((exports, module) => {
           return this.getBuffer();
         }, "_writableState.buffer is deprecated. Use _writableState.getBuffer " + "instead.", "DEP0003")
       });
-    } catch (_2) {
-    }
+    } catch (_2) {}
   })();
   var realHasInstance;
   if (typeof Symbol === "function" && Symbol.hasInstance && typeof Function.prototype[Symbol.hasInstance] === "function") {
@@ -60691,7 +60209,7 @@ var require__stream_duplex = __commonJS((exports, module) => {
     return keys2;
   };
   module.exports = Duplex;
-  var util = Object.create(require_util11());
+  var util = Object.create(require_util10());
   util.inherits = require_inherits();
   var Readable = require__stream_readable();
   var Writable = require__stream_writable();
@@ -60757,7 +60275,7 @@ var require__stream_duplex = __commonJS((exports, module) => {
   };
 });
 
-// ../node_modules/lazystream/node_modules/readable-stream/node_modules/string_decoder/lib/string_decoder.js
+// ../node_modules/lazystream/node_modules/string_decoder/lib/string_decoder.js
 var require_string_decoder = __commonJS((exports) => {
   var Buffer2 = require_safe_buffer().Buffer;
   var isEncoding = Buffer2.isEncoding || function(encoding) {
@@ -60916,17 +60434,17 @@ var require_string_decoder = __commonJS((exports) => {
   function utf8CheckExtraBytes(self2, buf, p) {
     if ((buf[0] & 192) !== 128) {
       self2.lastNeed = 0;
-      return "\uFFFD";
+      return "�";
     }
     if (self2.lastNeed > 1 && buf.length > 1) {
       if ((buf[1] & 192) !== 128) {
         self2.lastNeed = 1;
-        return "\uFFFD";
+        return "�";
       }
       if (self2.lastNeed > 2 && buf.length > 2) {
         if ((buf[2] & 192) !== 128) {
           self2.lastNeed = 2;
-          return "\uFFFD";
+          return "�";
         }
       }
     }
@@ -60955,7 +60473,7 @@ var require_string_decoder = __commonJS((exports) => {
   function utf8End(buf) {
     var r = buf && buf.length ? this.write(buf) : "";
     if (this.lastNeed)
-      return r + "\uFFFD";
+      return r + "�";
     return r;
   }
   function utf16Text(buf, i) {
@@ -61027,23 +60545,21 @@ var require__stream_readable = __commonJS((exports, module) => {
   };
   var Stream = __require("stream");
   var Buffer2 = require_safe_buffer().Buffer;
-  var OurUint8Array = (typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : {}).Uint8Array || function() {
-  };
+  var OurUint8Array = (typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : {}).Uint8Array || function() {};
   function _uint8ArrayToBuffer(chunk) {
     return Buffer2.from(chunk);
   }
   function _isUint8Array(obj) {
     return Buffer2.isBuffer(obj) || obj instanceof OurUint8Array;
   }
-  var util = Object.create(require_util11());
+  var util = Object.create(require_util10());
   util.inherits = require_inherits();
   var debugUtil = __require("util");
   var debug = undefined;
   if (debugUtil && debugUtil.debuglog) {
     debug = debugUtil.debuglog("stream");
   } else {
-    debug = function() {
-    };
+    debug = function() {};
   }
   var BufferList = require_BufferList();
   var destroyImpl = require_destroy();
@@ -61592,8 +61108,7 @@ var require__stream_readable = __commonJS((exports, module) => {
   function flow(stream) {
     var state = stream._readableState;
     debug("flow", state.flowing);
-    while (state.flowing && stream.read() !== null) {
-    }
+    while (state.flowing && stream.read() !== null) {}
   }
   Readable.prototype.wrap = function(stream) {
     var _this = this;
@@ -61770,7 +61285,7 @@ var require__stream_readable = __commonJS((exports, module) => {
 var require__stream_transform = __commonJS((exports, module) => {
   module.exports = Transform;
   var Duplex = require__stream_duplex();
-  var util = Object.create(require_util11());
+  var util = Object.create(require_util10());
   util.inherits = require_inherits();
   util.inherits(Transform, Duplex);
   function afterTransform(er, data) {
@@ -61874,7 +61389,7 @@ var require__stream_transform = __commonJS((exports, module) => {
 var require__stream_passthrough = __commonJS((exports, module) => {
   module.exports = PassThrough;
   var Transform = require__stream_transform();
-  var util = Object.create(require_util11());
+  var util = Object.create(require_util10());
   util.inherits = require_inherits();
   util.inherits(PassThrough, Transform);
   function PassThrough(options) {
@@ -62083,8 +61598,7 @@ var require__getRawTag = __commonJS((exports, module) => {
     try {
       value[symToStringTag] = undefined;
       var unmasked = true;
-    } catch (e) {
-    }
+    } catch (e) {}
     var result = nativeObjectToString.call(value);
     if (unmasked) {
       if (isOwn) {
@@ -62180,12 +61694,10 @@ var require__toSource = __commonJS((exports, module) => {
     if (func != null) {
       try {
         return funcToString.call(func);
-      } catch (e) {
-      }
+      } catch (e) {}
       try {
         return func + "";
-      } catch (e) {
-      }
+      } catch (e) {}
     }
     return "";
   }
@@ -62242,8 +61754,7 @@ var require__defineProperty = __commonJS((exports, module) => {
       var func = getNative(Object, "defineProperty");
       func({}, "", {});
       return func;
-    } catch (e) {
-    }
+    } catch (e) {}
   }();
   module.exports = defineProperty;
 });
@@ -62499,8 +62010,7 @@ var require__nodeUtil = __commonJS((exports, module) => {
         return types;
       }
       return freeProcess && freeProcess.binding && freeProcess.binding("util");
-    } catch (e) {
-    }
+    } catch (e) {}
   }();
   module.exports = nodeUtil;
 });
@@ -62630,7 +62140,23 @@ var require_defaults = __commonJS((exports, module) => {
 
 // ../node_modules/readable-stream/lib/ours/primordials.js
 var require_primordials = __commonJS((exports, module) => {
+  class AggregateError extends Error {
+    constructor(errors) {
+      if (!Array.isArray(errors)) {
+        throw new TypeError(`Expected input to be an Array, got ${typeof errors}`);
+      }
+      let message = "";
+      for (let i = 0;i < errors.length; i++) {
+        message += `    ${errors[i].stack}
+`;
+      }
+      super(message);
+      this.name = "AggregateError";
+      this.errors = errors;
+    }
+  }
   module.exports = {
+    AggregateError,
     ArrayIsArray(self2) {
       return Array.isArray(self2);
     },
@@ -62694,8 +62220,8 @@ var require_primordials = __commonJS((exports, module) => {
     PromiseReject(err) {
       return Promise.reject(err);
     },
-    PromiseResolve(val2) {
-      return Promise.resolve(val2);
+    PromiseResolve(val) {
+      return Promise.resolve(val);
     },
     ReflectApply: Reflect.apply,
     RegExpPrototypeTest(self2, value) {
@@ -62727,6 +62253,343 @@ var require_primordials = __commonJS((exports, module) => {
     },
     Boolean,
     Uint8Array
+  };
+});
+
+// ../node_modules/readable-stream/lib/ours/util/inspect.js
+var require_inspect2 = __commonJS((exports, module) => {
+  module.exports = {
+    format(format, ...args) {
+      return format.replace(/%([sdifj])/g, function(...[_unused, type]) {
+        const replacement = args.shift();
+        if (type === "f") {
+          return replacement.toFixed(6);
+        } else if (type === "j") {
+          return JSON.stringify(replacement);
+        } else if (type === "s" && typeof replacement === "object") {
+          const ctor = replacement.constructor !== Object ? replacement.constructor.name : "";
+          return `${ctor} {}`.trim();
+        } else {
+          return replacement.toString();
+        }
+      });
+    },
+    inspect(value) {
+      switch (typeof value) {
+        case "string":
+          if (value.includes("'")) {
+            if (!value.includes('"')) {
+              return `"${value}"`;
+            } else if (!value.includes("`") && !value.includes("${")) {
+              return `\`${value}\``;
+            }
+          }
+          return `'${value}'`;
+        case "number":
+          if (isNaN(value)) {
+            return "NaN";
+          } else if (Object.is(value, -0)) {
+            return String(value);
+          }
+          return value;
+        case "bigint":
+          return `${String(value)}n`;
+        case "boolean":
+        case "undefined":
+          return String(value);
+        case "object":
+          return "{}";
+      }
+    }
+  };
+});
+
+// ../node_modules/readable-stream/lib/ours/errors.js
+var require_errors3 = __commonJS((exports, module) => {
+  var { format, inspect } = require_inspect2();
+  var { AggregateError: CustomAggregateError } = require_primordials();
+  var AggregateError = globalThis.AggregateError || CustomAggregateError;
+  var kIsNodeError = Symbol("kIsNodeError");
+  var kTypes = [
+    "string",
+    "function",
+    "number",
+    "object",
+    "Function",
+    "Object",
+    "boolean",
+    "bigint",
+    "symbol"
+  ];
+  var classRegExp = /^([A-Z][a-z0-9]*)+$/;
+  var nodeInternalPrefix = "__node_internal_";
+  var codes = {};
+  function assert(value, message) {
+    if (!value) {
+      throw new codes.ERR_INTERNAL_ASSERTION(message);
+    }
+  }
+  function addNumericalSeparator(val) {
+    let res = "";
+    let i = val.length;
+    const start = val[0] === "-" ? 1 : 0;
+    for (;i >= start + 4; i -= 3) {
+      res = `_${val.slice(i - 3, i)}${res}`;
+    }
+    return `${val.slice(0, i)}${res}`;
+  }
+  function getMessage(key, msg, args) {
+    if (typeof msg === "function") {
+      assert(msg.length <= args.length, `Code: ${key}; The provided arguments length (${args.length}) does not match the required ones (${msg.length}).`);
+      return msg(...args);
+    }
+    const expectedLength = (msg.match(/%[dfijoOs]/g) || []).length;
+    assert(expectedLength === args.length, `Code: ${key}; The provided arguments length (${args.length}) does not match the required ones (${expectedLength}).`);
+    if (args.length === 0) {
+      return msg;
+    }
+    return format(msg, ...args);
+  }
+  function E(code, message, Base) {
+    if (!Base) {
+      Base = Error;
+    }
+
+    class NodeError extends Base {
+      constructor(...args) {
+        super(getMessage(code, message, args));
+      }
+      toString() {
+        return `${this.name} [${code}]: ${this.message}`;
+      }
+    }
+    Object.defineProperties(NodeError.prototype, {
+      name: {
+        value: Base.name,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      },
+      toString: {
+        value() {
+          return `${this.name} [${code}]: ${this.message}`;
+        },
+        writable: true,
+        enumerable: false,
+        configurable: true
+      }
+    });
+    NodeError.prototype.code = code;
+    NodeError.prototype[kIsNodeError] = true;
+    codes[code] = NodeError;
+  }
+  function hideStackFrames(fn) {
+    const hidden = nodeInternalPrefix + fn.name;
+    Object.defineProperty(fn, "name", {
+      value: hidden
+    });
+    return fn;
+  }
+  function aggregateTwoErrors(innerError, outerError) {
+    if (innerError && outerError && innerError !== outerError) {
+      if (Array.isArray(outerError.errors)) {
+        outerError.errors.push(innerError);
+        return outerError;
+      }
+      const err = new AggregateError([outerError, innerError], outerError.message);
+      err.code = outerError.code;
+      return err;
+    }
+    return innerError || outerError;
+  }
+
+  class AbortError extends Error {
+    constructor(message = "The operation was aborted", options = undefined) {
+      if (options !== undefined && typeof options !== "object") {
+        throw new codes.ERR_INVALID_ARG_TYPE("options", "Object", options);
+      }
+      super(message, options);
+      this.code = "ABORT_ERR";
+      this.name = "AbortError";
+    }
+  }
+  E("ERR_ASSERTION", "%s", Error);
+  E("ERR_INVALID_ARG_TYPE", (name, expected, actual) => {
+    assert(typeof name === "string", "'name' must be a string");
+    if (!Array.isArray(expected)) {
+      expected = [expected];
+    }
+    let msg = "The ";
+    if (name.endsWith(" argument")) {
+      msg += `${name} `;
+    } else {
+      msg += `"${name}" ${name.includes(".") ? "property" : "argument"} `;
+    }
+    msg += "must be ";
+    const types = [];
+    const instances = [];
+    const other = [];
+    for (const value of expected) {
+      assert(typeof value === "string", "All expected entries have to be of type string");
+      if (kTypes.includes(value)) {
+        types.push(value.toLowerCase());
+      } else if (classRegExp.test(value)) {
+        instances.push(value);
+      } else {
+        assert(value !== "object", 'The value "object" should be written as "Object"');
+        other.push(value);
+      }
+    }
+    if (instances.length > 0) {
+      const pos = types.indexOf("object");
+      if (pos !== -1) {
+        types.splice(types, pos, 1);
+        instances.push("Object");
+      }
+    }
+    if (types.length > 0) {
+      switch (types.length) {
+        case 1:
+          msg += `of type ${types[0]}`;
+          break;
+        case 2:
+          msg += `one of type ${types[0]} or ${types[1]}`;
+          break;
+        default: {
+          const last = types.pop();
+          msg += `one of type ${types.join(", ")}, or ${last}`;
+        }
+      }
+      if (instances.length > 0 || other.length > 0) {
+        msg += " or ";
+      }
+    }
+    if (instances.length > 0) {
+      switch (instances.length) {
+        case 1:
+          msg += `an instance of ${instances[0]}`;
+          break;
+        case 2:
+          msg += `an instance of ${instances[0]} or ${instances[1]}`;
+          break;
+        default: {
+          const last = instances.pop();
+          msg += `an instance of ${instances.join(", ")}, or ${last}`;
+        }
+      }
+      if (other.length > 0) {
+        msg += " or ";
+      }
+    }
+    switch (other.length) {
+      case 0:
+        break;
+      case 1:
+        if (other[0].toLowerCase() !== other[0]) {
+          msg += "an ";
+        }
+        msg += `${other[0]}`;
+        break;
+      case 2:
+        msg += `one of ${other[0]} or ${other[1]}`;
+        break;
+      default: {
+        const last = other.pop();
+        msg += `one of ${other.join(", ")}, or ${last}`;
+      }
+    }
+    if (actual == null) {
+      msg += `. Received ${actual}`;
+    } else if (typeof actual === "function" && actual.name) {
+      msg += `. Received function ${actual.name}`;
+    } else if (typeof actual === "object") {
+      var _actual$constructor;
+      if ((_actual$constructor = actual.constructor) !== null && _actual$constructor !== undefined && _actual$constructor.name) {
+        msg += `. Received an instance of ${actual.constructor.name}`;
+      } else {
+        const inspected = inspect(actual, {
+          depth: -1
+        });
+        msg += `. Received ${inspected}`;
+      }
+    } else {
+      let inspected = inspect(actual, {
+        colors: false
+      });
+      if (inspected.length > 25) {
+        inspected = `${inspected.slice(0, 25)}...`;
+      }
+      msg += `. Received type ${typeof actual} (${inspected})`;
+    }
+    return msg;
+  }, TypeError);
+  E("ERR_INVALID_ARG_VALUE", (name, value, reason = "is invalid") => {
+    let inspected = inspect(value);
+    if (inspected.length > 128) {
+      inspected = inspected.slice(0, 128) + "...";
+    }
+    const type = name.includes(".") ? "property" : "argument";
+    return `The ${type} '${name}' ${reason}. Received ${inspected}`;
+  }, TypeError);
+  E("ERR_INVALID_RETURN_VALUE", (input, name, value) => {
+    var _value$constructor;
+    const type = value !== null && value !== undefined && (_value$constructor = value.constructor) !== null && _value$constructor !== undefined && _value$constructor.name ? `instance of ${value.constructor.name}` : `type ${typeof value}`;
+    return `Expected ${input} to be returned from the "${name}"` + ` function but got ${type}.`;
+  }, TypeError);
+  E("ERR_MISSING_ARGS", (...args) => {
+    assert(args.length > 0, "At least one arg needs to be specified");
+    let msg;
+    const len = args.length;
+    args = (Array.isArray(args) ? args : [args]).map((a) => `"${a}"`).join(" or ");
+    switch (len) {
+      case 1:
+        msg += `The ${args[0]} argument`;
+        break;
+      case 2:
+        msg += `The ${args[0]} and ${args[1]} arguments`;
+        break;
+      default:
+        {
+          const last = args.pop();
+          msg += `The ${args.join(", ")}, and ${last} arguments`;
+        }
+        break;
+    }
+    return `${msg} must be specified`;
+  }, TypeError);
+  E("ERR_OUT_OF_RANGE", (str, range, input) => {
+    assert(range, 'Missing "range" argument');
+    let received;
+    if (Number.isInteger(input) && Math.abs(input) > 2 ** 32) {
+      received = addNumericalSeparator(String(input));
+    } else if (typeof input === "bigint") {
+      received = String(input);
+      const limit = BigInt(2) ** BigInt(32);
+      if (input > limit || input < -limit) {
+        received = addNumericalSeparator(received);
+      }
+      received += "n";
+    } else {
+      received = inspect(input);
+    }
+    return `The value of "${str}" is out of range. It must be ${range}. Received ${received}`;
+  }, RangeError);
+  E("ERR_MULTIPLE_CALLBACK", "Callback called multiple times", Error);
+  E("ERR_METHOD_NOT_IMPLEMENTED", "The %s method is not implemented", Error);
+  E("ERR_STREAM_ALREADY_FINISHED", "Cannot call %s after a stream was finished", Error);
+  E("ERR_STREAM_CANNOT_PIPE", "Cannot pipe, not readable", Error);
+  E("ERR_STREAM_DESTROYED", "Cannot call %s after a stream was destroyed", Error);
+  E("ERR_STREAM_NULL_VALUES", "May not write null values to stream", TypeError);
+  E("ERR_STREAM_PREMATURE_CLOSE", "Premature close", Error);
+  E("ERR_STREAM_PUSH_AFTER_EOF", "stream.push() after EOF", Error);
+  E("ERR_STREAM_UNSHIFT_AFTER_END_EVENT", "stream.unshift() after end event", Error);
+  E("ERR_STREAM_WRITE_AFTER_END", "write after end", Error);
+  E("ERR_UNKNOWN_ENCODING", "Unknown encoding: %s", TypeError);
+  module.exports = {
+    AbortError,
+    aggregateTwoErrors: hideStackFrames(aggregateTwoErrors),
+    hideStackFrames,
+    codes
   };
 });
 
@@ -62865,8 +62728,7 @@ var require_event_target_shim = __commonJS((exports, module) => {
         setCancelFlag(pd(this));
       }
     },
-    initEvent() {
-    }
+    initEvent() {}
   };
   Object.defineProperty(Event2.prototype, "constructor", {
     value: Event2,
@@ -63252,13 +63114,16 @@ var require_abort_controller = __commonJS((exports, module) => {
 });
 
 // ../node_modules/readable-stream/lib/ours/util.js
-var require_util12 = __commonJS((exports, module) => {
+var require_util11 = __commonJS((exports, module) => {
   var bufferModule = __require("buffer");
-  var { kResistStopPropagation, SymbolDispose } = require_primordials();
+  var { format, inspect } = require_inspect2();
+  var {
+    codes: { ERR_INVALID_ARG_TYPE }
+  } = require_errors3();
+  var { kResistStopPropagation, AggregateError, SymbolDispose } = require_primordials();
   var AbortSignal2 = globalThis.AbortSignal || require_abort_controller().AbortSignal;
   var AbortController2 = globalThis.AbortController || require_abort_controller().AbortController;
-  var AsyncFunction = Object.getPrototypeOf(async function() {
-  }).constructor;
+  var AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   var Blob2 = globalThis.Blob || bufferModule.Blob;
   var isBlob = typeof Blob2 !== "undefined" ? function isBlob(b) {
     return b instanceof Blob2;
@@ -63271,24 +63136,10 @@ var require_util12 = __commonJS((exports, module) => {
     }
   };
   var validateFunction = (value, name) => {
-    if (typeof value !== "function")
+    if (typeof value !== "function") {
       throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
-  };
-
-  class AggregateError extends Error {
-    constructor(errors) {
-      if (!Array.isArray(errors)) {
-        throw new TypeError(`Expected input to be an Array, got ${typeof errors}`);
-      }
-      let message = "";
-      for (let i = 0;i < errors.length; i++) {
-        message += `    ${errors[i].stack}\n`;
-      }
-      super(message);
-      this.name = "AggregateError";
-      this.errors = errors;
     }
-  }
+  };
   module.exports = {
     AggregateError,
     kEmptyObject: Object.freeze({}),
@@ -63326,51 +63177,10 @@ var require_util12 = __commonJS((exports, module) => {
       });
     },
     debuglog() {
-      return function() {
-      };
+      return function() {};
     },
-    format(format, ...args) {
-      return format.replace(/%([sdifj])/g, function(...[_unused, type]) {
-        const replacement = args.shift();
-        if (type === "f") {
-          return replacement.toFixed(6);
-        } else if (type === "j") {
-          return JSON.stringify(replacement);
-        } else if (type === "s" && typeof replacement === "object") {
-          const ctor = replacement.constructor !== Object ? replacement.constructor.name : "";
-          return `${ctor} {}`.trim();
-        } else {
-          return replacement.toString();
-        }
-      });
-    },
-    inspect(value) {
-      switch (typeof value) {
-        case "string":
-          if (value.includes("'")) {
-            if (!value.includes('"')) {
-              return `"${value}"`;
-            } else if (!value.includes("`") && !value.includes("${")) {
-              return `\`${value}\``;
-            }
-          }
-          return `'${value}'`;
-        case "number":
-          if (isNaN(value)) {
-            return "NaN";
-          } else if (Object.is(value, -0)) {
-            return String(value);
-          }
-          return value;
-        case "bigint":
-          return `${String(value)}n`;
-        case "boolean":
-        case "undefined":
-          return String(value);
-        case "object":
-          return "{}";
-      }
-    },
+    format,
+    inspect,
     types: {
       isAsyncFunction(fn) {
         return fn instanceof AsyncFunction;
@@ -63433,293 +63243,6 @@ var require_util12 = __commonJS((exports, module) => {
   module.exports.promisify.custom = Symbol.for("nodejs.util.promisify.custom");
 });
 
-// ../node_modules/readable-stream/lib/ours/errors.js
-var require_errors4 = __commonJS((exports, module) => {
-  var { format, inspect, AggregateError: CustomAggregateError } = require_util12();
-  var AggregateError = globalThis.AggregateError || CustomAggregateError;
-  var kIsNodeError = Symbol("kIsNodeError");
-  var kTypes = [
-    "string",
-    "function",
-    "number",
-    "object",
-    "Function",
-    "Object",
-    "boolean",
-    "bigint",
-    "symbol"
-  ];
-  var classRegExp = /^([A-Z][a-z0-9]*)+$/;
-  var nodeInternalPrefix = "__node_internal_";
-  var codes = {};
-  function assert(value, message) {
-    if (!value) {
-      throw new codes.ERR_INTERNAL_ASSERTION(message);
-    }
-  }
-  function addNumericalSeparator(val2) {
-    let res = "";
-    let i = val2.length;
-    const start = val2[0] === "-" ? 1 : 0;
-    for (;i >= start + 4; i -= 3) {
-      res = `_${val2.slice(i - 3, i)}${res}`;
-    }
-    return `${val2.slice(0, i)}${res}`;
-  }
-  function getMessage(key, msg, args) {
-    if (typeof msg === "function") {
-      assert(msg.length <= args.length, `Code: ${key}; The provided arguments length (${args.length}) does not match the required ones (${msg.length}).`);
-      return msg(...args);
-    }
-    const expectedLength = (msg.match(/%[dfijoOs]/g) || []).length;
-    assert(expectedLength === args.length, `Code: ${key}; The provided arguments length (${args.length}) does not match the required ones (${expectedLength}).`);
-    if (args.length === 0) {
-      return msg;
-    }
-    return format(msg, ...args);
-  }
-  function E(code, message, Base) {
-    if (!Base) {
-      Base = Error;
-    }
-
-    class NodeError extends Base {
-      constructor(...args) {
-        super(getMessage(code, message, args));
-      }
-      toString() {
-        return `${this.name} [${code}]: ${this.message}`;
-      }
-    }
-    Object.defineProperties(NodeError.prototype, {
-      name: {
-        value: Base.name,
-        writable: true,
-        enumerable: false,
-        configurable: true
-      },
-      toString: {
-        value() {
-          return `${this.name} [${code}]: ${this.message}`;
-        },
-        writable: true,
-        enumerable: false,
-        configurable: true
-      }
-    });
-    NodeError.prototype.code = code;
-    NodeError.prototype[kIsNodeError] = true;
-    codes[code] = NodeError;
-  }
-  function hideStackFrames(fn) {
-    const hidden = nodeInternalPrefix + fn.name;
-    Object.defineProperty(fn, "name", {
-      value: hidden
-    });
-    return fn;
-  }
-  function aggregateTwoErrors(innerError, outerError) {
-    if (innerError && outerError && innerError !== outerError) {
-      if (Array.isArray(outerError.errors)) {
-        outerError.errors.push(innerError);
-        return outerError;
-      }
-      const err = new AggregateError([outerError, innerError], outerError.message);
-      err.code = outerError.code;
-      return err;
-    }
-    return innerError || outerError;
-  }
-
-  class AbortError extends Error {
-    constructor(message = "The operation was aborted", options = undefined) {
-      if (options !== undefined && typeof options !== "object") {
-        throw new codes.ERR_INVALID_ARG_TYPE("options", "Object", options);
-      }
-      super(message, options);
-      this.code = "ABORT_ERR";
-      this.name = "AbortError";
-    }
-  }
-  E("ERR_ASSERTION", "%s", Error);
-  E("ERR_INVALID_ARG_TYPE", (name, expected, actual) => {
-    assert(typeof name === "string", "'name' must be a string");
-    if (!Array.isArray(expected)) {
-      expected = [expected];
-    }
-    let msg = "The ";
-    if (name.endsWith(" argument")) {
-      msg += `${name} `;
-    } else {
-      msg += `"${name}" ${name.includes(".") ? "property" : "argument"} `;
-    }
-    msg += "must be ";
-    const types = [];
-    const instances = [];
-    const other = [];
-    for (const value of expected) {
-      assert(typeof value === "string", "All expected entries have to be of type string");
-      if (kTypes.includes(value)) {
-        types.push(value.toLowerCase());
-      } else if (classRegExp.test(value)) {
-        instances.push(value);
-      } else {
-        assert(value !== "object", 'The value "object" should be written as "Object"');
-        other.push(value);
-      }
-    }
-    if (instances.length > 0) {
-      const pos = types.indexOf("object");
-      if (pos !== -1) {
-        types.splice(types, pos, 1);
-        instances.push("Object");
-      }
-    }
-    if (types.length > 0) {
-      switch (types.length) {
-        case 1:
-          msg += `of type ${types[0]}`;
-          break;
-        case 2:
-          msg += `one of type ${types[0]} or ${types[1]}`;
-          break;
-        default: {
-          const last = types.pop();
-          msg += `one of type ${types.join(", ")}, or ${last}`;
-        }
-      }
-      if (instances.length > 0 || other.length > 0) {
-        msg += " or ";
-      }
-    }
-    if (instances.length > 0) {
-      switch (instances.length) {
-        case 1:
-          msg += `an instance of ${instances[0]}`;
-          break;
-        case 2:
-          msg += `an instance of ${instances[0]} or ${instances[1]}`;
-          break;
-        default: {
-          const last = instances.pop();
-          msg += `an instance of ${instances.join(", ")}, or ${last}`;
-        }
-      }
-      if (other.length > 0) {
-        msg += " or ";
-      }
-    }
-    switch (other.length) {
-      case 0:
-        break;
-      case 1:
-        if (other[0].toLowerCase() !== other[0]) {
-          msg += "an ";
-        }
-        msg += `${other[0]}`;
-        break;
-      case 2:
-        msg += `one of ${other[0]} or ${other[1]}`;
-        break;
-      default: {
-        const last = other.pop();
-        msg += `one of ${other.join(", ")}, or ${last}`;
-      }
-    }
-    if (actual == null) {
-      msg += `. Received ${actual}`;
-    } else if (typeof actual === "function" && actual.name) {
-      msg += `. Received function ${actual.name}`;
-    } else if (typeof actual === "object") {
-      var _actual$constructor;
-      if ((_actual$constructor = actual.constructor) !== null && _actual$constructor !== undefined && _actual$constructor.name) {
-        msg += `. Received an instance of ${actual.constructor.name}`;
-      } else {
-        const inspected = inspect(actual, {
-          depth: -1
-        });
-        msg += `. Received ${inspected}`;
-      }
-    } else {
-      let inspected = inspect(actual, {
-        colors: false
-      });
-      if (inspected.length > 25) {
-        inspected = `${inspected.slice(0, 25)}...`;
-      }
-      msg += `. Received type ${typeof actual} (${inspected})`;
-    }
-    return msg;
-  }, TypeError);
-  E("ERR_INVALID_ARG_VALUE", (name, value, reason = "is invalid") => {
-    let inspected = inspect(value);
-    if (inspected.length > 128) {
-      inspected = inspected.slice(0, 128) + "...";
-    }
-    const type = name.includes(".") ? "property" : "argument";
-    return `The ${type} '${name}' ${reason}. Received ${inspected}`;
-  }, TypeError);
-  E("ERR_INVALID_RETURN_VALUE", (input, name, value) => {
-    var _value$constructor;
-    const type = value !== null && value !== undefined && (_value$constructor = value.constructor) !== null && _value$constructor !== undefined && _value$constructor.name ? `instance of ${value.constructor.name}` : `type ${typeof value}`;
-    return `Expected ${input} to be returned from the "${name}"` + ` function but got ${type}.`;
-  }, TypeError);
-  E("ERR_MISSING_ARGS", (...args) => {
-    assert(args.length > 0, "At least one arg needs to be specified");
-    let msg;
-    const len = args.length;
-    args = (Array.isArray(args) ? args : [args]).map((a) => `"${a}"`).join(" or ");
-    switch (len) {
-      case 1:
-        msg += `The ${args[0]} argument`;
-        break;
-      case 2:
-        msg += `The ${args[0]} and ${args[1]} arguments`;
-        break;
-      default:
-        {
-          const last = args.pop();
-          msg += `The ${args.join(", ")}, and ${last} arguments`;
-        }
-        break;
-    }
-    return `${msg} must be specified`;
-  }, TypeError);
-  E("ERR_OUT_OF_RANGE", (str, range, input) => {
-    assert(range, 'Missing "range" argument');
-    let received;
-    if (Number.isInteger(input) && Math.abs(input) > 2 ** 32) {
-      received = addNumericalSeparator(String(input));
-    } else if (typeof input === "bigint") {
-      received = String(input);
-      if (input > 2n ** 32n || input < -(2n ** 32n)) {
-        received = addNumericalSeparator(received);
-      }
-      received += "n";
-    } else {
-      received = inspect(input);
-    }
-    return `The value of "${str}" is out of range. It must be ${range}. Received ${received}`;
-  }, RangeError);
-  E("ERR_MULTIPLE_CALLBACK", "Callback called multiple times", Error);
-  E("ERR_METHOD_NOT_IMPLEMENTED", "The %s method is not implemented", Error);
-  E("ERR_STREAM_ALREADY_FINISHED", "Cannot call %s after a stream was finished", Error);
-  E("ERR_STREAM_CANNOT_PIPE", "Cannot pipe, not readable", Error);
-  E("ERR_STREAM_DESTROYED", "Cannot call %s after a stream was destroyed", Error);
-  E("ERR_STREAM_NULL_VALUES", "May not write null values to stream", TypeError);
-  E("ERR_STREAM_PREMATURE_CLOSE", "Premature close", Error);
-  E("ERR_STREAM_PUSH_AFTER_EOF", "stream.push() after EOF", Error);
-  E("ERR_STREAM_UNSHIFT_AFTER_END_EVENT", "stream.unshift() after end event", Error);
-  E("ERR_STREAM_WRITE_AFTER_END", "write after end", Error);
-  E("ERR_UNKNOWN_ENCODING", "Unknown encoding: %s", TypeError);
-  module.exports = {
-    AbortError,
-    aggregateTwoErrors: hideStackFrames(aggregateTwoErrors),
-    hideStackFrames,
-    codes
-  };
-});
-
 // ../node_modules/readable-stream/lib/internal/validators.js
 var require_validators = __commonJS((exports, module) => {
   var {
@@ -63740,10 +63263,10 @@ var require_validators = __commonJS((exports, module) => {
   } = require_primordials();
   var {
     hideStackFrames,
-    codes: { ERR_SOCKET_BAD_PORT, ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_INVALID_ARG_VALUE, ERR_OUT_OF_RANGE, ERR_UNKNOWN_SIGNAL }
-  } = require_errors4();
-  var { normalizeEncoding } = require_util12();
-  var { isAsyncFunction, isArrayBufferView } = require_util12().types;
+    codes: { ERR_SOCKET_BAD_PORT, ERR_INVALID_ARG_TYPE, ERR_INVALID_ARG_VALUE, ERR_OUT_OF_RANGE, ERR_UNKNOWN_SIGNAL }
+  } = require_errors3();
+  var { normalizeEncoding } = require_util11();
+  var { isAsyncFunction, isArrayBufferView } = require_util11().types;
   var signals = {};
   function isInt32(value) {
     return value === (value | 0);
@@ -63768,7 +63291,7 @@ var require_validators = __commonJS((exports, module) => {
   }
   var validateInteger = hideStackFrames((value, name, min = NumberMIN_SAFE_INTEGER, max = NumberMAX_SAFE_INTEGER) => {
     if (typeof value !== "number")
-      throw new ERR_INVALID_ARG_TYPE2(name, "number", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "number", value);
     if (!NumberIsInteger(value))
       throw new ERR_OUT_OF_RANGE(name, "an integer", value);
     if (value < min || value > max)
@@ -63776,7 +63299,7 @@ var require_validators = __commonJS((exports, module) => {
   });
   var validateInt32 = hideStackFrames((value, name, min = -2147483648, max = 2147483647) => {
     if (typeof value !== "number") {
-      throw new ERR_INVALID_ARG_TYPE2(name, "number", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "number", value);
     }
     if (!NumberIsInteger(value)) {
       throw new ERR_OUT_OF_RANGE(name, "an integer", value);
@@ -63787,7 +63310,7 @@ var require_validators = __commonJS((exports, module) => {
   });
   var validateUint32 = hideStackFrames((value, name, positive = false) => {
     if (typeof value !== "number") {
-      throw new ERR_INVALID_ARG_TYPE2(name, "number", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "number", value);
     }
     if (!NumberIsInteger(value)) {
       throw new ERR_OUT_OF_RANGE(name, "an integer", value);
@@ -63800,11 +63323,11 @@ var require_validators = __commonJS((exports, module) => {
   });
   function validateString(value, name) {
     if (typeof value !== "string")
-      throw new ERR_INVALID_ARG_TYPE2(name, "string", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "string", value);
   }
   function validateNumber(value, name, min = undefined, max) {
     if (typeof value !== "number")
-      throw new ERR_INVALID_ARG_TYPE2(name, "number", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "number", value);
     if (min != null && value < min || max != null && value > max || (min != null || max != null) && NumberIsNaN(value)) {
       throw new ERR_OUT_OF_RANGE(name, `${min != null ? `>= ${min}` : ""}${min != null && max != null ? " && " : ""}${max != null ? `<= ${max}` : ""}`, value);
     }
@@ -63818,7 +63341,7 @@ var require_validators = __commonJS((exports, module) => {
   });
   function validateBoolean(value, name) {
     if (typeof value !== "boolean")
-      throw new ERR_INVALID_ARG_TYPE2(name, "boolean", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "boolean", value);
   }
   function getOwnPropertyValueOrDefault(options, key, defaultValue) {
     return options == null || !ObjectPrototypeHasOwnProperty(options, key) ? defaultValue : options[key];
@@ -63828,17 +63351,17 @@ var require_validators = __commonJS((exports, module) => {
     const allowFunction = getOwnPropertyValueOrDefault(options, "allowFunction", false);
     const nullable = getOwnPropertyValueOrDefault(options, "nullable", false);
     if (!nullable && value === null || !allowArray && ArrayIsArray(value) || typeof value !== "object" && (!allowFunction || typeof value !== "function")) {
-      throw new ERR_INVALID_ARG_TYPE2(name, "Object", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "Object", value);
     }
   });
   var validateDictionary = hideStackFrames((value, name) => {
     if (value != null && typeof value !== "object" && typeof value !== "function") {
-      throw new ERR_INVALID_ARG_TYPE2(name, "a dictionary", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "a dictionary", value);
     }
   });
   var validateArray = hideStackFrames((value, name, minLength = 0) => {
     if (!ArrayIsArray(value)) {
-      throw new ERR_INVALID_ARG_TYPE2(name, "Array", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "Array", value);
     }
     if (value.length < minLength) {
       const reason = `must be longer than ${minLength}`;
@@ -63863,7 +63386,7 @@ var require_validators = __commonJS((exports, module) => {
       const signal = value[i];
       const indexedName = `${name}[${i}]`;
       if (signal == null) {
-        throw new ERR_INVALID_ARG_TYPE2(indexedName, "AbortSignal", signal);
+        throw new ERR_INVALID_ARG_TYPE(indexedName, "AbortSignal", signal);
       }
       validateAbortSignal(signal, indexedName);
     }
@@ -63879,7 +63402,7 @@ var require_validators = __commonJS((exports, module) => {
   }
   var validateBuffer = hideStackFrames((buffer, name = "buffer") => {
     if (!isArrayBufferView(buffer)) {
-      throw new ERR_INVALID_ARG_TYPE2(name, ["Buffer", "TypedArray", "DataView"], buffer);
+      throw new ERR_INVALID_ARG_TYPE(name, ["Buffer", "TypedArray", "DataView"], buffer);
     }
   });
   function validateEncoding(data, encoding) {
@@ -63897,24 +63420,24 @@ var require_validators = __commonJS((exports, module) => {
   }
   var validateAbortSignal = hideStackFrames((signal, name) => {
     if (signal !== undefined && (signal === null || typeof signal !== "object" || !("aborted" in signal))) {
-      throw new ERR_INVALID_ARG_TYPE2(name, "AbortSignal", signal);
+      throw new ERR_INVALID_ARG_TYPE(name, "AbortSignal", signal);
     }
   });
   var validateFunction = hideStackFrames((value, name) => {
     if (typeof value !== "function")
-      throw new ERR_INVALID_ARG_TYPE2(name, "Function", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
   });
   var validatePlainFunction = hideStackFrames((value, name) => {
     if (typeof value !== "function" || isAsyncFunction(value))
-      throw new ERR_INVALID_ARG_TYPE2(name, "Function", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "Function", value);
   });
   var validateUndefined = hideStackFrames((value, name) => {
     if (value !== undefined)
-      throw new ERR_INVALID_ARG_TYPE2(name, "undefined", value);
+      throw new ERR_INVALID_ARG_TYPE(name, "undefined", value);
   });
   function validateUnion(value, name, union) {
     if (!ArrayPrototypeIncludes(union, value)) {
-      throw new ERR_INVALID_ARG_TYPE2(name, `('${ArrayPrototypeJoin(union, "|")}')`, value);
+      throw new ERR_INVALID_ARG_TYPE(name, `('${ArrayPrototypeJoin(union, "|")}')`, value);
     }
   }
   var linkValueRegExp = /^(?:<[^>]*>)(?:\s*;\s*[^;"\s]+(?:=(")?[^;"\s]*\1)?)*$/;
@@ -64214,9 +63737,9 @@ var require_utils4 = __commonJS((exports, module) => {
 // ../node_modules/readable-stream/lib/internal/streams/end-of-stream.js
 var require_end_of_stream = __commonJS((exports, module) => {
   var process2 = require_process();
-  var { AbortError, codes } = require_errors4();
-  var { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_STREAM_PREMATURE_CLOSE } = codes;
-  var { kEmptyObject, once } = require_util12();
+  var { AbortError, codes } = require_errors3();
+  var { ERR_INVALID_ARG_TYPE, ERR_STREAM_PREMATURE_CLOSE } = codes;
+  var { kEmptyObject, once } = require_util11();
   var { validateAbortSignal, validateFunction, validateObject, validateBoolean } = require_validators();
   var { Promise: Promise2, PromisePrototypeThen, SymbolDispose } = require_primordials();
   var {
@@ -64239,8 +63762,7 @@ var require_end_of_stream = __commonJS((exports, module) => {
   function isRequest(stream) {
     return stream.setHeader && typeof stream.abort === "function";
   }
-  var nop = () => {
-  };
+  var nop = () => {};
   function eos(stream, options, callback) {
     var _options$readable, _options$writable;
     if (arguments.length === 2) {
@@ -64258,7 +63780,7 @@ var require_end_of_stream = __commonJS((exports, module) => {
       return eosWeb(stream, options, callback);
     }
     if (!isNodeStream(stream)) {
-      throw new ERR_INVALID_ARG_TYPE2("stream", ["ReadableStream", "WritableStream", "Stream"], stream);
+      throw new ERR_INVALID_ARG_TYPE("stream", ["ReadableStream", "WritableStream", "Stream"], stream);
     }
     const readable = (_options$readable = options.readable) !== null && _options$readable !== undefined ? _options$readable : isReadableNodeStream(stream);
     const writable = (_options$writable = options.writable) !== null && _options$writable !== undefined ? _options$writable : isWritableNodeStream(stream);
@@ -64389,7 +63911,7 @@ var require_end_of_stream = __commonJS((exports, module) => {
       if (options.signal.aborted) {
         process2.nextTick(abort);
       } else {
-        addAbortListener = addAbortListener || require_util12().addAbortListener;
+        addAbortListener = addAbortListener || require_util11().addAbortListener;
         const disposable = addAbortListener(options.signal, abort);
         const originalCallback = callback;
         callback = once((...args) => {
@@ -64413,7 +63935,7 @@ var require_end_of_stream = __commonJS((exports, module) => {
       if (options.signal.aborted) {
         process2.nextTick(abort);
       } else {
-        addAbortListener = addAbortListener || require_util12().addAbortListener;
+        addAbortListener = addAbortListener || require_util11().addAbortListener;
         const disposable = addAbortListener(options.signal, abort);
         const originalCallback = callback;
         callback = once((...args) => {
@@ -64464,7 +63986,7 @@ var require_destroy2 = __commonJS((exports, module) => {
     aggregateTwoErrors,
     codes: { ERR_MULTIPLE_CALLBACK },
     AbortError
-  } = require_errors4();
+  } = require_errors3();
   var { Symbol: Symbol2 } = require_primordials();
   var { kIsDestroyed, isDestroyed, isFinished, isServerRequest } = require_utils4();
   var kDestroy = Symbol2("kDestroy");
@@ -64804,20 +64326,20 @@ var require_legacy = __commonJS((exports, module) => {
 // ../node_modules/readable-stream/lib/internal/streams/add-abort-signal.js
 var require_add_abort_signal = __commonJS((exports, module) => {
   var { SymbolDispose } = require_primordials();
-  var { AbortError, codes } = require_errors4();
+  var { AbortError, codes } = require_errors3();
   var { isNodeStream, isWebStream, kControllerErrorFunction } = require_utils4();
   var eos = require_end_of_stream();
-  var { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2 } = codes;
+  var { ERR_INVALID_ARG_TYPE } = codes;
   var addAbortListener;
   var validateAbortSignal = (signal, name) => {
     if (typeof signal !== "object" || !("aborted" in signal)) {
-      throw new ERR_INVALID_ARG_TYPE2(name, "AbortSignal", signal);
+      throw new ERR_INVALID_ARG_TYPE(name, "AbortSignal", signal);
     }
   };
   exports.addAbortSignal = function addAbortSignal(signal, stream) {
     validateAbortSignal(signal, "signal");
     if (!isNodeStream(stream) && !isWebStream(stream)) {
-      throw new ERR_INVALID_ARG_TYPE2("stream", ["ReadableStream", "WritableStream", "Stream"], stream);
+      throw new ERR_INVALID_ARG_TYPE("stream", ["ReadableStream", "WritableStream", "Stream"], stream);
     }
     return exports.addAbortSignalNoValidate(signal, stream);
   };
@@ -64837,7 +64359,7 @@ var require_add_abort_signal = __commonJS((exports, module) => {
     if (signal.aborted) {
       onAbort();
     } else {
-      addAbortListener = addAbortListener || require_util12().addAbortListener;
+      addAbortListener = addAbortListener || require_util11().addAbortListener;
       const disposable = addAbortListener(signal, onAbort);
       eos(stream, disposable[SymbolDispose]);
     }
@@ -64849,7 +64371,7 @@ var require_add_abort_signal = __commonJS((exports, module) => {
 var require_buffer_list = __commonJS((exports, module) => {
   var { StringPrototypeSlice, SymbolIterator, TypedArrayPrototypeSet, Uint8Array: Uint8Array2 } = require_primordials();
   var { Buffer: Buffer2 } = __require("buffer");
-  var { inspect } = require_util12();
+  var { inspect } = require_util11();
   module.exports = class BufferList {
     constructor() {
       this.head = null;
@@ -65008,7 +64530,7 @@ var require_buffer_list = __commonJS((exports, module) => {
 var require_state3 = __commonJS((exports, module) => {
   var { MathFloor, NumberIsInteger } = require_primordials();
   var { validateInteger } = require_validators();
-  var { ERR_INVALID_ARG_VALUE } = require_errors4().codes;
+  var { ERR_INVALID_ARG_VALUE } = require_errors3().codes;
   var defaultHighWaterMarkBytes = 16 * 1024;
   var defaultHighWaterMarkObjectMode = 16;
   function highWaterMarkFrom(options, isDuplex, duplexKey) {
@@ -65043,12 +64565,326 @@ var require_state3 = __commonJS((exports, module) => {
   };
 });
 
+// ../node_modules/safe-buffer/index.js
+var require_safe_buffer2 = __commonJS((exports, module) => {
+  /*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+  var buffer = __require("buffer");
+  var Buffer2 = buffer.Buffer;
+  function copyProps(src, dst) {
+    for (var key in src) {
+      dst[key] = src[key];
+    }
+  }
+  if (Buffer2.from && Buffer2.alloc && Buffer2.allocUnsafe && Buffer2.allocUnsafeSlow) {
+    module.exports = buffer;
+  } else {
+    copyProps(buffer, exports);
+    exports.Buffer = SafeBuffer;
+  }
+  function SafeBuffer(arg, encodingOrOffset, length) {
+    return Buffer2(arg, encodingOrOffset, length);
+  }
+  SafeBuffer.prototype = Object.create(Buffer2.prototype);
+  copyProps(Buffer2, SafeBuffer);
+  SafeBuffer.from = function(arg, encodingOrOffset, length) {
+    if (typeof arg === "number") {
+      throw new TypeError("Argument must not be a number");
+    }
+    return Buffer2(arg, encodingOrOffset, length);
+  };
+  SafeBuffer.alloc = function(size, fill, encoding) {
+    if (typeof size !== "number") {
+      throw new TypeError("Argument must be a number");
+    }
+    var buf = Buffer2(size);
+    if (fill !== undefined) {
+      if (typeof encoding === "string") {
+        buf.fill(fill, encoding);
+      } else {
+        buf.fill(fill);
+      }
+    } else {
+      buf.fill(0);
+    }
+    return buf;
+  };
+  SafeBuffer.allocUnsafe = function(size) {
+    if (typeof size !== "number") {
+      throw new TypeError("Argument must be a number");
+    }
+    return Buffer2(size);
+  };
+  SafeBuffer.allocUnsafeSlow = function(size) {
+    if (typeof size !== "number") {
+      throw new TypeError("Argument must be a number");
+    }
+    return buffer.SlowBuffer(size);
+  };
+});
+
+// ../node_modules/string_decoder/lib/string_decoder.js
+var require_string_decoder2 = __commonJS((exports) => {
+  var Buffer2 = require_safe_buffer2().Buffer;
+  var isEncoding = Buffer2.isEncoding || function(encoding) {
+    encoding = "" + encoding;
+    switch (encoding && encoding.toLowerCase()) {
+      case "hex":
+      case "utf8":
+      case "utf-8":
+      case "ascii":
+      case "binary":
+      case "base64":
+      case "ucs2":
+      case "ucs-2":
+      case "utf16le":
+      case "utf-16le":
+      case "raw":
+        return true;
+      default:
+        return false;
+    }
+  };
+  function _normalizeEncoding(enc) {
+    if (!enc)
+      return "utf8";
+    var retried;
+    while (true) {
+      switch (enc) {
+        case "utf8":
+        case "utf-8":
+          return "utf8";
+        case "ucs2":
+        case "ucs-2":
+        case "utf16le":
+        case "utf-16le":
+          return "utf16le";
+        case "latin1":
+        case "binary":
+          return "latin1";
+        case "base64":
+        case "ascii":
+        case "hex":
+          return enc;
+        default:
+          if (retried)
+            return;
+          enc = ("" + enc).toLowerCase();
+          retried = true;
+      }
+    }
+  }
+  function normalizeEncoding(enc) {
+    var nenc = _normalizeEncoding(enc);
+    if (typeof nenc !== "string" && (Buffer2.isEncoding === isEncoding || !isEncoding(enc)))
+      throw new Error("Unknown encoding: " + enc);
+    return nenc || enc;
+  }
+  exports.StringDecoder = StringDecoder;
+  function StringDecoder(encoding) {
+    this.encoding = normalizeEncoding(encoding);
+    var nb;
+    switch (this.encoding) {
+      case "utf16le":
+        this.text = utf16Text;
+        this.end = utf16End;
+        nb = 4;
+        break;
+      case "utf8":
+        this.fillLast = utf8FillLast;
+        nb = 4;
+        break;
+      case "base64":
+        this.text = base64Text;
+        this.end = base64End;
+        nb = 3;
+        break;
+      default:
+        this.write = simpleWrite;
+        this.end = simpleEnd;
+        return;
+    }
+    this.lastNeed = 0;
+    this.lastTotal = 0;
+    this.lastChar = Buffer2.allocUnsafe(nb);
+  }
+  StringDecoder.prototype.write = function(buf) {
+    if (buf.length === 0)
+      return "";
+    var r;
+    var i;
+    if (this.lastNeed) {
+      r = this.fillLast(buf);
+      if (r === undefined)
+        return "";
+      i = this.lastNeed;
+      this.lastNeed = 0;
+    } else {
+      i = 0;
+    }
+    if (i < buf.length)
+      return r ? r + this.text(buf, i) : this.text(buf, i);
+    return r || "";
+  };
+  StringDecoder.prototype.end = utf8End;
+  StringDecoder.prototype.text = utf8Text;
+  StringDecoder.prototype.fillLast = function(buf) {
+    if (this.lastNeed <= buf.length) {
+      buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, this.lastNeed);
+      return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+    }
+    buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, buf.length);
+    this.lastNeed -= buf.length;
+  };
+  function utf8CheckByte(byte) {
+    if (byte <= 127)
+      return 0;
+    else if (byte >> 5 === 6)
+      return 2;
+    else if (byte >> 4 === 14)
+      return 3;
+    else if (byte >> 3 === 30)
+      return 4;
+    return byte >> 6 === 2 ? -1 : -2;
+  }
+  function utf8CheckIncomplete(self2, buf, i) {
+    var j = buf.length - 1;
+    if (j < i)
+      return 0;
+    var nb = utf8CheckByte(buf[j]);
+    if (nb >= 0) {
+      if (nb > 0)
+        self2.lastNeed = nb - 1;
+      return nb;
+    }
+    if (--j < i || nb === -2)
+      return 0;
+    nb = utf8CheckByte(buf[j]);
+    if (nb >= 0) {
+      if (nb > 0)
+        self2.lastNeed = nb - 2;
+      return nb;
+    }
+    if (--j < i || nb === -2)
+      return 0;
+    nb = utf8CheckByte(buf[j]);
+    if (nb >= 0) {
+      if (nb > 0) {
+        if (nb === 2)
+          nb = 0;
+        else
+          self2.lastNeed = nb - 3;
+      }
+      return nb;
+    }
+    return 0;
+  }
+  function utf8CheckExtraBytes(self2, buf, p) {
+    if ((buf[0] & 192) !== 128) {
+      self2.lastNeed = 0;
+      return "�";
+    }
+    if (self2.lastNeed > 1 && buf.length > 1) {
+      if ((buf[1] & 192) !== 128) {
+        self2.lastNeed = 1;
+        return "�";
+      }
+      if (self2.lastNeed > 2 && buf.length > 2) {
+        if ((buf[2] & 192) !== 128) {
+          self2.lastNeed = 2;
+          return "�";
+        }
+      }
+    }
+  }
+  function utf8FillLast(buf) {
+    var p = this.lastTotal - this.lastNeed;
+    var r = utf8CheckExtraBytes(this, buf, p);
+    if (r !== undefined)
+      return r;
+    if (this.lastNeed <= buf.length) {
+      buf.copy(this.lastChar, p, 0, this.lastNeed);
+      return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+    }
+    buf.copy(this.lastChar, p, 0, buf.length);
+    this.lastNeed -= buf.length;
+  }
+  function utf8Text(buf, i) {
+    var total = utf8CheckIncomplete(this, buf, i);
+    if (!this.lastNeed)
+      return buf.toString("utf8", i);
+    this.lastTotal = total;
+    var end = buf.length - (total - this.lastNeed);
+    buf.copy(this.lastChar, 0, end);
+    return buf.toString("utf8", i, end);
+  }
+  function utf8End(buf) {
+    var r = buf && buf.length ? this.write(buf) : "";
+    if (this.lastNeed)
+      return r + "�";
+    return r;
+  }
+  function utf16Text(buf, i) {
+    if ((buf.length - i) % 2 === 0) {
+      var r = buf.toString("utf16le", i);
+      if (r) {
+        var c = r.charCodeAt(r.length - 1);
+        if (c >= 55296 && c <= 56319) {
+          this.lastNeed = 2;
+          this.lastTotal = 4;
+          this.lastChar[0] = buf[buf.length - 2];
+          this.lastChar[1] = buf[buf.length - 1];
+          return r.slice(0, -1);
+        }
+      }
+      return r;
+    }
+    this.lastNeed = 1;
+    this.lastTotal = 2;
+    this.lastChar[0] = buf[buf.length - 1];
+    return buf.toString("utf16le", i, buf.length - 1);
+  }
+  function utf16End(buf) {
+    var r = buf && buf.length ? this.write(buf) : "";
+    if (this.lastNeed) {
+      var end = this.lastTotal - this.lastNeed;
+      return r + this.lastChar.toString("utf16le", 0, end);
+    }
+    return r;
+  }
+  function base64Text(buf, i) {
+    var n = (buf.length - i) % 3;
+    if (n === 0)
+      return buf.toString("base64", i);
+    this.lastNeed = 3 - n;
+    this.lastTotal = 3;
+    if (n === 1) {
+      this.lastChar[0] = buf[buf.length - 1];
+    } else {
+      this.lastChar[0] = buf[buf.length - 2];
+      this.lastChar[1] = buf[buf.length - 1];
+    }
+    return buf.toString("base64", i, buf.length - n);
+  }
+  function base64End(buf) {
+    var r = buf && buf.length ? this.write(buf) : "";
+    if (this.lastNeed)
+      return r + this.lastChar.toString("base64", 0, 3 - this.lastNeed);
+    return r;
+  }
+  function simpleWrite(buf) {
+    return buf.toString(this.encoding);
+  }
+  function simpleEnd(buf) {
+    return buf && buf.length ? this.write(buf) : "";
+  }
+});
+
 // ../node_modules/readable-stream/lib/internal/streams/from.js
 var require_from = __commonJS((exports, module) => {
   var process2 = require_process();
   var { PromisePrototypeThen, SymbolAsyncIterator, SymbolIterator } = require_primordials();
   var { Buffer: Buffer2 } = __require("buffer");
-  var { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_STREAM_NULL_VALUES } = require_errors4().codes;
+  var { ERR_INVALID_ARG_TYPE, ERR_STREAM_NULL_VALUES } = require_errors3().codes;
   function from(Readable, iterable, opts) {
     let iterator;
     if (typeof iterable === "string" || iterable instanceof Buffer2) {
@@ -65069,7 +64905,7 @@ var require_from = __commonJS((exports, module) => {
       isAsync = false;
       iterator = iterable[SymbolIterator]();
     } else {
-      throw new ERR_INVALID_ARG_TYPE2("iterable", ["Iterable"], iterable);
+      throw new ERR_INVALID_ARG_TYPE("iterable", ["Iterable"], iterable);
     }
     const readable = new Readable({
       objectMode: true,
@@ -65153,7 +64989,7 @@ var require_readable3 = __commonJS((exports, module) => {
   var { Buffer: Buffer2 } = __require("buffer");
   var { addAbortSignal } = require_add_abort_signal();
   var eos = require_end_of_stream();
-  var debug = require_util12().debuglog("stream", (fn) => {
+  var debug = require_util11().debuglog("stream", (fn) => {
     debug = fn;
   });
   var BufferList = require_buffer_list();
@@ -65162,22 +64998,21 @@ var require_readable3 = __commonJS((exports, module) => {
   var {
     aggregateTwoErrors,
     codes: {
-      ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2,
+      ERR_INVALID_ARG_TYPE,
       ERR_METHOD_NOT_IMPLEMENTED,
       ERR_OUT_OF_RANGE,
       ERR_STREAM_PUSH_AFTER_EOF,
       ERR_STREAM_UNSHIFT_AFTER_END_EVENT
     },
     AbortError
-  } = require_errors4();
+  } = require_errors3();
   var { validateObject } = require_validators();
   var kPaused = Symbol2("kPaused");
-  var { StringDecoder } = __require("string_decoder");
+  var { StringDecoder } = require_string_decoder2();
   var from = require_from();
   ObjectSetPrototypeOf(Readable.prototype, Stream.prototype);
   ObjectSetPrototypeOf(Readable, Stream);
-  var nop = () => {
-  };
+  var nop = () => {};
   var { errorOrDestroy } = destroyImpl;
   var kObjectMode = 1 << 0;
   var kEnded = 1 << 1;
@@ -65326,7 +65161,7 @@ var require_readable3 = __commonJS((exports, module) => {
         chunk = Stream._uint8ArrayToBuffer(chunk);
         encoding = "";
       } else if (chunk != null) {
-        err = new ERR_INVALID_ARG_TYPE2("chunk", ["string", "Buffer", "Uint8Array"], chunk);
+        err = new ERR_INVALID_ARG_TYPE("chunk", ["string", "Buffer", "Uint8Array"], chunk);
       }
     }
     if (err) {
@@ -65924,9 +65759,9 @@ var require_readable3 = __commonJS((exports, module) => {
         const r = this._readableState;
         return !!r && r.readable !== false && !r.destroyed && !r.errorEmitted && !r.endEmitted;
       },
-      set(val2) {
+      set(val) {
         if (this._readableState) {
-          this._readableState.readable = !!val2;
+          this._readableState.readable = !!val;
         }
       }
     },
@@ -66143,7 +65978,7 @@ var require_writable = __commonJS((exports, module) => {
   var { addAbortSignal } = require_add_abort_signal();
   var { getHighWaterMark, getDefaultHighWaterMark } = require_state3();
   var {
-    ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2,
+    ERR_INVALID_ARG_TYPE,
     ERR_METHOD_NOT_IMPLEMENTED,
     ERR_MULTIPLE_CALLBACK,
     ERR_STREAM_CANNOT_PIPE,
@@ -66152,12 +65987,11 @@ var require_writable = __commonJS((exports, module) => {
     ERR_STREAM_NULL_VALUES,
     ERR_STREAM_WRITE_AFTER_END,
     ERR_UNKNOWN_ENCODING
-  } = require_errors4().codes;
+  } = require_errors3().codes;
   var { errorOrDestroy } = destroyImpl;
   ObjectSetPrototypeOf(Writable.prototype, Stream.prototype);
   ObjectSetPrototypeOf(Writable, Stream);
-  function nop() {
-  }
+  function nop() {}
   var kOnFinished = Symbol2("kOnFinished");
   function WritableState(options, stream, isDuplex) {
     if (typeof isDuplex !== "boolean")
@@ -66279,7 +66113,7 @@ var require_writable = __commonJS((exports, module) => {
         chunk = Stream._uint8ArrayToBuffer(chunk);
         encoding = "buffer";
       } else {
-        throw new ERR_INVALID_ARG_TYPE2("chunk", ["string", "Buffer", "Uint8Array"], chunk);
+        throw new ERR_INVALID_ARG_TYPE("chunk", ["string", "Buffer", "Uint8Array"], chunk);
       }
     }
     let err;
@@ -66522,8 +66356,7 @@ var require_writable = __commonJS((exports, module) => {
       state.corked = 1;
       this.uncork();
     }
-    if (err) {
-    } else if (!state.errored && !state.ending) {
+    if (err) {} else if (!state.errored && !state.ending) {
       state.ending = true;
       finishMaybe(this, state, true);
       state.ended = true;
@@ -66646,9 +66479,9 @@ var require_writable = __commonJS((exports, module) => {
         const w = this._writableState;
         return !!w && w.writable !== false && !w.destroyed && !w.errored && !w.ending && !w.ended;
       },
-      set(val2) {
+      set(val) {
         if (this._writableState) {
-          this._writableState.writable = !!val2;
+          this._writableState.writable = !!val;
         }
       }
     },
@@ -66766,13 +66599,13 @@ var require_duplexify = __commonJS((exports, module) => {
   var eos = require_end_of_stream();
   var {
     AbortError,
-    codes: { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_INVALID_RETURN_VALUE }
-  } = require_errors4();
+    codes: { ERR_INVALID_ARG_TYPE, ERR_INVALID_RETURN_VALUE }
+  } = require_errors3();
   var { destroyer } = require_destroy2();
   var Duplex = require_duplex();
   var Readable = require_readable3();
   var Writable = require_writable();
-  var { createDeferredPromise } = require_util12();
+  var { createDeferredPromise } = require_util11();
   var from = require_from();
   var Blob2 = globalThis.Blob || bufferModule.Blob;
   var isBlob = typeof Blob2 !== "undefined" ? function isBlob(b) {
@@ -66842,9 +66675,9 @@ var require_duplexify = __commonJS((exports, module) => {
       const then2 = value === null || value === undefined ? undefined : value.then;
       if (typeof then2 === "function") {
         let d;
-        const promise = FunctionPrototypeCall(then2, value, (val2) => {
-          if (val2 != null) {
-            throw new ERR_INVALID_RETURN_VALUE("nully", "body", val2);
+        const promise = FunctionPrototypeCall(then2, value, (val) => {
+          if (val != null) {
+            throw new ERR_INVALID_RETURN_VALUE("nully", "body", val);
           }
         }, (err) => {
           destroyer(d, err);
@@ -66891,9 +66724,9 @@ var require_duplexify = __commonJS((exports, module) => {
     const then = body === null || body === undefined ? undefined : body.then;
     if (typeof then === "function") {
       let d;
-      FunctionPrototypeCall(then, body, (val2) => {
-        if (val2 != null) {
-          d.push(val2);
+      FunctionPrototypeCall(then, body, (val) => {
+        if (val != null) {
+          d.push(val);
         }
         d.push(null);
       }, (err) => {
@@ -66902,11 +66735,10 @@ var require_duplexify = __commonJS((exports, module) => {
       return d = new Duplexify({
         objectMode: true,
         writable: false,
-        read() {
-        }
+        read() {}
       });
     }
-    throw new ERR_INVALID_ARG_TYPE2(name, [
+    throw new ERR_INVALID_ARG_TYPE(name, [
       "Blob",
       "ReadableStream",
       "WritableStream",
@@ -67195,7 +67027,7 @@ var require_duplex = __commonJS((exports, module) => {
 var require_transform = __commonJS((exports, module) => {
   var { ObjectSetPrototypeOf, Symbol: Symbol2 } = require_primordials();
   module.exports = Transform;
-  var { ERR_METHOD_NOT_IMPLEMENTED } = require_errors4().codes;
+  var { ERR_METHOD_NOT_IMPLEMENTED } = require_errors3().codes;
   var Duplex = require_duplex();
   var { getHighWaterMark } = require_state3();
   ObjectSetPrototypeOf(Transform.prototype, Duplex.prototype);
@@ -67263,13 +67095,13 @@ var require_transform = __commonJS((exports, module) => {
     const rState = this._readableState;
     const wState = this._writableState;
     const length = rState.length;
-    this._transform(chunk, encoding, (err, val2) => {
+    this._transform(chunk, encoding, (err, val) => {
       if (err) {
         callback(err);
         return;
       }
-      if (val2 != null) {
-        this.push(val2);
+      if (val != null) {
+        this.push(val);
       }
       if (wState.ended || length === rState.length || rState.length < rState.highWaterMark) {
         callback();
@@ -67305,24 +67137,24 @@ var require_passthrough2 = __commonJS((exports, module) => {
 });
 
 // ../node_modules/readable-stream/lib/internal/streams/pipeline.js
-var require_pipeline3 = __commonJS((exports, module) => {
+var require_pipeline4 = __commonJS((exports, module) => {
   var process2 = require_process();
   var { ArrayIsArray, Promise: Promise2, SymbolAsyncIterator, SymbolDispose } = require_primordials();
   var eos = require_end_of_stream();
-  var { once } = require_util12();
+  var { once } = require_util11();
   var destroyImpl = require_destroy2();
   var Duplex = require_duplex();
   var {
     aggregateTwoErrors,
     codes: {
-      ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2,
+      ERR_INVALID_ARG_TYPE,
       ERR_INVALID_RETURN_VALUE,
       ERR_MISSING_ARGS,
       ERR_STREAM_DESTROYED,
       ERR_STREAM_PREMATURE_CLOSE
     },
     AbortError
-  } = require_errors4();
+  } = require_errors3();
   var { validateFunction, validateAbortSignal } = require_validators();
   var {
     isIterable,
@@ -67363,19 +67195,19 @@ var require_pipeline3 = __commonJS((exports, module) => {
     validateFunction(streams[streams.length - 1], "streams[stream.length - 1]");
     return streams.pop();
   }
-  function makeAsyncIterable(val2) {
-    if (isIterable(val2)) {
-      return val2;
-    } else if (isReadableNodeStream(val2)) {
-      return fromReadable(val2);
+  function makeAsyncIterable(val) {
+    if (isIterable(val)) {
+      return val;
+    } else if (isReadableNodeStream(val)) {
+      return fromReadable(val);
     }
-    throw new ERR_INVALID_ARG_TYPE2("val", ["Readable", "Iterable", "AsyncIterable"], val2);
+    throw new ERR_INVALID_ARG_TYPE("val", ["Readable", "Iterable", "AsyncIterable"], val);
   }
-  async function* fromReadable(val2) {
+  async function* fromReadable(val) {
     if (!Readable) {
       Readable = require_readable3();
     }
-    yield* Readable.prototype[SymbolAsyncIterator].call(val2);
+    yield* Readable.prototype[SymbolAsyncIterator].call(val);
   }
   async function pumpToNode(iterable, writable, finish, { end }) {
     let error;
@@ -67436,8 +67268,7 @@ var require_pipeline3 = __commonJS((exports, module) => {
     try {
       for await (const chunk of readable) {
         await writer.ready;
-        writer.write(chunk).catch(() => {
-        });
+        writer.write(chunk).catch(() => {});
       }
       await writer.ready;
       if (end) {
@@ -67471,7 +67302,7 @@ var require_pipeline3 = __commonJS((exports, module) => {
     function abort() {
       finishImpl(new AbortError);
     }
-    addAbortListener = addAbortListener || require_util12().addAbortListener;
+    addAbortListener = addAbortListener || require_util11().addAbortListener;
     let disposable;
     if (outerSignal) {
       disposable = addAbortListener(outerSignal, abort);
@@ -67569,10 +67400,10 @@ var require_pipeline3 = __commonJS((exports, module) => {
           const then = (_ret2 = ret) === null || _ret2 === undefined ? undefined : _ret2.then;
           if (typeof then === "function") {
             finishCount++;
-            then.call(ret, (val2) => {
-              value = val2;
-              if (val2 != null) {
-                pt.write(val2);
+            then.call(ret, (val) => {
+              value = val;
+              if (val != null) {
+                pt.write(val);
               }
               if (end) {
                 pt.end();
@@ -67624,7 +67455,7 @@ var require_pipeline3 = __commonJS((exports, module) => {
             end
           });
         } else {
-          throw new ERR_INVALID_ARG_TYPE2("val", ["Readable", "Iterable", "AsyncIterable", "ReadableStream", "TransformStream"], ret);
+          throw new ERR_INVALID_ARG_TYPE("val", ["Readable", "Iterable", "AsyncIterable", "ReadableStream", "TransformStream"], ret);
         }
         ret = stream;
       } else if (isWebStream(stream)) {
@@ -67644,7 +67475,7 @@ var require_pipeline3 = __commonJS((exports, module) => {
             end
           });
         } else {
-          throw new ERR_INVALID_ARG_TYPE2("val", ["Readable", "Iterable", "AsyncIterable", "ReadableStream", "TransformStream"], ret);
+          throw new ERR_INVALID_ARG_TYPE("val", ["Readable", "Iterable", "AsyncIterable", "ReadableStream", "TransformStream"], ret);
         }
         ret = stream;
       } else {
@@ -67704,7 +67535,7 @@ var require_pipeline3 = __commonJS((exports, module) => {
 
 // ../node_modules/readable-stream/lib/internal/streams/compose.js
 var require_compose = __commonJS((exports, module) => {
-  var { pipeline } = require_pipeline3();
+  var { pipeline } = require_pipeline4();
   var Duplex = require_duplex();
   var { destroyer } = require_destroy2();
   var {
@@ -67719,7 +67550,7 @@ var require_compose = __commonJS((exports, module) => {
   var {
     AbortError,
     codes: { ERR_INVALID_ARG_VALUE, ERR_MISSING_ARGS }
-  } = require_errors4();
+  } = require_errors3();
   var eos = require_end_of_stream();
   module.exports = function compose(...streams) {
     if (streams.length === 0) {
@@ -67799,8 +67630,7 @@ var require_compose = __commonJS((exports, module) => {
         d._write = async function(chunk, encoding, callback) {
           try {
             await writer.ready;
-            writer.write(chunk).catch(() => {
-            });
+            writer.write(chunk).catch(() => {});
             callback();
           } catch (err) {
             callback(err);
@@ -67809,8 +67639,7 @@ var require_compose = __commonJS((exports, module) => {
         d._final = async function(callback) {
           try {
             await writer.ready;
-            writer.close().catch(() => {
-            });
+            writer.close().catch(() => {});
             onfinish = callback;
           } catch (err) {
             callback(err);
@@ -67895,9 +67724,9 @@ var require_compose = __commonJS((exports, module) => {
 var require_operators = __commonJS((exports, module) => {
   var AbortController2 = globalThis.AbortController || require_abort_controller().AbortController;
   var {
-    codes: { ERR_INVALID_ARG_VALUE, ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_MISSING_ARGS, ERR_OUT_OF_RANGE },
+    codes: { ERR_INVALID_ARG_VALUE, ERR_INVALID_ARG_TYPE, ERR_MISSING_ARGS, ERR_OUT_OF_RANGE },
     AbortError
-  } = require_errors4();
+  } = require_errors3();
   var { validateAbortSignal, validateInteger, validateObject } = require_validators();
   var kWeakHandler = require_primordials().Symbol("kWeak");
   var kResistStopPropagation = require_primordials().Symbol("kResistStopPropagation");
@@ -67905,7 +67734,7 @@ var require_operators = __commonJS((exports, module) => {
   var staticCompose = require_compose();
   var { addAbortSignalNoValidate } = require_add_abort_signal();
   var { isWritable, isNodeStream } = require_utils4();
-  var { deprecate } = require_util12();
+  var { deprecate } = require_util11();
   var {
     ArrayPrototypePush,
     Boolean: Boolean2,
@@ -67938,7 +67767,7 @@ var require_operators = __commonJS((exports, module) => {
   }
   function map(fn, options) {
     if (typeof fn !== "function") {
-      throw new ERR_INVALID_ARG_TYPE2("fn", ["Function", "AsyncFunction"], fn);
+      throw new ERR_INVALID_ARG_TYPE("fn", ["Function", "AsyncFunction"], fn);
     }
     if (options != null) {
       validateObject(options, "options");
@@ -67958,7 +67787,7 @@ var require_operators = __commonJS((exports, module) => {
     validateInteger(highWaterMark, "options.highWaterMark", 0);
     highWaterMark += concurrency;
     return async function* map() {
-      const signal = require_util12().AbortSignalAny([options === null || options === undefined ? undefined : options.signal].filter(Boolean2));
+      const signal = require_util11().AbortSignalAny([options === null || options === undefined ? undefined : options.signal].filter(Boolean2));
       const stream = this;
       const queue = [];
       const signalOpt = {
@@ -67984,7 +67813,7 @@ var require_operators = __commonJS((exports, module) => {
       }
       async function pump() {
         try {
-          for await (let val2 of stream) {
+          for await (let val of stream) {
             if (done) {
               return;
             }
@@ -67992,17 +67821,17 @@ var require_operators = __commonJS((exports, module) => {
               throw new AbortError;
             }
             try {
-              val2 = fn(val2, signalOpt);
-              if (val2 === kEmpty) {
+              val = fn(val, signalOpt);
+              if (val === kEmpty) {
                 continue;
               }
-              val2 = PromiseResolve(val2);
+              val = PromiseResolve(val);
             } catch (err) {
-              val2 = PromiseReject(err);
+              val = PromiseReject(err);
             }
             cnt += 1;
-            PromisePrototypeThen(val2, afterItemProcessed, onCatch);
-            queue.push(val2);
+            PromisePrototypeThen(val, afterItemProcessed, onCatch);
+            queue.push(val);
             if (next) {
               next();
               next = null;
@@ -68015,9 +67844,9 @@ var require_operators = __commonJS((exports, module) => {
           }
           queue.push(kEof);
         } catch (err) {
-          const val2 = PromiseReject(err);
-          PromisePrototypeThen(val2, afterItemProcessed, onCatch);
-          queue.push(val2);
+          const val = PromiseReject(err);
+          PromisePrototypeThen(val, afterItemProcessed, onCatch);
+          queue.push(val);
         } finally {
           done = true;
           if (next) {
@@ -68030,15 +67859,15 @@ var require_operators = __commonJS((exports, module) => {
       try {
         while (true) {
           while (queue.length > 0) {
-            const val2 = await queue[0];
-            if (val2 === kEof) {
+            const val = await queue[0];
+            if (val === kEof) {
               return;
             }
             if (signal.aborted) {
               throw new AbortError;
             }
-            if (val2 !== kEmpty) {
-              yield val2;
+            if (val !== kEmpty) {
+              yield val;
             }
             queue.shift();
             maybeResume();
@@ -68065,14 +67894,14 @@ var require_operators = __commonJS((exports, module) => {
     }
     return async function* asIndexedPairs() {
       let index = 0;
-      for await (const val2 of this) {
+      for await (const val of this) {
         var _options$signal;
         if (options !== null && options !== undefined && (_options$signal = options.signal) !== null && _options$signal !== undefined && _options$signal.aborted) {
           throw new AbortError({
             cause: options.signal.reason
           });
         }
-        yield [index++, val2];
+        yield [index++, val];
       }
     }.call(this);
   }
@@ -68084,7 +67913,7 @@ var require_operators = __commonJS((exports, module) => {
   }
   async function every(fn, options = undefined) {
     if (typeof fn !== "function") {
-      throw new ERR_INVALID_ARG_TYPE2("fn", ["Function", "AsyncFunction"], fn);
+      throw new ERR_INVALID_ARG_TYPE("fn", ["Function", "AsyncFunction"], fn);
     }
     return !await some.call(this, async (...args) => {
       return !await fn(...args);
@@ -68098,7 +67927,7 @@ var require_operators = __commonJS((exports, module) => {
   }
   async function forEach(fn, options) {
     if (typeof fn !== "function") {
-      throw new ERR_INVALID_ARG_TYPE2("fn", ["Function", "AsyncFunction"], fn);
+      throw new ERR_INVALID_ARG_TYPE("fn", ["Function", "AsyncFunction"], fn);
     }
     async function forEachFn(value, options2) {
       await fn(value, options2);
@@ -68109,7 +67938,7 @@ var require_operators = __commonJS((exports, module) => {
   }
   function filter(fn, options) {
     if (typeof fn !== "function") {
-      throw new ERR_INVALID_ARG_TYPE2("fn", ["Function", "AsyncFunction"], fn);
+      throw new ERR_INVALID_ARG_TYPE("fn", ["Function", "AsyncFunction"], fn);
     }
     async function filterFn(value, options2) {
       if (await fn(value, options2)) {
@@ -68129,7 +67958,7 @@ var require_operators = __commonJS((exports, module) => {
   async function reduce(reducer, initialValue, options) {
     var _options$signal2;
     if (typeof reducer !== "function") {
-      throw new ERR_INVALID_ARG_TYPE2("reducer", ["Function", "AsyncFunction"], reducer);
+      throw new ERR_INVALID_ARG_TYPE("reducer", ["Function", "AsyncFunction"], reducer);
     }
     if (options != null) {
       validateObject(options, "options");
@@ -68142,8 +67971,7 @@ var require_operators = __commonJS((exports, module) => {
       const err = new AbortError(undefined, {
         cause: options.signal.reason
       });
-      this.once("error", () => {
-      });
+      this.once("error", () => {});
       await finished(this.destroy(err));
       throw err;
     }
@@ -68190,22 +68018,22 @@ var require_operators = __commonJS((exports, module) => {
       validateAbortSignal(options.signal, "options.signal");
     }
     const result = [];
-    for await (const val2 of this) {
+    for await (const val of this) {
       var _options$signal4;
       if (options !== null && options !== undefined && (_options$signal4 = options.signal) !== null && _options$signal4 !== undefined && _options$signal4.aborted) {
         throw new AbortError(undefined, {
           cause: options.signal.reason
         });
       }
-      ArrayPrototypePush(result, val2);
+      ArrayPrototypePush(result, val);
     }
     return result;
   }
   function flatMap(fn, options) {
     const values = map.call(this, fn, options);
     return async function* flatMap() {
-      for await (const val2 of values) {
-        yield* val2;
+      for await (const val of values) {
+        yield* val;
       }
     }.call(this);
   }
@@ -68232,13 +68060,13 @@ var require_operators = __commonJS((exports, module) => {
       if (options !== null && options !== undefined && (_options$signal5 = options.signal) !== null && _options$signal5 !== undefined && _options$signal5.aborted) {
         throw new AbortError;
       }
-      for await (const val2 of this) {
+      for await (const val of this) {
         var _options$signal6;
         if (options !== null && options !== undefined && (_options$signal6 = options.signal) !== null && _options$signal6 !== undefined && _options$signal6.aborted) {
           throw new AbortError;
         }
         if (number-- <= 0) {
-          yield val2;
+          yield val;
         }
       }
     }.call(this);
@@ -68256,13 +68084,13 @@ var require_operators = __commonJS((exports, module) => {
       if (options !== null && options !== undefined && (_options$signal7 = options.signal) !== null && _options$signal7 !== undefined && _options$signal7.aborted) {
         throw new AbortError;
       }
-      for await (const val2 of this) {
+      for await (const val of this) {
         var _options$signal8;
         if (options !== null && options !== undefined && (_options$signal8 = options.signal) !== null && _options$signal8 !== undefined && _options$signal8.aborted) {
           throw new AbortError;
         }
         if (number-- > 0) {
-          yield val2;
+          yield val;
         }
         if (number <= 0) {
           return;
@@ -68293,7 +68121,7 @@ var require_operators = __commonJS((exports, module) => {
 var require_promises = __commonJS((exports, module) => {
   var { ArrayPrototypePop, Promise: Promise2 } = require_primordials();
   var { isIterable, isNodeStream, isWebStream } = require_utils4();
-  var { pipelineImpl: pl } = require_pipeline3();
+  var { pipelineImpl: pl } = require_pipeline4();
   var { finished } = require_end_of_stream();
   require_stream();
   function pipeline(...streams) {
@@ -68330,14 +68158,14 @@ var require_stream = __commonJS((exports, module) => {
   var { ObjectDefineProperty, ObjectKeys, ReflectApply } = require_primordials();
   var {
     promisify: { custom: customPromisify }
-  } = require_util12();
+  } = require_util11();
   var { streamReturningOperators, promiseReturningOperators } = require_operators();
   var {
     codes: { ERR_ILLEGAL_CONSTRUCTOR }
-  } = require_errors4();
+  } = require_errors3();
   var compose = require_compose();
   var { setDefaultHighWaterMark, getDefaultHighWaterMark } = require_state3();
-  var { pipeline } = require_pipeline3();
+  var { pipeline } = require_pipeline4();
   var { destroyer } = require_destroy2();
   var eos = require_end_of_stream();
   var promises = require_promises();
@@ -68350,57 +68178,53 @@ var require_stream = __commonJS((exports, module) => {
   Stream.isWritable = utils.isWritable;
   Stream.Readable = require_readable3();
   for (const key of ObjectKeys(streamReturningOperators)) {
-    let fn2 = function(...args) {
+    let fn = function(...args) {
       if (new.target) {
         throw ERR_ILLEGAL_CONSTRUCTOR();
       }
       return Stream.Readable.from(ReflectApply(op, this, args));
     };
-    fn = fn2;
     const op = streamReturningOperators[key];
-    ObjectDefineProperty(fn2, "name", {
+    ObjectDefineProperty(fn, "name", {
       __proto__: null,
       value: op.name
     });
-    ObjectDefineProperty(fn2, "length", {
+    ObjectDefineProperty(fn, "length", {
       __proto__: null,
       value: op.length
     });
     ObjectDefineProperty(Stream.Readable.prototype, key, {
       __proto__: null,
-      value: fn2,
+      value: fn,
       enumerable: false,
       configurable: true,
       writable: true
     });
   }
-  var fn;
   for (const key of ObjectKeys(promiseReturningOperators)) {
-    let fn2 = function(...args) {
+    let fn = function(...args) {
       if (new.target) {
         throw ERR_ILLEGAL_CONSTRUCTOR();
       }
       return ReflectApply(op, this, args);
     };
-    fn = fn2;
     const op = promiseReturningOperators[key];
-    ObjectDefineProperty(fn2, "name", {
+    ObjectDefineProperty(fn, "name", {
       __proto__: null,
       value: op.name
     });
-    ObjectDefineProperty(fn2, "length", {
+    ObjectDefineProperty(fn, "length", {
       __proto__: null,
       value: op.length
     });
     ObjectDefineProperty(Stream.Readable.prototype, key, {
       __proto__: null,
-      value: fn2,
+      value: fn,
       enumerable: false,
       configurable: true,
       writable: true
     });
   }
-  var fn;
   Stream.Writable = require_writable();
   Stream.Duplex = require_duplex();
   Stream.Transform = require_transform();
@@ -69071,8 +68895,7 @@ var require__Set = __commonJS((exports, module) => {
 
 // ../node_modules/lodash/noop.js
 var require_noop = __commonJS((exports, module) => {
-  function noop() {
-  }
+  function noop() {}
   module.exports = noop;
 });
 
@@ -69206,7 +69029,7 @@ var require_isPlainObject = __commonJS((exports, module) => {
   module.exports = isPlainObject;
 });
 
-// ../node_modules/glob/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js
+// ../node_modules/minimatch/dist/commonjs/assert-valid-pattern.js
 var require_assert_valid_pattern = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.assertValidPattern = undefined;
@@ -69222,7 +69045,7 @@ var require_assert_valid_pattern = __commonJS((exports) => {
   exports.assertValidPattern = assertValidPattern;
 });
 
-// ../node_modules/glob/node_modules/minimatch/dist/commonjs/brace-expressions.js
+// ../node_modules/minimatch/dist/commonjs/brace-expressions.js
 var require_brace_expressions = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.parseClass = undefined;
@@ -69337,7 +69160,7 @@ var require_brace_expressions = __commonJS((exports) => {
   exports.parseClass = parseClass;
 });
 
-// ../node_modules/glob/node_modules/minimatch/dist/commonjs/unescape.js
+// ../node_modules/minimatch/dist/commonjs/unescape.js
 var require_unescape = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.unescape = undefined;
@@ -69347,7 +69170,7 @@ var require_unescape = __commonJS((exports) => {
   exports.unescape = unescape;
 });
 
-// ../node_modules/glob/node_modules/minimatch/dist/commonjs/ast.js
+// ../node_modules/minimatch/dist/commonjs/ast.js
 var require_ast = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.AST = undefined;
@@ -69617,7 +69440,7 @@ var require_ast = __commonJS((exports) => {
         return body;
       }
       const flags = (this.#options.nocase ? "i" : "") + (uflag ? "u" : "");
-      return Object.assign(new RegExp(`^${re}\$`, flags), {
+      return Object.assign(new RegExp(`^${re}$`, flags), {
         _src: re,
         _glob: glob
       });
@@ -69752,7 +69575,7 @@ var require_ast = __commonJS((exports) => {
   exports.AST = AST;
 });
 
-// ../node_modules/glob/node_modules/minimatch/dist/commonjs/escape.js
+// ../node_modules/minimatch/dist/commonjs/escape.js
 var require_escape = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.escape = undefined;
@@ -69762,7 +69585,7 @@ var require_escape = __commonJS((exports) => {
   exports.escape = escape;
 });
 
-// ../node_modules/glob/node_modules/minimatch/dist/commonjs/index.js
+// ../node_modules/minimatch/dist/commonjs/index.js
 var require_commonjs13 = __commonJS((exports) => {
   var __importDefault = exports && exports.__importDefault || function(mod) {
     return mod && mod.__esModule ? mod : { default: mod };
@@ -69965,8 +69788,7 @@ var require_commonjs13 = __commonJS((exports) => {
       }
       return false;
     }
-    debug(..._2) {
-    }
+    debug(..._2) {}
     make() {
       const pattern = this.pattern;
       const options = this.options;
@@ -70275,7 +70097,8 @@ var require_commonjs13 = __commonJS((exports) => {
           }
           while (fr < fl) {
             var swallowee = file[fr];
-            this.debug("\nglobstar while", file, fr, pattern, pr, swallowee);
+            this.debug(`
+globstar while`, file, fr, pattern, pr, swallowee);
             if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {
               this.debug("globstar found match!", fr, fl, swallowee);
               return true;
@@ -70289,7 +70112,8 @@ var require_commonjs13 = __commonJS((exports) => {
             }
           }
           if (partial) {
-            this.debug("\n>>> no match, partial?", file, fr, pattern, pr);
+            this.debug(`
+>>> no match, partial?`, file, fr, pattern, pr);
             if (fr === fl) {
               return true;
             }
@@ -70810,12 +70634,9 @@ var require_commonjs14 = __commonJS((exports) => {
         return !!t && !!s && (cachedNow || getNow()) - s > t;
       };
     }
-    #updateItemAge = () => {
-    };
-    #statusTTL = () => {
-    };
-    #setItemTTL = () => {
-    };
+    #updateItemAge = () => {};
+    #statusTTL = () => {};
+    #setItemTTL = () => {};
     #isStale = () => false;
     #initializeSizeTracking() {
       const sizes = new ZeroArray(this.#max);
@@ -70859,10 +70680,8 @@ var require_commonjs14 = __commonJS((exports) => {
         }
       };
     }
-    #removeItemSize = (_i) => {
-    };
-    #addItemSize = (_i, _s, _st) => {
-    };
+    #removeItemSize = (_i) => {};
+    #addItemSize = (_i, _s, _st) => {};
     #requireSize = (_k, _v, size, sizeCalculation) => {
       if (size || sizeCalculation) {
         throw new TypeError("cannot set size without setting maxSize or maxEntrySize on cache");
@@ -71137,14 +70956,14 @@ var require_commonjs14 = __commonJS((exports) => {
     pop() {
       try {
         while (this.#size) {
-          const val2 = this.#valList[this.#head];
+          const val = this.#valList[this.#head];
           this.#evict(true);
-          if (this.#isBackgroundFetch(val2)) {
-            if (val2.__staleWhileFetching) {
-              return val2.__staleWhileFetching;
+          if (this.#isBackgroundFetch(val)) {
+            if (val.__staleWhileFetching) {
+              return val.__staleWhileFetching;
             }
-          } else if (val2 !== undefined) {
-            return val2;
+          } else if (val !== undefined) {
+            return val;
           }
         }
       } finally {
@@ -71665,8 +71484,7 @@ var require_commonjs15 = __commonJS((exports) => {
     unpipe() {
       this.dest.removeListener("drain", this.ondrain);
     }
-    proxyErrors(_er) {
-    }
+    proxyErrors(_er) {}
     end() {
       this.unpipe();
       if (this.opts.end)
@@ -71776,8 +71594,7 @@ var require_commonjs15 = __commonJS((exports) => {
     get aborted() {
       return this[ABORTED];
     }
-    set aborted(_2) {
-    }
+    set aborted(_2) {}
     write(chunk, encoding, cb) {
       if (this[ABORTED])
         return false;
@@ -71949,8 +71766,7 @@ var require_commonjs15 = __commonJS((exports) => {
       return this[BUFFER].shift();
     }
     [FLUSH](noDrain = false) {
-      do {
-      } while (this[FLUSHCHUNK](this[BUFFERSHIFT]()) && this[BUFFER].length);
+      do {} while (this[FLUSHCHUNK](this[BUFFERSHIFT]()) && this[BUFFER].length);
       if (!noDrain && !this[BUFFER].length && !this[EOF])
         this.emit("drain");
     }
@@ -72941,8 +72757,7 @@ var require_commonjs16 = __commonJS((exports) => {
       if (this.#asyncReaddirInFlight) {
         await this.#asyncReaddirInFlight;
       } else {
-        let resolve = () => {
-        };
+        let resolve = () => {};
         this.#asyncReaddirInFlight = new Promise((res) => resolve = res);
         try {
           for (const e of await this.#fs.promises.readdir(fullpath, {
@@ -74953,7 +74768,7 @@ var require_archiver_utils = __commonJS((exports, module) => {
 });
 
 // ../node_modules/archiver/lib/error.js
-var require_error2 = __commonJS((exports, module) => {
+var require_error3 = __commonJS((exports, module) => {
   var util = __require("util");
   var ERROR_CODES = {
     ABORTED: "archive was aborted",
@@ -74991,7 +74806,7 @@ var require_core2 = __commonJS((exports, module) => {
   var path = __require("path");
   var util = require_archiver_utils();
   var inherits = __require("util").inherits;
-  var ArchiverError = require_error2();
+  var ArchiverError = require_error3();
   var Transform = require_ours().Transform;
   var win32 = process.platform === "win32";
   var Archiver = function(format, options) {
@@ -75518,20 +75333,15 @@ var require_core2 = __commonJS((exports, module) => {
 
 // ../node_modules/compress-commons/lib/archivers/archive-entry.js
 var require_archive_entry = __commonJS((exports, module) => {
-  var ArchiveEntry = module.exports = function() {
-  };
-  ArchiveEntry.prototype.getName = function() {
-  };
-  ArchiveEntry.prototype.getSize = function() {
-  };
-  ArchiveEntry.prototype.getLastModifiedDate = function() {
-  };
-  ArchiveEntry.prototype.isDirectory = function() {
-  };
+  var ArchiveEntry = module.exports = function() {};
+  ArchiveEntry.prototype.getName = function() {};
+  ArchiveEntry.prototype.getSize = function() {};
+  ArchiveEntry.prototype.getLastModifiedDate = function() {};
+  ArchiveEntry.prototype.isDirectory = function() {};
 });
 
 // ../node_modules/compress-commons/lib/archivers/zip/util.js
-var require_util13 = __commonJS((exports, module) => {
+var require_util12 = __commonJS((exports, module) => {
   var util = module.exports = {};
   util.dateToDos = function(d, forceLocalTime) {
     forceLocalTime = forceLocalTime || false;
@@ -75541,7 +75351,7 @@ var require_util13 = __commonJS((exports, module) => {
     } else if (year >= 2044) {
       return 2141175677;
     }
-    var val2 = {
+    var val = {
       year,
       month: forceLocalTime ? d.getMonth() : d.getUTCMonth(),
       date: forceLocalTime ? d.getDate() : d.getUTCDate(),
@@ -75549,7 +75359,7 @@ var require_util13 = __commonJS((exports, module) => {
       minutes: forceLocalTime ? d.getMinutes() : d.getUTCMinutes(),
       seconds: forceLocalTime ? d.getSeconds() : d.getUTCSeconds()
     };
-    return val2.year - 1980 << 25 | val2.month + 1 << 21 | val2.date << 16 | val2.hours << 11 | val2.minutes << 5 | val2.seconds / 2;
+    return val.year - 1980 << 25 | val.month + 1 << 21 | val.date << 16 | val.hours << 11 | val.minutes << 5 | val.seconds / 2;
   };
   util.dosToDate = function(dos) {
     return new Date((dos >> 25 & 127) + 1980, (dos >> 21 & 15) - 1, dos >> 16 & 31, dos >> 11 & 31, dos >> 5 & 63, (dos & 31) << 1);
@@ -75586,7 +75396,7 @@ var require_util13 = __commonJS((exports, module) => {
 
 // ../node_modules/compress-commons/lib/archivers/zip/general-purpose-bit.js
 var require_general_purpose_bit = __commonJS((exports, module) => {
-  var zipUtil = require_util13();
+  var zipUtil = require_util12();
   var DATA_DESCRIPTOR_FLAG = 1 << 3;
   var ENCRYPTION_FLAG = 1 << 0;
   var NUMBER_OF_SHANNON_FANO_TREES_FLAG = 1 << 2;
@@ -75734,7 +75544,7 @@ var require_zip_archive_entry = __commonJS((exports, module) => {
   var GeneralPurposeBit = require_general_purpose_bit();
   var UnixStat = require_unix_stat();
   var constants = require_constants8();
-  var zipUtil = require_util13();
+  var zipUtil = require_util12();
   var ZipArchiveEntry = module.exports = function(name) {
     if (!(this instanceof ZipArchiveEntry)) {
       return new ZipArchiveEntry(name);
@@ -75899,21 +75709,11 @@ var require_zip_archive_entry = __commonJS((exports, module) => {
   };
 });
 
-// ../node_modules/compress-commons/node_modules/is-stream/index.js
-var require_is_stream2 = __commonJS((exports, module) => {
-  var isStream = (stream) => stream !== null && typeof stream === "object" && typeof stream.pipe === "function";
-  isStream.writable = (stream) => isStream(stream) && stream.writable !== false && typeof stream._write === "function" && typeof stream._writableState === "object";
-  isStream.readable = (stream) => isStream(stream) && stream.readable !== false && typeof stream._read === "function" && typeof stream._readableState === "object";
-  isStream.duplex = (stream) => isStream.writable(stream) && isStream.readable(stream);
-  isStream.transform = (stream) => isStream.duplex(stream) && typeof stream._transform === "function";
-  module.exports = isStream;
-});
-
 // ../node_modules/compress-commons/lib/util/index.js
-var require_util14 = __commonJS((exports, module) => {
+var require_util13 = __commonJS((exports, module) => {
   var Stream = __require("stream").Stream;
   var PassThrough = require_ours().PassThrough;
-  var isStream = require_is_stream2();
+  var isStream = require_is_stream();
   var util = module.exports = {};
   util.normalizeInputSource = function(source) {
     if (source === null) {
@@ -75932,10 +75732,10 @@ var require_util14 = __commonJS((exports, module) => {
 // ../node_modules/compress-commons/lib/archivers/archive-output-stream.js
 var require_archive_output_stream = __commonJS((exports, module) => {
   var inherits = __require("util").inherits;
-  var isStream = require_is_stream2();
+  var isStream = require_is_stream();
   var Transform = require_ours().Transform;
   var ArchiveEntry = require_archive_entry();
-  var util = require_util14();
+  var util = require_util13();
   var ArchiveOutputStream = module.exports = function(options) {
     if (!(this instanceof ArchiveOutputStream)) {
       return new ArchiveOutputStream(options);
@@ -75949,19 +75749,15 @@ var require_archive_output_stream = __commonJS((exports, module) => {
     };
   };
   inherits(ArchiveOutputStream, Transform);
-  ArchiveOutputStream.prototype._appendBuffer = function(zae, source, callback) {
-  };
-  ArchiveOutputStream.prototype._appendStream = function(zae, source, callback) {
-  };
+  ArchiveOutputStream.prototype._appendBuffer = function(zae, source, callback) {};
+  ArchiveOutputStream.prototype._appendStream = function(zae, source, callback) {};
   ArchiveOutputStream.prototype._emitErrorCallback = function(err) {
     if (err) {
       this.emit("error", err);
     }
   };
-  ArchiveOutputStream.prototype._finish = function(ae) {
-  };
-  ArchiveOutputStream.prototype._normalizeEntry = function(ae) {
-  };
+  ArchiveOutputStream.prototype._finish = function(ae) {};
+  ArchiveOutputStream.prototype._normalizeEntry = function(ae) {};
   ArchiveOutputStream.prototype._transform = function(chunk, encoding, callback) {
     callback(null, chunk);
   };
@@ -76215,8 +76011,8 @@ var require_zip_archive_output_stream = __commonJS((exports, module) => {
   var ZipArchiveEntry = require_zip_archive_entry();
   var GeneralPurposeBit = require_general_purpose_bit();
   var constants = require_constants8();
-  var util = require_util14();
-  var zipUtil = require_util13();
+  var util = require_util13();
+  var zipUtil = require_util12();
   var ZipArchiveOutputStream = module.exports = function(options) {
     if (!(this instanceof ZipArchiveOutputStream)) {
       return new ZipArchiveOutputStream(options);
@@ -76637,16 +76433,6 @@ var require_zip = __commonJS((exports, module) => {
   module.exports = Zip;
 });
 
-// ../node_modules/queue-tick/queue-microtask.js
-var require_queue_microtask = __commonJS((exports, module) => {
-  module.exports = typeof queueMicrotask === "function" ? queueMicrotask : (fn) => Promise.resolve().then(fn);
-});
-
-// ../node_modules/queue-tick/process-next-tick.js
-var require_process_next_tick = __commonJS((exports, module) => {
-  module.exports = typeof process !== "undefined" && typeof process.nextTick === "function" ? process.nextTick.bind(process) : require_queue_microtask();
-});
-
 // ../node_modules/fast-fifo/fixed-size.js
 var require_fixed_size = __commonJS((exports, module) => {
   module.exports = class FixedFIFO {
@@ -76703,31 +76489,31 @@ var require_fast_fifo = __commonJS((exports, module) => {
       this.head.clear();
       this.length = 0;
     }
-    push(val2) {
+    push(val) {
       this.length++;
-      if (!this.head.push(val2)) {
+      if (!this.head.push(val)) {
         const prev = this.head;
         this.head = prev.next = new FixedFIFO(2 * this.head.buffer.length);
-        this.head.push(val2);
+        this.head.push(val);
       }
     }
     shift() {
       if (this.length !== 0)
         this.length--;
-      const val2 = this.tail.shift();
-      if (val2 === undefined && this.tail.next) {
+      const val = this.tail.shift();
+      if (val === undefined && this.tail.next) {
         const next = this.tail.next;
         this.tail.next = null;
         this.tail = next;
         return this.tail.shift();
       }
-      return val2;
+      return val;
     }
     peek() {
-      const val2 = this.tail.peek();
-      if (val2 === undefined && this.tail.next)
+      const val = this.tail.peek();
+      if (val === undefined && this.tail.next)
         return this.tail.next.peek();
-      return val2;
+      return val;
     }
     isEmpty() {
       return this.length === 0;
@@ -76735,8 +76521,165 @@ var require_fast_fifo = __commonJS((exports, module) => {
   };
 });
 
+// ../node_modules/b4a/index.js
+var require_b4a = __commonJS((exports, module) => {
+  function isBuffer(value) {
+    return Buffer.isBuffer(value) || value instanceof Uint8Array;
+  }
+  function isEncoding(encoding) {
+    return Buffer.isEncoding(encoding);
+  }
+  function alloc(size, fill2, encoding) {
+    return Buffer.alloc(size, fill2, encoding);
+  }
+  function allocUnsafe(size) {
+    return Buffer.allocUnsafe(size);
+  }
+  function allocUnsafeSlow(size) {
+    return Buffer.allocUnsafeSlow(size);
+  }
+  function byteLength(string, encoding) {
+    return Buffer.byteLength(string, encoding);
+  }
+  function compare(a, b) {
+    return Buffer.compare(a, b);
+  }
+  function concat(buffers, totalLength) {
+    return Buffer.concat(buffers, totalLength);
+  }
+  function copy(source, target, targetStart, start, end) {
+    return toBuffer(source).copy(target, targetStart, start, end);
+  }
+  function equals(a, b) {
+    return toBuffer(a).equals(b);
+  }
+  function fill(buffer, value, offset, end, encoding) {
+    return toBuffer(buffer).fill(value, offset, end, encoding);
+  }
+  function from(value, encodingOrOffset, length) {
+    return Buffer.from(value, encodingOrOffset, length);
+  }
+  function includes(buffer, value, byteOffset, encoding) {
+    return toBuffer(buffer).includes(value, byteOffset, encoding);
+  }
+  function indexOf(buffer, value, byfeOffset, encoding) {
+    return toBuffer(buffer).indexOf(value, byfeOffset, encoding);
+  }
+  function lastIndexOf(buffer, value, byteOffset, encoding) {
+    return toBuffer(buffer).lastIndexOf(value, byteOffset, encoding);
+  }
+  function swap16(buffer) {
+    return toBuffer(buffer).swap16();
+  }
+  function swap32(buffer) {
+    return toBuffer(buffer).swap32();
+  }
+  function swap64(buffer) {
+    return toBuffer(buffer).swap64();
+  }
+  function toBuffer(buffer) {
+    if (Buffer.isBuffer(buffer))
+      return buffer;
+    return Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  }
+  function toString(buffer, encoding, start, end) {
+    return toBuffer(buffer).toString(encoding, start, end);
+  }
+  function write(buffer, string, offset, length, encoding) {
+    return toBuffer(buffer).write(string, offset, length, encoding);
+  }
+  function writeDoubleLE(buffer, value, offset) {
+    return toBuffer(buffer).writeDoubleLE(value, offset);
+  }
+  function writeFloatLE(buffer, value, offset) {
+    return toBuffer(buffer).writeFloatLE(value, offset);
+  }
+  function writeUInt32LE(buffer, value, offset) {
+    return toBuffer(buffer).writeUInt32LE(value, offset);
+  }
+  function writeInt32LE(buffer, value, offset) {
+    return toBuffer(buffer).writeInt32LE(value, offset);
+  }
+  function readDoubleLE(buffer, offset) {
+    return toBuffer(buffer).readDoubleLE(offset);
+  }
+  function readFloatLE(buffer, offset) {
+    return toBuffer(buffer).readFloatLE(offset);
+  }
+  function readUInt32LE(buffer, offset) {
+    return toBuffer(buffer).readUInt32LE(offset);
+  }
+  function readInt32LE(buffer, offset) {
+    return toBuffer(buffer).readInt32LE(offset);
+  }
+  function writeDoubleBE(buffer, value, offset) {
+    return toBuffer(buffer).writeDoubleBE(value, offset);
+  }
+  function writeFloatBE(buffer, value, offset) {
+    return toBuffer(buffer).writeFloatBE(value, offset);
+  }
+  function writeUInt32BE(buffer, value, offset) {
+    return toBuffer(buffer).writeUInt32BE(value, offset);
+  }
+  function writeInt32BE(buffer, value, offset) {
+    return toBuffer(buffer).writeInt32BE(value, offset);
+  }
+  function readDoubleBE(buffer, offset) {
+    return toBuffer(buffer).readDoubleBE(offset);
+  }
+  function readFloatBE(buffer, offset) {
+    return toBuffer(buffer).readFloatBE(offset);
+  }
+  function readUInt32BE(buffer, offset) {
+    return toBuffer(buffer).readUInt32BE(offset);
+  }
+  function readInt32BE(buffer, offset) {
+    return toBuffer(buffer).readInt32BE(offset);
+  }
+  module.exports = {
+    isBuffer,
+    isEncoding,
+    alloc,
+    allocUnsafe,
+    allocUnsafeSlow,
+    byteLength,
+    compare,
+    concat,
+    copy,
+    equals,
+    fill,
+    from,
+    includes,
+    indexOf,
+    lastIndexOf,
+    swap16,
+    swap32,
+    swap64,
+    toBuffer,
+    toString,
+    write,
+    writeDoubleLE,
+    writeFloatLE,
+    writeUInt32LE,
+    writeInt32LE,
+    readDoubleLE,
+    readFloatLE,
+    readUInt32LE,
+    readInt32LE,
+    writeDoubleBE,
+    writeFloatBE,
+    writeUInt32BE,
+    writeInt32BE,
+    readDoubleBE,
+    readFloatBE,
+    readUInt32BE,
+    readInt32BE
+  };
+});
+
 // ../node_modules/text-decoder/lib/pass-through-decoder.js
 var require_pass_through_decoder = __commonJS((exports, module) => {
+  var b4a = require_b4a();
   module.exports = class PassThroughDecoder {
     constructor(encoding) {
       this.encoding = encoding;
@@ -76745,7 +76688,7 @@ var require_pass_through_decoder = __commonJS((exports, module) => {
       return 0;
     }
     decode(tail) {
-      return tail.toString(this.encoding);
+      return b4a.toString(tail, this.encoding);
     }
     flush() {
       return "";
@@ -76755,6 +76698,7 @@ var require_pass_through_decoder = __commonJS((exports, module) => {
 
 // ../node_modules/text-decoder/lib/utf8-decoder.js
 var require_utf8_decoder = __commonJS((exports, module) => {
+  var b4a = require_b4a();
   module.exports = class UTF8Decoder {
     constructor() {
       this.codePoint = 0;
@@ -76773,7 +76717,7 @@ var require_utf8_decoder = __commonJS((exports, module) => {
           isBoundary = data[i] <= 127;
         }
         if (isBoundary)
-          return data.toString();
+          return b4a.toString(data, "utf8");
       }
       let result = "";
       for (let i = 0, n = data.byteLength;i < n; i++) {
@@ -76801,7 +76745,7 @@ var require_utf8_decoder = __commonJS((exports, module) => {
               this.bytesNeeded = 4;
               this.codePoint = byte & 7;
             } else {
-              result += "\uFFFD";
+              result += "�";
             }
           }
           continue;
@@ -76812,7 +76756,7 @@ var require_utf8_decoder = __commonJS((exports, module) => {
           this.bytesSeen = 0;
           this.lowerBoundary = 128;
           this.upperBoundary = 191;
-          result += "\uFFFD";
+          result += "�";
           continue;
         }
         this.lowerBoundary = 128;
@@ -76829,7 +76773,7 @@ var require_utf8_decoder = __commonJS((exports, module) => {
       return result;
     }
     flush() {
-      const result = this.bytesNeeded > 0 ? "\uFFFD" : "";
+      const result = this.bytesNeeded > 0 ? "�" : "";
       this.codePoint = 0;
       this.bytesNeeded = 0;
       this.bytesSeen = 0;
@@ -76906,7 +76850,6 @@ var require_streamx = __commonJS((exports, module) => {
   var { EventEmitter } = __require("events");
   var STREAM_DESTROYED = new Error("Stream was destroyed");
   var PREMATURE_CLOSE = new Error("Premature close");
-  var queueTick = require_process_next_tick();
   var FIFO = require_fast_fifo();
   var TextDecoder2 = require_text_decoder();
   var MAX = (1 << 29) - 1;
@@ -76960,7 +76903,7 @@ var require_streamx = __commonJS((exports, module) => {
   var WRITE_CORKED = 1024 << 18;
   var WRITE_NOT_ACTIVE = MAX ^ (WRITE_ACTIVE | WRITE_WRITING);
   var WRITE_NON_PRIMARY = MAX ^ WRITE_PRIMARY;
-  var WRITE_NOT_FINISHING = MAX ^ WRITE_FINISHING;
+  var WRITE_NOT_FINISHING = MAX ^ (WRITE_ACTIVE | WRITE_FINISHING);
   var WRITE_DRAINED = MAX ^ WRITE_UNDRAINED;
   var WRITE_NOT_QUEUED = MAX ^ WRITE_QUEUED;
   var WRITE_NOT_NEXT_TICK = MAX ^ WRITE_NEXT_TICK;
@@ -76983,6 +76926,7 @@ var require_streamx = __commonJS((exports, module) => {
   var SHOULD_NOT_READ = OPEN_STATUS | READ_ACTIVE | READ_ENDING | READ_DONE | READ_NEEDS_PUSH | READ_READ_AHEAD;
   var READ_BACKPRESSURE_STATUS = DESTROY_STATUS | READ_ENDING | READ_DONE;
   var READ_UPDATE_SYNC_STATUS = READ_UPDATING | OPEN_STATUS | READ_NEXT_TICK | READ_PRIMARY;
+  var READ_NEXT_TICK_OR_OPENING = READ_NEXT_TICK | OPENING;
   var WRITE_PRIMARY_STATUS = OPEN_STATUS | WRITE_FINISHING | WRITE_DONE;
   var WRITE_QUEUED_AND_UNDRAINED = WRITE_QUEUED | WRITE_UNDRAINED;
   var WRITE_QUEUED_AND_ACTIVE = WRITE_QUEUED | WRITE_ACTIVE;
@@ -76993,6 +76937,7 @@ var require_streamx = __commonJS((exports, module) => {
   var WRITE_FINISHING_STATUS = OPEN_STATUS | WRITE_FINISHING | WRITE_QUEUED_AND_ACTIVE | WRITE_DONE;
   var WRITE_BACKPRESSURE_STATUS = WRITE_UNDRAINED | DESTROY_STATUS | WRITE_FINISHING | WRITE_DONE;
   var WRITE_UPDATE_SYNC_STATUS = WRITE_UPDATING | OPEN_STATUS | WRITE_NEXT_TICK | WRITE_PRIMARY;
+  var WRITE_DROP_DATA = WRITE_FINISHING | WRITE_DONE | DESTROY_STATUS;
   var asyncIterator = Symbol.asyncIterator || Symbol("asyncIterator");
 
   class WritableState {
@@ -77013,6 +76958,8 @@ var require_streamx = __commonJS((exports, module) => {
       return (this.stream._duplexState & WRITE_DONE) !== 0;
     }
     push(data) {
+      if ((this.stream._duplexState & WRITE_DROP_DATA) !== 0)
+        return false;
       if (this.map !== null)
         data = this.map(data);
       this.buffered += this.byteLength(data);
@@ -77066,7 +77013,7 @@ var require_streamx = __commonJS((exports, module) => {
     updateNonPrimary() {
       const stream = this.stream;
       if ((stream._duplexState & WRITE_FINISHING_STATUS) === WRITE_FINISHING) {
-        stream._duplexState = (stream._duplexState | WRITE_ACTIVE) & WRITE_NOT_FINISHING;
+        stream._duplexState = stream._duplexState | WRITE_ACTIVE;
         stream._final(afterFinal.bind(this));
         return;
       }
@@ -77099,7 +77046,7 @@ var require_streamx = __commonJS((exports, module) => {
         return;
       this.stream._duplexState |= WRITE_NEXT_TICK;
       if ((this.stream._duplexState & WRITE_UPDATING) === 0)
-        queueTick(this.afterUpdateNextTick);
+        queueMicrotask(this.afterUpdateNextTick);
     }
   }
 
@@ -77263,12 +77210,19 @@ var require_streamx = __commonJS((exports, module) => {
       else
         this.updateNextTick();
     }
+    updateNextTickIfOpen() {
+      if ((this.stream._duplexState & READ_NEXT_TICK_OR_OPENING) !== 0)
+        return;
+      this.stream._duplexState |= READ_NEXT_TICK;
+      if ((this.stream._duplexState & READ_UPDATING) === 0)
+        queueMicrotask(this.afterUpdateNextTick);
+    }
     updateNextTick() {
       if ((this.stream._duplexState & READ_NEXT_TICK) !== 0)
         return;
       this.stream._duplexState |= READ_NEXT_TICK;
       if ((this.stream._duplexState & READ_UPDATING) === 0)
-        queueTick(this.afterUpdateNextTick);
+        queueMicrotask(this.afterUpdateNextTick);
     }
   }
 
@@ -77332,7 +77286,7 @@ var require_streamx = __commonJS((exports, module) => {
     if ((stream._duplexState & AUTO_DESTROY) === DONE) {
       stream._duplexState |= DESTROYING;
     }
-    stream._duplexState &= WRITE_NOT_ACTIVE;
+    stream._duplexState &= WRITE_NOT_FINISHING;
     if ((stream._duplexState & WRITE_UPDATING) === 0)
       this.update();
     else
@@ -77468,8 +77422,7 @@ var require_streamx = __commonJS((exports, module) => {
     _destroy(cb) {
       cb(null);
     }
-    _predestroy() {
-    }
+    _predestroy() {}
     get readable() {
       return this._readableState !== null ? true : undefined;
     }
@@ -77545,11 +77498,11 @@ var require_streamx = __commonJS((exports, module) => {
       return this._readableState.read();
     }
     push(data) {
-      this._readableState.updateNextTick();
+      this._readableState.updateNextTickIfOpen();
       return this._readableState.push(data);
     }
     unshift(data) {
-      this._readableState.updateNextTick();
+      this._readableState.updateNextTickIfOpen();
       return this._readableState.unshift(data);
     }
     resume() {
@@ -77918,14 +77871,16 @@ var require_streamx = __commonJS((exports, module) => {
   function isReadStreamx(stream) {
     return isStreamx(stream) && stream.readable;
   }
+  function isDisturbed(stream) {
+    return (stream._duplexState & OPENING) !== OPENING || (stream._duplexState & ACTIVE_OR_TICKING) !== 0;
+  }
   function isTypedArray(data) {
     return typeof data === "object" && data !== null && typeof data.byteLength === "number";
   }
   function defaultByteLength(data) {
     return isTypedArray(data) ? data.byteLength : 1024;
   }
-  function noop() {
-  }
+  function noop() {}
   function abort() {
     this.destroy(new Error("Stream aborted."));
   }
@@ -77939,6 +77894,7 @@ var require_streamx = __commonJS((exports, module) => {
     isStreamx,
     isEnded,
     isFinished,
+    isDisturbed,
     getStreamError,
     Stream,
     Writable,
@@ -77949,168 +77905,12 @@ var require_streamx = __commonJS((exports, module) => {
   };
 });
 
-// ../node_modules/b4a/index.js
-var require_b4a = __commonJS((exports, module) => {
-  function isBuffer(value) {
-    return Buffer.isBuffer(value) || value instanceof Uint8Array;
-  }
-  function isEncoding(encoding) {
-    return Buffer.isEncoding(encoding);
-  }
-  function alloc(size, fill2, encoding) {
-    return Buffer.alloc(size, fill2, encoding);
-  }
-  function allocUnsafe(size) {
-    return Buffer.allocUnsafe(size);
-  }
-  function allocUnsafeSlow(size) {
-    return Buffer.allocUnsafeSlow(size);
-  }
-  function byteLength(string, encoding) {
-    return Buffer.byteLength(string, encoding);
-  }
-  function compare(a, b) {
-    return Buffer.compare(a, b);
-  }
-  function concat(buffers, totalLength) {
-    return Buffer.concat(buffers, totalLength);
-  }
-  function copy(source, target, targetStart, start, end) {
-    return toBuffer(source).copy(target, targetStart, start, end);
-  }
-  function equals(a, b) {
-    return toBuffer(a).equals(b);
-  }
-  function fill(buffer, value, offset, end, encoding) {
-    return toBuffer(buffer).fill(value, offset, end, encoding);
-  }
-  function from(value, encodingOrOffset, length) {
-    return Buffer.from(value, encodingOrOffset, length);
-  }
-  function includes(buffer, value, byteOffset, encoding) {
-    return toBuffer(buffer).includes(value, byteOffset, encoding);
-  }
-  function indexOf(buffer, value, byfeOffset, encoding) {
-    return toBuffer(buffer).indexOf(value, byfeOffset, encoding);
-  }
-  function lastIndexOf(buffer, value, byteOffset, encoding) {
-    return toBuffer(buffer).lastIndexOf(value, byteOffset, encoding);
-  }
-  function swap16(buffer) {
-    return toBuffer(buffer).swap16();
-  }
-  function swap32(buffer) {
-    return toBuffer(buffer).swap32();
-  }
-  function swap64(buffer) {
-    return toBuffer(buffer).swap64();
-  }
-  function toBuffer(buffer) {
-    if (Buffer.isBuffer(buffer))
-      return buffer;
-    return Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-  }
-  function toString(buffer, encoding, start, end) {
-    return toBuffer(buffer).toString(encoding, start, end);
-  }
-  function write(buffer, string, offset, length, encoding) {
-    return toBuffer(buffer).write(string, offset, length, encoding);
-  }
-  function writeDoubleLE(buffer, value, offset) {
-    return toBuffer(buffer).writeDoubleLE(value, offset);
-  }
-  function writeFloatLE(buffer, value, offset) {
-    return toBuffer(buffer).writeFloatLE(value, offset);
-  }
-  function writeUInt32LE(buffer, value, offset) {
-    return toBuffer(buffer).writeUInt32LE(value, offset);
-  }
-  function writeInt32LE(buffer, value, offset) {
-    return toBuffer(buffer).writeInt32LE(value, offset);
-  }
-  function readDoubleLE(buffer, offset) {
-    return toBuffer(buffer).readDoubleLE(offset);
-  }
-  function readFloatLE(buffer, offset) {
-    return toBuffer(buffer).readFloatLE(offset);
-  }
-  function readUInt32LE(buffer, offset) {
-    return toBuffer(buffer).readUInt32LE(offset);
-  }
-  function readInt32LE(buffer, offset) {
-    return toBuffer(buffer).readInt32LE(offset);
-  }
-  function writeDoubleBE(buffer, value, offset) {
-    return toBuffer(buffer).writeDoubleBE(value, offset);
-  }
-  function writeFloatBE(buffer, value, offset) {
-    return toBuffer(buffer).writeFloatBE(value, offset);
-  }
-  function writeUInt32BE(buffer, value, offset) {
-    return toBuffer(buffer).writeUInt32BE(value, offset);
-  }
-  function writeInt32BE(buffer, value, offset) {
-    return toBuffer(buffer).writeInt32BE(value, offset);
-  }
-  function readDoubleBE(buffer, offset) {
-    return toBuffer(buffer).readDoubleBE(offset);
-  }
-  function readFloatBE(buffer, offset) {
-    return toBuffer(buffer).readFloatBE(offset);
-  }
-  function readUInt32BE(buffer, offset) {
-    return toBuffer(buffer).readUInt32BE(offset);
-  }
-  function readInt32BE(buffer, offset) {
-    return toBuffer(buffer).readInt32BE(offset);
-  }
-  module.exports = {
-    isBuffer,
-    isEncoding,
-    alloc,
-    allocUnsafe,
-    allocUnsafeSlow,
-    byteLength,
-    compare,
-    concat,
-    copy,
-    equals,
-    fill,
-    from,
-    includes,
-    indexOf,
-    lastIndexOf,
-    swap16,
-    swap32,
-    swap64,
-    toBuffer,
-    toString,
-    write,
-    writeDoubleLE,
-    writeFloatLE,
-    writeUInt32LE,
-    writeInt32LE,
-    readDoubleLE,
-    readFloatLE,
-    readUInt32LE,
-    readInt32LE,
-    writeDoubleBE,
-    writeFloatBE,
-    writeUInt32BE,
-    writeInt32BE,
-    readDoubleBE,
-    readFloatBE,
-    readUInt32BE,
-    readInt32BE
-  };
-});
-
 // ../node_modules/tar-stream/headers.js
 var require_headers2 = __commonJS((exports) => {
   var b4a = require_b4a();
   var ZEROS = "0000000000000000000";
   var SEVENS = "7777777777777777777";
-  var ZERO_OFFSET = "0".charCodeAt(0);
+  var ZERO_OFFSET = 48;
   var USTAR_MAGIC = b4a.from([117, 115, 116, 97, 114, 0]);
   var USTAR_VER = b4a.from([ZERO_OFFSET, ZERO_OFFSET]);
   var GNU_MAGIC = b4a.from([117, 115, 116, 97, 114, 32]);
@@ -78124,13 +77924,16 @@ var require_headers2 = __commonJS((exports) => {
   exports.encodePax = function encodePax(opts) {
     let result = "";
     if (opts.name)
-      result += addLength(" path=" + opts.name + "\n");
+      result += addLength(" path=" + opts.name + `
+`);
     if (opts.linkname)
-      result += addLength(" linkpath=" + opts.linkname + "\n");
+      result += addLength(" linkpath=" + opts.linkname + `
+`);
     const pax = opts.pax;
     if (pax) {
       for (const key in pax) {
-        result += addLength(" " + key + "=" + pax[key] + "\n");
+        result += addLength(" " + key + "=" + pax[key] + `
+`);
       }
     }
     return b4a.from(result);
@@ -78216,8 +78019,7 @@ var require_headers2 = __commonJS((exports) => {
     if (isUSTAR(buf)) {
       if (buf[345])
         name = decodeStr(buf, 345, 155, filenameEncoding) + "/" + name;
-    } else if (isGNU(buf)) {
-    } else {
+    } else if (isGNU(buf)) {} else {
       if (!allowUnknownFormat) {
         throw new Error("Invalid tar header: unknown format.");
       }
@@ -78327,11 +78129,11 @@ var require_headers2 = __commonJS((exports) => {
       sum += block[j];
     return sum;
   }
-  function encodeOct(val2, n) {
-    val2 = val2.toString(8);
-    if (val2.length > n)
+  function encodeOct(val, n) {
+    val = val.toString(8);
+    if (val.length > n)
       return SEVENS.slice(0, n) + " ";
-    return ZEROS.slice(0, n - val2.length) + val2 + " ";
+    return ZEROS.slice(0, n - val.length) + val + " ";
   }
   function encodeSizeBin(num, buf, off) {
     buf[off] = 128;
@@ -78371,24 +78173,24 @@ var require_headers2 = __commonJS((exports) => {
     }
     return positive ? sum : -1 * sum;
   }
-  function decodeOct(val2, offset, length) {
-    val2 = val2.subarray(offset, offset + length);
+  function decodeOct(val, offset, length) {
+    val = val.subarray(offset, offset + length);
     offset = 0;
-    if (val2[offset] & 128) {
-      return parse256(val2);
+    if (val[offset] & 128) {
+      return parse256(val);
     } else {
-      while (offset < val2.length && val2[offset] === 32)
+      while (offset < val.length && val[offset] === 32)
         offset++;
-      const end = clamp(indexOf(val2, 32, offset, val2.length), val2.length, val2.length);
-      while (offset < end && val2[offset] === 0)
+      const end = clamp(indexOf(val, 32, offset, val.length), val.length, val.length);
+      while (offset < end && val[offset] === 0)
         offset++;
       if (end === offset)
         return 0;
-      return parseInt(b4a.toString(val2.subarray(offset, end)), 8);
+      return parseInt(b4a.toString(val.subarray(offset, end)), 8);
     }
   }
-  function decodeStr(val2, offset, length, encoding) {
-    return b4a.toString(val2.subarray(offset, indexOf(val2, 0, offset, offset + length)), encoding);
+  function decodeStr(val, offset, length, encoding) {
+    return b4a.toString(val.subarray(offset, indexOf(val, 0, offset, offset + length)), encoding);
   }
   function addLength(str) {
     const len = b4a.byteLength(str);
@@ -78751,8 +78553,7 @@ var require_extract = __commonJS((exports, module) => {
   module.exports = function extract(opts) {
     return new Extract(opts);
   };
-  function noop() {
-  }
+  function noop() {}
   function overflow(size) {
     size &= 511;
     return size && 512 - size;
@@ -79023,8 +78824,7 @@ var require_pack = __commonJS((exports, module) => {
     }
     return "file";
   }
-  function noop() {
-  }
+  function noop() {}
   function overflow(self2, size) {
     size &= 511;
     if (size)
@@ -79118,7 +78918,7 @@ var require_tar = __commonJS((exports, module) => {
 });
 
 // ../node_modules/buffer-crc32/dist/index.cjs
-var require_dist5 = __commonJS((exports, module) => {
+var require_dist7 = __commonJS((exports, module) => {
   function getDefaultExportFromCjs(x) {
     return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
   }
@@ -79426,7 +79226,7 @@ var require_dist5 = __commonJS((exports, module) => {
 var require_json = __commonJS((exports, module) => {
   var inherits = __require("util").inherits;
   var Transform = require_ours().Transform;
-  var crc32 = require_dist5();
+  var crc32 = require_dist7();
   var util = require_archiver_utils();
   var Json = function(options) {
     if (!(this instanceof Json)) {
@@ -79718,13 +79518,13 @@ var require_upload_artifact = __commonJS((exports) => {
   var core = __importStar(require_core());
   var retention_1 = require_retention();
   var path_and_artifact_name_validation_1 = require_path_and_artifact_name_validation();
-  var artifact_twirp_client_1 = require_artifact_twirp_client();
+  var artifact_twirp_client_1 = require_artifact_twirp_client2();
   var upload_zip_specification_1 = require_upload_zip_specification();
   var util_1 = require_util8();
   var blob_upload_1 = require_blob_upload();
   var zip_1 = require_zip2();
   var generated_1 = require_generated();
-  var errors_1 = require_errors3();
+  var errors_1 = require_errors2();
   function uploadArtifact(name, files, rootDirectory, options) {
     return __awaiter(this, undefined, undefined, function* () {
       (0, path_and_artifact_name_validation_1.validateArtifactName)(name);
@@ -79771,6 +79571,7 @@ var require_upload_artifact = __commonJS((exports) => {
       core.info(`Artifact ${name}.zip successfully finalized. Artifact ID ${artifactId}`);
       return {
         size: uploadResult.uploadSize,
+        digest: uploadResult.sha256Hash,
         id: Number(artifactId)
       };
     });
@@ -79779,7 +79580,7 @@ var require_upload_artifact = __commonJS((exports) => {
 });
 
 // ../node_modules/@actions/artifact/node_modules/@actions/github/lib/context.js
-var require_context2 = __commonJS((exports) => {
+var require_context = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.Context = undefined;
   var fs_1 = __require("fs");
@@ -80059,7 +79860,7 @@ var require_is_plain_object = __commonJS((exports) => {
   exports.isPlainObject = isPlainObject;
 });
 
-// ../node_modules/@octokit/endpoint/dist-node/index.js
+// ../node_modules/@octokit/core/node_modules/@octokit/endpoint/dist-node/index.js
 var require_dist_node2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var isPlainObject = require_is_plain_object();
@@ -80285,7 +80086,7 @@ var require_dist_node2 = __commonJS((exports) => {
     const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
     if (!isBinaryRequest) {
       if (options.mediaType.format) {
-        headers.accept = headers.accept.split(/,/).map((preview) => preview.replace(/application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/, `application/vnd\$1\$2.${options.mediaType.format}`)).join(",");
+        headers.accept = headers.accept.split(/,/).map((preview) => preview.replace(/application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/, `application/vnd$1$2.${options.mediaType.format}`)).join(",");
       }
       if (options.mediaType.previews.length) {
         const previewsFromAcceptHeader = headers.accept.match(/[\w-]+(?=-preview)/g) || [];
@@ -80419,8 +80220,8 @@ var require_lib3 = __commonJS((exports, module) => {
   conversions["void"] = function() {
     return;
   };
-  conversions["boolean"] = function(val2) {
-    return !!val2;
+  conversions["boolean"] = function(val) {
+    return !!val;
   };
   conversions["byte"] = createNumberConversion(8, { unsigned: false });
   conversions["octet"] = createNumberConversion(8, { unsigned: true });
@@ -80541,19 +80342,19 @@ var require_tr46 = __commonJS((exports, module) => {
     NONTRANSITIONAL: 1
   };
   function normalize(str) {
-    return str.split("\0").map(function(s) {
+    return str.split("\x00").map(function(s) {
       return s.normalize("NFC");
-    }).join("\0");
+    }).join("\x00");
   }
-  function findStatus(val2) {
+  function findStatus(val) {
     var start = 0;
     var end = mappingTable.length - 1;
     while (start <= end) {
       var mid = Math.floor((start + end) / 2);
       var target = mappingTable[mid];
-      if (target[0][0] <= val2 && target[0][1] >= val2) {
+      if (target[0][0] <= val && target[0][1] >= val) {
         return target;
-      } else if (target[0][0] > val2) {
+      } else if (target[0][0] > val) {
         end = mid - 1;
       } else {
         start = mid + 1;
@@ -81643,8 +81444,7 @@ var require_url_state_machine = __commonJS((exports, module) => {
     return true;
   };
   URLStateMachine.prototype["parse fragment"] = function parseFragment(c) {
-    if (isNaN(c)) {
-    } else if (c === 0) {
+    if (isNaN(c)) {} else if (c === 0) {
       this.parseError = true;
     } else {
       if (c === 37 && (!isASCIIHex(this.input[this.pointer + 1]) || !isASCIIHex(this.input[this.pointer + 2]))) {
@@ -82171,8 +81971,7 @@ var require_lib4 = __commonJS((exports, module) => {
     }
     stream() {
       const readable = new Readable;
-      readable._read = function() {
-      };
+      readable._read = function() {};
       readable.push(this[BUFFER]);
       readable.push(null);
       return readable;
@@ -82232,9 +82031,8 @@ var require_lib4 = __commonJS((exports, module) => {
   FetchError.prototype.name = "FetchError";
   var convert;
   try {
-    convert = (()=>{throw new Error(`Cannot require module "encoding"`);})().convert;
-  } catch (e) {
-  }
+    convert = (()=>{throw new Error("Cannot require module "+"encoding");})().convert;
+  } catch (e) {}
   var INTERNALS = Symbol("Body internals");
   var PassThrough = Stream.PassThrough;
   function Body(body) {
@@ -82544,11 +82342,11 @@ var require_lib4 = __commonJS((exports, module) => {
   }
   var MAP = Symbol("map");
 
-  class Headers2 {
+  class Headers {
     constructor() {
       let init = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : undefined;
       this[MAP] = Object.create(null);
-      if (init instanceof Headers2) {
+      if (init instanceof Headers) {
         const rawHeaders = init.raw();
         const headerNames = Object.keys(rawHeaders);
         for (const headerName of headerNames) {
@@ -82656,14 +82454,14 @@ var require_lib4 = __commonJS((exports, module) => {
       return createHeadersIterator(this, "key+value");
     }
   }
-  Headers2.prototype.entries = Headers2.prototype[Symbol.iterator];
-  Object.defineProperty(Headers2.prototype, Symbol.toStringTag, {
+  Headers.prototype.entries = Headers.prototype[Symbol.iterator];
+  Object.defineProperty(Headers.prototype, Symbol.toStringTag, {
     value: "Headers",
     writable: false,
     enumerable: false,
     configurable: true
   });
-  Object.defineProperties(Headers2.prototype, {
+  Object.defineProperties(Headers.prototype, {
     get: { enumerable: true },
     forEach: { enumerable: true },
     set: { enumerable: true },
@@ -82732,20 +82530,20 @@ var require_lib4 = __commonJS((exports, module) => {
     return obj;
   }
   function createHeadersLenient(obj) {
-    const headers = new Headers2;
+    const headers = new Headers;
     for (const name of Object.keys(obj)) {
       if (invalidTokenRegex.test(name)) {
         continue;
       }
       if (Array.isArray(obj[name])) {
-        for (const val2 of obj[name]) {
-          if (invalidHeaderCharRegex.test(val2)) {
+        for (const val of obj[name]) {
+          if (invalidHeaderCharRegex.test(val)) {
             continue;
           }
           if (headers[MAP][name] === undefined) {
-            headers[MAP][name] = [val2];
+            headers[MAP][name] = [val];
           } else {
-            headers[MAP][name].push(val2);
+            headers[MAP][name].push(val);
           }
         }
       } else if (!invalidHeaderCharRegex.test(obj[name])) {
@@ -82763,7 +82561,7 @@ var require_lib4 = __commonJS((exports, module) => {
       let opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       Body.call(this, body, opts);
       const status = opts.status || 200;
-      const headers = new Headers2(opts.headers);
+      const headers = new Headers(opts.headers);
       if (body != null && !headers.has("Content-Type")) {
         const contentType = extractContentType(body);
         if (contentType) {
@@ -82866,7 +82664,7 @@ var require_lib4 = __commonJS((exports, module) => {
         timeout: init.timeout || input.timeout || 0,
         size: init.size || input.size || 0
       });
-      const headers = new Headers2(init.headers || input.headers || {});
+      const headers = new Headers(init.headers || input.headers || {});
       if (inputBody != null && !headers.has("Content-Type")) {
         const contentType = extractContentType(inputBody);
         if (contentType) {
@@ -82927,7 +82725,7 @@ var require_lib4 = __commonJS((exports, module) => {
   });
   function getNodeRequestOptions(request) {
     const parsedURL = request[INTERNALS$2].parsedURL;
-    const headers = new Headers2(request[INTERNALS$2].headers);
+    const headers = new Headers(request[INTERNALS$2].headers);
     if (!headers.has("Accept")) {
       headers.set("Accept", "*/*");
     }
@@ -82990,12 +82788,12 @@ var require_lib4 = __commonJS((exports, module) => {
     const dest = new URL$1(destination).protocol;
     return orig === dest;
   };
-  function fetch2(url, opts) {
-    if (!fetch2.Promise) {
+  function fetch(url, opts) {
+    if (!fetch.Promise) {
       throw new Error("native promise missing, set fetch.Promise to your favorite alternative");
     }
-    Body.Promise = fetch2.Promise;
-    return new fetch2.Promise(function(resolve, reject) {
+    Body.Promise = fetch.Promise;
+    return new fetch.Promise(function(resolve, reject) {
       const request = new Request(url, opts);
       const options = getNodeRequestOptions(request);
       const send = (options.protocol === "https:" ? https : http).request;
@@ -83068,7 +82866,7 @@ var require_lib4 = __commonJS((exports, module) => {
       req.on("response", function(res) {
         clearTimeout(reqTimeout);
         const headers = createHeadersLenient(res.headers);
-        if (fetch2.isRedirect(res.statusCode)) {
+        if (fetch.isRedirect(res.statusCode)) {
           const location = headers.get("Location");
           let locationURL = null;
           try {
@@ -83104,7 +82902,7 @@ var require_lib4 = __commonJS((exports, module) => {
                 return;
               }
               const requestOpts = {
-                headers: new Headers2(request.headers),
+                headers: new Headers(request.headers),
                 follow: request.follow,
                 counter: request.counter + 1,
                 agent: request.agent,
@@ -83130,7 +82928,7 @@ var require_lib4 = __commonJS((exports, module) => {
                 requestOpts.body = undefined;
                 requestOpts.headers.delete("content-length");
               }
-              resolve(fetch2(new Request(locationURL, requestOpts)));
+              resolve(fetch(new Request(locationURL, requestOpts)));
               finalize();
               return;
           }
@@ -83223,14 +83021,14 @@ var require_lib4 = __commonJS((exports, module) => {
       stream.end();
     }
   }
-  fetch2.isRedirect = function(code) {
+  fetch.isRedirect = function(code) {
     return code === 301 || code === 302 || code === 303 || code === 307 || code === 308;
   };
-  fetch2.Promise = global.Promise;
-  module.exports = exports = fetch2;
+  fetch.Promise = global.Promise;
+  module.exports = exports = fetch;
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.default = exports;
-  exports.Headers = Headers2;
+  exports.Headers = Headers;
   exports.Request = Request;
   exports.Response = Response;
   exports.FetchError = FetchError;
@@ -83325,7 +83123,7 @@ var require_once = __commonJS((exports, module) => {
   }
 });
 
-// ../node_modules/@octokit/request/node_modules/@octokit/request-error/dist-node/index.js
+// ../node_modules/@octokit/core/node_modules/@octokit/request-error/dist-node/index.js
 var require_dist_node4 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   function _interopDefault(ex) {
@@ -83377,7 +83175,7 @@ var require_dist_node4 = __commonJS((exports) => {
   exports.RequestError = RequestError;
 });
 
-// ../node_modules/@octokit/request/dist-node/index.js
+// ../node_modules/@octokit/core/node_modules/@octokit/request/dist-node/index.js
 var require_dist_node5 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   function _interopDefault(ex) {
@@ -83400,8 +83198,503 @@ var require_dist_node5 = __commonJS((exports) => {
     let headers = {};
     let status;
     let url;
-    const fetch2 = requestOptions.request && requestOptions.request.fetch || nodeFetch;
-    return fetch2(requestOptions.url, Object.assign({
+    const fetch = requestOptions.request && requestOptions.request.fetch || nodeFetch;
+    return fetch(requestOptions.url, Object.assign({
+      method: requestOptions.method,
+      body: requestOptions.body,
+      headers: requestOptions.headers,
+      redirect: requestOptions.redirect
+    }, requestOptions.request)).then(async (response) => {
+      url = response.url;
+      status = response.status;
+      for (const keyAndValue of response.headers) {
+        headers[keyAndValue[0]] = keyAndValue[1];
+      }
+      if ("deprecation" in headers) {
+        const matches = headers.link && headers.link.match(/<([^>]+)>; rel="deprecation"/);
+        const deprecationLink = matches && matches.pop();
+        log.warn(`[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${headers.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`);
+      }
+      if (status === 204 || status === 205) {
+        return;
+      }
+      if (requestOptions.method === "HEAD") {
+        if (status < 400) {
+          return;
+        }
+        throw new requestError.RequestError(response.statusText, status, {
+          response: {
+            url,
+            status,
+            headers,
+            data: undefined
+          },
+          request: requestOptions
+        });
+      }
+      if (status === 304) {
+        throw new requestError.RequestError("Not modified", status, {
+          response: {
+            url,
+            status,
+            headers,
+            data: await getResponseData(response)
+          },
+          request: requestOptions
+        });
+      }
+      if (status >= 400) {
+        const data = await getResponseData(response);
+        const error = new requestError.RequestError(toErrorMessage(data), status, {
+          response: {
+            url,
+            status,
+            headers,
+            data
+          },
+          request: requestOptions
+        });
+        throw error;
+      }
+      return getResponseData(response);
+    }).then((data) => {
+      return {
+        status,
+        url,
+        headers,
+        data
+      };
+    }).catch((error) => {
+      if (error instanceof requestError.RequestError)
+        throw error;
+      throw new requestError.RequestError(error.message, 500, {
+        request: requestOptions
+      });
+    });
+  }
+  async function getResponseData(response) {
+    const contentType = response.headers.get("content-type");
+    if (/application\/json/.test(contentType)) {
+      return response.json();
+    }
+    if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
+      return response.text();
+    }
+    return getBufferResponse(response);
+  }
+  function toErrorMessage(data) {
+    if (typeof data === "string")
+      return data;
+    if ("message" in data) {
+      if (Array.isArray(data.errors)) {
+        return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}`;
+      }
+      return data.message;
+    }
+    return `Unknown error: ${JSON.stringify(data)}`;
+  }
+  function withDefaults(oldEndpoint, newDefaults) {
+    const endpoint2 = oldEndpoint.defaults(newDefaults);
+    const newApi = function(route, parameters) {
+      const endpointOptions = endpoint2.merge(route, parameters);
+      if (!endpointOptions.request || !endpointOptions.request.hook) {
+        return fetchWrapper(endpoint2.parse(endpointOptions));
+      }
+      const request2 = (route2, parameters2) => {
+        return fetchWrapper(endpoint2.parse(endpoint2.merge(route2, parameters2)));
+      };
+      Object.assign(request2, {
+        endpoint: endpoint2,
+        defaults: withDefaults.bind(null, endpoint2)
+      });
+      return endpointOptions.request.hook(request2, endpointOptions);
+    };
+    return Object.assign(newApi, {
+      endpoint: endpoint2,
+      defaults: withDefaults.bind(null, endpoint2)
+    });
+  }
+  var request = withDefaults(endpoint.endpoint, {
+    headers: {
+      "user-agent": `octokit-request.js/${VERSION} ${universalUserAgent.getUserAgent()}`
+    }
+  });
+  exports.request = request;
+});
+
+// ../node_modules/@octokit/graphql/node_modules/@octokit/endpoint/dist-node/index.js
+var require_dist_node6 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  var isPlainObject = require_is_plain_object();
+  var universalUserAgent = require_dist_node();
+  function lowercaseKeys(object) {
+    if (!object) {
+      return {};
+    }
+    return Object.keys(object).reduce((newObj, key) => {
+      newObj[key.toLowerCase()] = object[key];
+      return newObj;
+    }, {});
+  }
+  function mergeDeep(defaults, options) {
+    const result = Object.assign({}, defaults);
+    Object.keys(options).forEach((key) => {
+      if (isPlainObject.isPlainObject(options[key])) {
+        if (!(key in defaults))
+          Object.assign(result, {
+            [key]: options[key]
+          });
+        else
+          result[key] = mergeDeep(defaults[key], options[key]);
+      } else {
+        Object.assign(result, {
+          [key]: options[key]
+        });
+      }
+    });
+    return result;
+  }
+  function removeUndefinedProperties(obj) {
+    for (const key in obj) {
+      if (obj[key] === undefined) {
+        delete obj[key];
+      }
+    }
+    return obj;
+  }
+  function merge(defaults, route, options) {
+    if (typeof route === "string") {
+      let [method, url] = route.split(" ");
+      options = Object.assign(url ? {
+        method,
+        url
+      } : {
+        url: method
+      }, options);
+    } else {
+      options = Object.assign({}, route);
+    }
+    options.headers = lowercaseKeys(options.headers);
+    removeUndefinedProperties(options);
+    removeUndefinedProperties(options.headers);
+    const mergedOptions = mergeDeep(defaults || {}, options);
+    if (defaults && defaults.mediaType.previews.length) {
+      mergedOptions.mediaType.previews = defaults.mediaType.previews.filter((preview) => !mergedOptions.mediaType.previews.includes(preview)).concat(mergedOptions.mediaType.previews);
+    }
+    mergedOptions.mediaType.previews = mergedOptions.mediaType.previews.map((preview) => preview.replace(/-preview/, ""));
+    return mergedOptions;
+  }
+  function addQueryParameters(url, parameters) {
+    const separator = /\?/.test(url) ? "&" : "?";
+    const names = Object.keys(parameters);
+    if (names.length === 0) {
+      return url;
+    }
+    return url + separator + names.map((name) => {
+      if (name === "q") {
+        return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
+      }
+      return `${name}=${encodeURIComponent(parameters[name])}`;
+    }).join("&");
+  }
+  var urlVariableRegex = /\{[^}]+\}/g;
+  function removeNonChars(variableName) {
+    return variableName.replace(/^\W+|\W+$/g, "").split(/,/);
+  }
+  function extractUrlVariableNames(url) {
+    const matches = url.match(urlVariableRegex);
+    if (!matches) {
+      return [];
+    }
+    return matches.map(removeNonChars).reduce((a, b) => a.concat(b), []);
+  }
+  function omit(object, keysToOmit) {
+    return Object.keys(object).filter((option) => !keysToOmit.includes(option)).reduce((obj, key) => {
+      obj[key] = object[key];
+      return obj;
+    }, {});
+  }
+  function encodeReserved(str) {
+    return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
+      if (!/%[0-9A-Fa-f]/.test(part)) {
+        part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
+      }
+      return part;
+    }).join("");
+  }
+  function encodeUnreserved(str) {
+    return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
+      return "%" + c.charCodeAt(0).toString(16).toUpperCase();
+    });
+  }
+  function encodeValue(operator, value, key) {
+    value = operator === "+" || operator === "#" ? encodeReserved(value) : encodeUnreserved(value);
+    if (key) {
+      return encodeUnreserved(key) + "=" + value;
+    } else {
+      return value;
+    }
+  }
+  function isDefined(value) {
+    return value !== undefined && value !== null;
+  }
+  function isKeyOperator(operator) {
+    return operator === ";" || operator === "&" || operator === "?";
+  }
+  function getValues(context, operator, key, modifier) {
+    var value = context[key], result = [];
+    if (isDefined(value) && value !== "") {
+      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        value = value.toString();
+        if (modifier && modifier !== "*") {
+          value = value.substring(0, parseInt(modifier, 10));
+        }
+        result.push(encodeValue(operator, value, isKeyOperator(operator) ? key : ""));
+      } else {
+        if (modifier === "*") {
+          if (Array.isArray(value)) {
+            value.filter(isDefined).forEach(function(value2) {
+              result.push(encodeValue(operator, value2, isKeyOperator(operator) ? key : ""));
+            });
+          } else {
+            Object.keys(value).forEach(function(k) {
+              if (isDefined(value[k])) {
+                result.push(encodeValue(operator, value[k], k));
+              }
+            });
+          }
+        } else {
+          const tmp = [];
+          if (Array.isArray(value)) {
+            value.filter(isDefined).forEach(function(value2) {
+              tmp.push(encodeValue(operator, value2));
+            });
+          } else {
+            Object.keys(value).forEach(function(k) {
+              if (isDefined(value[k])) {
+                tmp.push(encodeUnreserved(k));
+                tmp.push(encodeValue(operator, value[k].toString()));
+              }
+            });
+          }
+          if (isKeyOperator(operator)) {
+            result.push(encodeUnreserved(key) + "=" + tmp.join(","));
+          } else if (tmp.length !== 0) {
+            result.push(tmp.join(","));
+          }
+        }
+      }
+    } else {
+      if (operator === ";") {
+        if (isDefined(value)) {
+          result.push(encodeUnreserved(key));
+        }
+      } else if (value === "" && (operator === "&" || operator === "?")) {
+        result.push(encodeUnreserved(key) + "=");
+      } else if (value === "") {
+        result.push("");
+      }
+    }
+    return result;
+  }
+  function parseUrl(template) {
+    return {
+      expand: expand.bind(null, template)
+    };
+  }
+  function expand(template, context) {
+    var operators = ["+", "#", ".", "/", ";", "?", "&"];
+    return template.replace(/\{([^\{\}]+)\}|([^\{\}]+)/g, function(_2, expression, literal) {
+      if (expression) {
+        let operator = "";
+        const values = [];
+        if (operators.indexOf(expression.charAt(0)) !== -1) {
+          operator = expression.charAt(0);
+          expression = expression.substr(1);
+        }
+        expression.split(/,/g).forEach(function(variable) {
+          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
+          values.push(getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
+        });
+        if (operator && operator !== "+") {
+          var separator = ",";
+          if (operator === "?") {
+            separator = "&";
+          } else if (operator !== "#") {
+            separator = operator;
+          }
+          return (values.length !== 0 ? operator : "") + values.join(separator);
+        } else {
+          return values.join(",");
+        }
+      } else {
+        return encodeReserved(literal);
+      }
+    });
+  }
+  function parse(options) {
+    let method = options.method.toUpperCase();
+    let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
+    let headers = Object.assign({}, options.headers);
+    let body;
+    let parameters = omit(options, ["method", "baseUrl", "url", "headers", "request", "mediaType"]);
+    const urlVariableNames = extractUrlVariableNames(url);
+    url = parseUrl(url).expand(parameters);
+    if (!/^http/.test(url)) {
+      url = options.baseUrl + url;
+    }
+    const omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl");
+    const remainingParameters = omit(parameters, omittedParameters);
+    const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
+    if (!isBinaryRequest) {
+      if (options.mediaType.format) {
+        headers.accept = headers.accept.split(/,/).map((preview) => preview.replace(/application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/, `application/vnd$1$2.${options.mediaType.format}`)).join(",");
+      }
+      if (options.mediaType.previews.length) {
+        const previewsFromAcceptHeader = headers.accept.match(/[\w-]+(?=-preview)/g) || [];
+        headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
+          const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
+          return `application/vnd.github.${preview}-preview${format}`;
+        }).join(",");
+      }
+    }
+    if (["GET", "HEAD"].includes(method)) {
+      url = addQueryParameters(url, remainingParameters);
+    } else {
+      if ("data" in remainingParameters) {
+        body = remainingParameters.data;
+      } else {
+        if (Object.keys(remainingParameters).length) {
+          body = remainingParameters;
+        } else {
+          headers["content-length"] = 0;
+        }
+      }
+    }
+    if (!headers["content-type"] && typeof body !== "undefined") {
+      headers["content-type"] = "application/json; charset=utf-8";
+    }
+    if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
+      body = "";
+    }
+    return Object.assign({
+      method,
+      url,
+      headers
+    }, typeof body !== "undefined" ? {
+      body
+    } : null, options.request ? {
+      request: options.request
+    } : null);
+  }
+  function endpointWithDefaults(defaults, route, options) {
+    return parse(merge(defaults, route, options));
+  }
+  function withDefaults(oldDefaults, newDefaults) {
+    const DEFAULTS2 = merge(oldDefaults, newDefaults);
+    const endpoint2 = endpointWithDefaults.bind(null, DEFAULTS2);
+    return Object.assign(endpoint2, {
+      DEFAULTS: DEFAULTS2,
+      defaults: withDefaults.bind(null, DEFAULTS2),
+      merge: merge.bind(null, DEFAULTS2),
+      parse
+    });
+  }
+  var VERSION = "6.0.12";
+  var userAgent = `octokit-endpoint.js/${VERSION} ${universalUserAgent.getUserAgent()}`;
+  var DEFAULTS = {
+    method: "GET",
+    baseUrl: "https://api.github.com",
+    headers: {
+      accept: "application/vnd.github.v3+json",
+      "user-agent": userAgent
+    },
+    mediaType: {
+      format: "",
+      previews: []
+    }
+  };
+  var endpoint = withDefaults(null, DEFAULTS);
+  exports.endpoint = endpoint;
+});
+
+// ../node_modules/@octokit/graphql/node_modules/@octokit/request-error/dist-node/index.js
+var require_dist_node7 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  function _interopDefault(ex) {
+    return ex && typeof ex === "object" && "default" in ex ? ex["default"] : ex;
+  }
+  var deprecation = require_dist_node3();
+  var once = _interopDefault(require_once());
+  var logOnceCode = once((deprecation2) => console.warn(deprecation2));
+  var logOnceHeaders = once((deprecation2) => console.warn(deprecation2));
+
+  class RequestError extends Error {
+    constructor(message, statusCode, options) {
+      super(message);
+      if (Error.captureStackTrace) {
+        Error.captureStackTrace(this, this.constructor);
+      }
+      this.name = "HttpError";
+      this.status = statusCode;
+      let headers;
+      if ("headers" in options && typeof options.headers !== "undefined") {
+        headers = options.headers;
+      }
+      if ("response" in options) {
+        this.response = options.response;
+        headers = options.response.headers;
+      }
+      const requestCopy = Object.assign({}, options.request);
+      if (options.request.headers.authorization) {
+        requestCopy.headers = Object.assign({}, options.request.headers, {
+          authorization: options.request.headers.authorization.replace(/ .*$/, " [REDACTED]")
+        });
+      }
+      requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
+      this.request = requestCopy;
+      Object.defineProperty(this, "code", {
+        get() {
+          logOnceCode(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
+          return statusCode;
+        }
+      });
+      Object.defineProperty(this, "headers", {
+        get() {
+          logOnceHeaders(new deprecation.Deprecation("[@octokit/request-error] `error.headers` is deprecated, use `error.response.headers`."));
+          return headers || {};
+        }
+      });
+    }
+  }
+  exports.RequestError = RequestError;
+});
+
+// ../node_modules/@octokit/graphql/node_modules/@octokit/request/dist-node/index.js
+var require_dist_node8 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  function _interopDefault(ex) {
+    return ex && typeof ex === "object" && "default" in ex ? ex["default"] : ex;
+  }
+  var endpoint = require_dist_node6();
+  var universalUserAgent = require_dist_node();
+  var isPlainObject = require_is_plain_object();
+  var nodeFetch = _interopDefault(require_lib4());
+  var requestError = require_dist_node7();
+  var VERSION = "5.6.3";
+  function getBufferResponse(response) {
+    return response.arrayBuffer();
+  }
+  function fetchWrapper(requestOptions) {
+    const log = requestOptions.request && requestOptions.request.log ? requestOptions.request.log : console;
+    if (isPlainObject.isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
+      requestOptions.body = JSON.stringify(requestOptions.body);
+    }
+    let headers = {};
+    let status;
+    let url;
+    const fetch = requestOptions.request && requestOptions.request.fetch || nodeFetch;
+    return fetch(requestOptions.url, Object.assign({
       method: requestOptions.method,
       body: requestOptions.body,
       headers: requestOptions.headers,
@@ -83525,13 +83818,15 @@ var require_dist_node5 = __commonJS((exports) => {
 });
 
 // ../node_modules/@octokit/graphql/dist-node/index.js
-var require_dist_node6 = __commonJS((exports) => {
+var require_dist_node9 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var request = require_dist_node5();
+  var request = require_dist_node8();
   var universalUserAgent = require_dist_node();
   var VERSION = "4.8.0";
   function _buildMessageForResponseErrors(data) {
-    return `Request failed due to following response errors:\n` + data.errors.map((e) => ` - ${e.message}`).join("\n");
+    return `Request failed due to following response errors:
+` + data.errors.map((e) => ` - ${e.message}`).join(`
+`);
   }
 
   class GraphqlResponseError extends Error {
@@ -83620,7 +83915,7 @@ var require_dist_node6 = __commonJS((exports) => {
 });
 
 // ../node_modules/@octokit/auth-token/dist-node/index.js
-var require_dist_node7 = __commonJS((exports) => {
+var require_dist_node10 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var REGEX_IS_INSTALLATION_LEGACY = /^v1\./;
   var REGEX_IS_INSTALLATION = /^ghs_/;
@@ -83663,13 +83958,13 @@ var require_dist_node7 = __commonJS((exports) => {
 });
 
 // ../node_modules/@octokit/core/dist-node/index.js
-var require_dist_node8 = __commonJS((exports) => {
+var require_dist_node11 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var universalUserAgent = require_dist_node();
   var beforeAfterHook = require_before_after_hook();
   var request = require_dist_node5();
-  var graphql = require_dist_node6();
-  var authToken = require_dist_node7();
+  var graphql = require_dist_node9();
+  var authToken = require_dist_node10();
   function _objectWithoutPropertiesLoose(source, excluded) {
     if (source == null)
       return {};
@@ -83732,10 +84027,8 @@ var require_dist_node8 = __commonJS((exports) => {
       this.request = request.request.defaults(requestDefaults);
       this.graphql = graphql.withCustomRequest(this.request).defaults(requestDefaults);
       this.log = Object.assign({
-        debug: () => {
-        },
-        info: () => {
-        },
+        debug: () => {},
+        info: () => {},
         warn: console.warn.bind(console),
         error: console.error.bind(console)
       }, options.log);
@@ -83796,8 +84089,8 @@ var require_dist_node8 = __commonJS((exports) => {
   exports.Octokit = Octokit;
 });
 
-// ../node_modules/@actions/artifact/node_modules/@actions/github/node_modules/@octokit/plugin-rest-endpoint-methods/dist-node/index.js
-var require_dist_node9 = __commonJS((exports) => {
+// ../node_modules/@octokit/plugin-rest-endpoint-methods/dist-node/index.js
+var require_dist_node12 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   function ownKeys(object, enumerableOnly) {
     var keys = Object.keys(object);
@@ -84867,8 +85160,8 @@ var require_dist_node9 = __commonJS((exports) => {
   exports.restEndpointMethods = restEndpointMethods;
 });
 
-// ../node_modules/@actions/artifact/node_modules/@actions/github/node_modules/@octokit/plugin-paginate-rest/dist-node/index.js
-var require_dist_node10 = __commonJS((exports) => {
+// ../node_modules/@octokit/plugin-paginate-rest/dist-node/index.js
+var require_dist_node13 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var VERSION = "2.21.3";
   function ownKeys(object, enumerableOnly) {
@@ -85052,11 +85345,11 @@ var require_utils7 = __commonJS((exports) => {
   };
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getOctokitOptions = exports.GitHub = exports.defaults = exports.context = undefined;
-  var Context = __importStar(require_context2());
+  var Context = __importStar(require_context());
   var Utils = __importStar(require_utils5());
-  var core_1 = require_dist_node8();
-  var plugin_rest_endpoint_methods_1 = require_dist_node9();
-  var plugin_paginate_rest_1 = require_dist_node10();
+  var core_1 = require_dist_node11();
+  var plugin_rest_endpoint_methods_1 = require_dist_node12();
+  var plugin_paginate_rest_1 = require_dist_node13();
   exports.context = new Context.Context;
   var baseUrl = Utils.getApiBaseUrl();
   exports.defaults = {
@@ -85109,7 +85402,7 @@ var require_github = __commonJS((exports) => {
   };
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getOctokit = exports.context = undefined;
-  var Context = __importStar(require_context2());
+  var Context = __importStar(require_context());
   var utils_1 = require_utils7();
   exports.context = new Context.Context;
   function getOctokit(token, options, ...additionalPlugins) {
@@ -85200,8 +85493,7 @@ var require_traverse = __commonJS((exports, module) => {
           notEqual();
       } else if (x.__proto__ !== y.__proto__) {
         notEqual();
-      } else if (x === y) {
-      } else if (typeof x === "function") {
+      } else if (x === y) {} else if (typeof x === "function") {
         if (x instanceof RegExp) {
           if (x.toString() != y.toString())
             notEqual();
@@ -85675,8 +85967,7 @@ var require_buffers = __commonJS((exports, module) => {
   Buffers.prototype.indexOf = function(needle, offset) {
     if (typeof needle === "string") {
       needle = new Buffer(needle);
-    } else if (needle instanceof Buffer) {
-    } else {
+    } else if (needle instanceof Buffer) {} else {
       throw new Error("Invalid type for a search string");
     }
     if (!needle.length) {
@@ -86058,18 +86349,18 @@ var require_binary = __commonJS((exports, module) => {
     return acc;
   }
   function decodeBEs(bytes) {
-    var val2 = decodeBEu(bytes);
+    var val = decodeBEu(bytes);
     if ((bytes[0] & 128) == 128) {
-      val2 -= Math.pow(256, bytes.length);
+      val -= Math.pow(256, bytes.length);
     }
-    return val2;
+    return val;
   }
   function decodeLEs(bytes) {
-    var val2 = decodeLEu(bytes);
+    var val = decodeLEu(bytes);
     if ((bytes[bytes.length - 1] & 128) == 128) {
-      val2 -= Math.pow(256, bytes.length);
+      val -= Math.pow(256, bytes.length);
     }
-    return val2;
+    return val;
   }
   function words(decode) {
     var self2 = {};
@@ -86329,8 +86620,7 @@ var require_unzip_stream = __commonJS((exports, module) => {
               var asString;
               try {
                 asString = chunk.slice(0, 4).toString();
-              } catch (e) {
-              }
+              } catch (e) {}
               console.log("Unexpected signature in zip file: 0x" + sig.toString(16), '"' + asString + '", skipped', this.skippedBytes, "bytes");
             }
             this.emit("error", new Error(errMsg));
@@ -86681,7 +86971,7 @@ var require_unzip_stream = __commonJS((exports, module) => {
     var vars = binary.parse(data).word16lu("diskNumber").word16lu("diskStart").word16lu("centralDirectoryEntries").word16lu("totalCentralDirectoryEntries").word32lu("sizeOfCentralDirectory").word32lu("offsetToStartOfCentralDirectory").word16lu("commentLength").vars;
     return vars;
   };
-  var cp437 = "\0\u263A\u263B\u2665\u2666\u2663\u2660\u2022\u25D8\u25CB\u25D9\u2642\u2640\u266A\u266B\u263C\u25BA\u25C4\u2195\u203C\xB6\xA7\u25AC\u21A8\u2191\u2193\u2192\u2190\u221F\u2194\u25B2\u25BC !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\u2302\xC7\xFC\xE9\xE2\xE4\xE0\xE5\xE7\xEA\xEB\xE8\xEF\xEE\xEC\xC4\xC5\xC9\xE6\xC6\xF4\xF6\xF2\xFB\xF9\xFF\xD6\xDC\xA2\xA3\xA5\u20A7\u0192\xE1\xED\xF3\xFA\xF1\xD1\xAA\xBA\xBF\u2310\xAC\xBD\xBC\xA1\xAB\xBB\u2591\u2592\u2593\u2502\u2524\u2561\u2562\u2556\u2555\u2563\u2551\u2557\u255D\u255C\u255B\u2510\u2514\u2534\u252C\u251C\u2500\u253C\u255E\u255F\u255A\u2554\u2569\u2566\u2560\u2550\u256C\u2567\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256B\u256A\u2518\u250C\u2588\u2584\u258C\u2590\u2580\u03B1\xDF\u0393\u03C0\u03A3\u03C3\xB5\u03C4\u03A6\u0398\u03A9\u03B4\u221E\u03C6\u03B5\u2229\u2261\xB1\u2265\u2264\u2320\u2321\xF7\u2248\xB0\u2219\xB7\u221A\u207F\xB2\u25A0 ";
+  var cp437 = "\x00☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
   UnzipStream.prototype._decodeString = function(buffer, isUtf8) {
     if (isUtf8) {
       return buffer.toString("utf8");
@@ -86847,8 +87137,7 @@ var require_mkdirp = __commonJS((exports, module) => {
     }
     if (!made)
       made = null;
-    var cb = f || function() {
-    };
+    var cb = f || function() {};
     p = path.resolve(p);
     xfs.mkdir(p, mode, function(er) {
       if (!er) {
@@ -87070,16 +87359,18 @@ var require_download_artifact = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.downloadArtifactInternal = exports.downloadArtifactPublic = exports.streamExtractExternal = undefined;
   var promises_1 = __importDefault(__require("fs/promises"));
+  var crypto = __importStar(__require("crypto"));
+  var stream = __importStar(__require("stream"));
   var github = __importStar(require_github());
   var core = __importStar(require_core());
   var httpClient = __importStar(require_lib());
   var unzip_stream_1 = __importDefault(require_unzip());
   var user_agent_1 = require_user_agent();
   var config_1 = require_config();
-  var artifact_twirp_client_1 = require_artifact_twirp_client();
+  var artifact_twirp_client_1 = require_artifact_twirp_client2();
   var generated_1 = require_generated();
   var util_1 = require_util8();
-  var errors_1 = require_errors3();
+  var errors_1 = require_errors2();
   var scrubQueryParameters = (url) => {
     const parsed = new URL(url);
     parsed.search = "";
@@ -87104,8 +87395,7 @@ var require_download_artifact = __commonJS((exports) => {
       let retryCount = 0;
       while (retryCount < 5) {
         try {
-          yield streamExtractExternal(url, directory);
-          return;
+          return yield streamExtractExternal(url, directory);
         } catch (error) {
           retryCount++;
           core.debug(`Failed to download artifact after ${retryCount} retries due to ${error.message}. Retrying in 5 seconds...`);
@@ -87123,12 +87413,18 @@ var require_download_artifact = __commonJS((exports) => {
         throw new Error(`Unexpected HTTP response from blob storage: ${response.message.statusCode} ${response.message.statusMessage}`);
       }
       const timeout = 30 * 1000;
+      let sha256Digest = undefined;
       return new Promise((resolve, reject) => {
         const timerFn = () => {
           response.message.destroy(new Error(`Blob storage chunk did not respond in ${timeout}ms`));
         };
         const timer = setTimeout(timerFn, timeout);
-        response.message.on("data", () => {
+        const hashStream = crypto.createHash("sha256").setEncoding("hex");
+        const passThrough = new stream.PassThrough;
+        response.message.pipe(passThrough);
+        passThrough.pipe(hashStream);
+        const extractStream = passThrough;
+        extractStream.on("data", () => {
           timer.refresh();
         }).on("error", (error) => {
           core.debug(`response.message: Artifact download failed: ${error.message}`);
@@ -87136,7 +87432,12 @@ var require_download_artifact = __commonJS((exports) => {
           reject(error);
         }).pipe(unzip_stream_1.default.Extract({ path: directory })).on("close", () => {
           clearTimeout(timer);
-          resolve();
+          if (hashStream) {
+            hashStream.end();
+            sha256Digest = hashStream.read();
+            core.info(`SHA256 digest of downloaded artifact is ${sha256Digest}`);
+          }
+          resolve({ sha256Digest: `sha256:${sha256Digest}` });
         }).on("error", (error) => {
           reject(error);
         });
@@ -87148,6 +87449,7 @@ var require_download_artifact = __commonJS((exports) => {
     return __awaiter(this, undefined, undefined, function* () {
       const downloadPath = yield resolveOrCreateDirectory(options === null || options === undefined ? undefined : options.path);
       const api = github.getOctokit(token);
+      let digestMismatch = false;
       core.info(`Downloading artifact '${artifactId}' from '${repositoryOwner}/${repositoryName}'`);
       const { headers, status } = yield api.rest.actions.downloadArtifact({
         owner: repositoryOwner,
@@ -87168,12 +87470,19 @@ var require_download_artifact = __commonJS((exports) => {
       core.info(`Redirecting to blob download url: ${scrubQueryParameters(location)}`);
       try {
         core.info(`Starting download of artifact to: ${downloadPath}`);
-        yield streamExtract(location, downloadPath);
+        const extractResponse = yield streamExtract(location, downloadPath);
         core.info(`Artifact download completed successfully.`);
+        if (options === null || options === undefined ? undefined : options.expectedHash) {
+          if ((options === null || options === undefined ? undefined : options.expectedHash) !== extractResponse.sha256Digest) {
+            digestMismatch = true;
+            core.debug(`Computed digest: ${extractResponse.sha256Digest}`);
+            core.debug(`Expected digest: ${options.expectedHash}`);
+          }
+        }
       } catch (error) {
         throw new Error(`Unable to download and extract artifact: ${error.message}`);
       }
-      return { downloadPath };
+      return { downloadPath, digestMismatch };
     });
   }
   exports.downloadArtifactPublic = downloadArtifactPublic;
@@ -87181,6 +87490,7 @@ var require_download_artifact = __commonJS((exports) => {
     return __awaiter(this, undefined, undefined, function* () {
       const downloadPath = yield resolveOrCreateDirectory(options === null || options === undefined ? undefined : options.path);
       const artifactClient = (0, artifact_twirp_client_1.internalArtifactTwirpClient)();
+      let digestMismatch = false;
       const { workflowRunBackendId, workflowJobRunBackendId } = (0, util_1.getBackendIdsFromToken)();
       const listReq = {
         workflowRunBackendId,
@@ -87189,7 +87499,8 @@ var require_download_artifact = __commonJS((exports) => {
       };
       const { artifacts } = yield artifactClient.ListArtifacts(listReq);
       if (artifacts.length === 0) {
-        throw new errors_1.ArtifactNotFoundError(`No artifacts found for ID: ${artifactId}\nAre you trying to download from a different run? Try specifying a github-token with \`actions:read\` scope.`);
+        throw new errors_1.ArtifactNotFoundError(`No artifacts found for ID: ${artifactId}
+Are you trying to download from a different run? Try specifying a github-token with \`actions:read\` scope.`);
       }
       if (artifacts.length > 1) {
         core.warning("Multiple artifacts found, defaulting to first.");
@@ -87203,12 +87514,19 @@ var require_download_artifact = __commonJS((exports) => {
       core.info(`Redirecting to blob download url: ${scrubQueryParameters(signedUrl)}`);
       try {
         core.info(`Starting download of artifact to: ${downloadPath}`);
-        yield streamExtract(signedUrl, downloadPath);
+        const extractResponse = yield streamExtract(signedUrl, downloadPath);
         core.info(`Artifact download completed successfully.`);
+        if (options === null || options === undefined ? undefined : options.expectedHash) {
+          if ((options === null || options === undefined ? undefined : options.expectedHash) !== extractResponse.sha256Digest) {
+            digestMismatch = true;
+            core.debug(`Computed digest: ${extractResponse.sha256Digest}`);
+            core.debug(`Expected digest: ${options.expectedHash}`);
+          }
+        }
       } catch (error) {
         throw new Error(`Unable to download and extract artifact: ${error.message}`);
       }
-      return { downloadPath };
+      return { downloadPath, digestMismatch };
     });
   }
   exports.downloadArtifactInternal = downloadArtifactInternal;
@@ -87283,7 +87601,7 @@ var require_retry_options = __commonJS((exports) => {
 });
 
 // ../node_modules/@octokit/plugin-request-log/dist-node/index.js
-var require_dist_node11 = __commonJS((exports) => {
+var require_dist_node14 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var VERSION = "1.0.4";
   function requestLog(octokit) {
@@ -88625,7 +88943,7 @@ var require_light = __commonJS((exports, module) => {
 });
 
 // ../node_modules/@octokit/plugin-retry/dist-node/index.js
-var require_dist_node12 = __commonJS((exports) => {
+var require_dist_node15 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   function _interopDefault(ex) {
     return ex && typeof ex === "object" && "default" in ex ? ex["default"] : ex;
@@ -88747,16 +89065,16 @@ var require_get_artifact = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getArtifactInternal = exports.getArtifactPublic = undefined;
   var github_1 = require_github();
-  var plugin_retry_1 = require_dist_node12();
+  var plugin_retry_1 = require_dist_node15();
   var core = __importStar(require_core());
   var utils_1 = require_utils7();
   var retry_options_1 = require_retry_options();
-  var plugin_request_log_1 = require_dist_node11();
+  var plugin_request_log_1 = require_dist_node14();
   var util_1 = require_util8();
   var user_agent_1 = require_user_agent();
-  var artifact_twirp_client_1 = require_artifact_twirp_client();
+  var artifact_twirp_client_1 = require_artifact_twirp_client2();
   var generated_1 = require_generated();
-  var errors_1 = require_errors3();
+  var errors_1 = require_errors2();
   function getArtifactPublic(artifactName, workflowRunId, repositoryOwner, repositoryName, token) {
     var _a;
     return __awaiter(this, undefined, undefined, function* () {
@@ -88793,13 +89111,15 @@ var require_get_artifact = __commonJS((exports) => {
           name: artifact.name,
           id: artifact.id,
           size: artifact.size_in_bytes,
-          createdAt: artifact.created_at ? new Date(artifact.created_at) : undefined
+          createdAt: artifact.created_at ? new Date(artifact.created_at) : undefined,
+          digest: artifact.digest
         }
       };
     });
   }
   exports.getArtifactPublic = getArtifactPublic;
   function getArtifactInternal(artifactName) {
+    var _a;
     return __awaiter(this, undefined, undefined, function* () {
       const artifactClient = (0, artifact_twirp_client_1.internalArtifactTwirpClient)();
       const { workflowRunBackendId, workflowJobRunBackendId } = (0, util_1.getBackendIdsFromToken)();
@@ -88824,7 +89144,8 @@ var require_get_artifact = __commonJS((exports) => {
           name: artifact.name,
           id: Number(artifact.databaseId),
           size: Number(artifact.size),
-          createdAt: artifact.createdAt ? generated_1.Timestamp.toDate(artifact.createdAt) : undefined
+          createdAt: artifact.createdAt ? generated_1.Timestamp.toDate(artifact.createdAt) : undefined,
+          digest: (_a = artifact.digest) === null || _a === undefined ? undefined : _a.value
         }
       };
     });
@@ -88868,13 +89189,13 @@ var require_delete_artifact = __commonJS((exports) => {
   var user_agent_1 = require_user_agent();
   var retry_options_1 = require_retry_options();
   var utils_1 = require_utils7();
-  var plugin_request_log_1 = require_dist_node11();
-  var plugin_retry_1 = require_dist_node12();
-  var artifact_twirp_client_1 = require_artifact_twirp_client();
+  var plugin_request_log_1 = require_dist_node14();
+  var plugin_retry_1 = require_dist_node15();
+  var artifact_twirp_client_1 = require_artifact_twirp_client2();
   var util_1 = require_util8();
   var generated_1 = require_generated();
   var get_artifact_1 = require_get_artifact();
-  var errors_1 = require_errors3();
+  var errors_1 = require_errors2();
   function deleteArtifactPublic(artifactName, workflowRunId, repositoryOwner, repositoryName, token) {
     var _a;
     return __awaiter(this, undefined, undefined, function* () {
@@ -88971,9 +89292,9 @@ var require_list_artifacts = __commonJS((exports) => {
   var user_agent_1 = require_user_agent();
   var retry_options_1 = require_retry_options();
   var utils_1 = require_utils7();
-  var plugin_request_log_1 = require_dist_node11();
-  var plugin_retry_1 = require_dist_node12();
-  var artifact_twirp_client_1 = require_artifact_twirp_client();
+  var plugin_request_log_1 = require_dist_node14();
+  var plugin_retry_1 = require_dist_node15();
+  var artifact_twirp_client_1 = require_artifact_twirp_client2();
   var util_1 = require_util8();
   var generated_1 = require_generated();
   var maximumArtifactCount = 1000;
@@ -88993,7 +89314,7 @@ var require_list_artifacts = __commonJS((exports) => {
       };
       const github = (0, github_1.getOctokit)(token, opts, plugin_retry_1.retry, plugin_request_log_1.requestLog);
       let currentPageNumber = 1;
-      const { data: listArtifactResponse } = yield github.rest.actions.listWorkflowRunArtifacts({
+      const { data: listArtifactResponse } = yield github.request("GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts", {
         owner: repositoryOwner,
         repo: repositoryName,
         run_id: workflowRunId,
@@ -89011,13 +89332,14 @@ var require_list_artifacts = __commonJS((exports) => {
           name: artifact.name,
           id: artifact.id,
           size: artifact.size_in_bytes,
-          createdAt: artifact.created_at ? new Date(artifact.created_at) : undefined
+          createdAt: artifact.created_at ? new Date(artifact.created_at) : undefined,
+          digest: artifact.digest
         });
       }
+      currentPageNumber++;
       for (currentPageNumber;currentPageNumber < numberOfPages; currentPageNumber++) {
-        currentPageNumber++;
         (0, core_1.debug)(`Fetching page ${currentPageNumber} of artifact list`);
-        const { data: listArtifactResponse2 } = yield github.rest.actions.listWorkflowRunArtifacts({
+        const { data: listArtifactResponse2 } = yield github.request("GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts", {
           owner: repositoryOwner,
           repo: repositoryName,
           run_id: workflowRunId,
@@ -89029,7 +89351,8 @@ var require_list_artifacts = __commonJS((exports) => {
             name: artifact.name,
             id: artifact.id,
             size: artifact.size_in_bytes,
-            createdAt: artifact.created_at ? new Date(artifact.created_at) : undefined
+            createdAt: artifact.created_at ? new Date(artifact.created_at) : undefined,
+            digest: artifact.digest
           });
         }
       }
@@ -89052,12 +89375,16 @@ var require_list_artifacts = __commonJS((exports) => {
         workflowJobRunBackendId
       };
       const res = yield artifactClient.ListArtifacts(req);
-      let artifacts = res.artifacts.map((artifact) => ({
-        name: artifact.name,
-        id: Number(artifact.databaseId),
-        size: Number(artifact.size),
-        createdAt: artifact.createdAt ? generated_1.Timestamp.toDate(artifact.createdAt) : undefined
-      }));
+      let artifacts = res.artifacts.map((artifact) => {
+        var _a;
+        return {
+          name: artifact.name,
+          id: Number(artifact.databaseId),
+          size: Number(artifact.size),
+          createdAt: artifact.createdAt ? generated_1.Timestamp.toDate(artifact.createdAt) : undefined,
+          digest: (_a = artifact.digest) === null || _a === undefined ? undefined : _a.value
+        };
+      });
       if (latest) {
         artifacts = filterLatest(artifacts);
       }
@@ -89132,7 +89459,7 @@ var require_client2 = __commonJS((exports) => {
   var delete_artifact_1 = require_delete_artifact();
   var get_artifact_1 = require_get_artifact();
   var list_artifacts_1 = require_list_artifacts();
-  var errors_1 = require_errors3();
+  var errors_1 = require_errors2();
 
   class DefaultArtifactClient {
     uploadArtifact(name, files, rootDirectory, options) {
@@ -89270,14 +89597,14 @@ var require_artifact2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var client_1 = require_client2();
   __exportStar(require_interfaces2(), exports);
-  __exportStar(require_errors3(), exports);
+  __exportStar(require_errors2(), exports);
   __exportStar(require_client2(), exports);
   var client = new client_1.DefaultArtifactClient;
   exports.default = client;
 });
 
 // ../node_modules/@actions/github/lib/context.js
-var require_context3 = __commonJS((exports) => {
+var require_context2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.Context = undefined;
   var fs_1 = __require("fs");
@@ -89302,6 +89629,7 @@ var require_context3 = __commonJS((exports) => {
       this.action = process.env.GITHUB_ACTION;
       this.actor = process.env.GITHUB_ACTOR;
       this.job = process.env.GITHUB_JOB;
+      this.runAttempt = parseInt(process.env.GITHUB_RUN_ATTEMPT, 10);
       this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
       this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
       this.apiUrl = (_a = process.env.GITHUB_API_URL) !== null && _a !== undefined ? _a : `https://api.github.com`;
@@ -89427,8 +89755,8 @@ var require_utils8 = __commonJS((exports) => {
   exports.getApiBaseUrl = getApiBaseUrl;
 });
 
-// ../node_modules/@actions/github/node_modules/@octokit/core/node_modules/@octokit/request/node_modules/@octokit/endpoint/dist-node/index.js
-var require_dist_node13 = __commonJS((exports, module) => {
+// ../node_modules/@octokit/endpoint/dist-node/index.js
+var require_dist_node16 = __commonJS((exports, module) => {
   var __defProp2 = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -89452,7 +89780,7 @@ var require_dist_node13 = __commonJS((exports, module) => {
   });
   module.exports = __toCommonJS(dist_src_exports);
   var import_universal_user_agent = require_dist_node();
-  var VERSION = "9.0.5";
+  var VERSION = "9.0.6";
   var userAgent = `octokit-endpoint.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
   var DEFAULTS = {
     method: "GET",
@@ -89539,9 +89867,9 @@ var require_dist_node13 = __commonJS((exports, module) => {
       return `${name}=${encodeURIComponent(parameters[name])}`;
     }).join("&");
   }
-  var urlVariableRegex = /\{[^}]+\}/g;
+  var urlVariableRegex = /\{[^{}}]+\}/g;
   function removeNonChars(variableName) {
-    return variableName.replace(/^\W+|\W+$/g, "").split(/,/);
+    return variableName.replace(/(?:^\W+)|(?:(?<!\W)\W+$)/g, "").split(/,/);
   }
   function extractUrlVariableNames(url) {
     const matches = url.match(urlVariableRegex);
@@ -89705,11 +90033,11 @@ var require_dist_node13 = __commonJS((exports, module) => {
     const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
     if (!isBinaryRequest) {
       if (options.mediaType.format) {
-        headers.accept = headers.accept.split(/,/).map((format) => format.replace(/application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/, `application/vnd\$1\$2.${options.mediaType.format}`)).join(",");
+        headers.accept = headers.accept.split(/,/).map((format) => format.replace(/application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/, `application/vnd$1$2.${options.mediaType.format}`)).join(",");
       }
       if (url.endsWith("/graphql")) {
         if (options.mediaType.previews?.length) {
-          const previewsFromAcceptHeader = headers.accept.match(/[\w-]+(?=-preview)/g) || [];
+          const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
           headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
             const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
             return `application/vnd.github.${preview}-preview${format}`;
@@ -89753,7 +90081,7 @@ var require_dist_node13 = __commonJS((exports, module) => {
 });
 
 // ../node_modules/@octokit/request-error/dist-node/index.js
-var require_dist_node14 = __commonJS((exports, module) => {
+var require_dist_node17 = __commonJS((exports, module) => {
   var __create2 = Object.create;
   var __defProp2 = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -89802,7 +90130,7 @@ var require_dist_node14 = __commonJS((exports, module) => {
       const requestCopy = Object.assign({}, options.request);
       if (options.request.headers.authorization) {
         requestCopy.headers = Object.assign({}, options.request.headers, {
-          authorization: options.request.headers.authorization.replace(/ .*$/, " [REDACTED]")
+          authorization: options.request.headers.authorization.replace(/(?<! ) .*$/, " [REDACTED]")
         });
       }
       requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
@@ -89823,8 +90151,8 @@ var require_dist_node14 = __commonJS((exports, module) => {
   };
 });
 
-// ../node_modules/@actions/github/node_modules/@octokit/core/node_modules/@octokit/request/dist-node/index.js
-var require_dist_node15 = __commonJS((exports, module) => {
+// ../node_modules/@octokit/request/dist-node/index.js
+var require_dist_node18 = __commonJS((exports, module) => {
   var __defProp2 = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -89847,9 +90175,9 @@ var require_dist_node15 = __commonJS((exports, module) => {
     request: () => request
   });
   module.exports = __toCommonJS(dist_src_exports);
-  var import_endpoint = require_dist_node13();
+  var import_endpoint = require_dist_node16();
   var import_universal_user_agent = require_dist_node();
-  var VERSION = "8.4.0";
+  var VERSION = "8.4.1";
   function isPlainObject(value) {
     if (typeof value !== "object" || value === null)
       return false;
@@ -89861,7 +90189,7 @@ var require_dist_node15 = __commonJS((exports, module) => {
     const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
     return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
   }
-  var import_request_error = require_dist_node14();
+  var import_request_error = require_dist_node17();
   function getBufferResponse(response) {
     return response.arrayBuffer();
   }
@@ -89875,14 +90203,14 @@ var require_dist_node15 = __commonJS((exports, module) => {
     let headers = {};
     let status;
     let url;
-    let { fetch: fetch2 } = globalThis;
+    let { fetch } = globalThis;
     if ((_b = requestOptions.request) == null ? undefined : _b.fetch) {
-      fetch2 = requestOptions.request.fetch;
+      fetch = requestOptions.request.fetch;
     }
-    if (!fetch2) {
+    if (!fetch) {
       throw new Error("fetch is not set. Please pass a fetch implementation as new Octokit({ request: { fetch }}). Learn more at https://github.com/octokit/octokit.js/#fetch-missing");
     }
-    return fetch2(requestOptions.url, {
+    return fetch(requestOptions.url, {
       method: requestOptions.method,
       body: requestOptions.body,
       redirect: (_c = requestOptions.request) == null ? undefined : _c.redirect,
@@ -89896,7 +90224,7 @@ var require_dist_node15 = __commonJS((exports, module) => {
         headers[keyAndValue[0]] = keyAndValue[1];
       }
       if ("deprecation" in headers) {
-        const matches = headers.link && headers.link.match(/<([^>]+)>; rel="deprecation"/);
+        const matches = headers.link && headers.link.match(/<([^<>]+)>; rel="deprecation"/);
         const deprecationLink = matches && matches.pop();
         log.warn(`[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${headers.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`);
       }
@@ -90022,8 +90350,8 @@ var require_dist_node15 = __commonJS((exports, module) => {
   });
 });
 
-// ../node_modules/@actions/github/node_modules/@octokit/core/node_modules/@octokit/graphql/dist-node/index.js
-var require_dist_node16 = __commonJS((exports, module) => {
+// ../node_modules/@actions/github/node_modules/@octokit/graphql/dist-node/index.js
+var require_dist_node19 = __commonJS((exports, module) => {
   var __defProp2 = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -90041,21 +90369,22 @@ var require_dist_node16 = __commonJS((exports, module) => {
     return to;
   };
   var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
-  var dist_src_exports = {};
-  __export(dist_src_exports, {
+  var index_exports = {};
+  __export(index_exports, {
     GraphqlResponseError: () => GraphqlResponseError,
     graphql: () => graphql2,
     withCustomRequest: () => withCustomRequest
   });
-  module.exports = __toCommonJS(dist_src_exports);
-  var import_request3 = require_dist_node15();
+  module.exports = __toCommonJS(index_exports);
+  var import_request3 = require_dist_node18();
   var import_universal_user_agent = require_dist_node();
-  var VERSION = "7.1.0";
-  var import_request2 = require_dist_node15();
-  var import_request = require_dist_node15();
+  var VERSION = "7.1.1";
+  var import_request2 = require_dist_node18();
+  var import_request = require_dist_node18();
   function _buildMessageForResponseErrors(data) {
     return `Request failed due to following response errors:
-` + data.errors.map((e) => ` - ${e.message}`).join("\n");
+` + data.errors.map((e) => ` - ${e.message}`).join(`
+`);
   }
   var GraphqlResponseError = class extends Error {
     constructor(request2, headers, response) {
@@ -90145,8 +90474,8 @@ var require_dist_node16 = __commonJS((exports, module) => {
   }
 });
 
-// ../node_modules/@actions/github/node_modules/@octokit/core/node_modules/@octokit/auth-token/dist-node/index.js
-var require_dist_node17 = __commonJS((exports, module) => {
+// ../node_modules/@actions/github/node_modules/@octokit/auth-token/dist-node/index.js
+var require_dist_node20 = __commonJS((exports, module) => {
   var __defProp2 = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -90209,7 +90538,7 @@ var require_dist_node17 = __commonJS((exports, module) => {
 });
 
 // ../node_modules/@actions/github/node_modules/@octokit/core/dist-node/index.js
-var require_dist_node18 = __commonJS((exports, module) => {
+var require_dist_node21 = __commonJS((exports, module) => {
   var __defProp2 = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -90227,19 +90556,18 @@ var require_dist_node18 = __commonJS((exports, module) => {
     return to;
   };
   var __toCommonJS = (mod) => __copyProps(__defProp2({}, "__esModule", { value: true }), mod);
-  var dist_src_exports = {};
-  __export(dist_src_exports, {
+  var index_exports = {};
+  __export(index_exports, {
     Octokit: () => Octokit
   });
-  module.exports = __toCommonJS(dist_src_exports);
+  module.exports = __toCommonJS(index_exports);
   var import_universal_user_agent = require_dist_node();
   var import_before_after_hook = require_before_after_hook();
-  var import_request = require_dist_node15();
-  var import_graphql = require_dist_node16();
-  var import_auth_token = require_dist_node17();
-  var VERSION = "5.2.0";
-  var noop = () => {
-  };
+  var import_request = require_dist_node18();
+  var import_graphql = require_dist_node19();
+  var import_auth_token = require_dist_node20();
+  var VERSION = "5.2.1";
+  var noop = () => {};
   var consoleWarn = console.warn.bind(console);
   var consoleError = console.error.bind(console);
   var userAgentTrail = `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
@@ -90335,8 +90663,8 @@ var require_dist_node18 = __commonJS((exports, module) => {
   };
 });
 
-// ../node_modules/@octokit/plugin-rest-endpoint-methods/dist-node/index.js
-var require_dist_node19 = __commonJS((exports, module) => {
+// ../node_modules/@actions/github/node_modules/@octokit/plugin-rest-endpoint-methods/dist-node/index.js
+var require_dist_node22 = __commonJS((exports, module) => {
   var __defProp2 = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -92472,8 +92800,8 @@ var require_dist_node19 = __commonJS((exports, module) => {
   legacyRestEndpointMethods.VERSION = VERSION;
 });
 
-// ../node_modules/@octokit/plugin-paginate-rest/dist-node/index.js
-var require_dist_node20 = __commonJS((exports, module) => {
+// ../node_modules/@actions/github/node_modules/@octokit/plugin-paginate-rest/dist-node/index.js
+var require_dist_node23 = __commonJS((exports, module) => {
   var __defProp2 = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -92499,7 +92827,7 @@ var require_dist_node20 = __commonJS((exports, module) => {
     paginatingEndpoints: () => paginatingEndpoints
   });
   module.exports = __toCommonJS(dist_src_exports);
-  var VERSION = "9.2.1";
+  var VERSION = "9.2.2";
   function normalizePaginatedListResponse(response) {
     if (!response.data) {
       return {
@@ -92542,7 +92870,7 @@ var require_dist_node20 = __commonJS((exports, module) => {
           try {
             const response = await requestMethod({ method, url, headers });
             const normalizedResponse = normalizePaginatedListResponse(response);
-            url = ((normalizedResponse.headers.link || "").match(/<([^>]+)>;\s*rel="next"/) || [])[1];
+            url = ((normalizedResponse.headers.link || "").match(/<([^<>]+)>;\s*rel="next"/) || [])[1];
             return { value: normalizedResponse };
           } catch (error) {
             if (error.status !== 409)
@@ -92875,11 +93203,11 @@ var require_utils9 = __commonJS((exports) => {
   };
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getOctokitOptions = exports.GitHub = exports.defaults = exports.context = undefined;
-  var Context = __importStar(require_context3());
+  var Context = __importStar(require_context2());
   var Utils = __importStar(require_utils8());
-  var core_1 = require_dist_node18();
-  var plugin_rest_endpoint_methods_1 = require_dist_node19();
-  var plugin_paginate_rest_1 = require_dist_node20();
+  var core_1 = require_dist_node21();
+  var plugin_rest_endpoint_methods_1 = require_dist_node22();
+  var plugin_paginate_rest_1 = require_dist_node23();
   exports.context = new Context.Context;
   var baseUrl = Utils.getApiBaseUrl();
   exports.defaults = {
@@ -92937,7 +93265,7 @@ var require_github2 = __commonJS((exports) => {
   };
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getOctokit = exports.context = undefined;
-  var Context = __importStar(require_context3());
+  var Context = __importStar(require_context2());
   var utils_1 = require_utils9();
   exports.context = new Context.Context;
   function getOctokit(token, options, ...additionalPlugins) {
@@ -92955,13 +93283,118 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 // src/chaos.sh
-var chaos_default = "#!/bin/sh -e\n\nget_random_container() {\n    # Get a list of all containers starting with ydb-database-*\n    containers=$(docker ps --format '{{.Names}}' | grep '^ydb-database-')\n\n    # Convert the list to a newline-separated string\n    containers=$(echo \"$containers\" | tr ' ' '\\n')\n\n    # Count the number of containers\n    containersCount=$(echo \"$containers\" | wc -l)\n\n    # Generate a random number between 0 and containersCount - 1\n    randomIndex=$(shuf -i 0-$(($containersCount - 1)) -n 1)\n\n    # Get the container name at the random index\n    nodeForChaos=$(echo \"$containers\" | sed -n \"$(($randomIndex + 1))p\")\n}\n\nsleep 60\n\nget_random_container\nsh -c \"docker stop ${nodeForChaos} -t 30\"\nsh -c \"docker start ${nodeForChaos}\"\n\nsleep 60\n\nget_random_container\nsh -c \"docker restart ${nodeForChaos} -t 0\"\n\nsleep 60\n\nget_random_container\nsh -c \"docker kill -s SIGKILL ${nodeForChaos}\"\n\nsleep 60\n";
+var chaos_default = `#!/bin/sh -e
+
+get_random_container() {
+    # Get a list of all containers starting with ydb-database-*
+    containers=$(docker ps --format '{{.Names}}' | grep '^ydb-database-')
+
+    # Convert the list to a newline-separated string
+    containers=$(echo "$containers" | tr ' ' '\\n')
+
+    # Count the number of containers
+    containersCount=$(echo "$containers" | wc -l)
+
+    # Generate a random number between 0 and containersCount - 1
+    randomIndex=$(shuf -i 0-$(($containersCount - 1)) -n 1)
+
+    # Get the container name at the random index
+    nodeForChaos=$(echo "$containers" | sed -n "$(($randomIndex + 1))p")
+}
+
+sleep 60
+
+get_random_container
+sh -c "docker stop \${nodeForChaos} -t 30"
+sh -c "docker start \${nodeForChaos}"
+
+sleep 60
+
+get_random_container
+sh -c "docker restart \${nodeForChaos} -t 0"
+
+sleep 60
+
+get_random_container
+sh -c "docker kill -s SIGKILL \${nodeForChaos}"
+
+sleep 60
+`;
 
 // src/cfg/ydb/erasure-none.yaml
-var erasure_none_default = "actor_system_config:\n  cpu_count: 1\n  node_type: STORAGE\n  use_auto_config: true\nblob_storage_config:\n  service_set:\n    groups:\n      - erasure_species: none\n        rings:\n          - fail_domains:\n              - vdisk_locations:\n                  - node_id: 1\n                    path: SectorMap:1:64\n                    pdisk_category: SSD\nchannel_profile_config:\n  profile:\n    - channel:\n        - erasure_species: none\n          pdisk_category: 0\n          storage_pool_kind: ssd\n        - erasure_species: none\n          pdisk_category: 0\n          storage_pool_kind: ssd\n        - erasure_species: none\n          pdisk_category: 0\n          storage_pool_kind: ssd\n      profile_id: 0\ndomains_config:\n  domain:\n    - name: Root\n      storage_pool_types:\n        - kind: ssd\n          pool_config:\n            box_id: 1\n            erasure_species: none\n            kind: ssd\n            pdisk_filter:\n              - property:\n                  - type: SSD\n            vdisk_kind: Default\n  state_storage:\n    - ring:\n        node: [1]\n        nto_select: 1\n      ssid: 1\nhost_configs:\n  - drive:\n      - path: SectorMap:1:64\n        type: SSD\n    host_config_id: 1\nhosts:\n  - host: ${{ host }}\n    host_config_id: 1\n    node_id: 1\n    port: 19001\n    walle_location:\n      body: 1\n      data_center: az-1\n      rack: \"0\"\nstatic_erasure: none\n";
+var erasure_none_default = `actor_system_config:
+  cpu_count: 1
+  node_type: STORAGE
+  use_auto_config: true
+blob_storage_config:
+  service_set:
+    groups:
+      - erasure_species: none
+        rings:
+          - fail_domains:
+              - vdisk_locations:
+                  - node_id: 1
+                    path: SectorMap:1:64
+                    pdisk_category: SSD
+channel_profile_config:
+  profile:
+    - channel:
+        - erasure_species: none
+          pdisk_category: 0
+          storage_pool_kind: ssd
+        - erasure_species: none
+          pdisk_category: 0
+          storage_pool_kind: ssd
+        - erasure_species: none
+          pdisk_category: 0
+          storage_pool_kind: ssd
+      profile_id: 0
+domains_config:
+  domain:
+    - name: Root
+      storage_pool_types:
+        - kind: ssd
+          pool_config:
+            box_id: 1
+            erasure_species: none
+            kind: ssd
+            pdisk_filter:
+              - property:
+                  - type: SSD
+            vdisk_kind: Default
+  state_storage:
+    - ring:
+        node: [1]
+        nto_select: 1
+      ssid: 1
+host_configs:
+  - drive:
+      - path: SectorMap:1:64
+        type: SSD
+    host_config_id: 1
+hosts:
+  - host: \${{ host }}
+    host_config_id: 1
+    node_id: 1
+    port: 19001
+    walle_location:
+      body: 1
+      data_center: az-1
+      rack: "0"
+static_erasure: none
+`;
 
 // src/cfg/prom/config.yml
-var config_default = "global:\n  scrape_interval: 1s\n  evaluation_interval: 1s\n\nscrape_configs:\n  - job_name: \"pushgateway\"\n    static_configs:\n      - targets:\n          - localhost:9091\n";
+var config_default = `global:
+  scrape_interval: 1s
+  evaluation_interval: 1s
+
+scrape_configs:
+  - job_name: "pushgateway"
+    static_configs:
+      - targets:
+          - localhost:9091
+`;
 
 // src/constants.ts
 var HOST = "localhost";
@@ -93127,7 +93560,7 @@ x-runtime: &runtime
   network_mode: host
 
 x-ydb-node: &ydb-node
-  image: cr.yandex/crptqonuodf51kdj7a7d/ydb:24.2.7
+  image: cr.yandex/crptqonuodf51kdj7a7d/ydb:24.4.4.2
   restart: always
   hostname: ${HOST}
   <<: *runtime
@@ -93138,12 +93571,12 @@ name: ydb
 
 services:
 ${generateStaticNode()}
-${Array.from({ length: ydbDatabaseNodeCount }, (_2, i) => i + 1).map(generateDatabaseNode).join("\n")}
+${Array.from({ length: ydbDatabaseNodeCount }, (_2, i) => i + 1).map(generateDatabaseNode).join(`
+`)}
 ${generateMonitoring()}
 ${generateChaos()}
 `;
-if (false) {
-}
+if (false) {}
 
 // src/pulls.ts
 var import_core = __toESM(require_core(), 1);
