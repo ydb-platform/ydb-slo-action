@@ -49,3 +49,6 @@ runs:
         run: |
           cd ${{ github.action_path }}
           NODE_OPTIONS="--loader ts-node/esm" npx ts-node --esm src/main.ts
+        env:
+          INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+          INPUT_GITHUB_RUN_ID: ${{ inputs.github_run_id }}
