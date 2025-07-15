@@ -23,7 +23,7 @@ config:
   host_configs:
     - host_config_id: 1
       drive:
-        - path: /tmp/pdisk.data
+        - path: SectorMap:1:64
 
   hosts:
     - host: localhost
