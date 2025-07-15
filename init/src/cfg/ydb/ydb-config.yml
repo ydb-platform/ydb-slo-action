@@ -14,29 +14,29 @@ config:
     enabled: true
   bridge_config:
     piles:
-      - name: dc-a
-      - name: dc-b
-  domains_config:
-    domain:
-      - domain_id: 1
-        name: Root
+      - name: pile-1
+      - name: pile-2
   host_configs:
     - host_config_id: 1
       drive:
         - path: SectorMap:1:64
           type: SSD
-
+  log_config:
+    default_level: notice
+    entry:
+      - component: BS_NODE
+        level: debug
   hosts:
     - host: localhost
       port: 19001
       host_config_id: 1
-      bridge_pile_name: dc-a
+      bridge_pile_name: pile-1
       location:
         data_center: dc-a
 
     - host: localhost
       port: 19002
       host_config_id: 1
-      bridge_pile_name: dc-b
+      bridge_pile_name: pile-2
       location:
         data_center: dc-b

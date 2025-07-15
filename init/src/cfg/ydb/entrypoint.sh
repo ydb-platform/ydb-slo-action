@@ -87,8 +87,6 @@ prepare_block_device() {
 
 # Запускает обычный YDB узел (storage или database)
 start_ydb_node() {
-    log "Starting YDB storage/database node"
-
     # Базовые параметры
     local node_type="${YDB_NODE_TYPE:-static}"
     local node_location_dc="${YDB_NODE_LOCATION_DC}"
@@ -152,8 +150,6 @@ start_ydb_node() {
 
 # Основная логика
 if [[ "$1" == "/ydbd" || "$1" == "ydbd" || -n "$YDB_INIT_OPERATION" ]]; then
-    log "Starting YDB node..."
-
     # Обрабатываем init операции
     case "$YDB_INIT_OPERATION" in
         "bootstrap")
