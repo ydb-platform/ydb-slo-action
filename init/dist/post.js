@@ -89286,8 +89286,6 @@ import * as path from "node:path";
 // src/constants.ts
 var HOST = "localhost";
 var YDB_GRPC_PORT = 2135;
-var YDB_MON_PORT = 8765;
-var YDB_IC_PORT = 19001;
 var YDB_TENANT = "/Root/testdb";
 var PROMETHEUS_PORT = 9090;
 var PROMETHEUS_PUSHGATEWAY_PORT = 9091;

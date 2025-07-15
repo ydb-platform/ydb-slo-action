@@ -5,11 +5,15 @@ import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, info, saveState } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import chaos from './chaos.sh' with { type: 'text' }
-import ydbConfig from './cfg/ydb/erasure-none.yaml' with { type: 'text' }
-import prometheusConfig from './cfg/prom/config.yml' with { type: 'text' }
+import chaosDep from './cfg/chaos/compose.yaml' with { type: 'text' }
+import chaosSrc from './cfg/chaos/run-chaos.sh' with { type: 'text' }
+import promDep from './cfg/prom/compose.yaml' with { type: 'text' }
+import promCfg from './cfg/prom/prometheus.yml' with { type: 'text' }
+import ydbDep from './cfg/ydb/compose.yaml' with { type: 'text' }
+import ydbCfg from './cfg/ydb/ydb-config.yml' with { type: 'text' }
+import ydbDockerfile from './cfg/ydb/Dockerfile' with { type: 'text' }
+import ydbEntrypoint from './cfg/ydb/entrypoint.sh' with { type: 'text' }
 
-import { generateComposeFile } from './configs'
 import { getPullRequestNumber } from './pulls'
 import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants'
 
@@ -47,42 +51,74 @@ async function main() {
 	}
 
 	{
-		info('Creating ydb config...')
-		let configPath = path.join(cwd, 'ydb.yaml')
-		let configContent = ydbConfig.replaceAll('${{ host }}', HOST)
+		info('Writing ydb deployment configs...')
+		let configPath = path.join(cwd, 'ydb-config.yaml')
+		let configContent = ydbCfg.replaceAll('{{ host }}', HOST)
 
+		let deploymentPath = path.join(cwd, 'compose.ydb.yaml')
+		let deploymentContent = ydbDep.replaceAll('{{ host }}', HOST)
+
+		let dockerFilePath = path.join(cwd, 'Dockerfile')
+		let dockerFileContent = ydbDockerfile.replaceAll('{{ host }}', HOST)
+
+		let entrypointPath = path.join(cwd, 'entrypoint.sh')
+		let entrypointContent = ydbEntrypoint.replaceAll('{{ host }}', HOST)
+
+		fs.writeFileSync(dockerFilePath, dockerFileContent, { encoding: 'utf-8' })
+		fs.writeFileSync(entrypointPath, entrypointContent, { encoding: 'utf-8', mode: 0o755 })
 		fs.writeFileSync(configPath, configContent, { encoding: 'utf-8' })
+		fs.writeFileSync(deploymentPath, deploymentContent, { encoding: 'utf-8' })
 		info(`Created config for ydb: ${configPath}`)
+		info(`Created deployment for ydb: ${deploymentPath}`)
+		info(`Created Dockerfile for ydb: ${dockerFilePath}`)
+		info(`Created entrypoint for ydb: ${entrypointPath}`)
 	}
 
 	{
-		info('Creating prometheus config...')
+		info('Creating prometheus deployment configs...')
 		let configPath = path.join(cwd, 'prometheus.yml')
-		let configContent = prometheusConfig.replace('${{ pushgateway }}', `${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`)
+		let configContent = promCfg.replace('{{ pushgateway }}', `${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`)
+
+		let deploymentPath = path.join(cwd, 'compose.prometheus.yaml')
+		let deploymentContent = promDep.replace('{{ pushgateway }}', `${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`)
 
 		fs.writeFileSync(configPath, configContent, { encoding: 'utf-8' })
+		fs.writeFileSync(deploymentPath, deploymentContent, { encoding: 'utf-8' })
 		info(`Created config for prometheus: ${configPath}`)
+		info(`Created deployment for prometheus: ${deploymentPath}`)
 	}
 
 	{
-		info('Creating chaos script...')
-		let scriptPath = path.join(cwd, 'chaos.sh')
+		info('Creating chaos testing deployment configs...')
+		let scriptPath = path.join(cwd, 'run-chaos.sh')
+		let scriptContent = chaosSrc.replace('{{ host }}', HOST)
 
-		fs.writeFileSync(scriptPath, chaos, { encoding: 'utf-8', mode: 0o755 })
+		let deploymentPath = path.join(cwd, 'compose.chaos.yaml')
+		let deploymentContent = chaosDep.replace('{{ host }}', HOST)
+
+		fs.writeFileSync(scriptPath, scriptContent, { encoding: 'utf-8', mode: 0o755 })
+		fs.writeFileSync(deploymentPath, deploymentContent, { encoding: 'utf-8' })
 		info(`Created chaos script: ${scriptPath}`)
-	}
-
-	{
-		info('Creating compose config...')
-		let composePath = path.join(cwd, 'compose.yaml')
-		let composeContent = generateComposeFile(parseInt(getInput('ydb_database_node_count', { required: true })))
-
-		fs.writeFileSync(composePath, composeContent, { encoding: 'utf-8' })
-		info(`Created compose.yaml: ${composePath}`)
+		info(`Created deployment for chaos: ${deploymentPath}`)
 	}
 
 	info('Starting YDB...')
-	await exec(`docker`, [`compose`, `-f`, `compose.yaml`, `up`, `--quiet-pull`, `-d`], { cwd })
+	await exec(
+		`docker`,
+		[
+			`compose`,
+			`-f`,
+			`compose.ydb.yaml`,
+			`-f`,
+			`compose.chaos.yaml`,
+			`-f`,
+			`compose.prometheus.yaml`,
+			`up`,
+			`--quiet-pull`,
+			`-d`,
+		],
+		{ cwd }
+	)
 
 	let start = new Date()
 	info(`YDB started at ${start}`)

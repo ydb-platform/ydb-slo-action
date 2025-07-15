@@ -1,0 +1,10 @@
+services:
+  chaos:
+    image: docker
+    restart: on-failure
+    container_name: ydb-chaos
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c", "/opt/ydb/chaos.sh"]
+    volumes:
+      - ./run-chaos.sh:/opt/ydb/chaos.sh
+      - /var/run/docker.sock:/var/run/docker.sock

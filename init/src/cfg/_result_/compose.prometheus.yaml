@@ -1,0 +1,12 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  prometheus-pushgateway:
+    image: prom/pushgateway
+    restart: unless-stopped
+    network_mode: host

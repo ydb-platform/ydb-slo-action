@@ -92954,196 +92954,29 @@ var import_exec = __toESM(require_exec(), 1);
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-// src/chaos.sh
-var chaos_default = "#!/bin/sh -e\n\nget_random_container() {\n    # Get a list of all containers starting with ydb-database-*\n    containers=$(docker ps --format '{{.Names}}' | grep '^ydb-database-')\n\n    # Convert the list to a newline-separated string\n    containers=$(echo \"$containers\" | tr ' ' '\\n')\n\n    # Count the number of containers\n    containersCount=$(echo \"$containers\" | wc -l)\n\n    # Generate a random number between 0 and containersCount - 1\n    randomIndex=$(shuf -i 0-$(($containersCount - 1)) -n 1)\n\n    # Get the container name at the random index\n    nodeForChaos=$(echo \"$containers\" | sed -n \"$(($randomIndex + 1))p\")\n}\n\nsleep 60\n\nget_random_container\nsh -c \"docker stop ${nodeForChaos} -t 30\"\nsh -c \"docker start ${nodeForChaos}\"\n\nsleep 60\n\nget_random_container\nsh -c \"docker restart ${nodeForChaos} -t 0\"\n\nsleep 60\n\nget_random_container\nsh -c \"docker kill -s SIGKILL ${nodeForChaos}\"\n\nsleep 60\n";
+// src/cfg/chaos/compose.yaml
+var compose_default = "services:\n  chaos:\n    image: docker\n    restart: on-failure\n    container_name: ydb-chaos\n    network_mode: host\n    entrypoint: [\"/bin/sh\", \"-c\", \"/opt/ydb/chaos.sh\"]\n    volumes:\n      - ./run-chaos.sh:/opt/ydb/chaos.sh\n      - /var/run/docker.sock:/var/run/docker.sock\n";
 
-// src/cfg/ydb/erasure-none.yaml
-var erasure_none_default = "actor_system_config:\n  cpu_count: 1\n  node_type: STORAGE\n  use_auto_config: true\nblob_storage_config:\n  service_set:\n    groups:\n      - erasure_species: none\n        rings:\n          - fail_domains:\n              - vdisk_locations:\n                  - node_id: 1\n                    path: SectorMap:1:64\n                    pdisk_category: SSD\nchannel_profile_config:\n  profile:\n    - channel:\n        - erasure_species: none\n          pdisk_category: 0\n          storage_pool_kind: ssd\n        - erasure_species: none\n          pdisk_category: 0\n          storage_pool_kind: ssd\n        - erasure_species: none\n          pdisk_category: 0\n          storage_pool_kind: ssd\n      profile_id: 0\ndomains_config:\n  domain:\n    - name: Root\n      storage_pool_types:\n        - kind: ssd\n          pool_config:\n            box_id: 1\n            erasure_species: none\n            kind: ssd\n            pdisk_filter:\n              - property:\n                  - type: SSD\n            vdisk_kind: Default\n  state_storage:\n    - ring:\n        node: [1]\n        nto_select: 1\n      ssid: 1\nhost_configs:\n  - drive:\n      - path: SectorMap:1:64\n        type: SSD\n    host_config_id: 1\nhosts:\n  - host: ${{ host }}\n    host_config_id: 1\n    node_id: 1\n    port: 19001\n    walle_location:\n      body: 1\n      data_center: az-1\n      rack: \"0\"\nstatic_erasure: none\n";
+// src/cfg/chaos/run-chaos.sh
+var run_chaos_default = "#!/bin/sh -e\n\nget_random_container() {\n    # Get a list of all containers starting with ydb-database-*\n    containers=$(docker ps --format '{{.Names}}' | grep '^ydb-database-')\n\n    # Convert the list to a newline-separated string\n    containers=$(echo \"$containers\" | tr ' ' '\\n')\n\n    # Count the number of containers\n    containersCount=$(echo \"$containers\" | wc -l)\n\n    # Generate a random number between 0 and containersCount - 1\n    randomIndex=$(shuf -i 0-$(($containersCount - 1)) -n 1)\n\n    # Get the container name at the random index\n    nodeForChaos=$(echo \"$containers\" | sed -n \"$(($randomIndex + 1))p\")\n}\n\nsleep 60\n\nget_random_container\nsh -c \"docker stop ${nodeForChaos} -t 30\"\nsh -c \"docker start ${nodeForChaos}\"\n\nsleep 60\n\nget_random_container\nsh -c \"docker restart ${nodeForChaos} -t 0\"\n\nsleep 60\n\nget_random_container\nsh -c \"docker kill -s SIGKILL ${nodeForChaos}\"\n\nsleep 60\n";
 
-// src/cfg/prom/config.yml
-var config_default = "global:\n  scrape_interval: 1s\n  evaluation_interval: 1s\n\nscrape_configs:\n  - job_name: \"pushgateway\"\n    static_configs:\n      - targets:\n          - localhost:9091\n";
+// src/cfg/prom/compose.yaml
+var compose_default2 = "services:\n  prometheus:\n    image: prom/prometheus\n    restart: unless-stopped\n    network_mode: host\n    volumes:\n      - ./prometheus.yml:/etc/prometheus/prometheus.yml\n\n  prometheus-pushgateway:\n    image: prom/pushgateway\n    restart: unless-stopped\n    network_mode: host\n";
 
-// src/constants.ts
-var HOST = "localhost";
-var YDB_GRPC_PORT = 2135;
-var YDB_MON_PORT = 8765;
-var YDB_IC_PORT = 19001;
-var YDB_TENANT = "/Root/testdb";
-var PROMETHEUS_PORT = 9090;
-var PROMETHEUS_PUSHGATEWAY_PORT = 9091;
-var YDB_ENDPOINT = `grpc://${HOST}:${YDB_GRPC_PORT}`;
-var YBD_CONNECTION_STRING = `${YDB_ENDPOINT}${YDB_TENANT}`;
-var PROMETHEUS_URL = `http://${HOST}:${PROMETHEUS_PORT}`;
-var PROMETHEUS_PUSHGATEWAY_URL = `http://${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`;
+// src/cfg/prom/prometheus.yml
+var prometheus_default = "global:\n  scrape_interval: 1s\n  evaluation_interval: 1s\n\nscrape_configs:\n  - job_name: \"pushgateway\"\n    static_configs:\n      - targets:\n          - localhost:9091\n";
 
-// src/configs.ts
-var generateStaticNode = () => `
-  static-0:
-    <<: *ydb-node
-    container_name: ydb-static-0
-    command:
-      - /opt/ydb/bin/ydbd
-      - server
-      - --grpc-port
-      - "${YDB_GRPC_PORT}"
-      - --mon-port
-      - "${YDB_MON_PORT}"
-      - --ic-port
-      - "${YDB_IC_PORT}"
-      - --yaml-config
-      - /opt/ydb/cfg/config.yaml
-      - --node
-      - static
-      - --label
-      - deployment=docker
-    ports:
-      - ${YDB_GRPC_PORT}:${YDB_GRPC_PORT}
-      - ${YDB_MON_PORT}:${YDB_MON_PORT}
-      - ${YDB_IC_PORT}:${YDB_IC_PORT}
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/${HOST}/${YDB_GRPC_PORT}"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
+// src/cfg/ydb/compose.yaml
+var compose_default3 = "name: ydb-cluster\nvolumes:\n  ydb-certs:\n    driver: local\nx-ydb-node: &ydb-node\n  build:\n    context: .\n    dockerfile: Dockerfile\n  restart: always\n  platform: linux/amd64\n  command:\n    - /ydbd\n  volumes:\n    - ydb-certs:/ydb_certs\n    - ./ydb-config.yml:/opt/ydb/cfg/config.yaml\n  environment:\n    - YDB_CONFIG_PATH=/opt/ydb/cfg/config.yaml\n    - YDB_NODE_TYPE=static\n  healthcheck:\n    test: bash -c \"exec 6<> /dev/tcp/localhost/2136\"\n    interval: 10s\n    timeout: 1s\n    retries: 3\n    start_period: 30s\n  network_mode: host\nservices:\n  storage-zone-a-1:\n    <<: *ydb-node\n    hostname: localhost\n    environment:\n      - YDB_GRPC_PORT=2136\n      - YDB_MON_PORT=8765\n      - YDB_IC_PORT=19001\n    healthcheck:\n      test: bash -c \"exec 6<> /dev/tcp/localhost/2136\"\n      interval: 10s\n      timeout: 1s\n      retries: 3\n      start_period: 30s\n  storage-zone-b-1:\n    <<: *ydb-node\n    hostname: localhost\n    environment:\n      - YDB_GRPC_PORT=2137\n      - YDB_MON_PORT=8766\n      - YDB_IC_PORT=19002\n    healthcheck:\n      test: bash -c \"exec 6<> /dev/tcp/localhost/2137\"\n      interval: 10s\n      timeout: 1s\n      retries: 3\n      start_period: 30s\n  database-zone-a-1:\n    <<: *ydb-node\n    hostname: localhost\n    environment:\n      - YDB_TENANT=/Root/testdb\n      - YDB_GRPC_PORT=2138\n      - YDB_MON_PORT=8767\n      - YDB_IC_PORT=19003\n      - YDB_BRIDGE_PILE_NAME=dc-a\n      - YDB_NODE_LOCATION_DC=dc-a\n      - YDB_NODE_LOCATION_RACK=rack-1\n      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137\n    depends_on:\n      storage-zone-a-1:\n        condition: service_healthy\n      storage-zone-b-1:\n        condition: service_healthy\n      storage-init:\n        condition: service_completed_successfully\n      database-init:\n        condition: service_completed_successfully\n    healthcheck:\n      test: bash -c \"exec 6<> /dev/tcp/localhost/2138\"\n      interval: 10s\n      timeout: 1s\n      retries: 3\n      start_period: 30s\n  database-zone-a-2:\n    <<: *ydb-node\n    hostname: localhost\n    environment:\n      - YDB_TENANT=/Root/testdb\n      - YDB_GRPC_PORT=2139\n      - YDB_MON_PORT=8768\n      - YDB_IC_PORT=19004\n      - YDB_BRIDGE_PILE_NAME=dc-a\n      - YDB_NODE_LOCATION_DC=dc-a\n      - YDB_NODE_LOCATION_RACK=rack-1\n      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137\n    depends_on:\n      storage-zone-a-1:\n        condition: service_healthy\n      storage-zone-b-1:\n        condition: service_healthy\n      storage-init:\n        condition: service_completed_successfully\n      database-init:\n        condition: service_completed_successfully\n    healthcheck:\n      test: bash -c \"exec 6<> /dev/tcp/localhost/2139\"\n      interval: 10s\n      timeout: 1s\n      retries: 3\n      start_period: 30s\n  database-zone-b-1:\n    <<: *ydb-node\n    hostname: localhost\n    environment:\n      - YDB_TENANT=/Root/testdb\n      - YDB_GRPC_PORT=2140\n      - YDB_MON_PORT=8769\n      - YDB_IC_PORT=19005\n      - YDB_BRIDGE_PILE_NAME=dc-b\n      - YDB_NODE_LOCATION_DC=dc-b\n      - YDB_NODE_LOCATION_RACK=rack-1\n      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137\n    depends_on:\n      storage-zone-a-1:\n        condition: service_healthy\n      storage-zone-b-1:\n        condition: service_healthy\n      storage-init:\n        condition: service_completed_successfully\n      database-init:\n        condition: service_completed_successfully\n    healthcheck:\n      test: bash -c \"exec 6<> /dev/tcp/localhost/2140\"\n      interval: 10s\n      timeout: 1s\n      retries: 3\n      start_period: 30s\n  database-zone-b-2:\n    <<: *ydb-node\n    hostname: localhost\n    environment:\n      - YDB_TENANT=/Root/testdb\n      - YDB_GRPC_PORT=2141\n      - YDB_MON_PORT=8770\n      - YDB_IC_PORT=19006\n      - YDB_BRIDGE_PILE_NAME=dc-b\n      - YDB_NODE_LOCATION_DC=dc-b\n      - YDB_NODE_LOCATION_RACK=rack-1\n      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137\n    depends_on:\n      storage-zone-a-1:\n        condition: service_healthy\n      storage-zone-b-1:\n        condition: service_healthy\n      storage-init:\n        condition: service_completed_successfully\n      database-init:\n        condition: service_completed_successfully\n    healthcheck:\n      test: bash -c \"exec 6<> /dev/tcp/localhost/2141\"\n      interval: 10s\n      timeout: 1s\n      retries: 3\n      start_period: 30s\n  storage-init:\n    <<: *ydb-node\n    restart: no\n    environment:\n      - YDB_INIT_OPERATION=bootstrap\n      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137\n    command:\n      - /entrypoint.sh\n    depends_on:\n      storage-zone-a-1:\n        condition: service_healthy\n      storage-zone-b-1:\n        condition: service_healthy\n  database-init:\n    <<: *ydb-node\n    restart: no\n    environment:\n      - YDB_INIT_OPERATION=create-database\n      - YDB_DATABASE_PATH=/Root/testdb\n      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137\n    command:\n      - /entrypoint.sh\n    depends_on:\n      storage-zone-a-1:\n        condition: service_healthy\n      storage-zone-b-1:\n        condition: service_healthy\n      storage-init:\n        condition: service_completed_successfully\n";
 
-  static-init:
-    <<: *ydb-node
-    restart: on-failure
-    container_name: ydb-static-init
-    command:
-      - /opt/ydb/bin/ydbd
-      - -s
-      - ${YDB_ENDPOINT}
-      - admin
-      - blobstorage
-      - config
-      - init
-      - --yaml-file
-      - /opt/ydb/cfg/config.yaml
-    depends_on:
-      static-0:
-        condition: service_healthy
+// src/cfg/ydb/ydb-config.yml
+var ydb_config_default = "metadata:\n  kind: MainConfig\n  cluster: ydb-cluster\n  version: 0\nconfig:\n  erasure: none\n  fail_domain_type: disk\n  default_disk_type: SSD\n  yaml_config_enabled: true\n  actor_system_config:\n    cpu_count: 1\n    use_shared_threads: true\n  self_management_config:\n    enabled: true\n  bridge_config:\n    piles:\n      - name: dc-a\n      - name: dc-b\n  domains_config:\n    domain:\n      - domain_id: 1\n        name: Root\n  host_configs:\n    - host_config_id: 1\n      drive:\n        - path: SectorMap:1:100:NONE\n          type: SSD\n\n  hosts:\n    - host: localhost\n      port: 19001\n      host_config_id: 1\n      bridge_pile_name: dc-a\n      location:\n        data_center: dc-a\n\n    - host: localhost\n      port: 19002\n      host_config_id: 1\n      bridge_pile_name: dc-b\n      location:\n        data_center: dc-b\n";
 
-  tenant-init:
-    <<: *ydb-node
-    restart: on-failure
-    container_name: ydb-tenant-init
-    command:
-      - /opt/ydb/bin/ydbd
-      - -s
-      - ${YDB_ENDPOINT}
-      - admin
-      - database
-      - ${YDB_TENANT}
-      - create
-      - ssd:1
-    depends_on:
-      static-init:
-        condition: service_completed_successfully
-`.slice(1);
-var generateDatabaseNode = (idx) => `
-  database-${idx}:
-    <<: *ydb-node
-    container_name: ydb-database-${idx}
-    command:
-      - /opt/ydb/bin/ydbd
-      - server
-      - --grpc-port
-      - "${YDB_GRPC_PORT + idx}"
-      - --mon-port
-      - "${YDB_MON_PORT + idx}"
-      - --ic-port
-      - "${YDB_IC_PORT + idx}"
-      - --yaml-config
-      - /opt/ydb/cfg/config.yaml
-      - --tenant
-      - ${YDB_TENANT}
-      - --node-broker
-      - ${YDB_ENDPOINT}
-      - --label
-      - deployment=docker
-    ports:
-      - ${YDB_GRPC_PORT + idx}:${YDB_GRPC_PORT + idx}
-      - ${YDB_MON_PORT + idx}:${YDB_MON_PORT + idx}
-      - ${YDB_IC_PORT + idx}:${YDB_IC_PORT + idx}
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/${HOST}/${YDB_GRPC_PORT + idx}"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-    depends_on:
-      static-0:
-        condition: service_healthy
-      static-init:
-        condition: service_completed_successfully
-      tenant-init:
-        condition: service_completed_successfully
-`.slice(1);
-var generateMonitoring = () => `
-  prometheus:
-    image: prom/prometheus
-    restart: unless-stopped
-    <<: *runtime
-    ports:
-      - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    deploy: &monitoring-deploy
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 1000M
-        reservations:
-          cpus: '0.001'
-          memory: 50M
+// src/cfg/ydb/Dockerfile
+var Dockerfile_default = "# Извлекаем бинарники из готового образа\nFROM ghcr.io/ydb-platform/local-ydb:trunk AS source\n\n# Минимальный финальный образ\nFROM --platform=linux/amd64 debian:bookworm-slim\n\n# Копируем только бинарники из source образа\nCOPY --from=source /ydbd /ydbd\nCOPY --from=source /ydb /ydb\n\n# Копирование entrypoint скрипта\nCOPY ./entrypoint.sh /entrypoint.sh\nRUN chmod +x /entrypoint.sh\n\nENTRYPOINT [\"/entrypoint.sh\"]\n\nCMD [\"/ydbd\"]\n";
 
-  prometheus-pushgateway:
-    image: prom/pushgateway
-    restart: unless-stopped
-    <<: *runtime
-    ports:
-      - "${PROMETHEUS_PUSHGATEWAY_PORT}:${PROMETHEUS_PUSHGATEWAY_PORT}"
-    deploy:
-      <<: *monitoring-deploy
-`.slice(1);
-var generateChaos = () => `
-  chaos:
-    image: docker
-    restart: on-failure
-    container_name: ydb-chaos
-    <<: *runtime
-    entrypoint: ["/bin/sh", "-c", "/opt/ydb/chaos.sh"]
-    volumes:
-      - ./chaos.sh:/opt/ydb/chaos.sh
-      - /var/run/docker.sock:/var/run/docker.sock
-`.slice(1);
-var generateComposeFile = (ydbDatabaseNodeCount) => `# Code generated by Github Action; DO NOT EDIT.
-
-x-runtime: &runtime
-  platform: linux/amd64
-  privileged: true
-  network_mode: host
-
-x-ydb-node: &ydb-node
-  image: cr.yandex/crptqonuodf51kdj7a7d/ydb:24.2.7
-  restart: always
-  hostname: ${HOST}
-  <<: *runtime
-  volumes:
-    - ./ydb.yaml:/opt/ydb/cfg/config.yaml
-
-name: ydb
-
-services:
-${generateStaticNode()}
-${Array.from({ length: ydbDatabaseNodeCount }, (_2, i) => i + 1).map(generateDatabaseNode).join("\n")}
-${generateMonitoring()}
-${generateChaos()}
-`;
-if (false) {
-}
+// src/cfg/ydb/entrypoint.sh
+var entrypoint_default = "#!/bin/bash\n\nset -e\n\n# =============================================================================\n# YDB Docker Entrypoint Script\n# =============================================================================\n# Простой entrypoint для статической конфигурации YDB с поддержкой init операций\n# =============================================================================\n\n# Функция для логирования с timestamp\nlog() {\n    echo \"[$(date '+%Y-%m-%d %H:%M:%S')] $1\"\n}\n\n# Выполняет bootstrap кластера YDB\nperform_cluster_bootstrap() {\n    log \"Running cluster bootstrap...\"\n\n    # Используем первый broker из YDB_NODE_BROKERS или fallback\n    local storage_endpoint\n    if [[ -n \"$YDB_NODE_BROKERS\" ]]; then\n        storage_endpoint=$(echo \"$YDB_NODE_BROKERS\" | cut -d',' -f1)\n    else\n        storage_endpoint=\"grpc://localhost:2136\"\n    fi\n\n    log \"Bootstrapping cluster with endpoint: $storage_endpoint\"\n    exec /ydb -e \"$storage_endpoint\" -y admin cluster bootstrap --uuid test\n}\n\n# Создает базу данных YDB\nperform_database_creation() {\n    log \"Creating database...\"\n\n    # Используем первый broker из YDB_NODE_BROKERS или fallback\n    local storage_endpoint\n    if [[ -n \"$YDB_NODE_BROKERS\" ]]; then\n        storage_endpoint=$(echo \"$YDB_NODE_BROKERS\" | cut -d',' -f1)\n    else\n        storage_endpoint=\"grpc://localhost:2136\"\n    fi\n\n    local database_path=\"${YDB_DATABASE_PATH:-/Root/testdb}\"\n    log \"Creating database '$database_path' with endpoint: $storage_endpoint\"\n    exec /ydbd -s \"$storage_endpoint\" admin database \"$database_path\" create ssd:1\n}\n\n# Запускает обычный YDB узел (storage или database)\nstart_ydb_node() {\n    log \"Starting YDB storage/database node\"\n\n    # Базовые параметры\n    local node_type=\"${YDB_NODE_TYPE:-static}\"\n    local node_location_dc=\"${YDB_NODE_LOCATION_DC}\"\n    local node_location_rack=\"${YDB_NODE_LOCATION_RACK}\"\n\n    local config_path=\"${YDB_CONFIG_PATH:-/opt/ydb/cfg/config.yaml}\"\n    local grpc_port=\"${YDB_GRPC_PORT:-2136}\"\n    local mon_port=\"${YDB_MON_PORT:-8765}\"\n    local ic_port=\"${YDB_IC_PORT:-19001}\"\n\n    # Формируем команду запуска\n    local ydb_args=(\n        \"/ydbd\"\n        \"server\"\n        \"--yaml-config\" \"$config_path\"\n        \"--grpc-port\" \"$grpc_port\"\n        \"--mon-port\" \"$mon_port\"\n        \"--ic-port\" \"$ic_port\"\n    )\n\n    # Добавляем --node только для storage узлов (без tenant)\n    if [[ -z \"$YDB_TENANT\" ]]; then\n        ydb_args+=(\"--node\" \"$node_type\")\n    fi\n\n    # Добавляем tenant если указан\n    if [[ -n \"$YDB_TENANT\" ]]; then\n        ydb_args+=(\"--tenant\" \"$YDB_TENANT\")\n    fi\n\n    if [[ -n \"$YDB_NODE_LOCATION_DC\" ]]; then\n        ydb_args+=(\"--data-center\" \"$node_location_dc\")\n    fi\n\n    if [[ -n \"$YDB_NODE_LOCATION_RACK\" ]]; then\n        ydb_args+=(\"--rack\" \"$node_location_rack\")\n    fi\n\n    # Добавляем node brokers если указаны\n    if [[ -n \"$YDB_NODE_BROKERS\" ]]; then\n        IFS=',' read -ra brokers <<< \"$YDB_NODE_BROKERS\"\n        for broker in \"${brokers[@]}\"; do\n            ydb_args+=(\"--node-broker\" \"$broker\")\n        done\n    fi\n\n    # Добавляем bridge pile name если указан\n    if [[ -n \"$YDB_BRIDGE_PILE_NAME\" ]]; then\n        ydb_args+=(\"--bridge-pile-name\" \"$YDB_BRIDGE_PILE_NAME\")\n    fi\n\n    log \"Starting YDB with: ${ydb_args[*]}\"\n    exec \"${ydb_args[@]}\"\n}\n\n# Основная логика\nif [[ \"$1\" == \"/ydbd\" || \"$1\" == \"ydbd\" || -n \"$YDB_INIT_OPERATION\" ]]; then\n    log \"Starting YDB node...\"\n\n    # Обрабатываем init операции\n    case \"$YDB_INIT_OPERATION\" in\n        \"bootstrap\")\n            perform_cluster_bootstrap\n            ;;\n        \"create-database\")\n            perform_database_creation\n            ;;\n        \"\")\n            # Обычный запуск YDB node\n            start_ydb_node\n            ;;\n        *)\n            log \"Unknown init operation: $YDB_INIT_OPERATION\"\n            exit 1\n            ;;\n    esac\nelse\n    # Если это не YDB команда, выполняем как есть\n    log \"Executing command: $*\"\n    exec \"$@\"\nfi\n";
 
 // src/pulls.ts
 var import_core = __toESM(require_core(), 1);
@@ -93173,6 +93006,17 @@ async function getPullRequestNumber() {
   return null;
 }
 
+// src/constants.ts
+var HOST = "localhost";
+var YDB_GRPC_PORT = 2135;
+var YDB_TENANT = "/Root/testdb";
+var PROMETHEUS_PORT = 9090;
+var PROMETHEUS_PUSHGATEWAY_PORT = 9091;
+var YDB_ENDPOINT = `grpc://${HOST}:${YDB_GRPC_PORT}`;
+var YBD_CONNECTION_STRING = `${YDB_ENDPOINT}${YDB_TENANT}`;
+var PROMETHEUS_URL = `http://${HOST}:${PROMETHEUS_PORT}`;
+var PROMETHEUS_PUSHGATEWAY_URL = `http://${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`;
+
 // src/main.ts
 async function main() {
   let cwd = path.join(process.cwd(), ".slo");
@@ -93199,34 +93043,59 @@ async function main() {
     import_core2.info(`Pull number uploaded as an artifact ${id}`);
   }
   {
-    import_core2.info("Creating ydb config...");
-    let configPath = path.join(cwd, "ydb.yaml");
-    let configContent = erasure_none_default.replaceAll("${{ host }}", HOST);
+    import_core2.info("Writing ydb deployment configs...");
+    let configPath = path.join(cwd, "ydb-config.yaml");
+    let configContent = ydb_config_default.replaceAll("{{ host }}", HOST);
+    let deploymentPath = path.join(cwd, "compose.ydb.yaml");
+    let deploymentContent = compose_default3.replaceAll("{{ host }}", HOST);
+    let dockerFilePath = path.join(cwd, "Dockerfile");
+    let dockerFileContent = Dockerfile_default.replaceAll("{{ host }}", HOST);
+    let entrypointPath = path.join(cwd, "entrypoint.sh");
+    let entrypointContent = entrypoint_default.replaceAll("{{ host }}", HOST);
+    fs.writeFileSync(dockerFilePath, dockerFileContent, { encoding: "utf-8" });
+    fs.writeFileSync(entrypointPath, entrypointContent, { encoding: "utf-8", mode: 493 });
     fs.writeFileSync(configPath, configContent, { encoding: "utf-8" });
+    fs.writeFileSync(deploymentPath, deploymentContent, { encoding: "utf-8" });
     import_core2.info(`Created config for ydb: ${configPath}`);
+    import_core2.info(`Created deployment for ydb: ${deploymentPath}`);
+    import_core2.info(`Created Dockerfile for ydb: ${dockerFilePath}`);
+    import_core2.info(`Created entrypoint for ydb: ${entrypointPath}`);
   }
   {
-    import_core2.info("Creating prometheus config...");
+    import_core2.info("Creating prometheus deployment configs...");
     let configPath = path.join(cwd, "prometheus.yml");
-    let configContent = config_default.replace("${{ pushgateway }}", `${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`);
+    let configContent = prometheus_default.replace("{{ pushgateway }}", `${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`);
+    let deploymentPath = path.join(cwd, "compose.prometheus.yaml");
+    let deploymentContent = compose_default2.replace("{{ pushgateway }}", `${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`);
     fs.writeFileSync(configPath, configContent, { encoding: "utf-8" });
+    fs.writeFileSync(deploymentPath, deploymentContent, { encoding: "utf-8" });
     import_core2.info(`Created config for prometheus: ${configPath}`);
+    import_core2.info(`Created deployment for prometheus: ${deploymentPath}`);
   }
   {
-    import_core2.info("Creating chaos script...");
-    let scriptPath = path.join(cwd, "chaos.sh");
-    fs.writeFileSync(scriptPath, chaos_default, { encoding: "utf-8", mode: 493 });
+    import_core2.info("Creating chaos testing deployment configs...");
+    let scriptPath = path.join(cwd, "run-chaos.sh");
+    let scriptContent = run_chaos_default.replace("{{ host }}", HOST);
+    let deploymentPath = path.join(cwd, "compose.chaos.yaml");
+    let deploymentContent = compose_default.replace("{{ host }}", HOST);
+    fs.writeFileSync(scriptPath, scriptContent, { encoding: "utf-8", mode: 493 });
+    fs.writeFileSync(deploymentPath, deploymentContent, { encoding: "utf-8" });
     import_core2.info(`Created chaos script: ${scriptPath}`);
-  }
-  {
-    import_core2.info("Creating compose config...");
-    let composePath = path.join(cwd, "compose.yaml");
-    let composeContent = generateComposeFile(parseInt(import_core2.getInput("ydb_database_node_count", { required: true })));
-    fs.writeFileSync(composePath, composeContent, { encoding: "utf-8" });
-    import_core2.info(`Created compose.yaml: ${composePath}`);
+    import_core2.info(`Created deployment for chaos: ${deploymentPath}`);
   }
   import_core2.info("Starting YDB...");
-  await import_exec.exec(`docker`, [`compose`, `-f`, `compose.yaml`, `up`, `--quiet-pull`, `-d`], { cwd });
+  await import_exec.exec(`docker`, [
+    `compose`,
+    `-f`,
+    `compose.ydb.yaml`,
+    `-f`,
+    `compose.chaos.yaml`,
+    `-f`,
+    `compose.prometheus.yaml`,
+    `up`,
+    `--quiet-pull`,
+    `-d`
+  ], { cwd });
   let start = new Date;
   import_core2.info(`YDB started at ${start}`);
   import_core2.saveState("start", start.toISOString());
