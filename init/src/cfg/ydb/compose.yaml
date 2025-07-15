@@ -77,33 +77,6 @@ services:
       timeout: 1s
       retries: 3
       start_period: 30s
-  database-zone-a-2:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_GRPC_PORT=2139
-      - YDB_MON_PORT=8768
-      - YDB_IC_PORT=19004
-      - YDB_BRIDGE_PILE_NAME=dc-a
-      - YDB_NODE_LOCATION_DC=dc-a
-      - YDB_NODE_LOCATION_RACK=rack-1
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
-    depends_on:
-      storage-zone-a-1:
-        condition: service_healthy
-      storage-zone-b-1:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2139"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
   database-zone-b-1:
     <<: *ydb-node
     hostname: localhost
@@ -127,33 +100,6 @@ services:
         condition: service_completed_successfully
     healthcheck:
       test: bash -c "exec 6<> /dev/tcp/localhost/2140"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-  database-zone-b-2:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_GRPC_PORT=2141
-      - YDB_MON_PORT=8770
-      - YDB_IC_PORT=19006
-      - YDB_BRIDGE_PILE_NAME=dc-b
-      - YDB_NODE_LOCATION_DC=dc-b
-      - YDB_NODE_LOCATION_RACK=rack-1
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
-    depends_on:
-      storage-zone-a-1:
-        condition: service_healthy
-      storage-zone-b-1:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2141"
       interval: 10s
       timeout: 1s
       retries: 3
