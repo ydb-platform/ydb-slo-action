@@ -2,8 +2,8 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 import { DefaultArtifactClient } from '@actions/artifact'
-import { debug, getInput, info, saveState } from '@actions/core'
-import { exec } from '@actions/exec'
+import { debug, error, getInput, info, saveState } from '@actions/core'
+import { exec, getExecOutput } from '@actions/exec'
 
 import chaosDep from './cfg/chaos/compose.yaml' with { type: 'text' }
 import chaosSrc from './cfg/chaos/run-chaos.sh' with { type: 'text' }
@@ -52,7 +52,7 @@ async function main() {
 
 	{
 		info('Writing ydb deployment configs...')
-		let configPath = path.join(cwd, 'ydb-config.yaml')
+		let configPath = path.join(cwd, 'ydb-config.yml')
 		let configContent = ydbCfg.replaceAll('{{ host }}', HOST)
 
 		let deploymentPath = path.join(cwd, 'compose.ydb.yaml')
@@ -103,22 +103,34 @@ async function main() {
 	}
 
 	info('Starting YDB...')
-	await exec(
-		`docker`,
-		[
-			`compose`,
-			`-f`,
-			`compose.ydb.yaml`,
-			`-f`,
-			`compose.chaos.yaml`,
-			`-f`,
-			`compose.prometheus.yaml`,
-			`up`,
-			`--quiet-pull`,
-			`-d`,
-		],
-		{ cwd }
-	)
+	try {
+		await exec(
+			`docker`,
+			[
+				`compose`,
+				`-f`,
+				`compose.ydb.yaml`,
+				`-f`,
+				`compose.chaos.yaml`,
+				`-f`,
+				`compose.prometheus.yaml`,
+				`up`,
+				`-d`,
+			],
+			{ cwd }
+		)
+	} catch (err) {
+		error(`Failed to start YDB: ${err}`)
+		await getExecOutput(`docker`, [`compose`, `-f`, `compose.ydb.yaml`, `logs`, `storage-zone-a-1`], {
+			cwd,
+		})
+
+		await getExecOutput(`docker`, [`compose`, `-f`, `compose.ydb.yaml`, `logs`, `storage-zone-b-1`], {
+			cwd,
+		})
+
+		throw new Error(`Failed to start YDB: ${err}`)
+	}
 
 	let start = new Date()
 	info(`YDB started at ${start}`)

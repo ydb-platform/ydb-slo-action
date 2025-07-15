@@ -93044,7 +93044,7 @@ async function main() {
   }
   {
     import_core2.info("Writing ydb deployment configs...");
-    let configPath = path.join(cwd, "ydb-config.yaml");
+    let configPath = path.join(cwd, "ydb-config.yml");
     let configContent = ydb_config_default.replaceAll("{{ host }}", HOST);
     let deploymentPath = path.join(cwd, "compose.ydb.yaml");
     let deploymentContent = compose_default3.replaceAll("{{ host }}", HOST);
@@ -93084,18 +93084,28 @@ async function main() {
     import_core2.info(`Created deployment for chaos: ${deploymentPath}`);
   }
   import_core2.info("Starting YDB...");
-  await import_exec.exec(`docker`, [
-    `compose`,
-    `-f`,
-    `compose.ydb.yaml`,
-    `-f`,
-    `compose.chaos.yaml`,
-    `-f`,
-    `compose.prometheus.yaml`,
-    `up`,
-    `--quiet-pull`,
-    `-d`
-  ], { cwd });
+  try {
+    await import_exec.exec(`docker`, [
+      `compose`,
+      `-f`,
+      `compose.ydb.yaml`,
+      `-f`,
+      `compose.chaos.yaml`,
+      `-f`,
+      `compose.prometheus.yaml`,
+      `up`,
+      `-d`
+    ], { cwd });
+  } catch (err) {
+    import_core2.error(`Failed to start YDB: ${err}`);
+    await import_exec.getExecOutput(`docker`, [`compose`, `-f`, `compose.ydb.yaml`, `logs`, `storage-zone-a-1`], {
+      cwd
+    });
+    await import_exec.getExecOutput(`docker`, [`compose`, `-f`, `compose.ydb.yaml`, `logs`, `storage-zone-b-1`], {
+      cwd
+    });
+    throw new Error(`Failed to start YDB: ${err}`);
+  }
   let start = new Date;
   import_core2.info(`YDB started at ${start}`);
   import_core2.saveState("start", start.toISOString());
