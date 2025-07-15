@@ -89388,7 +89388,17 @@ async function post() {
     import_core.info(`Metrics uploaded as an artifact ${id}`);
   }
   import_core.info("Stopping YDB...");
-  await import_exec.exec(`docker`, [`compose`, `-f`, `compose.yaml`, `down`], { cwd });
+  await import_exec.exec(`docker`, [
+    `compose`,
+    `-f`,
+    `compose.ydb.yaml`,
+    `-f`,
+    `compose.chaos.yaml`,
+    `-f`,
+    `compose.prometheus.yaml`,
+    `down`,
+    `-v`
+  ], { cwd });
   import_core.info(`YDB stopped at ${end}`);
   let duration = end.getTime() - start.getTime();
   import_core.info(`YDB SLO Test duration: ${duration}ms.`);

@@ -44,7 +44,21 @@ async function post() {
 	}
 
 	info('Stopping YDB...')
-	await exec(`docker`, [`compose`, `-f`, `compose.yaml`, `down`], { cwd })
+	await exec(
+		`docker`,
+		[
+			`compose`,
+			`-f`,
+			`compose.ydb.yaml`,
+			`-f`,
+			`compose.chaos.yaml`,
+			`-f`,
+			`compose.prometheus.yaml`,
+			`down`,
+			`-v`,
+		],
+		{ cwd }
+	)
 
 	info(`YDB stopped at ${end}`)
 
