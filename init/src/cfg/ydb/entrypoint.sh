@@ -99,11 +99,15 @@ start_ydb_node() {
     local mon_port="${YDB_MON_PORT:-8765}"
     local ic_port="${YDB_IC_PORT:-19001}"
 
+    # Создать папку /opt/ydb/cfg_dir если не существует
+    mkdir -p /opt/ydb/cfg_dir
+
     # Формируем команду запуска
     local ydb_args=(
         "/ydbd"
         "server"
         "--yaml-config" "$config_path"
+        "--config-dir" "/opt/ydb/cfg_dir"
         "--grpc-port" "$grpc_port"
         "--mon-port" "$mon_port"
         "--ic-port" "$ic_port"

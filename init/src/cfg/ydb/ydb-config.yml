@@ -1,9 +1,9 @@
 metadata:
   kind: MainConfig
-  cluster: ydb-mirror-3-dc-3-nodes-bridge
+  cluster: ydb-cluster
   version: 0
 config:
-  erasure: mirror-3-dc
+  erasure: none
   fail_domain_type: disk
   default_disk_type: SSD
   yaml_config_enabled: true
@@ -25,10 +25,6 @@ config:
       drive:
         - path: SectorMap:1:64
           type: SSD
-        - path: SectorMap:2:64
-          type: SSD
-        - path: SectorMap:3:64
-          type: SSD
 
   hosts:
     - host: localhost
@@ -40,34 +36,6 @@ config:
 
     - host: localhost
       port: 19002
-      host_config_id: 1
-      bridge_pile_name: dc-a
-      location:
-        data_center: dc-a
-
-    - host: localhost
-      port: 19003
-      host_config_id: 1
-      bridge_pile_name: dc-a
-      location:
-        data_center: dc-a
-
-    - host: localhost
-      port: 19004
-      host_config_id: 1
-      bridge_pile_name: dc-b
-      location:
-        data_center: dc-b
-
-    - host: localhost
-      port: 19005
-      host_config_id: 1
-      bridge_pile_name: dc-b
-      location:
-        data_center: dc-b
-
-    - host: localhost
-      port: 19006
       host_config_id: 1
       bridge_pile_name: dc-b
       location:
