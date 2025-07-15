@@ -19,8 +19,7 @@ config:
   host_configs:
     - host_config_id: 1
       drive:
-        - path: SectorMap:1:100:NONE
-          type: SSD
+        - path: /tmp/pdisk.data
 
   hosts:
     - host: localhost
