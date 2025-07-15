@@ -185,5 +185,9 @@ services:
         condition: service_healthy
       storage-zone-b-1:
         condition: service_healthy
+      database-zone-a-1:
+        condition: service_healthy
+      database-zone-b-1:
+        condition: service_healthy
       storage-init:
         condition: service_completed_successfully
