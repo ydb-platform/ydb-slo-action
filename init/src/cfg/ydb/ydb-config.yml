@@ -8,6 +8,10 @@ config:
   default_disk_type: SSD
   yaml_config_enabled: true
 
+  actor_system_config:
+    cpu_count: 1
+    use_shared_threads: true
+
   self_management_config:
     enabled: true
 
