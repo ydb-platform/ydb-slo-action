@@ -46,6 +46,45 @@ perform_database_creation() {
     exec /ydbd -s "$storage_endpoint" admin database "$database_path" create ssd:1
 }
 
+# Создает блочное устройство если необходимо
+prepare_block_device() {
+    local config_path="${YDB_CONFIG_PATH:-/opt/ydb/cfg/config.yaml}"
+    local disk_path="${YDB_DISK_PATH:-/tmp/pdisk.data}"
+
+    log "Checking if block device preparation is needed..."
+
+    # Проверяем, используется ли in-memory режим
+    if [[ "${YDB_USE_IN_MEMORY_PDISKS:-false}" == "true" ]]; then
+        log "In-memory mode detected (YDB_USE_IN_MEMORY_PDISKS=true), skipping block device creation"
+        return 0
+    fi
+
+    # Проверяем, передан ли путь к блочному устройству пользователем
+    if [[ -n "$YDB_DISK_PATH" ]]; then
+        disk_path="$YDB_DISK_PATH"
+        log "Using user-provided disk path: $disk_path"
+    fi
+
+    # Проверяем, существует ли уже файл диска
+    if [[ -f "$disk_path" ]]; then
+        log "Disk file already exists at $disk_path, skipping creation"
+        return 0
+    fi
+
+    log "Creating block device at $disk_path..."
+
+    # Создаем директорию если необходимо
+    mkdir -p "$(dirname "$disk_path")"
+
+    # Создаем файл диска
+    dd if=/dev/zero of="$disk_path" bs=1M count=2048
+
+    log "Obliterating disk at $disk_path..."
+    /ydbd admin bs disk obliterate "$disk_path"
+
+    log "Block device prepared successfully"
+}
+
 # Запускает обычный YDB узел (storage или database)
 start_ydb_node() {
     log "Starting YDB storage/database node"
@@ -72,6 +111,8 @@ start_ydb_node() {
 
     # Добавляем --node только для storage узлов (без tenant)
     if [[ -z "$YDB_TENANT" ]]; then
+        # Подготавливаем блочное устройство для storage узлов
+        prepare_block_device
         ydb_args+=("--node" "$node_type")
     fi
 
