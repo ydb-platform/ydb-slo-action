@@ -12,6 +12,10 @@ config:
     use_shared_threads: true
   self_management_config:
     enabled: true
+  bridge_config:
+    piles:
+      - name: pile-1
+      - name: pile-2
   host_configs:
     - host_config_id: 1
       drive:
@@ -22,11 +26,13 @@ config:
     - host: localhost
       port: 19001
       host_config_id: 1
+      bridge_pile_name: pile-1
       location:
         data_center: dc-a
 
     - host: localhost
       port: 19002
       host_config_id: 1
+      bridge_pile_name: pile-2
       location:
         data_center: dc-b
