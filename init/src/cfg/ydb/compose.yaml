@@ -63,7 +63,6 @@ services:
       - YDB_GRPC_PORT=2139
       - YDB_MON_PORT=8768
       - YDB_IC_PORT=19004
-      - YDB_BRIDGE_PILE_NAME=pile-1
       - YDB_NODE_LOCATION_DC=dc-a
       - YDB_NODE_LOCATION_RACK=rack-1
       - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
@@ -90,7 +89,6 @@ services:
       - YDB_GRPC_PORT=2141
       - YDB_MON_PORT=8770
       - YDB_IC_PORT=19006
-      - YDB_BRIDGE_PILE_NAME=pile-2
       - YDB_NODE_LOCATION_DC=dc-b
       - YDB_NODE_LOCATION_RACK=rack-1
       - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
