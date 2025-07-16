@@ -39,7 +39,7 @@ services:
       interval: 10s
       timeout: 1s
       retries: 3
-      start_period: 30s
+      start_period: 60s
   storage-dc-b:
     <<: *ydb-node
     hostname: localhost
@@ -54,7 +54,7 @@ services:
       interval: 10s
       timeout: 1s
       retries: 3
-      start_period: 30s
+      start_period: 60s
   database-dc-a:
     <<: *ydb-node
     hostname: localhost
@@ -81,7 +81,7 @@ services:
       interval: 10s
       timeout: 1s
       retries: 3
-      start_period: 30s
+      start_period: 60s
   database-dc-b:
     <<: *ydb-node
     hostname: localhost
@@ -108,13 +108,13 @@ services:
       interval: 10s
       timeout: 1s
       retries: 3
-      start_period: 30s
+      start_period: 60s
   storage-init:
     <<: *ydb-node
     restart: no
     environment:
       - YDB_INIT_OPERATION=bootstrap
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
+      - YDB_NODE_BROKERS=grpc://127.0.0.1:2136,grpc://127.0.0.1:2137
     command:
       - /entrypoint.sh
     depends_on:
@@ -128,7 +128,7 @@ services:
     environment:
       - YDB_INIT_OPERATION=create-database
       - YDB_DATABASE_PATH=/Root/testdb
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
+      - YDB_NODE_BROKERS=grpc://127.0.0.1:2136,grpc://127.0.0.1:2137
     command:
       - /entrypoint.sh
     depends_on:
