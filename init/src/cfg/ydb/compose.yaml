@@ -55,97 +55,29 @@ services:
       timeout: 1s
       retries: 3
       start_period: 30s
-  storage-dc-c:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_GRPC_PORT=2138
-      - YDB_MON_PORT=8767
-      - YDB_IC_PORT=19003
-      - YDB_NODE_LOCATION_DC=dc-c
-      - YDB_NODE_LOCATION_RACK=rack-1
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2138"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-  storage-dc-d:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_GRPC_PORT=2139
-      - YDB_MON_PORT=8768
-      - YDB_IC_PORT=19004
-      - YDB_NODE_LOCATION_DC=dc-d
-      - YDB_NODE_LOCATION_RACK=rack-1
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2139"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-  storage-dc-e:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_GRPC_PORT=2140
-      - YDB_MON_PORT=8769
-      - YDB_IC_PORT=19005
-      - YDB_NODE_LOCATION_DC=dc-e
-      - YDB_NODE_LOCATION_RACK=rack-1
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2140"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-  storage-dc-f:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_GRPC_PORT=2141
-      - YDB_MON_PORT=8770
-      - YDB_IC_PORT=19006
-      - YDB_NODE_LOCATION_DC=dc-f
-      - YDB_NODE_LOCATION_RACK=rack-1
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2141"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
   database-dc-a:
     <<: *ydb-node
     hostname: localhost
     environment:
       - YDB_TENANT=/Root/testdb
-      - YDB_GRPC_PORT=2142
-      - YDB_MON_PORT=8771
-      - YDB_IC_PORT=19007
+      - YDB_GRPC_PORT=2139
+      - YDB_MON_PORT=8768
+      - YDB_IC_PORT=19004
       - YDB_BRIDGE_PILE_NAME=pile-1
       - YDB_NODE_LOCATION_DC=dc-a
       - YDB_NODE_LOCATION_RACK=rack-1
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137,grpc://localhost:2138,grpc://localhost:2139,grpc://localhost:2140,grpc://localhost:2141
+      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
     depends_on:
       storage-dc-a:
         condition: service_healthy
       storage-dc-b:
-        condition: service_healthy
-      storage-dc-c:
-        condition: service_healthy
-      storage-dc-d:
-        condition: service_healthy
-      storage-dc-e:
-        condition: service_healthy
-      storage-dc-f:
         condition: service_healthy
       storage-init:
         condition: service_completed_successfully
       database-init:
         condition: service_completed_successfully
     healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2142"
+      test: bash -c "exec 6<> /dev/tcp/localhost/2139"
       interval: 10s
       timeout: 1s
       retries: 3
@@ -155,172 +87,24 @@ services:
     hostname: localhost
     environment:
       - YDB_TENANT=/Root/testdb
-      - YDB_GRPC_PORT=2143
-      - YDB_MON_PORT=8772
-      - YDB_IC_PORT=19008
-      - YDB_BRIDGE_PILE_NAME=pile-1
+      - YDB_GRPC_PORT=2141
+      - YDB_MON_PORT=8770
+      - YDB_IC_PORT=19006
+      - YDB_BRIDGE_PILE_NAME=pile-2
       - YDB_NODE_LOCATION_DC=dc-b
       - YDB_NODE_LOCATION_RACK=rack-1
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137,grpc://localhost:2138,grpc://localhost:2139,grpc://localhost:2140,grpc://localhost:2141
+      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
     depends_on:
       storage-dc-a:
         condition: service_healthy
       storage-dc-b:
-        condition: service_healthy
-      storage-dc-c:
-        condition: service_healthy
-      storage-dc-d:
-        condition: service_healthy
-      storage-dc-e:
-        condition: service_healthy
-      storage-dc-f:
         condition: service_healthy
       storage-init:
         condition: service_completed_successfully
       database-init:
         condition: service_completed_successfully
     healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2143"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-  database-dc-c:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_GRPC_PORT=2144
-      - YDB_MON_PORT=8773
-      - YDB_IC_PORT=19009
-      - YDB_BRIDGE_PILE_NAME=pile-1
-      - YDB_NODE_LOCATION_DC=dc-c
-      - YDB_NODE_LOCATION_RACK=rack-1
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137,grpc://localhost:2138,grpc://localhost:2139,grpc://localhost:2140,grpc://localhost:2141
-    depends_on:
-      storage-dc-a:
-        condition: service_healthy
-      storage-dc-b:
-        condition: service_healthy
-      storage-dc-c:
-        condition: service_healthy
-      storage-dc-d:
-        condition: service_healthy
-      storage-dc-e:
-        condition: service_healthy
-      storage-dc-f:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2144"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-  database-dc-d:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_GRPC_PORT=2145
-      - YDB_MON_PORT=8774
-      - YDB_IC_PORT=19010
-      - YDB_BRIDGE_PILE_NAME=pile-2
-      - YDB_NODE_LOCATION_DC=dc-d
-      - YDB_NODE_LOCATION_RACK=rack-1
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137,grpc://localhost:2138,grpc://localhost:2139,grpc://localhost:2140,grpc://localhost:2141
-    depends_on:
-      storage-dc-a:
-        condition: service_healthy
-      storage-dc-b:
-        condition: service_healthy
-      storage-dc-c:
-        condition: service_healthy
-      storage-dc-d:
-        condition: service_healthy
-      storage-dc-e:
-        condition: service_healthy
-      storage-dc-f:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2145"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-  database-dc-e:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_GRPC_PORT=2146
-      - YDB_MON_PORT=8775
-      - YDB_IC_PORT=19011
-      - YDB_BRIDGE_PILE_NAME=pile-2
-      - YDB_NODE_LOCATION_DC=dc-e
-      - YDB_NODE_LOCATION_RACK=rack-1
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137,grpc://localhost:2138,grpc://localhost:2139,grpc://localhost:2140,grpc://localhost:2141
-    depends_on:
-      storage-dc-a:
-        condition: service_healthy
-      storage-dc-b:
-        condition: service_healthy
-      storage-dc-c:
-        condition: service_healthy
-      storage-dc-d:
-        condition: service_healthy
-      storage-dc-e:
-        condition: service_healthy
-      storage-dc-f:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2146"
-      interval: 10s
-      timeout: 1s
-      retries: 3
-      start_period: 30s
-  database-dc-f:
-    <<: *ydb-node
-    hostname: localhost
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_GRPC_PORT=2147
-      - YDB_MON_PORT=8776
-      - YDB_IC_PORT=19012
-      - YDB_BRIDGE_PILE_NAME=pile-2
-      - YDB_NODE_LOCATION_DC=dc-f
-      - YDB_NODE_LOCATION_RACK=rack-1
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137,grpc://localhost:2138,grpc://localhost:2139,grpc://localhost:2140,grpc://localhost:2141
-    depends_on:
-      storage-dc-a:
-        condition: service_healthy
-      storage-dc-b:
-        condition: service_healthy
-      storage-dc-c:
-        condition: service_healthy
-      storage-dc-d:
-        condition: service_healthy
-      storage-dc-e:
-        condition: service_healthy
-      storage-dc-f:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: bash -c "exec 6<> /dev/tcp/localhost/2147"
+      test: bash -c "exec 6<> /dev/tcp/localhost/2141"
       interval: 10s
       timeout: 1s
       retries: 3
@@ -330,21 +114,13 @@ services:
     restart: no
     environment:
       - YDB_INIT_OPERATION=bootstrap
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137,grpc://localhost:2138,grpc://localhost:2139,grpc://localhost:2140,grpc://localhost:2141
+      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
     command:
       - /entrypoint.sh
     depends_on:
       storage-dc-a:
         condition: service_healthy
       storage-dc-b:
-        condition: service_healthy
-      storage-dc-c:
-        condition: service_healthy
-      storage-dc-d:
-        condition: service_healthy
-      storage-dc-e:
-        condition: service_healthy
-      storage-dc-f:
         condition: service_healthy
   database-init:
     <<: *ydb-node
@@ -352,21 +128,13 @@ services:
     environment:
       - YDB_INIT_OPERATION=create-database
       - YDB_DATABASE_PATH=/Root/testdb
-      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137,grpc://localhost:2138,grpc://localhost:2139,grpc://localhost:2140,grpc://localhost:2141
+      - YDB_NODE_BROKERS=grpc://localhost:2136,grpc://localhost:2137
     command:
       - /entrypoint.sh
     depends_on:
       storage-dc-a:
         condition: service_healthy
       storage-dc-b:
-        condition: service_healthy
-      storage-dc-c:
-        condition: service_healthy
-      storage-dc-d:
-        condition: service_healthy
-      storage-dc-e:
-        condition: service_healthy
-      storage-dc-f:
         condition: service_healthy
       storage-init:
         condition: service_completed_successfully
