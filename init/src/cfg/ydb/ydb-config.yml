@@ -3,12 +3,12 @@ metadata:
   cluster: ydb-cluster
   version: 0
 config:
-  erasure: none
+  erasure: mirror-3-dc
   fail_domain_type: disk
   default_disk_type: SSD
   yaml_config_enabled: true
   actor_system_config:
-    cpu_count: 1
+    cpu_count: 2
     use_shared_threads: true
   self_management_config:
     enabled: true
@@ -21,11 +21,11 @@ config:
       drive:
         - path: SectorMap:1:64
           type: SSD
-  log_config:
-    default_level: notice
-    entry:
-      - component: BS_NODE
-        level: debug
+        - path: SectorMap:2:64
+          type: SSD
+        - path: SectorMap:3:64
+          type: SSD
+
   hosts:
     - host: localhost
       port: 19001
@@ -37,6 +37,34 @@ config:
     - host: localhost
       port: 19002
       host_config_id: 1
-      bridge_pile_name: pile-2
+      bridge_pile_name: pile-1
       location:
         data_center: dc-b
+
+    - host: localhost
+      port: 19003
+      host_config_id: 1
+      bridge_pile_name: pile-1
+      location:
+        data_center: dc-c
+
+    - host: localhost
+      port: 19004
+      host_config_id: 1
+      bridge_pile_name: pile-2
+      location:
+        data_center: dc-d
+
+    - host: localhost
+      port: 19005
+      host_config_id: 1
+      bridge_pile_name: pile-2
+      location:
+        data_center: dc-e
+
+    - host: localhost
+      port: 19006
+      host_config_id: 1
+      bridge_pile_name: pile-2
+      location:
+        data_center: dc-f
