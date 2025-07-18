@@ -93028,21 +93028,21 @@ var renderReport = (variant, metrics) => `\uD83C\uDF0B Here are results of SLO t
 
 ### Operation Success Rate
 
-${renderChart("operation_type=read", metrics["read_availability"], "Time, m", "Success Rate, %")}
+${renderChart(`workload=${variant}, operation_type=read`, metrics["read_availability"], "Time, m", "Success Rate, %")}
 
-${renderChart("operation_type=write", metrics["write_availability"], "	Time, m", "Success Rate, %")}
+${renderChart(`workload=${variant}, operation_type=write`, metrics["write_availability"], "	Time, m", "Success Rate, %")}
 
 ### Operations Per Second
 
-${renderChart("operation_type=read", metrics["read_throughput"], "Time, m", "Operations")}
+${renderChart(`workload=${variant}, operation_type=read`, metrics["read_throughput"], "Time, m", "Operations")}
 
-${renderChart("operation_type=write", metrics["write_throughput"], "Time, m", "Operations")}
+${renderChart(`workload=${variant}, operation_type=write`, metrics["write_throughput"], "Time, m", "Operations")}
 
 ### 95th Percentile Latency
 
-${renderChart("operation_type=read", metrics["read_latency_ms"], "Time, m", "Latency, ms")}
+${renderChart(`workload=${variant}, operation_type=read`, metrics["read_latency_ms"], "Time, m", "Latency, ms")}
 
-${renderChart("operation_type=write", metrics["write_latency_ms"], "Time, m", "Latency, ms")}
+${renderChart(`workload=${variant}, operation_type=write`, metrics["write_latency_ms"], "Time, m", "Latency, ms")}
 `;
 
 // src/workflow.ts
