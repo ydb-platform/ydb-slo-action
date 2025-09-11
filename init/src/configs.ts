@@ -172,7 +172,7 @@ x-runtime: &runtime
   network_mode: host
 
 x-ydb-node: &ydb-node
-  image: cr.yandex/crptqonuodf51kdj7a7d/ydb:24.4.4.2
+  image: cr.yandex/crptqonuodf51kdj7a7d/ydb:24.4.4.12
   restart: always
   hostname: ${HOST}
   <<: *runtime
