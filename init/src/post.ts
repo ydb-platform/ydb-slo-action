@@ -5,8 +5,8 @@ import { exec } from '@actions/exec'
 import { debug, getInput, getState, info, warning } from '@actions/core'
 import { DefaultArtifactClient } from '@actions/artifact'
 
-import { collectPrometheus } from './prometheus'
-import { defaultMetrics } from './metrics'
+import { collectPrometheus } from './prometheus.js'
+import { defaultMetrics } from './metrics.js'
 
 async function post() {
 	let cwd = getState('cwd')

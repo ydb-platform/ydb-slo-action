@@ -7,7 +7,7 @@ import {
 	YDB_IC_PORT,
 	YDB_MON_PORT,
 	YDB_TENANT,
-} from './constants'
+} from './constants.js'
 
 // Generate YDB Static Node
 let generateStaticNode = () =>
@@ -192,6 +192,6 @@ ${Array.from({ length: ydbDatabaseNodeCount }, (_, i) => i + 1)
 ${generateMonitoring()}
 ${generateChaos()}
 `
-if (import.meta.main) {
+if (import.meta.url === new URL('./configs.ts', import.meta.url).href) {
 	console.log(generateComposeFile(5))
 }

@@ -1,0 +1,3 @@
+# Mark dist/ as generated code (collapsed in GitHub diffs, excluded from language stats)
+init/dist/** linguist-generated=true
+report/dist/** linguist-generated=true

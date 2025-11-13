@@ -5,13 +5,13 @@ import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, info, saveState } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import chaos from './chaos.sh' with { type: 'text' }
-import ydbConfig from './cfg/ydb/erasure-none.yaml' with { type: 'text' }
 import prometheusConfig from './cfg/prom/config.yml' with { type: 'text' }
+import ydbConfig from './cfg/ydb/erasure-none.yaml' with { type: 'text' }
+import chaos from './chaos.sh' with { type: 'text' }
 
-import { generateComposeFile } from './configs'
-import { getPullRequestNumber } from './pulls'
-import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants'
+import { generateComposeFile } from './configs.js'
+import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants.js'
+import { getPullRequestNumber } from './pulls.js'
 
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')

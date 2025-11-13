@@ -1,26 +1,29 @@
 {
 	"compilerOptions": {
-		// Enable latest features
-		"lib": ["ESNext"],
-		"target": "ESNext",
-		"module": "ESNext",
+		// Target Node.js 24
+		"target": "ES2023",
+		"lib": ["ES2023"],
+		"module": "NodeNext",
 		"moduleDetection": "force",
-		"jsx": "react-jsx",
-		"allowJs": true,
-		// Bundler mode
-		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
-		"verbatimModuleSyntax": true,
+		"moduleResolution": "NodeNext",
+
+		// Bundler compatibility
 		"noEmit": true,
+		"resolveJsonModule": true,
+		"verbatimModuleSyntax": true,
+
+		// Node.js types
+		"types": ["node"],
+
 		// Best practices
 		"strict": true,
 		"skipLibCheck": true,
 		"noFallthroughCasesInSwitch": true,
-		// Some stricter flags (disabled by default)
+		"forceConsistentCasingInFileNames": true,
+
+		// Stricter flags
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false
-	},
-	"include": ["**/*.ts"],
-	"exclude": ["node_modules"]
+	}
 }

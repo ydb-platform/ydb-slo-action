@@ -2,18 +2,19 @@ name: "YDB SLO Report Action"
 description: "The report action generates detailed reports based on the test results and publish it."
 
 inputs:
-    token:
-        description: "The GitHub token used to authenticate with the GitHub API."
-        deprecationMessage: "The `token` input is deprecated. Use the `github_token` input instead."
-    github_token:
-        description: "The GitHub token used to authenticate with the GitHub API."
-        required: true
-    run_id:
-        description: "The id of the workflow run where the desired download artifact was uploaded from."
-        deprecationMessage: "The `run_id` input is deprecated. Use the `github_run_id` input instead."
-    github_run_id:
-        description: "The id of the workflow run where the desired download artifact was uploaded from."
-        required: true
+  token:
+    description: "The GitHub token used to authenticate with the GitHub API."
+    deprecationMessage: "The `token` input is deprecated. Use the `github_token` input instead."
+  github_token:
+    description: "The GitHub token used to authenticate with the GitHub API."
+    required: true
+  run_id:
+    description: "The id of the workflow run where the desired download artifact was uploaded from."
+    deprecationMessage: "The `run_id` input is deprecated. Use the `github_run_id` input instead."
+  github_run_id:
+    description: "The id of the workflow run where the desired download artifact was uploaded from."
+    required: true
+
 runs:
-    using: "node20"
-    main: "dist/main.js"
+  using: "node24"
+  main: "dist/main.js"

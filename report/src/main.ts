@@ -4,9 +4,9 @@ import * as path from 'node:path'
 import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, info, warning } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
-import { renderReport } from './report'
-import { getCurrentWorkflowRuns } from './workflow'
-import type { Metrics } from './metrics'
+import { renderReport } from './report.js'
+import { getCurrentWorkflowRuns } from './workflow.js'
+import type { Metrics } from './metrics.js'
 
 type workload = string & { __type: 'workload' }
 

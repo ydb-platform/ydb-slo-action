@@ -1,5 +1,5 @@
-import { palette as defaultPalette } from './colors'
-import type { Series } from './metrics'
+import { palette as defaultPalette } from './colors.js'
+import type { Series } from './metrics.js'
 
 export function renderChart(
 	title: string,

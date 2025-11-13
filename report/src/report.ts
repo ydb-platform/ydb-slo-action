@@ -1,5 +1,5 @@
-import { renderChart } from './chart'
-import type { Metrics } from './metrics'
+import { renderChart } from './chart.js'
+import type { Metrics } from './metrics.js'
 
 export const renderReport = (variant: string, metrics: Metrics) => `🌋 Here are results of SLO test for ${variant}:
 

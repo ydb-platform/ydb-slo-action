@@ -1,5 +1,5 @@
-import { PROMETHEUS_URL } from './constants'
-import type { Metric } from './metrics'
+import { PROMETHEUS_URL } from './constants.js'
+import type { Metric } from './metrics.js'
 
 export type Series = {
 	metric: Record<string, string>

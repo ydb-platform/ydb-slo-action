@@ -8,25 +8,24 @@
 	"packageManager": "bun@1.1.32",
 	"scripts": {
 		"prepare": "husky",
-		"bundle": "turbo run bundle",
-		"format": "turbo run format",
-		"lint": "turbo run lint"
+		"bundle": "npm run --workspaces bundle",
+		"format": "npm run --workspaces format",
+		"lint": "npm run --workspaces lint"
 	},
 	"dependencies": {
-		"@actions/artifact": "^2.1.11",
+		"@actions/artifact": "^4.0.0",
 		"@actions/core": "^1.11.1",
 		"@actions/exec": "^1.1.1",
 		"@actions/github": "^6.0.0"
 	},
 	"devDependencies": {
-		"@types/bun": "^1.1.13",
-		"lint-staged": "^15.2.10",
+		"@types/bun": "latest",
 		"husky": "^9.1.7",
-		"oxlint": "^0.13.0",
-		"prettier": "^3.3.3"
+		"oxlint": "^1.28.0",
+		"prettier": "^3.6.2"
 	},
 	"peerDependencies": {
-		"typescript": "^5.6.3"
+		"typescript": "^5.9.3"
 	},
 	"prettier": {
 		"printWidth": 120,
@@ -52,5 +51,12 @@
 				}
 			}
 		]
-	}
+	},
+	"lint-staged": {
+		"**/*.{ts,js,json,md}": [
+			"bun run --bun oxlint --fix --node-plugin --import-plugin",
+			"bun run --bun prettier --write"
+		]
+	},
+	"module": "index.ts"
 }
