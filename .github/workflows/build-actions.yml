@@ -34,7 +34,8 @@ jobs:
       - name: Check if dist changed
         id: verify-changed-files
         run: |
-          if git diff --quiet dist; then
+          git add -f dist
+          if git diff --staged --quiet dist; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -45,6 +46,5 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dist
           git commit -m "🤖 Rebuild action bundles from source changes"
           git push
