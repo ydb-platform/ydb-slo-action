@@ -5,17 +5,17 @@ import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, info, saveState } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import prometheusConfig from './cfg/prom/config.yml' with { type: 'text' }
 import ydbConfig from './cfg/ydb/erasure-none.yaml' with { type: 'text' }
 import chaos from './chaos.sh' with { type: 'text' }
 
-import { generateComposeFile } from './configs.js'
-import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants.js'
+import { generateComposeFile, generatePrometheusConfig } from './configs.js'
+import { HOST } from './constants.js'
 import { getPullRequestNumber } from './pulls.js'
 
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
 	let workload = getInput('workload_name') || getInput('sdk_name') || 'unspecified'
+	let nodeCount = parseInt(getInput('ydb_database_node_count', { required: true }))
 
 	saveState('cwd', cwd)
 	saveState('workload', workload)
@@ -58,8 +58,7 @@ async function main() {
 	{
 		info('Creating prometheus config...')
 		let configPath = path.join(cwd, 'prometheus.yml')
-		let configContent = prometheusConfig.replace('${{ pushgateway }}', `${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`)
-
+		let configContent = generatePrometheusConfig(nodeCount)
 		fs.writeFileSync(configPath, configContent, { encoding: 'utf-8' })
 		info(`Created config for prometheus: ${configPath}`)
 	}
@@ -75,7 +74,7 @@ async function main() {
 	{
 		info('Creating compose config...')
 		let composePath = path.join(cwd, 'compose.yaml')
-		let composeContent = generateComposeFile(parseInt(getInput('ydb_database_node_count', { required: true })))
+		let composeContent = generateComposeFile(nodeCount)
 
 		fs.writeFileSync(composePath, composeContent, { encoding: 'utf-8' })
 		info(`Created compose.yaml: ${composePath}`)
