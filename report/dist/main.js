@@ -468,7 +468,12 @@ var require_tunnel = __commonJS((exports) => {
 		}
 		function onError(cause) {
 			connectReq.removeAllListeners()
-			debug('tunneling socket could not be established, cause=%s\n', cause.message, cause.stack)
+			debug(
+				`tunneling socket could not be established, cause=%s
+`,
+				cause.message,
+				cause.stack
+			)
 			var error = new Error('tunneling socket could not be established, ' + 'cause=' + cause.message)
 			error.code = 'ECONNRESET'
 			options.request.emit('error', error)
@@ -1612,7 +1617,9 @@ var require_HeaderParser = __commonJS((exports, module) => {
 	var inherits = __require('node:util').inherits
 	var getLimit = require_getLimit()
 	var StreamSearch = require_sbmh()
-	var B_DCRLF = Buffer.from('\r\n\r\n')
+	var B_DCRLF = Buffer.from(`\r
+\r
+`)
 	var RE_CRLF = /\r\n/g
 	var RE_HDR = /^([^:]+):[ \t]?([\x00-\xFF]+)?$/
 	function HeaderParser(cfg) {
@@ -1712,7 +1719,8 @@ var require_Dicer = __commonJS((exports, module) => {
 	var HeaderParser = require_HeaderParser()
 	var DASH = 45
 	var B_ONEDASH = Buffer.from('-')
-	var B_CRLF = Buffer.from('\r\n')
+	var B_CRLF = Buffer.from(`\r
+`)
 	var EMPTY_FN = function () {}
 	function Dicer(cfg) {
 		if (!(this instanceof Dicer)) {
@@ -1816,7 +1824,10 @@ var require_Dicer = __commonJS((exports, module) => {
 	}
 	Dicer.prototype.setBoundary = function (boundary) {
 		const self2 = this
-		this._bparser = new StreamSearch('\r\n--' + boundary)
+		this._bparser = new StreamSearch(
+			`\r
+--` + boundary
+		)
 		this._bparser.on('info', function (isMatch, data, start, end) {
 			self2._oninfo(isMatch, data, start, end)
 		})
@@ -2051,7 +2062,7 @@ var require_parseParams = __commonJS((exports, module) => {
 	var decodeText = require_decodeText()
 	var RE_ENCODED = /%[a-fA-F0-9][a-fA-F0-9]/g
 	var EncodedLookup = {
-		'%00': '\0',
+		'%00': '\x00',
 		'%01': '\x01',
 		'%02': '\x02',
 		'%03': '\x03',
@@ -2069,8 +2080,8 @@ var require_parseParams = __commonJS((exports, module) => {
 		'%0B': '\v',
 		'%0c': '\f',
 		'%0C': '\f',
-		'%0d': `\r`,
-		'%0D': `\r`,
+		'%0d': '\r',
+		'%0D': '\r',
 		'%0e': '\x0E',
 		'%0E': '\x0E',
 		'%0f': '\x0F',
@@ -2227,316 +2238,316 @@ var require_parseParams = __commonJS((exports, module) => {
 		'%7D': '}',
 		'%7e': '~',
 		'%7E': '~',
-		'%7f': '\x7F',
-		'%7F': '\x7F',
-		'%80': '\x80',
-		'%81': '\x81',
-		'%82': '\x82',
-		'%83': '\x83',
-		'%84': '\x84',
-		'%85': '\x85',
-		'%86': '\x86',
-		'%87': '\x87',
-		'%88': '\x88',
-		'%89': '\x89',
-		'%8a': '\x8A',
-		'%8A': '\x8A',
-		'%8b': '\x8B',
-		'%8B': '\x8B',
-		'%8c': '\x8C',
-		'%8C': '\x8C',
-		'%8d': '\x8D',
-		'%8D': '\x8D',
-		'%8e': '\x8E',
-		'%8E': '\x8E',
-		'%8f': '\x8F',
-		'%8F': '\x8F',
-		'%90': '\x90',
-		'%91': '\x91',
-		'%92': '\x92',
-		'%93': '\x93',
-		'%94': '\x94',
-		'%95': '\x95',
-		'%96': '\x96',
-		'%97': '\x97',
-		'%98': '\x98',
-		'%99': '\x99',
-		'%9a': '\x9A',
-		'%9A': '\x9A',
-		'%9b': '\x9B',
-		'%9B': '\x9B',
-		'%9c': '\x9C',
-		'%9C': '\x9C',
-		'%9d': '\x9D',
-		'%9D': '\x9D',
-		'%9e': '\x9E',
-		'%9E': '\x9E',
-		'%9f': '\x9F',
-		'%9F': '\x9F',
-		'%a0': '\xA0',
-		'%A0': '\xA0',
-		'%a1': '\xA1',
-		'%A1': '\xA1',
-		'%a2': '\xA2',
-		'%A2': '\xA2',
-		'%a3': '\xA3',
-		'%A3': '\xA3',
-		'%a4': '\xA4',
-		'%A4': '\xA4',
-		'%a5': '\xA5',
-		'%A5': '\xA5',
-		'%a6': '\xA6',
-		'%A6': '\xA6',
-		'%a7': '\xA7',
-		'%A7': '\xA7',
-		'%a8': '\xA8',
-		'%A8': '\xA8',
-		'%a9': '\xA9',
-		'%A9': '\xA9',
-		'%aa': '\xAA',
-		'%Aa': '\xAA',
-		'%aA': '\xAA',
-		'%AA': '\xAA',
-		'%ab': '\xAB',
-		'%Ab': '\xAB',
-		'%aB': '\xAB',
-		'%AB': '\xAB',
-		'%ac': '\xAC',
-		'%Ac': '\xAC',
-		'%aC': '\xAC',
-		'%AC': '\xAC',
-		'%ad': '\xAD',
-		'%Ad': '\xAD',
-		'%aD': '\xAD',
-		'%AD': '\xAD',
-		'%ae': '\xAE',
-		'%Ae': '\xAE',
-		'%aE': '\xAE',
-		'%AE': '\xAE',
-		'%af': '\xAF',
-		'%Af': '\xAF',
-		'%aF': '\xAF',
-		'%AF': '\xAF',
-		'%b0': '\xB0',
-		'%B0': '\xB0',
-		'%b1': '\xB1',
-		'%B1': '\xB1',
-		'%b2': '\xB2',
-		'%B2': '\xB2',
-		'%b3': '\xB3',
-		'%B3': '\xB3',
-		'%b4': '\xB4',
-		'%B4': '\xB4',
-		'%b5': '\xB5',
-		'%B5': '\xB5',
-		'%b6': '\xB6',
-		'%B6': '\xB6',
-		'%b7': '\xB7',
-		'%B7': '\xB7',
-		'%b8': '\xB8',
-		'%B8': '\xB8',
-		'%b9': '\xB9',
-		'%B9': '\xB9',
-		'%ba': '\xBA',
-		'%Ba': '\xBA',
-		'%bA': '\xBA',
-		'%BA': '\xBA',
-		'%bb': '\xBB',
-		'%Bb': '\xBB',
-		'%bB': '\xBB',
-		'%BB': '\xBB',
-		'%bc': '\xBC',
-		'%Bc': '\xBC',
-		'%bC': '\xBC',
-		'%BC': '\xBC',
-		'%bd': '\xBD',
-		'%Bd': '\xBD',
-		'%bD': '\xBD',
-		'%BD': '\xBD',
-		'%be': '\xBE',
-		'%Be': '\xBE',
-		'%bE': '\xBE',
-		'%BE': '\xBE',
-		'%bf': '\xBF',
-		'%Bf': '\xBF',
-		'%bF': '\xBF',
-		'%BF': '\xBF',
-		'%c0': '\xC0',
-		'%C0': '\xC0',
-		'%c1': '\xC1',
-		'%C1': '\xC1',
-		'%c2': '\xC2',
-		'%C2': '\xC2',
-		'%c3': '\xC3',
-		'%C3': '\xC3',
-		'%c4': '\xC4',
-		'%C4': '\xC4',
-		'%c5': '\xC5',
-		'%C5': '\xC5',
-		'%c6': '\xC6',
-		'%C6': '\xC6',
-		'%c7': '\xC7',
-		'%C7': '\xC7',
-		'%c8': '\xC8',
-		'%C8': '\xC8',
-		'%c9': '\xC9',
-		'%C9': '\xC9',
-		'%ca': '\xCA',
-		'%Ca': '\xCA',
-		'%cA': '\xCA',
-		'%CA': '\xCA',
-		'%cb': '\xCB',
-		'%Cb': '\xCB',
-		'%cB': '\xCB',
-		'%CB': '\xCB',
-		'%cc': '\xCC',
-		'%Cc': '\xCC',
-		'%cC': '\xCC',
-		'%CC': '\xCC',
-		'%cd': '\xCD',
-		'%Cd': '\xCD',
-		'%cD': '\xCD',
-		'%CD': '\xCD',
-		'%ce': '\xCE',
-		'%Ce': '\xCE',
-		'%cE': '\xCE',
-		'%CE': '\xCE',
-		'%cf': '\xCF',
-		'%Cf': '\xCF',
-		'%cF': '\xCF',
-		'%CF': '\xCF',
-		'%d0': '\xD0',
-		'%D0': '\xD0',
-		'%d1': '\xD1',
-		'%D1': '\xD1',
-		'%d2': '\xD2',
-		'%D2': '\xD2',
-		'%d3': '\xD3',
-		'%D3': '\xD3',
-		'%d4': '\xD4',
-		'%D4': '\xD4',
-		'%d5': '\xD5',
-		'%D5': '\xD5',
-		'%d6': '\xD6',
-		'%D6': '\xD6',
-		'%d7': '\xD7',
-		'%D7': '\xD7',
-		'%d8': '\xD8',
-		'%D8': '\xD8',
-		'%d9': '\xD9',
-		'%D9': '\xD9',
-		'%da': '\xDA',
-		'%Da': '\xDA',
-		'%dA': '\xDA',
-		'%DA': '\xDA',
-		'%db': '\xDB',
-		'%Db': '\xDB',
-		'%dB': '\xDB',
-		'%DB': '\xDB',
-		'%dc': '\xDC',
-		'%Dc': '\xDC',
-		'%dC': '\xDC',
-		'%DC': '\xDC',
-		'%dd': '\xDD',
-		'%Dd': '\xDD',
-		'%dD': '\xDD',
-		'%DD': '\xDD',
-		'%de': '\xDE',
-		'%De': '\xDE',
-		'%dE': '\xDE',
-		'%DE': '\xDE',
-		'%df': '\xDF',
-		'%Df': '\xDF',
-		'%dF': '\xDF',
-		'%DF': '\xDF',
-		'%e0': '\xE0',
-		'%E0': '\xE0',
-		'%e1': '\xE1',
-		'%E1': '\xE1',
-		'%e2': '\xE2',
-		'%E2': '\xE2',
-		'%e3': '\xE3',
-		'%E3': '\xE3',
-		'%e4': '\xE4',
-		'%E4': '\xE4',
-		'%e5': '\xE5',
-		'%E5': '\xE5',
-		'%e6': '\xE6',
-		'%E6': '\xE6',
-		'%e7': '\xE7',
-		'%E7': '\xE7',
-		'%e8': '\xE8',
-		'%E8': '\xE8',
-		'%e9': '\xE9',
-		'%E9': '\xE9',
-		'%ea': '\xEA',
-		'%Ea': '\xEA',
-		'%eA': '\xEA',
-		'%EA': '\xEA',
-		'%eb': '\xEB',
-		'%Eb': '\xEB',
-		'%eB': '\xEB',
-		'%EB': '\xEB',
-		'%ec': '\xEC',
-		'%Ec': '\xEC',
-		'%eC': '\xEC',
-		'%EC': '\xEC',
-		'%ed': '\xED',
-		'%Ed': '\xED',
-		'%eD': '\xED',
-		'%ED': '\xED',
-		'%ee': '\xEE',
-		'%Ee': '\xEE',
-		'%eE': '\xEE',
-		'%EE': '\xEE',
-		'%ef': '\xEF',
-		'%Ef': '\xEF',
-		'%eF': '\xEF',
-		'%EF': '\xEF',
-		'%f0': '\xF0',
-		'%F0': '\xF0',
-		'%f1': '\xF1',
-		'%F1': '\xF1',
-		'%f2': '\xF2',
-		'%F2': '\xF2',
-		'%f3': '\xF3',
-		'%F3': '\xF3',
-		'%f4': '\xF4',
-		'%F4': '\xF4',
-		'%f5': '\xF5',
-		'%F5': '\xF5',
-		'%f6': '\xF6',
-		'%F6': '\xF6',
-		'%f7': '\xF7',
-		'%F7': '\xF7',
-		'%f8': '\xF8',
-		'%F8': '\xF8',
-		'%f9': '\xF9',
-		'%F9': '\xF9',
-		'%fa': '\xFA',
-		'%Fa': '\xFA',
-		'%fA': '\xFA',
-		'%FA': '\xFA',
-		'%fb': '\xFB',
-		'%Fb': '\xFB',
-		'%fB': '\xFB',
-		'%FB': '\xFB',
-		'%fc': '\xFC',
-		'%Fc': '\xFC',
-		'%fC': '\xFC',
-		'%FC': '\xFC',
-		'%fd': '\xFD',
-		'%Fd': '\xFD',
-		'%fD': '\xFD',
-		'%FD': '\xFD',
-		'%fe': '\xFE',
-		'%Fe': '\xFE',
-		'%fE': '\xFE',
-		'%FE': '\xFE',
-		'%ff': '\xFF',
-		'%Ff': '\xFF',
-		'%fF': '\xFF',
-		'%FF': '\xFF',
+		'%7f': '',
+		'%7F': '',
+		'%80': '',
+		'%81': '',
+		'%82': '',
+		'%83': '',
+		'%84': '',
+		'%85': '',
+		'%86': '',
+		'%87': '',
+		'%88': '',
+		'%89': '',
+		'%8a': '',
+		'%8A': '',
+		'%8b': '',
+		'%8B': '',
+		'%8c': '',
+		'%8C': '',
+		'%8d': '',
+		'%8D': '',
+		'%8e': '',
+		'%8E': '',
+		'%8f': '',
+		'%8F': '',
+		'%90': '',
+		'%91': '',
+		'%92': '',
+		'%93': '',
+		'%94': '',
+		'%95': '',
+		'%96': '',
+		'%97': '',
+		'%98': '',
+		'%99': '',
+		'%9a': '',
+		'%9A': '',
+		'%9b': '',
+		'%9B': '',
+		'%9c': '',
+		'%9C': '',
+		'%9d': '',
+		'%9D': '',
+		'%9e': '',
+		'%9E': '',
+		'%9f': '',
+		'%9F': '',
+		'%a0': ' ',
+		'%A0': ' ',
+		'%a1': '¡',
+		'%A1': '¡',
+		'%a2': '¢',
+		'%A2': '¢',
+		'%a3': '£',
+		'%A3': '£',
+		'%a4': '¤',
+		'%A4': '¤',
+		'%a5': '¥',
+		'%A5': '¥',
+		'%a6': '¦',
+		'%A6': '¦',
+		'%a7': '§',
+		'%A7': '§',
+		'%a8': '¨',
+		'%A8': '¨',
+		'%a9': '©',
+		'%A9': '©',
+		'%aa': 'ª',
+		'%Aa': 'ª',
+		'%aA': 'ª',
+		'%AA': 'ª',
+		'%ab': '«',
+		'%Ab': '«',
+		'%aB': '«',
+		'%AB': '«',
+		'%ac': '¬',
+		'%Ac': '¬',
+		'%aC': '¬',
+		'%AC': '¬',
+		'%ad': '­',
+		'%Ad': '­',
+		'%aD': '­',
+		'%AD': '­',
+		'%ae': '®',
+		'%Ae': '®',
+		'%aE': '®',
+		'%AE': '®',
+		'%af': '¯',
+		'%Af': '¯',
+		'%aF': '¯',
+		'%AF': '¯',
+		'%b0': '°',
+		'%B0': '°',
+		'%b1': '±',
+		'%B1': '±',
+		'%b2': '²',
+		'%B2': '²',
+		'%b3': '³',
+		'%B3': '³',
+		'%b4': '´',
+		'%B4': '´',
+		'%b5': 'µ',
+		'%B5': 'µ',
+		'%b6': '¶',
+		'%B6': '¶',
+		'%b7': '·',
+		'%B7': '·',
+		'%b8': '¸',
+		'%B8': '¸',
+		'%b9': '¹',
+		'%B9': '¹',
+		'%ba': 'º',
+		'%Ba': 'º',
+		'%bA': 'º',
+		'%BA': 'º',
+		'%bb': '»',
+		'%Bb': '»',
+		'%bB': '»',
+		'%BB': '»',
+		'%bc': '¼',
+		'%Bc': '¼',
+		'%bC': '¼',
+		'%BC': '¼',
+		'%bd': '½',
+		'%Bd': '½',
+		'%bD': '½',
+		'%BD': '½',
+		'%be': '¾',
+		'%Be': '¾',
+		'%bE': '¾',
+		'%BE': '¾',
+		'%bf': '¿',
+		'%Bf': '¿',
+		'%bF': '¿',
+		'%BF': '¿',
+		'%c0': 'À',
+		'%C0': 'À',
+		'%c1': 'Á',
+		'%C1': 'Á',
+		'%c2': 'Â',
+		'%C2': 'Â',
+		'%c3': 'Ã',
+		'%C3': 'Ã',
+		'%c4': 'Ä',
+		'%C4': 'Ä',
+		'%c5': 'Å',
+		'%C5': 'Å',
+		'%c6': 'Æ',
+		'%C6': 'Æ',
+		'%c7': 'Ç',
+		'%C7': 'Ç',
+		'%c8': 'È',
+		'%C8': 'È',
+		'%c9': 'É',
+		'%C9': 'É',
+		'%ca': 'Ê',
+		'%Ca': 'Ê',
+		'%cA': 'Ê',
+		'%CA': 'Ê',
+		'%cb': 'Ë',
+		'%Cb': 'Ë',
+		'%cB': 'Ë',
+		'%CB': 'Ë',
+		'%cc': 'Ì',
+		'%Cc': 'Ì',
+		'%cC': 'Ì',
+		'%CC': 'Ì',
+		'%cd': 'Í',
+		'%Cd': 'Í',
+		'%cD': 'Í',
+		'%CD': 'Í',
+		'%ce': 'Î',
+		'%Ce': 'Î',
+		'%cE': 'Î',
+		'%CE': 'Î',
+		'%cf': 'Ï',
+		'%Cf': 'Ï',
+		'%cF': 'Ï',
+		'%CF': 'Ï',
+		'%d0': 'Ð',
+		'%D0': 'Ð',
+		'%d1': 'Ñ',
+		'%D1': 'Ñ',
+		'%d2': 'Ò',
+		'%D2': 'Ò',
+		'%d3': 'Ó',
+		'%D3': 'Ó',
+		'%d4': 'Ô',
+		'%D4': 'Ô',
+		'%d5': 'Õ',
+		'%D5': 'Õ',
+		'%d6': 'Ö',
+		'%D6': 'Ö',
+		'%d7': '×',
+		'%D7': '×',
+		'%d8': 'Ø',
+		'%D8': 'Ø',
+		'%d9': 'Ù',
+		'%D9': 'Ù',
+		'%da': 'Ú',
+		'%Da': 'Ú',
+		'%dA': 'Ú',
+		'%DA': 'Ú',
+		'%db': 'Û',
+		'%Db': 'Û',
+		'%dB': 'Û',
+		'%DB': 'Û',
+		'%dc': 'Ü',
+		'%Dc': 'Ü',
+		'%dC': 'Ü',
+		'%DC': 'Ü',
+		'%dd': 'Ý',
+		'%Dd': 'Ý',
+		'%dD': 'Ý',
+		'%DD': 'Ý',
+		'%de': 'Þ',
+		'%De': 'Þ',
+		'%dE': 'Þ',
+		'%DE': 'Þ',
+		'%df': 'ß',
+		'%Df': 'ß',
+		'%dF': 'ß',
+		'%DF': 'ß',
+		'%e0': 'à',
+		'%E0': 'à',
+		'%e1': 'á',
+		'%E1': 'á',
+		'%e2': 'â',
+		'%E2': 'â',
+		'%e3': 'ã',
+		'%E3': 'ã',
+		'%e4': 'ä',
+		'%E4': 'ä',
+		'%e5': 'å',
+		'%E5': 'å',
+		'%e6': 'æ',
+		'%E6': 'æ',
+		'%e7': 'ç',
+		'%E7': 'ç',
+		'%e8': 'è',
+		'%E8': 'è',
+		'%e9': 'é',
+		'%E9': 'é',
+		'%ea': 'ê',
+		'%Ea': 'ê',
+		'%eA': 'ê',
+		'%EA': 'ê',
+		'%eb': 'ë',
+		'%Eb': 'ë',
+		'%eB': 'ë',
+		'%EB': 'ë',
+		'%ec': 'ì',
+		'%Ec': 'ì',
+		'%eC': 'ì',
+		'%EC': 'ì',
+		'%ed': 'í',
+		'%Ed': 'í',
+		'%eD': 'í',
+		'%ED': 'í',
+		'%ee': 'î',
+		'%Ee': 'î',
+		'%eE': 'î',
+		'%EE': 'î',
+		'%ef': 'ï',
+		'%Ef': 'ï',
+		'%eF': 'ï',
+		'%EF': 'ï',
+		'%f0': 'ð',
+		'%F0': 'ð',
+		'%f1': 'ñ',
+		'%F1': 'ñ',
+		'%f2': 'ò',
+		'%F2': 'ò',
+		'%f3': 'ó',
+		'%F3': 'ó',
+		'%f4': 'ô',
+		'%F4': 'ô',
+		'%f5': 'õ',
+		'%F5': 'õ',
+		'%f6': 'ö',
+		'%F6': 'ö',
+		'%f7': '÷',
+		'%F7': '÷',
+		'%f8': 'ø',
+		'%F8': 'ø',
+		'%f9': 'ù',
+		'%F9': 'ù',
+		'%fa': 'ú',
+		'%Fa': 'ú',
+		'%fA': 'ú',
+		'%FA': 'ú',
+		'%fb': 'û',
+		'%Fb': 'û',
+		'%fB': 'û',
+		'%FB': 'û',
+		'%fc': 'ü',
+		'%Fc': 'ü',
+		'%fC': 'ü',
+		'%FC': 'ü',
+		'%fd': 'ý',
+		'%Fd': 'ý',
+		'%fD': 'ý',
+		'%FD': 'ý',
+		'%fe': 'þ',
+		'%Fe': 'þ',
+		'%fE': 'þ',
+		'%FE': 'þ',
+		'%ff': 'ÿ',
+		'%Ff': 'ÿ',
+		'%fF': 'ÿ',
+		'%FF': 'ÿ',
 	}
 	function encodedReplacer(match) {
 		return EncodedLookup[match]
@@ -3587,7 +3598,12 @@ var require_util2 = __commonJS((exports, module) => {
 		) {
 			return false
 		}
-		if (potentialValue.includes('\0') || potentialValue.includes('\r') || potentialValue.includes('\n')) {
+		if (
+			potentialValue.includes('\x00') ||
+			potentialValue.includes('\r') ||
+			potentialValue.includes(`
+`)
+		) {
 			return false
 		}
 		return true
@@ -4697,7 +4713,14 @@ var require_dataURL = __commonJS((exports, module) => {
 		return serialization
 	}
 	function isHTTPWhiteSpace(char) {
-		return char === '\r' || char === '\n' || char === '\t' || char === ' '
+		return (
+			char === '\r' ||
+			char ===
+				`
+` ||
+			char === '\t' ||
+			char === ' '
+		)
 	}
 	function removeHTTPWhitespace(str, leading = true, trailing = true) {
 		let lead = 0
@@ -4711,7 +4734,15 @@ var require_dataURL = __commonJS((exports, module) => {
 		return str.slice(lead, trail + 1)
 	}
 	function isASCIIWhitespace(char) {
-		return char === '\r' || char === '\n' || char === '\t' || char === '\f' || char === ' '
+		return (
+			char === '\r' ||
+			char ===
+				`
+` ||
+			char === '\t' ||
+			char === '\f' ||
+			char === ' '
+		)
 	}
 	function removeASCIIWhitespace(str, leading = true, trailing = true) {
 		let lead = 0
@@ -4905,9 +4936,11 @@ var require_file = __commonJS((exports, module) => {
 		return bytes
 	}
 	function convertLineEndingsNative(s) {
-		let nativeLineEnding = '\n'
+		let nativeLineEnding = `
+`
 		if (process.platform === 'win32') {
-			nativeLineEnding = '\r\n'
+			nativeLineEnding = `\r
+`
 		}
 		return s.replace(/\r?\n/g, nativeLineEnding)
 	}
@@ -5128,10 +5161,16 @@ var require_body = __commonJS((exports, module) => {
 			source = new Uint8Array(object.buffer.slice(object.byteOffset, object.byteOffset + object.byteLength))
 		} else if (util.isFormDataLike(object)) {
 			const boundary = `----formdata-undici-0${`${Math.floor(Math.random() * 100000000000)}`.padStart(11, '0')}`
-			const prefix = `--${boundary}\r\nContent-Disposition: form-data`
+			const prefix = `--${boundary}\r
+Content-Disposition: form-data`
 			/*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 			const escape = (str) => str.replace(/\n/g, '%0A').replace(/\r/g, '%0D').replace(/"/g, '%22')
-			const normalizeLinefeeds = (value) => value.replace(/\r?\n|\r/g, '\r\n')
+			const normalizeLinefeeds = (value) =>
+				value.replace(
+					/\r?\n|\r/g,
+					`\r
+`
+				)
 			const blobParts = []
 			const rn = new Uint8Array([13, 10])
 			length = 0
@@ -5141,7 +5180,10 @@ var require_body = __commonJS((exports, module) => {
 					const chunk2 = textEncoder.encode(
 						prefix +
 							`; name="${escape(normalizeLinefeeds(name))}"` +
-							`\r\n\r\n${normalizeLinefeeds(value)}\r\n`
+							`\r
+\r
+${normalizeLinefeeds(value)}\r
+`
 					)
 					blobParts.push(chunk2)
 					length += chunk2.byteLength
@@ -5149,8 +5191,11 @@ var require_body = __commonJS((exports, module) => {
 					const chunk2 = textEncoder.encode(
 						`${prefix}; name="${escape(normalizeLinefeeds(name))}"` +
 							(value.name ? `; filename="${escape(value.name)}"` : '') +
-							'\r\n' +
-							`Content-Type: ${value.type || 'application/octet-stream'}\r\n\r\n`
+							`\r
+` +
+							`Content-Type: ${value.type || 'application/octet-stream'}\r
+\r
+`
 					)
 					blobParts.push(chunk2, value, rn)
 					if (typeof value.size === 'number') {
@@ -5596,13 +5641,15 @@ var require_request = __commonJS((exports, module) => {
 				const [bodyStream, contentType] = extractBody(body)
 				if (this.contentType == null) {
 					this.contentType = contentType
-					this.headers += `content-type: ${contentType}\r\n`
+					this.headers += `content-type: ${contentType}\r
+`
 				}
 				this.body = bodyStream.stream
 				this.contentLength = bodyStream.length
 			} else if (util.isBlobLike(body) && this.contentType == null && body.type) {
 				this.contentType = body.type
-				this.headers += `content-type: ${body.type}\r\n`
+				this.headers += `content-type: ${body.type}\r
+`
 			}
 			util.validateHandler(handler, method, upgrade)
 			this.servername = util.getServerName(this.host)
@@ -5734,7 +5781,8 @@ var require_request = __commonJS((exports, module) => {
 			return request
 		}
 		static [kHTTP2CopyHeaders](raw) {
-			const rawHeaders = raw.split('\r\n')
+			const rawHeaders = raw.split(`\r
+`)
 			const headers = {}
 			for (const header of rawHeaders) {
 				const [key, value] = header.split(': ')
@@ -5753,7 +5801,10 @@ var require_request = __commonJS((exports, module) => {
 		if (headerCharRegex.exec(val2) !== null) {
 			throw new InvalidArgumentError(`invalid ${key} header`)
 		}
-		return skipAppend ? val2 : `${key}: ${val2}\r\n`
+		return skipAppend
+			? val2
+			: `${key}: ${val2}\r
+`
 	}
 	function processHeader(request, key, val2, skipAppend = false) {
 		if (val2 && typeof val2 === 'object' && !Array.isArray(val2)) {
@@ -6358,7 +6409,7 @@ var require_constants3 = __commonJS((exports) => {
 		FINISH2[(FINISH2['UNSAFE'] = 2)] = 'UNSAFE'
 	})((FINISH = exports.FINISH || (exports.FINISH = {})))
 	exports.ALPHA = []
-	for (let i = 'A'.charCodeAt(0); i <= 'Z'.charCodeAt(0); i++) {
+	for (let i = 65; i <= 90; i++) {
 		exports.ALPHA.push(String.fromCharCode(i))
 		exports.ALPHA.push(String.fromCharCode(i + 32))
 	}
@@ -6906,7 +6957,8 @@ var require_client = __commonJS((exports, module) => {
 			this[kLocalAddress] = localAddress != null ? localAddress : null
 			this[kResuming] = 0
 			this[kNeedDrain] = 0
-			this[kHostHeader] = `host: ${this[kUrl].hostname}${this[kUrl].port ? `:${this[kUrl].port}` : ''}\r\n`
+			this[kHostHeader] = `host: ${this[kUrl].hostname}${this[kUrl].port ? `:${this[kUrl].port}` : ''}\r
+`
 			this[kBodyTimeout] = bodyTimeout != null ? bodyTimeout : 300000
 			this[kHeadersTimeout] = headersTimeout != null ? headersTimeout : 300000
 			this[kStrictContentLength] = strictContentLength == null ? true : strictContentLength
@@ -7874,18 +7926,24 @@ var require_client = __commonJS((exports, module) => {
 		if (blocking) {
 			socket[kBlocking] = true
 		}
-		let header = `${method} ${path} HTTP/1.1\r\n`
+		let header = `${method} ${path} HTTP/1.1\r
+`
 		if (typeof host === 'string') {
-			header += `host: ${host}\r\n`
+			header += `host: ${host}\r
+`
 		} else {
 			header += client[kHostHeader]
 		}
 		if (upgrade) {
-			header += `connection: upgrade\r\nupgrade: ${upgrade}\r\n`
+			header += `connection: upgrade\r
+upgrade: ${upgrade}\r
+`
 		} else if (client[kPipelining] && !socket[kReset]) {
-			header += 'connection: keep-alive\r\n'
+			header += `connection: keep-alive\r
+`
 		} else {
-			header += 'connection: close\r\n'
+			header += `connection: close\r
+`
 		}
 		if (headers) {
 			header += headers
@@ -7895,16 +7953,30 @@ var require_client = __commonJS((exports, module) => {
 		}
 		if (!body || bodyLength === 0) {
 			if (contentLength === 0) {
-				socket.write(`${header}content-length: 0\r\n\r\n`, 'latin1')
+				socket.write(
+					`${header}content-length: 0\r
+\r
+`,
+					'latin1'
+				)
 			} else {
 				assert(contentLength === null, 'no body must not have content length')
-				socket.write(`${header}\r\n`, 'latin1')
+				socket.write(
+					`${header}\r
+`,
+					'latin1'
+				)
 			}
 			request.onRequestSent()
 		} else if (util.isBuffer(body)) {
 			assert(contentLength === body.byteLength, 'buffer body must have content length')
 			socket.cork()
-			socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, 'latin1')
+			socket.write(
+				`${header}content-length: ${contentLength}\r
+\r
+`,
+				'latin1'
+			)
 			socket.write(body)
 			socket.uncork()
 			request.onBodySent(body)
@@ -8206,7 +8278,12 @@ var require_client = __commonJS((exports, module) => {
 				h2stream.uncork()
 			} else {
 				socket.cork()
-				socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, 'latin1')
+				socket.write(
+					`${header}content-length: ${contentLength}\r
+\r
+`,
+					'latin1'
+				)
 				socket.write(buffer)
 				socket.uncork()
 			}
@@ -8315,13 +8392,27 @@ var require_client = __commonJS((exports, module) => {
 					socket[kReset] = true
 				}
 				if (contentLength === null) {
-					socket.write(`${header}transfer-encoding: chunked\r\n`, 'latin1')
+					socket.write(
+						`${header}transfer-encoding: chunked\r
+`,
+						'latin1'
+					)
 				} else {
-					socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, 'latin1')
+					socket.write(
+						`${header}content-length: ${contentLength}\r
+\r
+`,
+						'latin1'
+					)
 				}
 			}
 			if (contentLength === null) {
-				socket.write(`\r\n${len.toString(16)}\r\n`, 'latin1')
+				socket.write(
+					`\r
+${len.toString(16)}\r
+`,
+					'latin1'
+				)
 			}
 			this.bytesWritten += len
 			const ret = socket.write(chunk)
@@ -8348,12 +8439,27 @@ var require_client = __commonJS((exports, module) => {
 			}
 			if (bytesWritten === 0) {
 				if (expectsPayload) {
-					socket.write(`${header}content-length: 0\r\n\r\n`, 'latin1')
+					socket.write(
+						`${header}content-length: 0\r
+\r
+`,
+						'latin1'
+					)
 				} else {
-					socket.write(`${header}\r\n`, 'latin1')
+					socket.write(
+						`${header}\r
+`,
+						'latin1'
+					)
 				}
 			} else if (contentLength === null) {
-				socket.write('\r\n0\r\n\r\n', 'latin1')
+				socket.write(
+					`\r
+0\r
+\r
+`,
+					'latin1'
+				)
 			}
 			if (contentLength !== null && bytesWritten !== contentLength) {
 				if (client[kStrictContentLength]) {
@@ -10686,7 +10792,7 @@ var require_pending_interceptors_formatter = __commonJS((exports, module) => {
 					Origin: origin,
 					Path: path,
 					'Status code': statusCode,
-					Persistent: persist ? '\u2705' : '\u274C',
+					Persistent: persist ? '✅' : '❌',
 					Invocations: timesInvoked,
 					Remaining: persist ? Infinity : times - timesInvoked,
 				})
@@ -17547,8 +17653,10 @@ var require_oidc_utils = __commonJS((exports) => {
 			return __awaiter(this, undefined, undefined, function* () {
 				const httpclient = OidcClient.createHttpClient()
 				const res = yield httpclient.getJson(id_token_url).catch((error) => {
-					throw new Error(`Failed to get ID Token. \n 
-        Error Code : ${error.statusCode}\n 
+					throw new Error(`Failed to get ID Token. 
+ 
+        Error Code : ${error.statusCode}
+ 
         Error Message: ${error.message}`)
 				})
 				const id_token = (_a = res.result) === null || _a === undefined ? undefined : _a.value
@@ -17633,7 +17741,7 @@ var require_summary = __commonJS((exports) => {
 				const pathFromEnv = process.env[exports.SUMMARY_ENV_VAR]
 				if (!pathFromEnv) {
 					throw new Error(
-						`Unable to find environment variable for \$${exports.SUMMARY_ENV_VAR}. Check if your runtime environment supports job summaries.`
+						`Unable to find environment variable for $${exports.SUMMARY_ENV_VAR}. Check if your runtime environment supports job summaries.`
 					)
 				}
 				try {
@@ -19100,7 +19208,8 @@ var require_platform = __commonJS((exports) => {
 			const { stdout } = yield exec.getExecOutput('lsb_release', ['-i', '-r', '-s'], {
 				silent: true,
 			})
-			const [name, version] = stdout.trim().split('\n')
+			const [name, version] = stdout.trim().split(`
+`)
 			return {
 				name,
 				version,
@@ -19283,7 +19392,10 @@ var require_core = __commonJS((exports) => {
 	exports.getInput = getInput
 	function getMultilineInput(name, options) {
 		const inputs = getInput(name, options)
-			.split('\n')
+			.split(
+				`
+`
+			)
 			.filter((x) => x !== '')
 		if (options && options.trimWhitespace === false) {
 			return inputs
@@ -19298,8 +19410,8 @@ var require_core = __commonJS((exports) => {
 		if (trueValue.includes(val2)) return true
 		if (falseValue.includes(val2)) return false
 		throw new TypeError(
-			`Input does not meet YAML 1.2 "Core Schema" specification: ${name}\n` +
-				`Support boolean input list: \`true | True | TRUE | false | False | FALSE\``
+			`Input does not meet YAML 1.2 "Core Schema" specification: ${name}
+` + `Support boolean input list: \`true | True | TRUE | false | False | FALSE\``
 		)
 	}
 	exports.getBooleanInput = getBooleanInput
@@ -19559,8 +19671,8 @@ var require_base64 = __commonJS((exports) => {
 	var encTable = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('')
 	var decTable = []
 	for (let i = 0; i < encTable.length; i++) decTable[encTable[i].charCodeAt(0)] = i
-	decTable['-'.charCodeAt(0)] = encTable.indexOf('+')
-	decTable['_'.charCodeAt(0)] = encTable.indexOf('/')
+	decTable[45] = encTable.indexOf('+')
+	decTable[95] = encTable.indexOf('/')
 	function base64decode(base64Str) {
 		let es = (base64Str.length * 3) / 4
 		if (base64Str[base64Str.length - 2] == '=') es -= 2
@@ -19576,7 +19688,8 @@ var require_base64 = __commonJS((exports) => {
 				switch (base64Str[i]) {
 					case '=':
 						groupPos = 0
-					case '\n':
+					case `
+`:
 					case '\r':
 					case '\t':
 					case ' ':
@@ -23122,7 +23235,8 @@ var require_rpc_error = __commonJS((exports) => {
 					l.push(`  ${k}: ${v}`)
 				}
 			}
-			return l.join('\n')
+			return l.join(`
+`)
 		}
 	}
 	exports.RpcError = RpcError
@@ -25543,7 +25657,11 @@ var require_path_and_artifact_name_validation = __commonJS((exports) => {
 		['*', ' Asterisk *'],
 		['?', ' Question mark ?'],
 		['\r', ' Carriage return \\r'],
-		['\n', ' Line feed \\n'],
+		[
+			`
+`,
+			' Line feed \\n',
+		],
 	])
 	var invalidArtifactNameCharacters = new Map([
 		...invalidArtifactFilePathCharacters,
@@ -25711,7 +25829,8 @@ var require_errors2 = __commonJS((exports) => {
 
 	class NetworkError extends Error {
 		constructor(code) {
-			const message = `Unable to make request: ${code}\nIf you are using self-hosted runners, please make sure your runner has access to all GitHub endpoints: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#communication-between-self-hosted-runners-and-github`
+			const message = `Unable to make request: ${code}
+If you are using self-hosted runners, please make sure your runner has access to all GitHub endpoints: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#communication-between-self-hosted-runners-and-github`
 			super(message)
 			this.code = code
 			this.name = 'NetworkError'
@@ -25725,7 +25844,8 @@ var require_errors2 = __commonJS((exports) => {
 
 	class UsageError extends Error {
 		constructor() {
-			const message = `Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.\nMore info on storage limits: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#calculating-minute-and-storage-spending`
+			const message = `Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.
+More info on storage limits: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#calculating-minute-and-storage-spending`
 			super(message)
 			this.name = 'UsageError'
 		}
@@ -27105,9 +27225,9 @@ var require_debug = __commonJS((exports) => {
 		const namespaceList = namespaces.split(',').map((ns) => ns.trim().replace(wildcard, '.*?'))
 		for (const ns of namespaceList) {
 			if (ns.startsWith('-')) {
-				skippedNamespaces.push(new RegExp(`^${ns.substr(1)}\$`))
+				skippedNamespaces.push(new RegExp(`^${ns.substr(1)}$`))
 			} else {
-				enabledNamespaces.push(new RegExp(`^${ns}\$`))
+				enabledNamespaces.push(new RegExp(`^${ns}$`))
 			}
 		}
 		for (const instance of debuggers) {
@@ -28229,7 +28349,8 @@ var require_multipartPolicy = __commonJS((exports) => {
 	function encodeHeaders(headers) {
 		let result = ''
 		for (const [key, value] of headers) {
-			result += `${key}: ${value}\r\n`
+			result += `${key}: ${value}\r
+`
 		}
 		return result
 	}
@@ -28258,13 +28379,30 @@ var require_multipartPolicy = __commonJS((exports) => {
 		const sources = [
 			(0, core_util_1.stringToUint8Array)(`--${boundary}`, 'utf-8'),
 			...parts.flatMap((part) => [
-				(0, core_util_1.stringToUint8Array)('\r\n', 'utf-8'),
+				(0, core_util_1.stringToUint8Array)(
+					`\r
+`,
+					'utf-8'
+				),
 				(0, core_util_1.stringToUint8Array)(encodeHeaders(part.headers), 'utf-8'),
-				(0, core_util_1.stringToUint8Array)('\r\n', 'utf-8'),
+				(0, core_util_1.stringToUint8Array)(
+					`\r
+`,
+					'utf-8'
+				),
 				part.body,
-				(0, core_util_1.stringToUint8Array)(`\r\n--${boundary}`, 'utf-8'),
+				(0, core_util_1.stringToUint8Array)(
+					`\r
+--${boundary}`,
+					'utf-8'
+				),
 			]),
-			(0, core_util_1.stringToUint8Array)('--\r\n\r\n', 'utf-8'),
+			(0, core_util_1.stringToUint8Array)(
+				`--\r
+\r
+`,
+				'utf-8'
+			),
 		]
 		const contentLength = getTotalLength(sources)
 		if (contentLength) {
@@ -29319,7 +29457,7 @@ var require_node = __commonJS((exports, module) => {
 	exports.colors = [6, 2, 3, 4, 5, 1]
 	try {
 		const supportsColor = (() => {
-			throw new Error(`Cannot require module "supports-color"`)
+			throw new Error('Cannot require module ' + 'supports-color')
 		})()
 		if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
 			exports.colors = [
@@ -29363,7 +29501,17 @@ var require_node = __commonJS((exports, module) => {
 			const c = this.color
 			const colorCode = '\x1B[3' + (c < 8 ? c : '8;5;' + c)
 			const prefix = `  ${colorCode};1m${name} \x1B[0m`
-			args[0] = prefix + args[0].split('\n').join('\n' + prefix)
+			args[0] =
+				prefix +
+				args[0]
+					.split(
+						`
+`
+					)
+					.join(
+						`
+` + prefix
+					)
 			args.push(colorCode + 'm+' + module.exports.humanize(this.diff) + '\x1B[0m')
 		} else {
 			args[0] = getDate() + name + ' ' + args[0]
@@ -29376,7 +29524,11 @@ var require_node = __commonJS((exports, module) => {
 		return new Date().toISOString() + ' '
 	}
 	function log(...args) {
-		return process.stderr.write(util.formatWithOptions(exports.inspectOpts, ...args) + '\n')
+		return process.stderr.write(
+			util.formatWithOptions(exports.inspectOpts, ...args) +
+				`
+`
+		)
 	}
 	function save(namespaces) {
 		if (namespaces) {
@@ -29401,7 +29553,10 @@ var require_node = __commonJS((exports, module) => {
 		this.inspectOpts.colors = this.useColors
 		return util
 			.inspect(v, this.inspectOpts)
-			.split('\n')
+			.split(
+				`
+`
+			)
 			.map((str) => str.trim())
 			.join(' ')
 	}
@@ -29575,7 +29730,12 @@ var require_dist = __commonJS((exports) => {
 			}
 			const { stack } = new Error()
 			if (typeof stack !== 'string') return false
-			return stack.split('\n').some((l) => l.indexOf('(https.js:') !== -1 || l.indexOf('node:https:') !== -1)
+			return stack
+				.split(
+					`
+`
+				)
+				.some((l) => l.indexOf('(https.js:') !== -1 || l.indexOf('node:https:') !== -1)
 		}
 		incrementSockets(name) {
 			if (this.maxSockets === Infinity && this.maxTotalSockets === Infinity) {
@@ -29702,13 +29862,16 @@ var require_parse_proxy_response = __commonJS((exports) => {
 				buffers.push(b)
 				buffersLength += b.length
 				const buffered = Buffer.concat(buffers, buffersLength)
-				const endOfHeaders = buffered.indexOf('\r\n\r\n')
+				const endOfHeaders = buffered.indexOf(`\r
+\r
+`)
 				if (endOfHeaders === -1) {
 					debug('have not received end of HTTP headers yet...')
 					read()
 					return
 				}
-				const headerParts = buffered.slice(0, endOfHeaders).toString('ascii').split('\r\n')
+				const headerParts = buffered.slice(0, endOfHeaders).toString('ascii').split(`\r
+`)
 				const firstLine = headerParts.shift()
 				if (!firstLine) {
 					socket.destroy()
@@ -29849,7 +30012,8 @@ var require_dist2 = __commonJS((exports) => {
 			}
 			const headers = typeof this.proxyHeaders === 'function' ? this.proxyHeaders() : { ...this.proxyHeaders }
 			const host = net.isIPv6(opts.host) ? `[${opts.host}]` : opts.host
-			let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r\n`
+			let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r
+`
 			if (proxy.username || proxy.password) {
 				const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`
 				headers['Proxy-Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`
@@ -29859,10 +30023,12 @@ var require_dist2 = __commonJS((exports) => {
 				headers['Proxy-Connection'] = this.keepAlive ? 'Keep-Alive' : 'close'
 			}
 			for (const name of Object.keys(headers)) {
-				payload += `${name}: ${headers[name]}\r\n`
+				payload += `${name}: ${headers[name]}\r
+`
 			}
 			const proxyResponsePromise = (0, parse_proxy_response_1.parseProxyResponse)(socket)
-			socket.write(`${payload}\r\n`)
+			socket.write(`${payload}\r
+`)
 			const { connect, buffered } = await proxyResponsePromise
 			req.emit('proxyConnect', connect)
 			this.emit('proxyConnect', connect, req)
@@ -30022,7 +30188,10 @@ var require_dist3 = __commonJS((exports) => {
 			if (req.outputData && req.outputData.length > 0) {
 				debug('Patching connection write() output buffer with updated header')
 				first = req.outputData[0].data
-				endOfHeaders = first.indexOf('\r\n\r\n') + 4
+				endOfHeaders =
+					first.indexOf(`\r
+\r
+`) + 4
 				req.outputData[0].data = req._header + first.substring(endOfHeaders)
 				debug('Output buffer: %o', req.outputData[0].data)
 			}
@@ -30488,7 +30657,8 @@ var require_restError = __commonJS((exports) => {
 			Object.setPrototypeOf(this, RestError.prototype)
 		}
 		[inspect_js_1.custom]() {
-			return `RestError: ${this.message} \n ${errorSanitizer.sanitize(Object.assign(Object.assign({}, this), { request: this.request, response: this.response }))}`
+			return `RestError: ${this.message} 
+ ${errorSanitizer.sanitize(Object.assign(Object.assign({}, this), { request: this.request, response: this.response }))}`
 		}
 	}
 	exports.RestError = RestError
@@ -31361,7 +31531,14 @@ var require_ndJsonPolicy = __commonJS((exports) => {
 				if (typeof request.body === 'string' && request.body.startsWith('[')) {
 					const body = JSON.parse(request.body)
 					if (Array.isArray(body)) {
-						request.body = body.map((item) => JSON.stringify(item) + '\n').join('')
+						request.body = body
+							.map(
+								(item) =>
+									JSON.stringify(item) +
+									`
+`
+							)
+							.join('')
 					}
 				}
 				return next(request)
@@ -34834,7 +35011,9 @@ var require_validator = __commonJS((exports) => {
 						xmlData[i] !== '>' &&
 						xmlData[i] !== ' ' &&
 						xmlData[i] !== '\t' &&
-						xmlData[i] !== '\n' &&
+						xmlData[i] !==
+							`
+` &&
 						xmlData[i] !== '\r';
 						i++
 					) {
@@ -35009,7 +35188,14 @@ var require_validator = __commonJS((exports) => {
 		return true
 	}
 	function isWhiteSpace(char) {
-		return char === ' ' || char === '\t' || char === '\n' || char === '\r'
+		return (
+			char === ' ' ||
+			char === '\t' ||
+			char ===
+				`
+` ||
+			char === '\r'
+		)
 	}
 	function readPI(xmlData, i) {
 		const start = i
@@ -35111,7 +35297,7 @@ var require_validator = __commonJS((exports) => {
 			tagClosed,
 		}
 	}
-	var validAttrStrRegxp = new RegExp('(\\s*)([^\\s=]+)(\\s*=)?(\\s*([\'"])(([\\s\\S])*?)\\5)?', 'g')
+	var validAttrStrRegxp = new RegExp(`(\\s*)([^\\s=]+)(\\s*=)?(\\s*(['"])(([\\s\\S])*?)\\5)?`, 'g')
 	function validateAttributeString(attrStr, options) {
 		const matches = util.getAllMatches(attrStr, validAttrStrRegxp)
 		const attrNames = {}
@@ -35543,13 +35729,13 @@ var require_OrderedObjParser = __commonJS((exports, module) => {
 			this.ampEntity = { regex: /&(amp|#38|#x26);/g, val: '&' }
 			this.htmlEntities = {
 				space: { regex: /&(nbsp|#160);/g, val: ' ' },
-				cent: { regex: /&(cent|#162);/g, val: '\xA2' },
-				pound: { regex: /&(pound|#163);/g, val: '\xA3' },
-				yen: { regex: /&(yen|#165);/g, val: '\xA5' },
-				euro: { regex: /&(euro|#8364);/g, val: '\u20AC' },
-				copyright: { regex: /&(copy|#169);/g, val: '\xA9' },
-				reg: { regex: /&(reg|#174);/g, val: '\xAE' },
-				inr: { regex: /&(inr|#8377);/g, val: '\u20B9' },
+				cent: { regex: /&(cent|#162);/g, val: '¢' },
+				pound: { regex: /&(pound|#163);/g, val: '£' },
+				yen: { regex: /&(yen|#165);/g, val: '¥' },
+				euro: { regex: /&(euro|#8364);/g, val: '€' },
+				copyright: { regex: /&(copy|#169);/g, val: '©' },
+				reg: { regex: /&(reg|#174);/g, val: '®' },
+				inr: { regex: /&(inr|#8377);/g, val: '₹' },
 				num_dec: { regex: /&#([0-9]{1,7});/g, val: (_2, str) => String.fromCharCode(Number.parseInt(str, 10)) },
 				num_hex: {
 					regex: /&#x([0-9a-fA-F]{1,6});/g,
@@ -35617,7 +35803,7 @@ var require_OrderedObjParser = __commonJS((exports, module) => {
 		}
 		return tagname
 	}
-	var attrsRegx = new RegExp('([^\\s=]+)\\s*(=\\s*([\'"])([\\s\\S]*?)\\3)?', 'gm')
+	var attrsRegx = new RegExp(`([^\\s=]+)\\s*(=\\s*(['"])([\\s\\S]*?)\\3)?`, 'gm')
 	function buildAttributesMap(attrStr, jPath, tagName) {
 		if (this.options.ignoreAttributes !== true && typeof attrStr === 'string') {
 			const matches = util.getAllMatches(attrStr, attrsRegx)
@@ -35669,7 +35855,11 @@ var require_OrderedObjParser = __commonJS((exports, module) => {
 		}
 	}
 	var parseXml = function (xmlData) {
-		xmlData = xmlData.replace(/\r\n?/g, '\n')
+		xmlData = xmlData.replace(
+			/\r\n?/g,
+			`
+`
+		)
 		const xmlObj = new xmlNode('!xml')
 		let currentNode = xmlObj
 		let textData = ''
@@ -36158,7 +36348,8 @@ var require_XMLParser = __commonJS((exports, module) => {
 
 // ../node_modules/fast-xml-parser/src/xmlbuilder/orderedJs2Xml.js
 var require_orderedJs2Xml = __commonJS((exports, module) => {
-	var EOL = '\n'
+	var EOL = `
+`
 	function toXml(jArray, options) {
 		let indentation = ''
 		if (options.format && options.indentBy.length > 0) {
@@ -36328,8 +36519,10 @@ var require_json2xml = __commonJS((exports, module) => {
 		this.processTextOrObjNode = processTextOrObjNode
 		if (this.options.format) {
 			this.indentate = indentate
-			this.tagEndChar = '>\n'
-			this.newLine = '\n'
+			this.tagEndChar = `>
+`
+			this.newLine = `
+`
 		} else {
 			this.indentate = function () {
 				return ''
@@ -37024,9 +37217,10 @@ var require_operation = __commonJS((exports) => {
 			})
 		)
 		const status = getOperationStatus(response, state)
-		logger_js_1.logger.verbose(
-			`LRO: Status:\n\tPolling from: ${state.config.operationLocation}\n\tOperation status: ${status}\n\tPolling status: ${constants_js_1.terminalStates.includes(status) ? 'Stopped' : 'Running'}`
-		)
+		logger_js_1.logger.verbose(`LRO: Status:
+	Polling from: ${state.config.operationLocation}
+	Operation status: ${status}
+	Polling status: ${constants_js_1.terminalStates.includes(status) ? 'Stopped' : 'Running'}`)
 		if (status === 'succeeded') {
 			const resourceLocation = getResourceLocation(response, state)
 			if (resourceLocation !== undefined) {
@@ -38096,7 +38290,8 @@ var require_dist4 = __commonJS((exports) => {
 	var SIZE_1_MB = 1 * 1024 * 1024
 	var BATCH_MAX_REQUEST = 256
 	var BATCH_MAX_PAYLOAD_IN_BYTES = 4 * SIZE_1_MB
-	var HTTP_LINE_ENDING = '\r\n'
+	var HTTP_LINE_ENDING = `\r
+`
 	var HTTP_VERSION_1_1 = 'HTTP/1.1'
 	var EncryptionAlgorithmAES25 = 'AES256'
 	var DevelopmentConnectionString = `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;`
@@ -39006,8 +39201,10 @@ var require_dist4 = __commonJS((exports) => {
 					this.getHeaderValueToSign(request, HeaderConstants.IF_NONE_MATCH),
 					this.getHeaderValueToSign(request, HeaderConstants.IF_UNMODIFIED_SINCE),
 					this.getHeaderValueToSign(request, HeaderConstants.RANGE),
-				].join('\n') +
-				'\n' +
+				].join(`
+`) +
+				`
+` +
 				this.getCanonicalizedHeadersString(request) +
 				this.getCanonicalizedResourceString(request)
 			const signature = this.factory.computeHMACSHA256(stringToSign)
@@ -39039,7 +39236,8 @@ var require_dist4 = __commonJS((exports) => {
 			})
 			let canonicalizedHeadersStringToSign = ''
 			headersArray.forEach((header) => {
-				canonicalizedHeadersStringToSign += `${header.name.toLowerCase().trimRight()}:${header.value.trimLeft()}\n`
+				canonicalizedHeadersStringToSign += `${header.name.toLowerCase().trimRight()}:${header.value.trimLeft()}
+`
 			})
 			return canonicalizedHeadersStringToSign
 		}
@@ -39060,7 +39258,8 @@ var require_dist4 = __commonJS((exports) => {
 				}
 				queryKeys.sort()
 				for (const key of queryKeys) {
-					canonicalizedResourceString += `\n${key}:${decodeURIComponent(lowercaseQueries[key])}`
+					canonicalizedResourceString += `
+${key}:${decodeURIComponent(lowercaseQueries[key])}`
 				}
 			}
 			return canonicalizedResourceString
@@ -39310,8 +39509,10 @@ var require_dist4 = __commonJS((exports) => {
 					getHeaderValueToSign(request, HeaderConstants.IF_NONE_MATCH),
 					getHeaderValueToSign(request, HeaderConstants.IF_UNMODIFIED_SINCE),
 					getHeaderValueToSign(request, HeaderConstants.RANGE),
-				].join('\n') +
-				'\n' +
+				].join(`
+`) +
+				`
+` +
 				getCanonicalizedHeadersString(request) +
 				getCanonicalizedResourceString(request)
 			const signature = crypto
@@ -39348,7 +39549,8 @@ var require_dist4 = __commonJS((exports) => {
 			})
 			let canonicalizedHeadersStringToSign = ''
 			headersArray.forEach((header) => {
-				canonicalizedHeadersStringToSign += `${header.name.toLowerCase().trimRight()}:${header.value.trimLeft()}\n`
+				canonicalizedHeadersStringToSign += `${header.name.toLowerCase().trimRight()}:${header.value.trimLeft()}
+`
 			})
 			return canonicalizedHeadersStringToSign
 		}
@@ -39369,7 +39571,8 @@ var require_dist4 = __commonJS((exports) => {
 				}
 				queryKeys.sort()
 				for (const key of queryKeys) {
-					canonicalizedResourceString += `\n${key}:${decodeURIComponent(lowercaseQueries[key])}`
+					canonicalizedResourceString += `
+${key}:${decodeURIComponent(lowercaseQueries[key])}`
 				}
 			}
 			return canonicalizedResourceString
@@ -52546,7 +52749,8 @@ var require_dist4 = __commonJS((exports) => {
 			blobSASSignatureValues.contentEncoding ? blobSASSignatureValues.contentEncoding : '',
 			blobSASSignatureValues.contentLanguage ? blobSASSignatureValues.contentLanguage : '',
 			blobSASSignatureValues.contentType ? blobSASSignatureValues.contentType : '',
-		].join('\n')
+		].join(`
+`)
 		const signature = sharedKeyCredential.computeHMACSHA256(stringToSign)
 		return {
 			sasQueryParameters: new SASQueryParameters(
@@ -52621,7 +52825,8 @@ var require_dist4 = __commonJS((exports) => {
 			blobSASSignatureValues.contentEncoding ? blobSASSignatureValues.contentEncoding : '',
 			blobSASSignatureValues.contentLanguage ? blobSASSignatureValues.contentLanguage : '',
 			blobSASSignatureValues.contentType ? blobSASSignatureValues.contentType : '',
-		].join('\n')
+		].join(`
+`)
 		const signature = sharedKeyCredential.computeHMACSHA256(stringToSign)
 		return {
 			sasQueryParameters: new SASQueryParameters(
@@ -52697,7 +52902,8 @@ var require_dist4 = __commonJS((exports) => {
 			blobSASSignatureValues.contentEncoding ? blobSASSignatureValues.contentEncoding : '',
 			blobSASSignatureValues.contentLanguage ? blobSASSignatureValues.contentLanguage : '',
 			blobSASSignatureValues.contentType ? blobSASSignatureValues.contentType : '',
-		].join('\n')
+		].join(`
+`)
 		const signature = sharedKeyCredential.computeHMACSHA256(stringToSign)
 		return {
 			sasQueryParameters: new SASQueryParameters(
@@ -52782,7 +52988,8 @@ var require_dist4 = __commonJS((exports) => {
 			blobSASSignatureValues.contentEncoding,
 			blobSASSignatureValues.contentLanguage,
 			blobSASSignatureValues.contentType,
-		].join('\n')
+		].join(`
+`)
 		const signature = userDelegationKeyCredential.computeHMACSHA256(stringToSign)
 		return {
 			sasQueryParameters: new SASQueryParameters(
@@ -52867,7 +53074,8 @@ var require_dist4 = __commonJS((exports) => {
 			blobSASSignatureValues.contentEncoding,
 			blobSASSignatureValues.contentLanguage,
 			blobSASSignatureValues.contentType,
-		].join('\n')
+		].join(`
+`)
 		const signature = userDelegationKeyCredential.computeHMACSHA256(stringToSign)
 		return {
 			sasQueryParameters: new SASQueryParameters(
@@ -52955,7 +53163,8 @@ var require_dist4 = __commonJS((exports) => {
 			blobSASSignatureValues.contentEncoding,
 			blobSASSignatureValues.contentLanguage,
 			blobSASSignatureValues.contentType,
-		].join('\n')
+		].join(`
+`)
 		const signature = userDelegationKeyCredential.computeHMACSHA256(stringToSign)
 		return {
 			sasQueryParameters: new SASQueryParameters(
@@ -55269,7 +55478,7 @@ var require_dist4 = __commonJS((exports) => {
 						buffer2 = Buffer.alloc(count)
 					} catch (error) {
 						throw new Error(
-							`Unable to allocate the buffer of size: ${count}(in bytes). Please try passing your own buffer to the "downloadToBuffer" method or try using other methods like "download" or "downloadToFile".\t ${error.message}`
+							`Unable to allocate the buffer of size: ${count}(in bytes). Please try passing your own buffer to the "downloadToBuffer" method or try using other methods like "download" or "downloadToFile".	 ${error.message}`
 						)
 					}
 				}
@@ -58202,7 +58411,8 @@ var require_dist4 = __commonJS((exports) => {
 				version2,
 				accountSASSignatureValues.encryptionScope ? accountSASSignatureValues.encryptionScope : '',
 				'',
-			].join('\n')
+			].join(`
+`)
 		} else {
 			stringToSign = [
 				sharedKeyCredential.accountName,
@@ -58217,7 +58427,8 @@ var require_dist4 = __commonJS((exports) => {
 				accountSASSignatureValues.protocol ? accountSASSignatureValues.protocol : '',
 				version2,
 				'',
-			].join('\n')
+			].join(`
+`)
 		}
 		const signature = sharedKeyCredential.computeHMACSHA256(stringToSign)
 		return {
@@ -58959,11 +59170,11 @@ var require_balanced_match = __commonJS((exports, module) => {
 var require_brace_expansion = __commonJS((exports, module) => {
 	var balanced = require_balanced_match()
 	module.exports = expandTop
-	var escSlash = '\0SLASH' + Math.random() + '\0'
-	var escOpen = '\0OPEN' + Math.random() + '\0'
-	var escClose = '\0CLOSE' + Math.random() + '\0'
-	var escComma = '\0COMMA' + Math.random() + '\0'
-	var escPeriod = '\0PERIOD' + Math.random() + '\0'
+	var escSlash = '\x00SLASH' + Math.random() + '\x00'
+	var escOpen = '\x00OPEN' + Math.random() + '\x00'
+	var escClose = '\x00CLOSE' + Math.random() + '\x00'
+	var escComma = '\x00COMMA' + Math.random() + '\x00'
+	var escPeriod = '\x00PERIOD' + Math.random() + '\x00'
 	function numeric(str) {
 		return parseInt(str, 10) == str ? parseInt(str, 10) : str.charCodeAt(0)
 	}
@@ -59289,7 +59500,15 @@ var require_minimatch = __commonJS((exports, module) => {
 					}
 					while (fr < fl) {
 						var swallowee = file[fr]
-						this.debug('\nglobstar while', file, fr, pattern, pr, swallowee)
+						this.debug(
+							`
+globstar while`,
+							file,
+							fr,
+							pattern,
+							pr,
+							swallowee
+						)
 						if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {
 							this.debug('globstar found match!', fr, fl, swallowee)
 							return true
@@ -59307,7 +59526,14 @@ var require_minimatch = __commonJS((exports, module) => {
 						}
 					}
 					if (partial) {
-						this.debug('\n>>> no match, partial?', file, fr, pattern, pr)
+						this.debug(
+							`
+>>> no match, partial?`,
+							file,
+							fr,
+							pattern,
+							pr
+						)
 						if (fr === fl) return true
 					}
 					return false
@@ -59529,7 +59755,14 @@ var require_minimatch = __commonJS((exports, module) => {
 					}
 					return $1 + $1 + $2 + '|'
 				})
-				this.debug('tail=%j\n   %s', tail, tail, pl, re)
+				this.debug(
+					`tail=%j
+   %s`,
+					tail,
+					tail,
+					pl,
+					re
+				)
 				const t = pl.type === '*' ? star : pl.type === '?' ? qmark : '\\' + pl.type
 				hasMagic = true
 				re = re.slice(0, pl.reStart) + t + '\\(' + tail
@@ -60421,7 +60654,11 @@ var require_async = __commonJS((exports, module) => {
 			let endBlockComment = string.indexOf('*/')
 			while (index2 < string.length) {
 				if (string[index2] === '/' && string[index2 + 1] === '/') {
-					let endIndex = string.indexOf('\n', index2)
+					let endIndex = string.indexOf(
+						`
+`,
+						index2
+					)
 					index2 = endIndex === -1 ? string.length : endIndex
 				} else if (endBlockComment !== -1 && string[index2] === '/' && string[index2 + 1] === '*') {
 					let endIndex = string.indexOf('*/', index2)
@@ -60445,7 +60682,12 @@ var require_async = __commonJS((exports, module) => {
 			if (!match) {
 				match = src.match(ARROW_FN_ARGS)
 			}
-			if (!match) throw new Error('could not parse args in autoInject\nSource:\n' + src)
+			if (!match)
+				throw new Error(
+					`could not parse args in autoInject
+Source:
+` + src
+				)
 			let [, args] = match
 			return args
 				.replace(/\s/g, '')
@@ -62295,7 +62537,10 @@ var require_graceful_fs = __commonJS((exports, module) => {
 	else if (/\bgfs4\b/i.test(process.env.NODE_DEBUG || ''))
 		debug = function () {
 			var m = util.format.apply(util, arguments)
-			m = 'GFS4: ' + m.split(/\n/).join('\nGFS4: ')
+			m =
+				'GFS4: ' +
+				m.split(/\n/).join(`
+GFS4: `)
 			console.error(m)
 		}
 	if (!fs[gracefulQueue]) {
@@ -63676,17 +63921,17 @@ var require_string_decoder = __commonJS((exports) => {
 	function utf8CheckExtraBytes(self2, buf, p) {
 		if ((buf[0] & 192) !== 128) {
 			self2.lastNeed = 0
-			return '\uFFFD'
+			return '�'
 		}
 		if (self2.lastNeed > 1 && buf.length > 1) {
 			if ((buf[1] & 192) !== 128) {
 				self2.lastNeed = 1
-				return '\uFFFD'
+				return '�'
 			}
 			if (self2.lastNeed > 2 && buf.length > 2) {
 				if ((buf[2] & 192) !== 128) {
 					self2.lastNeed = 2
-					return '\uFFFD'
+					return '�'
 				}
 			}
 		}
@@ -63712,7 +63957,7 @@ var require_string_decoder = __commonJS((exports) => {
 	}
 	function utf8End(buf) {
 		var r = buf && buf.length ? this.write(buf) : ''
-		if (this.lastNeed) return r + '\uFFFD'
+		if (this.lastNeed) return r + '�'
 		return r
 	}
 	function utf16Text(buf, i) {
@@ -66044,7 +66289,8 @@ var require_util12 = __commonJS((exports, module) => {
 			}
 			let message = ''
 			for (let i = 0; i < errors.length; i++) {
-				message += `    ${errors[i].stack}\n`
+				message += `    ${errors[i].stack}
+`
 			}
 			super(message)
 			this.name = 'AggregateError'
@@ -72676,7 +72922,7 @@ var require_ast = __commonJS((exports) => {
 				return body
 			}
 			const flags = (this.#options.nocase ? 'i' : '') + (uflag ? 'u' : '')
-			return Object.assign(new RegExp(`^${re}\$`, flags), {
+			return Object.assign(new RegExp(`^${re}$`, flags), {
 				_src: re,
 				_glob: glob,
 			})
@@ -73369,7 +73615,15 @@ var require_commonjs16 = __commonJS((exports) => {
 					}
 					while (fr < fl) {
 						var swallowee = file[fr]
-						this.debug('\nglobstar while', file, fr, pattern, pr, swallowee)
+						this.debug(
+							`
+globstar while`,
+							file,
+							fr,
+							pattern,
+							pr,
+							swallowee
+						)
 						if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {
 							this.debug('globstar found match!', fr, fl, swallowee)
 							return true
@@ -73387,7 +73641,14 @@ var require_commonjs16 = __commonJS((exports) => {
 						}
 					}
 					if (partial) {
-						this.debug('\n>>> no match, partial?', file, fr, pattern, pr)
+						this.debug(
+							`
+>>> no match, partial?`,
+							file,
+							fr,
+							pattern,
+							pr
+						)
 						if (fr === fl) {
 							return true
 						}
@@ -80093,7 +80354,7 @@ var require_utf8_decoder = __commonJS((exports, module) => {
 							this.bytesNeeded = 4
 							this.codePoint = byte & 7
 						} else {
-							result += '\uFFFD'
+							result += '�'
 						}
 					}
 					continue
@@ -80104,7 +80365,7 @@ var require_utf8_decoder = __commonJS((exports, module) => {
 					this.bytesSeen = 0
 					this.lowerBoundary = 128
 					this.upperBoundary = 191
-					result += '\uFFFD'
+					result += '�'
 					continue
 				}
 				this.lowerBoundary = 128
@@ -80120,7 +80381,7 @@ var require_utf8_decoder = __commonJS((exports, module) => {
 			return result
 		}
 		flush() {
-			const result = this.bytesNeeded > 0 ? '\uFFFD' : ''
+			const result = this.bytesNeeded > 0 ? '�' : ''
 			this.codePoint = 0
 			this.bytesNeeded = 0
 			this.bytesSeen = 0
@@ -81311,7 +81572,7 @@ var require_headers2 = __commonJS((exports) => {
 	var b4a = require_b4a()
 	var ZEROS = '0000000000000000000'
 	var SEVENS = '7777777777777777777'
-	var ZERO_OFFSET = '0'.charCodeAt(0)
+	var ZERO_OFFSET = 48
 	var USTAR_MAGIC = b4a.from([117, 115, 116, 97, 114, 0])
 	var USTAR_VER = b4a.from([ZERO_OFFSET, ZERO_OFFSET])
 	var GNU_MAGIC = b4a.from([117, 115, 116, 97, 114, 32])
@@ -81324,12 +81585,31 @@ var require_headers2 = __commonJS((exports) => {
 	}
 	exports.encodePax = function encodePax(opts) {
 		let result = ''
-		if (opts.name) result += addLength(' path=' + opts.name + '\n')
-		if (opts.linkname) result += addLength(' linkpath=' + opts.linkname + '\n')
+		if (opts.name)
+			result += addLength(
+				' path=' +
+					opts.name +
+					`
+`
+			)
+		if (opts.linkname)
+			result += addLength(
+				' linkpath=' +
+					opts.linkname +
+					`
+`
+			)
 		const pax = opts.pax
 		if (pax) {
 			for (const key in pax) {
-				result += addLength(' ' + key + '=' + pax[key] + '\n')
+				result += addLength(
+					' ' +
+						key +
+						'=' +
+						pax[key] +
+						`
+`
+				)
 			}
 		}
 		return b4a.from(result)
@@ -84031,7 +84311,12 @@ var require_util16 = __commonJS((exports, module) => {
 		) {
 			return false
 		}
-		if (potentialValue.includes('\0') || potentialValue.includes('\r') || potentialValue.includes('\n')) {
+		if (
+			potentialValue.includes('\x00') ||
+			potentialValue.includes('\r') ||
+			potentialValue.includes(`
+`)
+		) {
 			return false
 		}
 		return true
@@ -85141,7 +85426,14 @@ var require_dataURL2 = __commonJS((exports, module) => {
 		return serialization
 	}
 	function isHTTPWhiteSpace(char) {
-		return char === '\r' || char === '\n' || char === '\t' || char === ' '
+		return (
+			char === '\r' ||
+			char ===
+				`
+` ||
+			char === '\t' ||
+			char === ' '
+		)
 	}
 	function removeHTTPWhitespace(str, leading = true, trailing = true) {
 		let lead = 0
@@ -85155,7 +85447,15 @@ var require_dataURL2 = __commonJS((exports, module) => {
 		return str.slice(lead, trail + 1)
 	}
 	function isASCIIWhitespace(char) {
-		return char === '\r' || char === '\n' || char === '\t' || char === '\f' || char === ' '
+		return (
+			char === '\r' ||
+			char ===
+				`
+` ||
+			char === '\t' ||
+			char === '\f' ||
+			char === ' '
+		)
 	}
 	function removeASCIIWhitespace(str, leading = true, trailing = true) {
 		let lead = 0
@@ -85349,9 +85649,11 @@ var require_file4 = __commonJS((exports, module) => {
 		return bytes
 	}
 	function convertLineEndingsNative(s) {
-		let nativeLineEnding = '\n'
+		let nativeLineEnding = `
+`
 		if (process.platform === 'win32') {
-			nativeLineEnding = '\r\n'
+			nativeLineEnding = `\r
+`
 		}
 		return s.replace(/\r?\n/g, nativeLineEnding)
 	}
@@ -85579,10 +85881,16 @@ var require_body2 = __commonJS((exports, module) => {
 			source = new Uint8Array(object.buffer.slice(object.byteOffset, object.byteOffset + object.byteLength))
 		} else if (util.isFormDataLike(object)) {
 			const boundary = `----formdata-undici-0${`${random(100000000000)}`.padStart(11, '0')}`
-			const prefix = `--${boundary}\r\nContent-Disposition: form-data`
+			const prefix = `--${boundary}\r
+Content-Disposition: form-data`
 			/*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 			const escape = (str) => str.replace(/\n/g, '%0A').replace(/\r/g, '%0D').replace(/"/g, '%22')
-			const normalizeLinefeeds = (value) => value.replace(/\r?\n|\r/g, '\r\n')
+			const normalizeLinefeeds = (value) =>
+				value.replace(
+					/\r?\n|\r/g,
+					`\r
+`
+				)
 			const blobParts = []
 			const rn = new Uint8Array([13, 10])
 			length = 0
@@ -85592,7 +85900,10 @@ var require_body2 = __commonJS((exports, module) => {
 					const chunk2 = textEncoder.encode(
 						prefix +
 							`; name="${escape(normalizeLinefeeds(name))}"` +
-							`\r\n\r\n${normalizeLinefeeds(value)}\r\n`
+							`\r
+\r
+${normalizeLinefeeds(value)}\r
+`
 					)
 					blobParts.push(chunk2)
 					length += chunk2.byteLength
@@ -85600,8 +85911,11 @@ var require_body2 = __commonJS((exports, module) => {
 					const chunk2 = textEncoder.encode(
 						`${prefix}; name="${escape(normalizeLinefeeds(name))}"` +
 							(value.name ? `; filename="${escape(value.name)}"` : '') +
-							'\r\n' +
-							`Content-Type: ${value.type || 'application/octet-stream'}\r\n\r\n`
+							`\r
+` +
+							`Content-Type: ${value.type || 'application/octet-stream'}\r
+\r
+`
 					)
 					blobParts.push(chunk2, value, rn)
 					if (typeof value.size === 'number') {
@@ -86047,13 +86361,15 @@ var require_request3 = __commonJS((exports, module) => {
 				const [bodyStream, contentType] = extractBody(body)
 				if (this.contentType == null) {
 					this.contentType = contentType
-					this.headers += `content-type: ${contentType}\r\n`
+					this.headers += `content-type: ${contentType}\r
+`
 				}
 				this.body = bodyStream.stream
 				this.contentLength = bodyStream.length
 			} else if (util.isBlobLike(body) && this.contentType == null && body.type) {
 				this.contentType = body.type
-				this.headers += `content-type: ${body.type}\r\n`
+				this.headers += `content-type: ${body.type}\r
+`
 			}
 			util.validateHandler(handler, method, upgrade)
 			this.servername = util.getServerName(this.host)
@@ -86185,7 +86501,8 @@ var require_request3 = __commonJS((exports, module) => {
 			return request
 		}
 		static [kHTTP2CopyHeaders](raw) {
-			const rawHeaders = raw.split('\r\n')
+			const rawHeaders = raw.split(`\r
+`)
 			const headers = {}
 			for (const header of rawHeaders) {
 				const [key, value] = header.split(': ')
@@ -86204,7 +86521,10 @@ var require_request3 = __commonJS((exports, module) => {
 		if (headerCharRegex.exec(val2) !== null) {
 			throw new InvalidArgumentError(`invalid ${key} header`)
 		}
-		return skipAppend ? val2 : `${key}: ${val2}\r\n`
+		return skipAppend
+			? val2
+			: `${key}: ${val2}\r
+`
 	}
 	function processHeader(request, key, val2, skipAppend = false) {
 		if (val2 && typeof val2 === 'object' && !Array.isArray(val2)) {
@@ -86809,7 +87129,7 @@ var require_constants12 = __commonJS((exports) => {
 		FINISH2[(FINISH2['UNSAFE'] = 2)] = 'UNSAFE'
 	})((FINISH = exports.FINISH || (exports.FINISH = {})))
 	exports.ALPHA = []
-	for (let i = 'A'.charCodeAt(0); i <= 'Z'.charCodeAt(0); i++) {
+	for (let i = 65; i <= 90; i++) {
 		exports.ALPHA.push(String.fromCharCode(i))
 		exports.ALPHA.push(String.fromCharCode(i + 32))
 	}
@@ -87357,7 +87677,8 @@ var require_client2 = __commonJS((exports, module) => {
 			this[kLocalAddress] = localAddress != null ? localAddress : null
 			this[kResuming] = 0
 			this[kNeedDrain] = 0
-			this[kHostHeader] = `host: ${this[kUrl].hostname}${this[kUrl].port ? `:${this[kUrl].port}` : ''}\r\n`
+			this[kHostHeader] = `host: ${this[kUrl].hostname}${this[kUrl].port ? `:${this[kUrl].port}` : ''}\r
+`
 			this[kBodyTimeout] = bodyTimeout != null ? bodyTimeout : 300000
 			this[kHeadersTimeout] = headersTimeout != null ? headersTimeout : 300000
 			this[kStrictContentLength] = strictContentLength == null ? true : strictContentLength
@@ -88325,18 +88646,24 @@ var require_client2 = __commonJS((exports, module) => {
 		if (blocking) {
 			socket[kBlocking] = true
 		}
-		let header = `${method} ${path} HTTP/1.1\r\n`
+		let header = `${method} ${path} HTTP/1.1\r
+`
 		if (typeof host === 'string') {
-			header += `host: ${host}\r\n`
+			header += `host: ${host}\r
+`
 		} else {
 			header += client[kHostHeader]
 		}
 		if (upgrade) {
-			header += `connection: upgrade\r\nupgrade: ${upgrade}\r\n`
+			header += `connection: upgrade\r
+upgrade: ${upgrade}\r
+`
 		} else if (client[kPipelining] && !socket[kReset]) {
-			header += 'connection: keep-alive\r\n'
+			header += `connection: keep-alive\r
+`
 		} else {
-			header += 'connection: close\r\n'
+			header += `connection: close\r
+`
 		}
 		if (headers) {
 			header += headers
@@ -88346,16 +88673,30 @@ var require_client2 = __commonJS((exports, module) => {
 		}
 		if (!body || bodyLength === 0) {
 			if (contentLength === 0) {
-				socket.write(`${header}content-length: 0\r\n\r\n`, 'latin1')
+				socket.write(
+					`${header}content-length: 0\r
+\r
+`,
+					'latin1'
+				)
 			} else {
 				assert(contentLength === null, 'no body must not have content length')
-				socket.write(`${header}\r\n`, 'latin1')
+				socket.write(
+					`${header}\r
+`,
+					'latin1'
+				)
 			}
 			request.onRequestSent()
 		} else if (util.isBuffer(body)) {
 			assert(contentLength === body.byteLength, 'buffer body must have content length')
 			socket.cork()
-			socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, 'latin1')
+			socket.write(
+				`${header}content-length: ${contentLength}\r
+\r
+`,
+				'latin1'
+			)
 			socket.write(body)
 			socket.uncork()
 			request.onBodySent(body)
@@ -88657,7 +88998,12 @@ var require_client2 = __commonJS((exports, module) => {
 				h2stream.uncork()
 			} else {
 				socket.cork()
-				socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, 'latin1')
+				socket.write(
+					`${header}content-length: ${contentLength}\r
+\r
+`,
+					'latin1'
+				)
 				socket.write(buffer)
 				socket.uncork()
 			}
@@ -88766,13 +89112,27 @@ var require_client2 = __commonJS((exports, module) => {
 					socket[kReset] = true
 				}
 				if (contentLength === null) {
-					socket.write(`${header}transfer-encoding: chunked\r\n`, 'latin1')
+					socket.write(
+						`${header}transfer-encoding: chunked\r
+`,
+						'latin1'
+					)
 				} else {
-					socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, 'latin1')
+					socket.write(
+						`${header}content-length: ${contentLength}\r
+\r
+`,
+						'latin1'
+					)
 				}
 			}
 			if (contentLength === null) {
-				socket.write(`\r\n${len.toString(16)}\r\n`, 'latin1')
+				socket.write(
+					`\r
+${len.toString(16)}\r
+`,
+					'latin1'
+				)
 			}
 			this.bytesWritten += len
 			const ret = socket.write(chunk)
@@ -88799,12 +89159,27 @@ var require_client2 = __commonJS((exports, module) => {
 			}
 			if (bytesWritten === 0) {
 				if (expectsPayload) {
-					socket.write(`${header}content-length: 0\r\n\r\n`, 'latin1')
+					socket.write(
+						`${header}content-length: 0\r
+\r
+`,
+						'latin1'
+					)
 				} else {
-					socket.write(`${header}\r\n`, 'latin1')
+					socket.write(
+						`${header}\r
+`,
+						'latin1'
+					)
 				}
 			} else if (contentLength === null) {
-				socket.write('\r\n0\r\n\r\n', 'latin1')
+				socket.write(
+					`\r
+0\r
+\r
+`,
+					'latin1'
+				)
 			}
 			if (contentLength !== null && bytesWritten !== contentLength) {
 				if (client[kStrictContentLength]) {
@@ -91145,7 +91520,7 @@ var require_pending_interceptors_formatter2 = __commonJS((exports, module) => {
 					Origin: origin,
 					Path: path,
 					'Status code': statusCode,
-					Persistent: persist ? '\u2705' : '\u274C',
+					Persistent: persist ? '✅' : '❌',
 					Invocations: timesInvoked,
 					Remaining: persist ? Infinity : times - timesInvoked,
 				})
@@ -98846,7 +99221,9 @@ var require_dist_node9 = __commonJS((exports, module) => {
 	function _buildMessageForResponseErrors(data) {
 		return (
 			`Request failed due to following response errors:
-` + data.errors.map((e) => ` - ${e.message}`).join('\n')
+` +
+			data.errors.map((e) => ` - ${e.message}`).join(`
+`)
 		)
 	}
 	var GraphqlResponseError = class extends Error {
@@ -102798,7 +103175,7 @@ var require_unzip_stream = __commonJS((exports, module) => {
 		return vars
 	}
 	var cp437 =
-		'\0\u263A\u263B\u2665\u2666\u2663\u2660\u2022\u25D8\u25CB\u25D9\u2642\u2640\u266A\u266B\u263C\u25BA\u25C4\u2195\u203C\xB6\xA7\u25AC\u21A8\u2191\u2193\u2192\u2190\u221F\u2194\u25B2\u25BC !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\u2302\xC7\xFC\xE9\xE2\xE4\xE0\xE5\xE7\xEA\xEB\xE8\xEF\xEE\xEC\xC4\xC5\xC9\xE6\xC6\xF4\xF6\xF2\xFB\xF9\xFF\xD6\xDC\xA2\xA3\xA5\u20A7\u0192\xE1\xED\xF3\xFA\xF1\xD1\xAA\xBA\xBF\u2310\xAC\xBD\xBC\xA1\xAB\xBB\u2591\u2592\u2593\u2502\u2524\u2561\u2562\u2556\u2555\u2563\u2551\u2557\u255D\u255C\u255B\u2510\u2514\u2534\u252C\u251C\u2500\u253C\u255E\u255F\u255A\u2554\u2569\u2566\u2560\u2550\u256C\u2567\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256B\u256A\u2518\u250C\u2588\u2584\u258C\u2590\u2580\u03B1\xDF\u0393\u03C0\u03A3\u03C3\xB5\u03C4\u03A6\u0398\u03A9\u03B4\u221E\u03C6\u03B5\u2229\u2261\xB1\u2265\u2264\u2320\u2321\xF7\u2248\xB0\u2219\xB7\u221A\u207F\xB2\u25A0 '
+		'\x00☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ '
 	UnzipStream.prototype._decodeString = function (buffer, isUtf8) {
 		if (isUtf8) {
 			return buffer.toString('utf8')
@@ -103364,9 +103741,8 @@ var require_download_artifact = __commonJS((exports) => {
 			}
 			const { artifacts } = yield artifactClient.ListArtifacts(listReq)
 			if (artifacts.length === 0) {
-				throw new errors_1.ArtifactNotFoundError(
-					`No artifacts found for ID: ${artifactId}\nAre you trying to download from a different run? Try specifying a github-token with \`actions:read\` scope.`
-				)
+				throw new errors_1.ArtifactNotFoundError(`No artifacts found for ID: ${artifactId}
+Are you trying to download from a different run? Try specifying a github-token with \`actions:read\` scope.`)
 			}
 			if (artifacts.length > 1) {
 				core.warning('Multiple artifacts found, defaulting to first.')
@@ -107306,7 +107682,8 @@ xychart-beta
     title "${title}"
     x-axis "${xLabel}" 0 --> 10
     y-axis "${yLabel}" ${Math.floor(min * 0.9)} --> ${Math.ceil(max * 1.1)}
-    ${lines.join('\n    ')}
+    ${lines.join(`
+    `)}
 \`\`\`
 `
 }
@@ -107318,7 +107695,7 @@ var renderReport = (variant, metrics) => `\uD83C\uDF0B Here are results of SLO t
 
 ${renderChart('operation_type=read', metrics['read_availability'], 'Time, m', 'Success Rate, %')}
 
-${renderChart('operation_type=write', metrics['write_availability'], '	Time, m', 'Success Rate, %')}
+${renderChart('operation_type=write', metrics['write_availability'], '\tTime, m', 'Success Rate, %')}
 
 ### Operations Per Second
 
