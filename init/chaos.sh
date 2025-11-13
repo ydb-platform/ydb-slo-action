@@ -17,18 +17,55 @@ get_random_container() {
     nodeForChaos=$(echo "$containers" | sed -n "$(($randomIndex + 1))p")
 }
 
-sleep 60
-
-get_random_container
-sh -c "docker stop ${nodeForChaos} -t 30"
-sh -c "docker start ${nodeForChaos}"
-
-sleep 60
+sleep 30
 
 get_random_container
 sh -c "docker restart ${nodeForChaos} -t 0"
 
 sleep 60
+
+rolling_restart() {
+    containers=$(docker ps --format '{{.Names}}' | grep '^ydb-database-')
+
+    count=0
+    n1=
+    n2=
+    for name in $containers; do
+        if [ "$count" -eq 0 ]; then
+            n1="$name"
+            count=1
+        else
+            n2="$name"
+            count=2
+        fi
+
+        if [ "$count" -eq 2 ]; then
+            echo "Restarting in parallel: $n1 and $n2 (soft restart, 10s timeout)"
+
+            sh -c "docker restart -t 30 \"$n1\"" &
+            pid1=$!
+            sh -c "docker restart -t 30 \"$n2\"" &
+            pid2=$!
+            wait "$pid1"
+            wait "$pid2"
+
+            count=0
+            n1=
+            n2=
+            sleep 60
+        fi
+    done
+
+    if [ "$count" -eq 1 ] && [ -n "$n1" ]; then
+        echo "Restart last node: $n1"
+        sh -c "docker restart -t 30 \"$n1\"" &
+        pid=$!
+        wait "$pid"
+        sleep 60
+    fi
+}
+
+rolling_restart
 
 get_random_container
 sh -c "docker kill -s SIGKILL ${nodeForChaos}"
