@@ -53,7 +53,10 @@
 		"**/*.{ts,js,json,md}": [
 			"bun run --bun oxlint --fix --node-plugin --import-plugin",
 			"bun run --bun prettier --write"
+		],
+		"{init,report}/**": [
+			"bun run bundle",
+			"git add -f dist"
 		]
-	},
-	"module": "index.ts"
+	}
 }
