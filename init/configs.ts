@@ -128,9 +128,9 @@ let generateMonitoring = () =>
     <<: *runtime
     ports:
       - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
-	command:
-	  - "--web.enable-otlp-receiver"
-	  - "--config.file=/etc/prometheus/prometheus.yml"
+    command:
+      - "--web.enable-otlp-receiver"
+      - "--config.file=/etc/prometheus/prometheus.yml"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     deploy: &monitoring-deploy
