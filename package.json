@@ -1,16 +1,13 @@
 {
 	"name": "@ydb-platform/ydb-slo-action",
 	"type": "module",
-	"workspaces": [
-		"init",
-		"report"
-	],
 	"packageManager": "bun@1.1.32",
 	"scripts": {
 		"prepare": "husky",
-		"bundle": "npm run --workspaces bundle",
-		"format": "npm run --workspaces format",
-		"lint": "npm run --workspaces lint"
+		"prebundle": "rm -rf dist",
+		"bundle": "bun build init/main.ts init/post.ts report/main.ts --target=node --format=esm --splitting --minify-syntax --sourcemap=inline --outdir dist",
+		"format": "bunx --bun prettier **/*.ts --write",
+		"lint": "bunx --bun oxlint **/*.ts --fix --node-plugin --import-plugin"
 	},
 	"dependencies": {
 		"@actions/artifact": "^4.0.0",
@@ -19,7 +16,7 @@
 		"@actions/github": "^6.0.0"
 	},
 	"devDependencies": {
-		"@types/bun": "latest",
+		"@types/bun": "^1.3.2",
 		"husky": "^9.1.7",
 		"oxlint": "^1.28.0",
 		"prettier": "^3.6.2"

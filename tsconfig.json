@@ -12,9 +12,6 @@
 		"resolveJsonModule": true,
 		"verbatimModuleSyntax": true,
 
-		// Node.js types
-		"types": ["node"],
-
 		// Best practices
 		"strict": true,
 		"skipLibCheck": true,
