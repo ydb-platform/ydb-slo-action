@@ -37,5 +37,5 @@ inputs:
 
 runs:
   using: "node24"
-  main: "../dist/main.js"
-  post: "../dist/post.js"
+  main: "../dist/init/main.js"
+  post: "../dist/init/post.js"
