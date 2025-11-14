@@ -1,0 +1,146 @@
+# Base compose file for YDB SLO Action.
+# This file is a template used by init/configs.ts to generate the final docker-compose.yml
+
+x-runtime: &runtime
+  platform: linux/amd64
+  privileged: true
+  network_mode: host
+
+x-ydb-node: &ydb-node
+  image: cr.yandex/crptqonuodf51kdj7a7d/ydb:25.2.1.10-rc
+  restart: always
+  hostname: ${HOST}
+  <<: *runtime
+  volumes:
+    - ./ydb.yaml:/opt/ydb/cfg/config.yaml
+
+name: ydb
+
+services:
+  static-0:
+    <<: *ydb-node
+    container_name: ydb-static-0
+    command:
+      - /opt/ydb/bin/ydbd
+      - server
+      - --grpc-port
+      - "${YDB_GRPC_PORT}"
+      - --mon-port
+      - "${YDB_MON_PORT}"
+      - --ic-port
+      - "${YDB_IC_PORT}"
+      - --yaml-config
+      - /opt/ydb/cfg/config.yaml
+      - --node
+      - static
+      - --label
+      - deployment=docker
+    ports:
+      - ${YDB_GRPC_PORT}:${YDB_GRPC_PORT}
+      - ${YDB_MON_PORT}:${YDB_MON_PORT}
+      - ${YDB_IC_PORT}:${YDB_IC_PORT}
+    healthcheck:
+      test: bash -c "exec 6<> /dev/tcp/${HOST}/${YDB_GRPC_PORT}"
+      interval: 10s
+      timeout: 1s
+      retries: 3
+      start_period: 30s
+
+  static-init:
+    <<: *ydb-node
+    restart: on-failure
+    container_name: ydb-static-init
+    command:
+      - /opt/ydb/bin/ydbd
+      - -s
+      - ${YDB_ENDPOINT}
+      - admin
+      - blobstorage
+      - config
+      - init
+      - --yaml-file
+      - /opt/ydb/cfg/config.yaml
+    depends_on:
+      static-0:
+        condition: service_healthy
+
+  tenant-init:
+    <<: *ydb-node
+    restart: on-failure
+    container_name: ydb-tenant-init
+    command:
+      - /opt/ydb/bin/ydbd
+      - -s
+      - ${YDB_ENDPOINT}
+      - admin
+      - database
+      - ${YDB_TENANT}
+      - create
+      - ssd:1
+    depends_on:
+      static-init:
+        condition: service_completed_successfully
+
+  # Template for database nodes
+  # DO NOT REMOVE INLINE COMMENTS BELOW
+  _database_template_:
+    <<: *ydb-node
+    container_name: ydb-database
+    command:
+      - /opt/ydb/bin/ydbd
+      - server
+      - --grpc-port
+      - "${YDB_GRPC_PORT}" # GRPC_PORT
+      - --mon-port
+      - "${YDB_MON_PORT}" # MON_PORT
+      - --ic-port
+      - "${YDB_IC_PORT}" # IC_PORT
+      - --yaml-config
+      - /opt/ydb/cfg/config.yaml
+      - --tenant
+      - ${YDB_TENANT}
+      - --node-broker
+      - ${YDB_ENDPOINT}
+      - --label
+      - deployment=docker
+    ports:
+      - "${YDB_GRPC_PORT}:${YDB_GRPC_PORT}" # GRPC_PORT_MAP
+      - "${YDB_MON_PORT}:${YDB_MON_PORT}" # MON_PORT_MAP
+      - "${YDB_IC_PORT}:${YDB_IC_PORT}" # IC_PORT_MAP
+    healthcheck:
+      test: bash -c "exec 6<> /dev/tcp/${HOST}/${YDB_GRPC_PORT}" # HEALTHCHECK_PORT
+      interval: 10s
+      timeout: 1s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      static-0:
+        condition: service_healthy
+      static-init:
+        condition: service_completed_successfully
+      tenant-init:
+        condition: service_completed_successfully
+
+  otel:
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    restart: unless-stopped
+    <<: *runtime
+    container_name: otel-collector
+    command: [--config=/etc/otel-collector.yml]
+    volumes:
+      - ./otel-collector.yml:/etc/otel-collector.yml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9091:9091" # Prometheus Remote Write (was Pushgateway)
+      - "9090:9090" # Prometheus Exporter (was Prometheus)
+
+  chaos:
+    image: docker
+    restart: on-failure
+    container_name: ydb-chaos
+    <<: *runtime
+    entrypoint: ["/bin/sh", "-c", "/opt/ydb/chaos.sh"]
+    volumes:
+      - ./chaos.sh:/opt/ydb/chaos.sh
+      - /var/run/docker.sock:/var/run/docker.sock

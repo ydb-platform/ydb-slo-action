@@ -1,0 +1,34 @@
+metadata:
+  kind: MainConfig
+  cluster: ydb-slo-testing
+  version: 0
+config:
+  erasure: none
+
+  actor_system_config:
+    use_auto_config: true
+    cpu_count: 4
+
+  feature_flags:
+    enable_drain_on_shutdown: false
+    enable_mvcc_snapshot_reads: true
+    enable_persistent_query_stats: true
+    enable_public_api_external_blobs: false
+    enable_scheme_transactions_at_scheme_shard: true
+
+  host_configs:
+    - host_config_id: 1
+      drive:
+        - path: SectorMap:1:64
+          type: SSD
+        - path: SectorMap:2:64
+          type: SSD
+        - path: SectorMap:3:64
+          type: SSD
+
+  hosts:
+    - host: localhost
+      port: 19001
+      host_config_id: 1
+      location:
+        data_center: az-1
