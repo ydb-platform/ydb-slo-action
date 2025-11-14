@@ -5,8 +5,8 @@ import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, info, saveState } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import prometheusConfig from './cfg/prom/config.yml' with { type: 'text' }
-import ydbConfig from './cfg/ydb/erasure-none.yaml' with { type: 'text' }
+import prometheusConfig from './cfg/otel-collector.yml' with { type: 'text' }
+import ydbConfig from './cfg/ydb-config.yml' with { type: 'text' }
 import chaos from './chaos.sh' with { type: 'text' }
 
 import { generateComposeFile } from './configs.js'
