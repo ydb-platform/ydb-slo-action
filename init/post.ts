@@ -1,58 +1,98 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
-import { exec } from '@actions/exec'
-import { debug, getInput, getState, info, warning } from '@actions/core'
 import { DefaultArtifactClient } from '@actions/artifact'
-
-import { collectPrometheus } from './prometheus.js'
-import { defaultMetrics } from './metrics.js'
+import { debug, getState, info, warning } from '@actions/core'
+import { exec } from '@actions/exec'
 
 async function post() {
 	let cwd = getState('cwd')
-	let pull = getState('pull')
 	let workload = getState('workload')
 
-	let end = new Date()
 	let start = new Date(getState('start'))
-	let warmup = parseInt(getInput('warmup_seconds') || '0')
+	let finish = new Date()
+	let duration = finish.getTime() - start.getTime()
 
-	let artifactClient = new DefaultArtifactClient()
+	const artifactClient = new DefaultArtifactClient()
+	let composeLogsPath = path.join(cwd, `${workload}-compose.log`)
+	let metricsFilePath = getState('telemetry_metrics_file') || path.join(cwd, 'metrics.jsonl')
+	let pullInfoPath = getState('pull_info_path')
 
-	info('Collecting metrics for head ref...')
-	let adjStart = new Date(start.getTime() + warmup * 1000) // skip first warmup seconds
-	let metrics = await collectPrometheus(adjStart, end, defaultMetrics)
-	info(`Metrics collected for head ref: ${Object.keys(metrics)}`)
-	debug(`Head ref metrics: ${Object.keys(metrics)}`)
-
-	if (!Object.keys(metrics).length) {
-		warning('No metrics collected.')
-		return
-	}
-
+	/**
+	 * Collect docker compose logs
+	 */
 	{
-		info('Writing metrics...')
-		let metricsPath = path.join(cwd, `${workload}-metrics.json`)
-		fs.writeFileSync(metricsPath, JSON.stringify(metrics), { encoding: 'utf-8' })
-		info(`Metrics written to ${metricsPath}`)
+		const chunks: string[] = []
 
-		info('Upload metrics as an artifact...')
-		let { id } = await artifactClient.uploadArtifact(`${workload}-metrics.json`, [metricsPath], cwd, {
-			retentionDays: pull ? 1 : 30,
-		})
-		info(`Metrics uploaded as an artifact ${id}`)
+		try {
+			await exec(`docker`, [`compose`, `-f`, `compose.yml`, `logs`, `--no-color`], {
+				cwd,
+				silent: true,
+				listeners: {
+					stdout: (data) => chunks.push(data.toString()),
+					stderr: (data) => chunks.push(data.toString()),
+				},
+			})
+
+			fs.writeFileSync(composeLogsPath, chunks.join(''), { encoding: 'utf-8' })
+			debug(`docker compose logs saved to ${composeLogsPath}`)
+		} catch (error) {
+			warning(`Failed to collect docker compose logs: ${String(error)}`)
+			composeLogsPath = ''
+		}
 	}
 
-	info('Stopping YDB...')
-	await exec(`docker`, [`compose`, `-f`, `compose.yaml`, `down`], { cwd })
+	/**
+	 * Stop docker compose
+	 */
+	{
+		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], { cwd })
+	}
 
-	info(`YDB stopped at ${end}`)
+	/**
+	 * Persist telemetry metrics
+	 */
+	{
+		if (!metricsFilePath || !fs.existsSync(metricsFilePath)) {
+			warning(`Metrics file not found at ${metricsFilePath}`)
+			metricsFilePath = ''
+		}
+	}
 
-	let duration = end.getTime() - start.getTime()
-	info(`YDB SLO Test duration: ${duration}ms.`)
+	/**
+	 * Upload artifacts
+	 */
+	{
+		const artifacts = [
+			pullInfoPath ? { name: `${workload}-pull.txt`, path: pullInfoPath } : null,
+			composeLogsPath ? { name: `${workload}-compose.log`, path: composeLogsPath } : null,
+			metricsFilePath ? { name: `${workload}-metrics.jsonl`, path: metricsFilePath } : null,
+		].filter(Boolean) as { name: string; path: string }[]
 
-	debug('Cleaning up temp directory...')
-	fs.rmSync(cwd, { recursive: true })
+		for (const artifact of artifacts) {
+			if (!fs.existsSync(artifact.path)) {
+				warning(`Artifact source missing: ${artifact.path}`)
+				continue
+			}
+
+			let { id } = await artifactClient.uploadArtifact(artifact.name, [artifact.path], cwd, {
+				retentionDays: 1,
+			})
+
+			info(`Uploaded artifact ${artifact.name} (id: ${id})`)
+		}
+	}
+
+	/**
+	 * Cleanup
+	 */
+	{
+		fs.rmSync(cwd, { recursive: true })
+		debug(`Removed .slo workspace: ${cwd}`)
+
+		let seconds = (duration / 1000).toFixed(1)
+		info(`YDB SLO Test duration: ${seconds}s`)
+	}
 }
 
 post()
