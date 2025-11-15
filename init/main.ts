@@ -1,88 +1,88 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { DefaultArtifactClient } from '@actions/artifact'
-import { debug, getInput, info, saveState } from '@actions/core'
+import { debug, getInput, info, saveState, setFailed } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import prometheusConfig from './cfg/otel-collector.yml' with { type: 'text' }
-import ydbConfig from './cfg/ydb-config.yml' with { type: 'text' }
-import chaos from './chaos.sh' with { type: 'text' }
-
-import { generateComposeFile } from './configs.js'
-import { HOST, PROMETHEUS_PUSHGATEWAY_PORT } from './constants.js'
 import { getPullRequestNumber } from './pulls.js'
 
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
-	let workload = getInput('workload_name') || getInput('sdk_name') || 'unspecified'
+	let workload = getInput('workload_name') || 'unspecified'
 
 	saveState('cwd', cwd)
 	saveState('workload', workload)
 
-	debug('Creating working directory...')
-	fs.mkdirSync(cwd, { recursive: true })
+	/**
+	 * Prepare working directory
+	 */
+	{
+		fs.mkdirSync(cwd, { recursive: true })
+	}
 
-	PR: {
-		info('Aquire pull request number...')
-		let prNumber = (await getPullRequestNumber()) || -1
-		info(`Pull request number: ${prNumber}`)
+	let prNumber = await getPullRequestNumber()
+	if (!prNumber) {
+		setFailed('Pull request number not found')
+		return
+	}
 
-		if (prNumber < 0) {
-			break PR
-		}
+	saveState('pull', prNumber)
 
-		saveState('pull', prNumber)
-
-		info('Writing pull number...')
+	/**
+	 * Prepare pull request information
+	 */
+	{
 		let pullPath = path.join(cwd, `${workload}-pull.txt`)
 		fs.writeFileSync(pullPath, prNumber.toFixed(0), { encoding: 'utf-8' })
-		info(`Pull number written to ${pullPath}`)
-
 		let artifactClient = new DefaultArtifactClient()
+		let { id } = await artifactClient.uploadArtifact(`${workload}-pull.txt`, [pullPath], cwd, {
+			retentionDays: 1,
+		})
 
-		info('Upload pull number as an artifact...')
-		let { id } = await artifactClient.uploadArtifact(`${workload}-pull.txt`, [pullPath], cwd, { retentionDays: 1 })
-		info(`Pull number uploaded as an artifact ${id}`)
+		debug(`Pull request information artifact id: ${id}`)
 	}
 
+	/**
+	 * Copy deploy assets
+	 */
 	{
-		info('Creating ydb config...')
-		let configPath = path.join(cwd, 'ydb.yaml')
-		let configContent = ydbConfig.replaceAll('${{ host }}', HOST)
+		const actionRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../')
+		const deployPath = path.join(actionRoot, 'deploy')
 
-		fs.writeFileSync(configPath, configContent, { encoding: 'utf-8' })
-		info(`Created config for ydb: ${configPath}`)
+		if (!fs.existsSync(deployPath)) {
+			setFailed(`Deploy assets not found at ${deployPath}`)
+			return
+		}
+
+		for (let entry of fs.readdirSync(deployPath)) {
+			let src = path.join(deployPath, entry)
+			let dest = path.join(cwd, entry)
+			fs.cpSync(src, dest, { recursive: true })
+		}
+
+		debug(`Deploy assets copied to ${cwd}`)
+		debug(`Deploy assets: ${fs.readdirSync(cwd)}`)
 	}
 
+	/**
+	 * Prepare telemetry metrics file
+	 */
 	{
-		info('Creating prometheus config...')
-		let configPath = path.join(cwd, 'prometheus.yml')
-		let configContent = prometheusConfig.replace('${{ pushgateway }}', `${HOST}:${PROMETHEUS_PUSHGATEWAY_PORT}`)
+		let metricsFilePath = path.join(cwd, 'metrics.jsonl')
+		saveState('telemetry_metrics_file', metricsFilePath)
+		fs.writeFileSync(metricsFilePath, '', { encoding: 'utf-8' })
 
-		fs.writeFileSync(configPath, configContent, { encoding: 'utf-8' })
-		info(`Created config for prometheus: ${configPath}`)
+		debug(`Telemetry metrics file: ${metricsFilePath}`)
 	}
 
+	/**
+	 * Start YDB services
+	 */
 	{
-		info('Creating chaos script...')
-		let scriptPath = path.join(cwd, 'chaos.sh')
-
-		fs.writeFileSync(scriptPath, chaos, { encoding: 'utf-8', mode: 0o755 })
-		info(`Created chaos script: ${scriptPath}`)
+		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `up`, `--quiet-pull`, `-d`], { cwd })
 	}
-
-	{
-		info('Creating compose config...')
-		let composePath = path.join(cwd, 'compose.yaml')
-		let composeContent = generateComposeFile(parseInt(getInput('ydb_database_node_count', { required: true })))
-
-		fs.writeFileSync(composePath, composeContent, { encoding: 'utf-8' })
-		info(`Created compose.yaml: ${composePath}`)
-	}
-
-	info('Starting YDB...')
-	await exec(`docker`, [`compose`, `-f`, `compose.yaml`, `up`, `--quiet-pull`, `-d`], { cwd })
 
 	let start = new Date()
 	info(`YDB started at ${start}`)
