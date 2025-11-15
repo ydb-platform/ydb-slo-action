@@ -1,0 +1,125 @@
+x-runtime: &runtime
+  platform: linux/amd64
+  privileged: true
+  network_mode: host
+
+x-ydb-node: &ydb-node
+  build:
+    context: ./ydb
+  restart: always
+  hostname: localhost
+  <<: *runtime
+
+name: ydb
+
+services:
+  storage-1:
+    <<: *ydb-node
+    container_name: ydb-storage-1
+    environment:
+      - YDB_GRPC_PORT=2136
+      - YDB_MON_PORT=8765
+      - YDB_IC_PORT=19001
+    labels:
+      - ydb.node.type=storage
+
+  database-1:
+    <<: *ydb-node
+    container_name: ydb-database-1
+    environment:
+      - YDB_ENDPOINT=grpc://localhost:2136
+      - YDB_TENANT=/Root/testdb
+      - YDB_GRPC_PORT=2137
+      - YDB_MON_PORT=8766
+      - YDB_IC_PORT=19002
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-2:
+    <<: *ydb-node
+    container_name: ydb-database-2
+    environment:
+      - YDB_ENDPOINT=grpc://localhost:2136
+      - YDB_TENANT=/Root/testdb
+      - YDB_GRPC_PORT=2138
+      - YDB_MON_PORT=8767
+      - YDB_IC_PORT=19003
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-3:
+    <<: *ydb-node
+    container_name: ydb-database-3
+    environment:
+      - YDB_ENDPOINT=grpc://localhost:2136
+      - YDB_TENANT=/Root/testdb
+      - YDB_GRPC_PORT=2139
+      - YDB_MON_PORT=8768
+      - YDB_IC_PORT=19004
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  storage-init:
+    <<: *ydb-node
+    restart: no
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://localhost:2136
+      - YDB_INIT_OPERATION=bootstrap
+    depends_on:
+      storage-1:
+        condition: service_healthy
+
+  database-init:
+    <<: *ydb-node
+    restart: no
+    environment:
+      - YDB_ENDPOINT=grpc://localhost:2136
+      - YDB_INIT_OPERATION=create-database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+
+  otel:
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    restart: unless-stopped
+    <<: *runtime
+    container_name: otel-collector
+    command: [--config=/etc/otelcol-contrib/config.yaml]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml
+      - ./metrics.jsonl:/data/metrics.jsonl
+
+  chaos:
+    image: docker
+    restart: on-failure
+    network_mode: host
+    container_name: ydb-chaos
+    <<: *runtime
+    entrypoint: ["/bin/sh", "-c", "/opt/ydb/scripts/chaos.sh"]
+    volumes:
+      - ./chaos.sh:/opt/ydb/scripts/chaos.sh
+      - /var/run/docker.sock:/var/run/docker.sock

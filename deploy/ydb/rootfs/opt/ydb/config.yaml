@@ -4,10 +4,19 @@ metadata:
   version: 0
 config:
   erasure: none
+  fail_domain_type: disk
+  default_disk_type: SSD
+  yaml_config_enabled: true
 
   actor_system_config:
     use_auto_config: true
-    cpu_count: 4
+    cpu_count: 1
+
+  memory_controller_config:
+    hard_limit_bytes: 4294967296
+
+  self_management_config:
+    enabled: true
 
   feature_flags:
     enable_drain_on_shutdown: false
