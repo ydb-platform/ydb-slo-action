@@ -38,8 +38,7 @@ start_ydb_node() {
     local ydb_args=(
         "ydbd"
         "server"
-        "--yaml-config" "/opt/ydb/config.yaml"
-        "--config-dir" "/opt/ydb/cfg"
+        "--yaml-config" "/opt/ydb.tech/ydbd/cfg/config.yaml"
         "--grpc-port" "$grpc_port"
         "--mon-port" "$mon_port"
         "--ic-port" "$ic_port"
@@ -63,7 +62,7 @@ start_ydb_node() {
 
 ydb version --disable-checks > /dev/null 2>&1
 
-if [[ "$1" == "/opt/ydb/bin/ydbd" || -n "$YDB_INIT_OPERATION" ]]; then
+if [[ "$1" == "/opt/ydb.tech/ydbd/bin/ydbd" || -n "$YDB_INIT_OPERATION" ]]; then
     case "$YDB_INIT_OPERATION" in
         "bootstrap")
             perform_cluster_bootstrap
