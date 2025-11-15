@@ -46,21 +46,9 @@ jobs:
 
       - name: Run SLO Tests
         run: |
-          sleep 60
+          sleep 300
 
       - if: always()
         name: Cleanup SLO Database
         run: |
           echo "Cleaning up SLO database..."
-
-      - if: always()
-        name: Store ydb chaos testing logs
-        run: |
-          docker logs ydb-chaos > chaos-ydb.log
-
-      - if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: ${{ matrix.workload }}-chaos-ydb.log
-          path: ./chaos-ydb.log
-          retention-days: 1
