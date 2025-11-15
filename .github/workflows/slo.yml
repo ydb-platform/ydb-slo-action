@@ -11,15 +11,6 @@ on:
     inputs:
       github_pull_request_number:
         required: true
-      slo_workload_duration_seconds:
-        default: "600"
-        required: false
-      slo_workload_read_max_rps:
-        default: "1000"
-        required: false
-      slo_workload_write_max_rps:
-        default: "100"
-        required: false
 
 jobs:
   ydb-slo-action:
@@ -43,12 +34,11 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Initialize YDB SLO
-        uses: ydb-platform/ydb-slo-action/init@main
+        uses: ydb-platform/ydb-slo-action/init@feat/ydb-config-v2
         with:
           github_pull_request_number: ${{ github.event.inputs.github_pull_request_number }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workload_name: ${{ matrix.workload }}
-          ydb_database_node_count: 5
 
       - name: Prepare SLO Database
         run: |
