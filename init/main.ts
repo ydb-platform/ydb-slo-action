@@ -69,6 +69,7 @@ async function main() {
 		let metricsFilePath = path.join(cwd, 'metrics.jsonl')
 		saveState('telemetry_metrics_file', metricsFilePath)
 		fs.writeFileSync(metricsFilePath, '', { encoding: 'utf-8' })
+		fs.chmodSync(metricsFilePath, 0o666)
 
 		debug(`Telemetry metrics file: ${metricsFilePath}`)
 	}
