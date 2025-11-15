@@ -103,23 +103,34 @@ services:
       storage-init:
         condition: service_completed_successfully
 
-  otel:
-    image: otel/opentelemetry-collector-contrib:0.139.0
+  prometheus:
+    image: prom/prometheus:latest
     restart: unless-stopped
     <<: *runtime
-    container_name: otel-collector
-    command: [--config=/etc/otelcol-contrib/config.yaml]
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver
+      - --web.enable-otlp-receiver
     volumes:
-      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml
-      - ./metrics.jsonl:/data/metrics.jsonl
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
 
-  chaos:
-    image: docker
+  chaos-monkey:
+    build:
+      context: ./chaos
     restart: on-failure
-    network_mode: host
-    container_name: ydb-chaos
     <<: *runtime
-    entrypoint: ["/bin/sh", "-c", "/opt/ydb/scripts/chaos.sh"]
+    container_name: ydb-chaos-monkey
+    environment:
+      - CHAOS_SCENARIO_DELAY=60
     volumes:
-      - ./chaos.sh:/opt/ydb/scripts/chaos.sh
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      database-1:
+        condition: service_healthy
+      database-2:
+        condition: service_healthy
+      database-3:
+        condition: service_healthy
