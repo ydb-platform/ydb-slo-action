@@ -2,57 +2,52 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 import { exec } from '@actions/exec'
-import { debug, getInput, getState, info, warning } from '@actions/core'
+import { debug, getState, info, warning } from '@actions/core'
 import { DefaultArtifactClient } from '@actions/artifact'
-
-import { collectPrometheus } from './prometheus.js'
-import { defaultMetrics } from './metrics.js'
 
 async function post() {
 	let cwd = getState('cwd')
-	let pull = getState('pull')
 	let workload = getState('workload')
 
-	let end = new Date()
 	let start = new Date(getState('start'))
-	let warmup = parseInt(getInput('warmup_seconds') || '0')
+	let finish = new Date()
+	let duration = finish.getTime() - start.getTime()
 
-	let artifactClient = new DefaultArtifactClient()
-
-	info('Collecting metrics for head ref...')
-	let adjStart = new Date(start.getTime() + warmup * 1000) // skip first warmup seconds
-	let metrics = await collectPrometheus(adjStart, end, defaultMetrics)
-	info(`Metrics collected for head ref: ${Object.keys(metrics)}`)
-	debug(`Head ref metrics: ${Object.keys(metrics)}`)
-
-	if (!Object.keys(metrics).length) {
-		warning('No metrics collected.')
-		return
-	}
-
+	/**
+	 * Stop docker compose
+	 */
 	{
-		info('Writing metrics...')
-		let metricsPath = path.join(cwd, `${workload}-metrics.json`)
-		fs.writeFileSync(metricsPath, JSON.stringify(metrics), { encoding: 'utf-8' })
-		info(`Metrics written to ${metricsPath}`)
-
-		info('Upload metrics as an artifact...')
-		let { id } = await artifactClient.uploadArtifact(`${workload}-metrics.json`, [metricsPath], cwd, {
-			retentionDays: pull ? 1 : 30,
-		})
-		info(`Metrics uploaded as an artifact ${id}`)
+		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], { cwd })
 	}
 
-	info('Stopping YDB...')
-	await exec(`docker`, [`compose`, `-f`, `compose.yaml`, `down`], { cwd })
+	let metricsFilePath = getState('telemetry_metrics_file') || path.join(cwd, 'metrics.jsonl')
 
-	info(`YDB stopped at ${end}`)
+	/**
+	 * Persist telemetry metrics
+	 */
+	{
+		if (fs.existsSync(metricsFilePath)) {
+			let artifactClient = new DefaultArtifactClient()
+			let { id } = await artifactClient.uploadArtifact(`${workload}-metrics.jsonl`, [metricsFilePath], cwd, {
+				retentionDays: 1,
+			})
 
-	let duration = end.getTime() - start.getTime()
-	info(`YDB SLO Test duration: ${duration}ms.`)
+			debug(`Metrics artifact id: ${id}`)
+		} else {
+			warning(`Metrics file not found at ${metricsFilePath}`)
+		}
+	}
 
-	debug('Cleaning up temp directory...')
-	fs.rmSync(cwd, { recursive: true })
+	/**
+	 * Cleanup
+	 */
+	{
+		fs.rmSync(cwd, { recursive: true })
+		debug(`Removed .slo workspace: ${cwd}`)
+
+		let seconds = (duration / 1000).toFixed(1)
+		info(`YDB SLO Test duration: ${seconds}s`)
+	}
 }
 
 post()
