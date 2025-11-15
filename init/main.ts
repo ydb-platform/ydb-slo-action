@@ -2,7 +2,6 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, info, saveState, setFailed } from '@actions/core'
 import { exec } from '@actions/exec'
 
@@ -35,13 +34,10 @@ async function main() {
 	 */
 	{
 		let pullPath = path.join(cwd, `${workload}-pull.txt`)
+		saveState('pull_info_path', pullPath)
 		fs.writeFileSync(pullPath, prNumber.toFixed(0), { encoding: 'utf-8' })
-		let artifactClient = new DefaultArtifactClient()
-		let { id } = await artifactClient.uploadArtifact(`${workload}-pull.txt`, [pullPath], cwd, {
-			retentionDays: 1,
-		})
 
-		debug(`Pull request information artifact id: ${id}`)
+		debug(`Pull request information saved to ${pullPath}`)
 	}
 
 	/**
