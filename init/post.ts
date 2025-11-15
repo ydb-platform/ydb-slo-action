@@ -1,9 +1,9 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
-import { exec } from '@actions/exec'
-import { debug, getState, info, warning } from '@actions/core'
 import { DefaultArtifactClient } from '@actions/artifact'
+import { debug, getState, info, warning } from '@actions/core'
+import { exec } from '@actions/exec'
 
 async function post() {
 	let cwd = getState('cwd')
