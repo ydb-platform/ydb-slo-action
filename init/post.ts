@@ -13,6 +13,35 @@ async function post() {
 	let finish = new Date()
 	let duration = finish.getTime() - start.getTime()
 
+	const artifactClient = new DefaultArtifactClient()
+	let composeLogsPath = path.join(cwd, `${workload}-compose.log`)
+	let metricsFilePath = getState('telemetry_metrics_file') || path.join(cwd, 'metrics.jsonl')
+	let pullInfoPath = getState('pull_info_path')
+
+	/**
+	 * Collect docker compose logs
+	 */
+	{
+		const chunks: string[] = []
+
+		try {
+			await exec(`docker`, [`compose`, `-f`, `compose.yml`, `logs`, `--no-color`], {
+				cwd,
+				silent: true,
+				listeners: {
+					stdout: (data) => chunks.push(data.toString()),
+					stderr: (data) => chunks.push(data.toString()),
+				},
+			})
+
+			fs.writeFileSync(composeLogsPath, chunks.join(''), { encoding: 'utf-8' })
+			debug(`docker compose logs saved to ${composeLogsPath}`)
+		} catch (error) {
+			warning(`Failed to collect docker compose logs: ${String(error)}`)
+			composeLogsPath = ''
+		}
+	}
+
 	/**
 	 * Stop docker compose
 	 */
@@ -20,21 +49,37 @@ async function post() {
 		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], { cwd })
 	}
 
-	let metricsFilePath = getState('telemetry_metrics_file') || path.join(cwd, 'metrics.jsonl')
-
 	/**
 	 * Persist telemetry metrics
 	 */
 	{
-		if (fs.existsSync(metricsFilePath)) {
-			let artifactClient = new DefaultArtifactClient()
-			let { id } = await artifactClient.uploadArtifact(`${workload}-metrics.jsonl`, [metricsFilePath], cwd, {
+		if (!metricsFilePath || !fs.existsSync(metricsFilePath)) {
+			warning(`Metrics file not found at ${metricsFilePath}`)
+			metricsFilePath = ''
+		}
+	}
+
+	/**
+	 * Upload artifacts
+	 */
+	{
+		const artifacts = [
+			pullInfoPath ? { name: `${workload}-pull.txt`, path: pullInfoPath } : null,
+			composeLogsPath ? { name: `${workload}-compose.log`, path: composeLogsPath } : null,
+			metricsFilePath ? { name: `${workload}-metrics.jsonl`, path: metricsFilePath } : null,
+		].filter(Boolean) as { name: string; path: string }[]
+
+		for (const artifact of artifacts) {
+			if (!fs.existsSync(artifact.path)) {
+				warning(`Artifact source missing: ${artifact.path}`)
+				continue
+			}
+
+			let { id } = await artifactClient.uploadArtifact(artifact.name, [artifact.path], cwd, {
 				retentionDays: 1,
 			})
 
-			debug(`Metrics artifact id: ${id}`)
-		} else {
-			warning(`Metrics file not found at ${metricsFilePath}`)
+			info(`Uploaded artifact ${artifact.name} (id: ${id})`)
 		}
 	}
 
