@@ -46,13 +46,11 @@ jobs:
           cd current
 
           # If baseline_ref is provided, use it
+          # Otherwise, find the merge base with main
           if [[ -n "${{ inputs.baseline_ref }}" ]]; then
             BASELINE="${{ inputs.baseline_ref }}"
-            echo "Using manually specified baseline: $BASELINE"
           else
-            # Otherwise, find the merge base with main
             BASELINE=$(git merge-base HEAD origin/main)
-            echo "Using merge-base with main: $BASELINE"
           fi
 
           echo "sha=$BASELINE" >> $GITHUB_OUTPUT
@@ -71,6 +69,26 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workload_name: ${{ matrix.workload }}
 
+      - name: Build network checker images
+        run: |
+          # Build current version
+          if [ -f "$GITHUB_WORKSPACE/current/deploy/app/Dockerfile" ]; then
+            echo "Building current app image..."
+            cd "$GITHUB_WORKSPACE/current/deploy"
+            docker build -t ydb-app-current ./app
+          else
+            echo "No current app Dockerfile found"
+          fi
+
+          # Build baseline version
+          if [ -f "$GITHUB_WORKSPACE/baseline/deploy/app/Dockerfile" ]; then
+            echo "Building baseline app image..."
+            cd "$GITHUB_WORKSPACE/baseline/deploy"
+            docker build -t ydb-app-baseline ./app
+          else
+            echo "No baseline app Dockerfile found"
+          fi
+
       - name: Prepare SLO Database
         run: |
           echo "Preparing SLO database..."
@@ -80,67 +98,94 @@ jobs:
         run: |
           set -e
 
-          # Function to run workload in a specific directory
-          run_workload() {
-            local version=$1
-            local workdir=$2
-            local logfile=$3
-            local exitfile=$4
+          DURATION=600  # 10 minutes
 
-            echo "Starting $version workload in $workdir"
+          # Start current workload container
+          if docker image inspect ydb-app-current >/dev/null 2>&1; then
+            echo "Starting ydb-app-current..."
+            docker run -d \
+              --name ydb-app-current \
+              --network ydb_ydb-net \
+              --add-host "ydb:172.28.0.11" \
+              --add-host "ydb:172.28.0.12" \
+              --add-host "ydb:172.28.0.13" \
+              --add-host "ydb:172.28.0.99" \
+              -e CHECK_INTERVAL=5 \
+              -e DURATION=${DURATION} \
+              ydb-app-current
+          else
+            echo "No current app image found, skipping..."
+          fi
 
-            (
-              cd "$workdir"
+          # Start baseline workload container
+          if docker image inspect ydb-app-baseline >/dev/null 2>&1; then
+            echo "Starting ydb-app-baseline..."
+            docker run -d \
+              --name ydb-app-baseline \
+              --network ydb_ydb-net \
+              --add-host "ydb:172.28.0.11" \
+              --add-host "ydb:172.28.0.12" \
+              --add-host "ydb:172.28.0.13" \
+              --add-host "ydb:172.28.0.99" \
+              -e CHECK_INTERVAL=5 \
+              -e DURATION=${DURATION} \
+              ydb-app-baseline
+          else
+            echo "No baseline app image found, skipping..."
+          fi
 
-              # Run your workload here
-              # TODO: Replace with actual workload command
-              sleep 300
-            ) > "$logfile" 2>&1
-
-            echo $? > "$exitfile"
-          }
-
-          # Export function for subshells
-          export -f run_workload
-
-          # Run both workloads in parallel
-          run_workload "current" "$GITHUB_WORKSPACE/current" "current.log" "current.exit" &
-          CURRENT_PID=$!
-
-          run_workload "baseline" "$GITHUB_WORKSPACE/baseline" "baseline.log" "baseline.exit" &
-          BASELINE_PID=$!
-
-          echo "Current workload PID: $CURRENT_PID"
-          echo "Baseline workload PID: $BASELINE_PID"
-
-          # Wait for both to complete
-          wait $CURRENT_PID
-          wait $BASELINE_PID
-
-          # Check results
-          CURRENT_EXIT=$(cat current.exit)
-          BASELINE_EXIT=$(cat baseline.exit)
-
+          # Show initial logs
+          sleep 5
           echo ""
-          echo "==================== CURRENT WORKLOAD LOGS ===================="
-          cat current.log
+          echo "==================== INITIAL CURRENT LOGS ===================="
+          docker logs ydb-app-current 2>&1 || echo "No current container"
           echo ""
-          echo "==================== BASELINE WORKLOAD LOGS ===================="
-          cat baseline.log
+          echo "==================== INITIAL BASELINE LOGS ===================="
+          docker logs ydb-app-baseline 2>&1 || echo "No baseline container"
           echo ""
 
-          echo "Current workload exit code: $CURRENT_EXIT"
-          echo "Baseline workload exit code: $BASELINE_EXIT"
+          # Wait for containers to finish (they will exit after DURATION)
+          echo "Waiting for workloads to complete (${DURATION}s)..."
 
-          # Fail if either workload failed
-          if [ $CURRENT_EXIT -ne 0 ] || [ $BASELINE_EXIT -ne 0 ]; then
-            echo "ERROR: One or both workloads failed"
+          # Wait for current container
+          if docker ps -q -f name=ydb-app-current | grep -q .; then
+            echo "Waiting for ydb-app-current..."
+            docker wait ydb-app-current || echo "Current container wait failed"
+          fi
+
+          # Wait for baseline container
+          if docker ps -q -f name=ydb-app-baseline | grep -q .; then
+            echo "Waiting for ydb-app-baseline..."
+            docker wait ydb-app-baseline || echo "Baseline container wait failed"
+          fi
+
+          echo ""
+          echo "==================== FINAL CURRENT LOGS ===================="
+          docker logs ydb-app-current 2>&1 || echo "No current container"
+          echo ""
+          echo "==================== FINAL BASELINE LOGS ===================="
+          docker logs ydb-app-baseline 2>&1 || echo "No baseline container"
+          echo ""
+
+          # Check exit codes
+          CURRENT_EXIT=$(docker inspect ydb-app-current --format='{{.State.ExitCode}}' 2>/dev/null || echo "1")
+          BASELINE_EXIT=$(docker inspect ydb-app-baseline --format='{{.State.ExitCode}}' 2>/dev/null || echo "0")
+
+          echo "Current container exit code: $CURRENT_EXIT"
+          echo "Baseline container exit code: $BASELINE_EXIT"
+
+          if [ "$CURRENT_EXIT" -ne 0 ]; then
+            echo "ERROR: Current workload failed with exit code $CURRENT_EXIT"
             exit 1
           fi
 
-          echo "SUCCESS: Both workloads completed successfully"
+          echo "SUCCESS: Workloads completed successfully"
 
       - if: always()
         name: Cleanup SLO Database
         run: |
           echo "Cleaning up SLO database..."
+
+          # Stop and remove app containers
+          docker stop ydb-app-current ydb-app-baseline 2>/dev/null || true
+          docker rm ydb-app-current ydb-app-baseline 2>/dev/null || true
