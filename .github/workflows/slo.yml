@@ -76,7 +76,7 @@ jobs:
           docker logs ydb-chaos > chaos-ydb.log
 
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.workload }}-chaos-ydb.log
           path: ./chaos-ydb.log
