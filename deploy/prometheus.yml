@@ -7,13 +7,13 @@ scrape_configs:
     metrics_path: /counters/prometheus
     static_configs:
       - targets:
-          - localhost:8765
+          - ydb-storage-1:8765
 
   - job_name: ydb-database-nodes
     scrape_interval: 10s
     metrics_path: /counters/prometheus
     static_configs:
       - targets:
-          - localhost:8766
-          - localhost:8767
-          - localhost:8768
+          - ydb-database-1:8765
+          - ydb-database-2:8765
+          - ydb-database-3:8765
