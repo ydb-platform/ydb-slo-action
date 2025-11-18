@@ -6,6 +6,13 @@ set -e
 
 SCENARIOS_DIR="/opt/ydb.tech/chaos/scenarios"
 SCENARIO_DELAY="${CHAOS_SCENARIO_DELAY:-60}"
+INITIAL_DELAY="${CHAOS_INITIAL_DELAY:-0}"
+
+# Wait before starting chaos scenarios to let other services initialize
+if [ "$INITIAL_DELAY" -gt 0 ]; then
+    echo "Waiting ${INITIAL_DELAY}s before starting Chaos Monkey..."
+    sleep "$INITIAL_DELAY"
+fi
 
 log "Chaos Monkey started"
 log "Configuration: scenario_delay=${SCENARIO_DELAY}s"

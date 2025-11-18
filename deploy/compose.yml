@@ -145,6 +145,7 @@ services:
     <<: *runtime
     container_name: ydb-chaos-monkey
     environment:
+      - CHAOS_INITIAL_DELAY=30
       - CHAOS_SCENARIO_DELAY=60
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
