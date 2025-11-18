@@ -1,17 +1,20 @@
 import { exec } from '@actions/exec'
 
-import { queryRange, type PrometheusRangeValue } from './prometheus.js'
+import { queryInstant, queryRange, type PrometheusInstantValue, type PrometheusRangeValue } from './prometheus.js'
 
 export interface MetricDefinition {
 	name: string
 	query: string
+	type?: 'range' | 'instant'
 	step?: string
+	time?: number
 }
 
 export interface CollectedMetric {
 	name: string
 	query: string
-	data: PrometheusRangeValue[]
+	type: 'range' | 'instant'
+	data: PrometheusRangeValue[] | PrometheusInstantValue[]
 }
 
 /**
@@ -86,21 +89,42 @@ export async function collectMetrics(options: {
 
 	for (let metric of options.metrics) {
 		try {
-			let response = await queryRange({
-				url: options.url,
-				query: metric.query,
-				start: options.start,
-				end: options.end,
-				step: metric.step || defaultStep,
-				timeout: options.timeout,
-			})
+			let type = metric.type || 'range'
 
-			if (response.status === 'success' && response.data) {
-				results.push({
-					name: metric.name,
+			if (type === 'instant') {
+				let response = await queryInstant({
+					url: options.url,
 					query: metric.query,
-					data: response.data.result,
+					time: metric.time || options.end,
+					timeout: options.timeout,
 				})
+
+				if (response.status === 'success' && response.data) {
+					results.push({
+						name: metric.name,
+						query: metric.query,
+						type: 'instant',
+						data: response.data.result,
+					})
+				}
+			} else {
+				let response = await queryRange({
+					url: options.url,
+					query: metric.query,
+					start: options.start,
+					end: options.end,
+					step: metric.step || defaultStep,
+					timeout: options.timeout,
+				})
+
+				if (response.status === 'success' && response.data) {
+					results.push({
+						name: metric.name,
+						query: metric.query,
+						type: 'range',
+						data: response.data.result,
+					})
+				}
 			}
 		} catch {
 			continue
