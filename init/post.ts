@@ -1,9 +1,12 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-import { DefaultArtifactClient } from '@actions/artifact'
-import { debug, getState, info, warning } from '@actions/core'
-import { exec } from '@actions/exec'
+import { debug, getInput, getState, info, warning } from '@actions/core'
+
+import { uploadArtifacts, type ArtifactFile } from './lib/artifacts.js'
+import { collectComposeLogs, collectDockerEvents, getContainerIp, stopCompose } from './lib/docker.js'
+import { collectMetrics, parseMetricsYaml, type MetricDefinition } from './lib/metrics.js'
 
 async function post() {
 	let cwd = getState('cwd')
@@ -13,86 +16,95 @@ async function post() {
 	let finish = new Date()
 	let duration = finish.getTime() - start.getTime()
 
-	const artifactClient = new DefaultArtifactClient()
-	let composeLogsPath = path.join(cwd, `${workload}-compose.log`)
-	let metricsFilePath = getState('telemetry_metrics_file') || path.join(cwd, 'metrics.jsonl')
-	let pullInfoPath = getState('pull_info_path')
+	let pullPath = getState('pull_info_path')
+	let logsPath = path.join(cwd, `${workload}-logs.txt`)
+	let eventsPath = path.join(cwd, `${workload}-events.jsonl`)
+	let metricsPath = path.join(cwd, `${workload}-metrics.jsonl`)
 
-	/**
-	 * Collect docker compose logs
-	 */
-	{
-		const chunks: string[] = []
+	let prometheusIp = await getContainerIp('prometheus', cwd)
+	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://localhost:9090'
+	debug(`Prometheus URL: ${prometheusUrl}`)
 
-		try {
-			await exec(`docker`, [`compose`, `-f`, `compose.yml`, `logs`, `--no-color`], {
-				cwd,
-				silent: true,
-				listeners: {
-					stdout: (data) => chunks.push(data.toString()),
-					stderr: (data) => chunks.push(data.toString()),
-				},
-			})
+	let actionRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../')
+	let defaultMetricsPath = path.join(actionRoot, 'deploy', 'metrics.yaml')
 
-			fs.writeFileSync(composeLogsPath, chunks.join(''), { encoding: 'utf-8' })
-			debug(`docker compose logs saved to ${composeLogsPath}`)
-		} catch (error) {
-			warning(`Failed to collect docker compose logs: ${String(error)}`)
-			composeLogsPath = ''
+	let metricsYaml = fs.readFileSync(defaultMetricsPath, { encoding: 'utf-8' })
+	let customMetricsYaml = getInput('metrics_yaml')
+
+	if (getInput('metrics_yaml_path')) {
+		let customMetricsPath = getInput('metrics_yaml_path')
+		if (!fs.existsSync(customMetricsPath)) {
+			warning(`Custom metrics file not found: ${customMetricsPath}`)
+		} else {
+			customMetricsYaml = fs.readFileSync(customMetricsPath, { encoding: 'utf-8' })
 		}
 	}
 
-	/**
-	 * Stop docker compose
-	 */
 	{
-		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], { cwd })
+		info('Collecting logs...')
+		let logs = await collectComposeLogs(cwd)
+
+		fs.writeFileSync(logsPath, logs, { encoding: 'utf-8' })
 	}
 
-	/**
-	 * Persist telemetry metrics
-	 */
 	{
-		if (!metricsFilePath || !fs.existsSync(metricsFilePath)) {
-			warning(`Metrics file not found at ${metricsFilePath}`)
-			metricsFilePath = ''
+		info('Collecting events...')
+		let events = await collectDockerEvents({
+			cwd,
+			since: start,
+			until: finish,
+		})
+
+		let content = events.map((e) => JSON.stringify(e)).join('\n')
+		fs.writeFileSync(eventsPath, content, { encoding: 'utf-8' })
+	}
+
+	{
+		info('Collecting metrics...')
+
+		let metricsDef: MetricDefinition[] = []
+
+		if (metricsYaml) {
+			let defaultMetrics = await parseMetricsYaml(metricsYaml)
+			metricsDef.push(...defaultMetrics)
 		}
-	}
 
-	/**
-	 * Upload artifacts
-	 */
-	{
-		const artifacts = [
-			pullInfoPath ? { name: `${workload}-pull.txt`, path: pullInfoPath } : null,
-			composeLogsPath ? { name: `${workload}-compose.log`, path: composeLogsPath } : null,
-			metricsFilePath ? { name: `${workload}-metrics.jsonl`, path: metricsFilePath } : null,
-		].filter(Boolean) as { name: string; path: string }[]
-
-		for (const artifact of artifacts) {
-			if (!fs.existsSync(artifact.path)) {
-				warning(`Artifact source missing: ${artifact.path}`)
-				continue
-			}
-
-			let { id } = await artifactClient.uploadArtifact(artifact.name, [artifact.path], cwd, {
-				retentionDays: 1,
-			})
-
-			info(`Uploaded artifact ${artifact.name} (id: ${id})`)
+		if (customMetricsYaml) {
+			let customMetrics = await parseMetricsYaml(customMetricsYaml)
+			metricsDef.push(...customMetrics)
 		}
+
+		let metrics = await collectMetrics({
+			url: prometheusUrl,
+			start: start.getTime() / 1000,
+			end: finish.getTime() / 1000,
+			metrics: metricsDef,
+			timeout: 30000,
+		})
+
+		let content = metrics.map((m) => JSON.stringify(m)).join('\n')
+		fs.writeFileSync(metricsPath, content, { encoding: 'utf-8' })
 	}
 
-	/**
-	 * Cleanup
-	 */
 	{
-		fs.rmSync(cwd, { recursive: true })
-		debug(`Removed .slo workspace: ${cwd}`)
-
-		let seconds = (duration / 1000).toFixed(1)
-		info(`YDB SLO Test duration: ${seconds}s`)
+		info('Stopping YDB services...')
+		await stopCompose(cwd)
 	}
+
+	{
+		info('Uploading artifacts...')
+
+		let artifacts: ArtifactFile[] = [
+			{ name: `${workload}-pull.txt`, path: pullPath },
+			{ name: `${workload}-logs.txt`, path: logsPath },
+			{ name: `${workload}-events.jsonl`, path: eventsPath },
+			{ name: `${workload}-metrics.jsonl`, path: metricsPath },
+		]
+
+		await uploadArtifacts(workload, artifacts, cwd)
+	}
+
+	info(`YDB SLO Test duration: ${(duration / 1000).toFixed(1)}s`)
 }
 
 post()

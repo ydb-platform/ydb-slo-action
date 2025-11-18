@@ -1,5 +1,5 @@
-name: "YDB SLO Initialization Action"
-description: "This action prepares a Docker Compose configuration to deploy YDB and Prometheus. During post-run, it collects metric results and generates an SLO report."
+name: "Setup & Run YDB"
+description: "Sets up YDB test environment with monitoring. Collects and uploads metrics during cleanup."
 
 inputs:
   github_pull_request_number:
@@ -11,6 +11,12 @@ inputs:
   workload_name:
     description: "The name of the workload used by the user to generate load on the YDB database."
     required: true
+  metrics_yaml:
+    description: "Custom metrics configuration in YAML format (inline). Will be merged with default metrics."
+    required: false
+  metrics_yaml_path:
+    description: "Path to a file containing custom metrics configuration in YAML format. Will be merged with default metrics."
+    required: false
 
 runs:
   using: "node24"

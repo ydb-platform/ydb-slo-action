@@ -1,0 +1,31 @@
+# 95th percentile read operations latency in milliseconds
+- name: read_latency_ms
+  query: 1000 * histogram_quantile(0.95, sum by(ref, le) (rate(sdk_operation_latency_seconds_bucket{operation_type="read"}[30s])))
+
+# 95th percentile write operations latency in milliseconds
+- name: write_latency_ms
+  query: 1000 * histogram_quantile(0.95, sum by(ref, le) (rate(sdk_operation_latency_seconds_bucket{operation_type="write"}[30s])))
+
+# Read operations throughput
+- name: read_throughput
+  query: sum by(ref) (rate(sdk_operations_total{operation_type="read"}[30s]) > 0)
+
+# Write operations throughput
+- name: write_throughput
+  query: sum by(ref) (rate(sdk_operations_total{operation_type="write"}[30s]) > 0)
+
+# Read attempts throughput
+- name: read_attempts
+  query: sum by(ref) (rate(sdk_retry_attempts{operation_type="read"}[30s]) > 0)
+
+# Write attempts throughput
+- name: write_attempts
+  query: sum by(ref) (rate(sdk_retry_attempts{operation_type="write"}[30s]) > 0)
+
+# Read operations availability
+- name: read_availability
+  query: 100 * sum by (ref) (increase(sdk_operations_success_total{operation_type="read"}[30s])) / sum by (ref) (increase(sdk_operations_total{operation_type="read"}[30s]))
+
+# Write operations availability
+- name: write_availability
+  query: 100 * sum by (ref) (increase(sdk_operations_success_total{operation_type="write"}[30s])) / sum by (ref) (increase(sdk_operations_total{operation_type="write"}[30s]))
