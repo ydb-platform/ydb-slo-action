@@ -8,6 +8,8 @@ x-ydb-node: &ydb-node
     context: ./ydb
   restart: always
   <<: *runtime
+  extra_hosts:
+    - "ydb:172.28.0.10"
 
 name: ydb
 
@@ -21,8 +23,9 @@ networks:
 
 services:
   storage-1:
-    <<: *ydb-node
     container_name: ydb-storage-1
+    <<: *ydb-node
+    hostname: ydb-storage-1
     networks:
       ydb-net:
         ipv4_address: 172.28.0.10
@@ -30,10 +33,10 @@ services:
       - ydb.node.type=storage
 
   database-1:
-    <<: *ydb-node
     container_name: ydb-database-1
+    <<: *ydb-node
     environment:
-      - YDB_ENDPOINT=grpc://172.28.0.10:2136
+      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
     networks:
       ydb-net:
@@ -52,7 +55,7 @@ services:
     <<: *ydb-node
     container_name: ydb-database-2
     environment:
-      - YDB_ENDPOINT=grpc://172.28.0.10:2136
+      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
     networks:
       ydb-net:
@@ -71,7 +74,7 @@ services:
     <<: *ydb-node
     container_name: ydb-database-3
     environment:
-      - YDB_ENDPOINT=grpc://172.28.0.10:2136
+      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
     networks:
       ydb-net:
@@ -88,10 +91,11 @@ services:
 
   storage-init:
     <<: *ydb-node
+    container_name: ydb-storage-init
     restart: no
     environment:
       - YDB_TENANT=/Root/testdb
-      - YDB_ENDPOINT=grpc://172.28.0.10:2136
+      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_INIT_OPERATION=bootstrap
     depends_on:
       storage-1:
@@ -99,9 +103,10 @@ services:
 
   database-init:
     <<: *ydb-node
+    container_name: ydb-database-init
     restart: no
     environment:
-      - YDB_ENDPOINT=grpc://172.28.0.10:2136
+      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_INIT_OPERATION=create-database
     depends_on:
       storage-1:

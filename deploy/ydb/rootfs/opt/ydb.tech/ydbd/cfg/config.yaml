@@ -36,7 +36,7 @@ config:
           type: SSD
 
   hosts:
-    - host: localhost
+    - host: ydb-storage-1
       port: 19001
       host_config_id: 1
       location:
