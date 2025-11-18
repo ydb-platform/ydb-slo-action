@@ -55,7 +55,7 @@
 			"bun run --bun prettier --write"
 		],
 		"{init,report}/**": [
-			"bun run bundle",
+			"sh -c 'bun run bundle'",
 			"git add -f dist"
 		]
 	}
