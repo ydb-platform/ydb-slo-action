@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { debug, getInput, info, saveState, setFailed } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import { getPullRequestNumber } from './pulls.js'
+import { getPullRequestNumber } from './lib/github.js'
 
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
@@ -14,12 +14,7 @@ async function main() {
 	saveState('cwd', cwd)
 	saveState('workload', workload)
 
-	/**
-	 * Prepare working directory
-	 */
-	{
-		fs.mkdirSync(cwd, { recursive: true })
-	}
+	fs.mkdirSync(cwd, { recursive: true })
 
 	let prNumber = await getPullRequestNumber()
 	if (!prNumber) {
@@ -29,9 +24,6 @@ async function main() {
 
 	saveState('pull', prNumber)
 
-	/**
-	 * Prepare pull request information
-	 */
 	{
 		let pullPath = path.join(cwd, `${workload}-pull.txt`)
 		saveState('pull_info_path', pullPath)
@@ -40,12 +32,9 @@ async function main() {
 		debug(`Pull request information saved to ${pullPath}`)
 	}
 
-	/**
-	 * Copy deploy assets
-	 */
 	{
-		const actionRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../')
-		const deployPath = path.join(actionRoot, 'deploy')
+		let actionRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../')
+		let deployPath = path.join(actionRoot, 'deploy')
 
 		if (!fs.existsSync(deployPath)) {
 			setFailed(`Deploy assets not found at ${deployPath}`)
@@ -59,24 +48,8 @@ async function main() {
 		}
 
 		debug(`Deploy assets copied to ${cwd}`)
-		debug(`Deploy assets: ${fs.readdirSync(cwd)}`)
 	}
 
-	/**
-	 * Prepare telemetry metrics file
-	 */
-	{
-		let metricsFilePath = path.join(cwd, 'metrics.jsonl')
-		saveState('telemetry_metrics_file', metricsFilePath)
-		fs.writeFileSync(metricsFilePath, '', { encoding: 'utf-8' })
-		fs.chmodSync(metricsFilePath, 0o666)
-
-		debug(`Telemetry metrics file: ${metricsFilePath}`)
-	}
-
-	/**
-	 * Start YDB services
-	 */
 	{
 		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `up`, `--quiet-pull`, `-d`], { cwd })
 	}
