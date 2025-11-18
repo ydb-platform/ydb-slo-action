@@ -15,6 +15,7 @@ import { createWorkloadCheck } from './lib/checks.js'
 import { createOrUpdateComment, generateCommentBody } from './lib/comment.js'
 import { generateHTMLReport, type HTMLReportData } from './lib/html.js'
 import { writeJobSummary } from './lib/summary.js'
+import { loadThresholds } from './lib/thresholds.js'
 
 async function main() {
 	try {
@@ -72,11 +73,18 @@ async function main() {
 		info(`Base branch: ${pr.base.ref}`)
 		info(`Head SHA: ${pr.head.sha}`)
 
-		// Step 3: Analyze metrics (already contain current and base series with ref label)
-		info('📊 Analyzing metrics...')
-		let comparisons = workloads.map((w) => compareWorkloadMetrics(w.workload, w.metrics))
+		// Step 3: Load thresholds configuration
+		info('⚙️  Loading thresholds configuration...')
+		let thresholds = await loadThresholds(getInput('thresholds_yaml'), getInput('thresholds_yaml_path'))
+		info(`Loaded thresholds: neutral_change=${thresholds.neutral_change_percent}%`)
 
-		// Step 4: Generate HTML reports
+		// Step 4: Analyze metrics (already contain current and base series with ref label)
+		info('📊 Analyzing metrics...')
+		let comparisons = workloads.map((w) =>
+			compareWorkloadMetrics(w.workload, w.metrics, 'avg', thresholds.neutral_change_percent)
+		)
+
+		// Step 5: Generate HTML reports
 		info('📝 Generating HTML reports...')
 
 		let htmlReportsPath = path.join(cwd, 'reports')
@@ -120,7 +128,7 @@ async function main() {
 			info(`Generated HTML report for ${workload.workload}`)
 		}
 
-		// Step 5: Upload HTML reports as artifacts
+		// Step 6: Upload HTML reports as artifacts
 		info('📤 Uploading HTML reports...')
 
 		let artifactClient = new DefaultArtifactClient()
@@ -135,7 +143,7 @@ async function main() {
 
 		info(`Uploaded HTML reports as artifact: ${uploadResult.id}`)
 
-		// Step 6: Create GitHub Checks
+		// Step 7: Create GitHub Checks
 		info('✅ Creating GitHub Checks...')
 
 		let checkUrls = new Map<string, string>()
@@ -148,6 +156,7 @@ async function main() {
 					repo: context.repo.repo,
 					sha: pr.head.sha,
 					workload: comparison,
+					thresholds,
 				})
 
 				checkUrls.set(comparison.workload, check.url)
@@ -157,7 +166,7 @@ async function main() {
 			}
 		}
 
-		// Step 7: Write Job Summary
+		// Step 8: Write Job Summary
 		info('📋 Writing Job Summary...')
 
 		await writeJobSummary({
@@ -178,7 +187,7 @@ async function main() {
 
 		info('Job Summary written')
 
-		// Step 8: Create/Update PR comment
+		// Step 9: Create/Update PR comment
 		info('💬 Creating/updating PR comment...')
 
 		// Artifact URLs (GitHub UI download)

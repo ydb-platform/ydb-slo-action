@@ -8,6 +8,12 @@ inputs:
   github_run_id:
     description: "The id of the workflow run where the desired download artifact was uploaded from."
     required: true
+  thresholds_yaml:
+    description: "Custom thresholds configuration (inline YAML string)"
+    required: false
+  thresholds_yaml_path:
+    description: "Path to custom thresholds YAML file"
+    required: false
 
 runs:
   using: "node24"

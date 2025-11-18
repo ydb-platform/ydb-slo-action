@@ -6,6 +6,7 @@ import { info } from '@actions/core'
 import { getOctokit } from '@actions/github'
 
 import { formatChange, formatValue, type WorkloadComparison } from './analysis.js'
+import { evaluateWorkloadThresholds, type ThresholdConfig } from './thresholds.js'
 
 export interface CheckOptions {
 	token: string
@@ -13,6 +14,7 @@ export interface CheckOptions {
 	repo: string
 	sha: string
 	workload: WorkloadComparison
+	thresholds: ThresholdConfig
 	reportUrl?: string
 }
 
@@ -23,9 +25,10 @@ export async function createWorkloadCheck(options: CheckOptions): Promise<{ id: 
 	let octokit = getOctokit(options.token)
 
 	let name = `SLO: ${options.workload.workload}`
-	let conclusion = determineConclusion(options.workload)
-	let title = generateTitle(options.workload)
-	let summaryText = generateSummary(options.workload, options.reportUrl)
+	let evaluation = evaluateWorkloadThresholds(options.workload.metrics, options.thresholds)
+	let conclusion = determineConclusionFromEvaluation(evaluation.overall)
+	let title = generateTitle(options.workload, evaluation)
+	let summaryText = generateSummary(options.workload, evaluation, options.reportUrl)
 
 	info(`Creating check "${name}" with conclusion: ${conclusion}`)
 
@@ -48,42 +51,51 @@ export async function createWorkloadCheck(options: CheckOptions): Promise<{ id: 
 }
 
 /**
- * Determine check conclusion
+ * Map threshold severity to GitHub Check conclusion
  */
-function determineConclusion(workload: WorkloadComparison): 'success' | 'neutral' | 'failure' {
-	// For now, always success or neutral (no hard failures)
-	// Future: add configurable thresholds
-
-	if (workload.summary.regressions > 0) {
-		return 'neutral' // Warning level
-	}
-
+function determineConclusionFromEvaluation(
+	severity: 'success' | 'warning' | 'failure'
+): 'success' | 'neutral' | 'failure' {
+	if (severity === 'failure') return 'failure'
+	if (severity === 'warning') return 'neutral'
 	return 'success'
 }
 
 /**
  * Generate check title
  */
-function generateTitle(workload: WorkloadComparison): string {
-	if (workload.summary.regressions > 0) {
-		return `${workload.summary.regressions} regression(s) detected`
+function generateTitle(
+	workload: WorkloadComparison,
+	evaluation: { overall: string; failures: any[]; warnings: any[] }
+): string {
+	if (evaluation.failures.length > 0) {
+		return `${evaluation.failures.length} critical threshold(s) violated`
+	}
+
+	if (evaluation.warnings.length > 0) {
+		return `${evaluation.warnings.length} warning threshold(s) exceeded`
 	}
 
 	if (workload.summary.improvements > 0) {
 		return `${workload.summary.improvements} improvement(s) detected`
 	}
 
-	return 'All metrics stable'
+	return 'All metrics within thresholds'
 }
 
 /**
  * Generate check summary
  */
-function generateSummary(workload: WorkloadComparison, reportUrl?: string): string {
+function generateSummary(
+	workload: WorkloadComparison,
+	evaluation: { overall: string; failures: any[]; warnings: any[] },
+	reportUrl?: string
+): string {
 	let lines = [
 		`**Metrics analyzed:** ${workload.summary.total}`,
+		`- 🔴 Critical: ${evaluation.failures.length}`,
+		`- 🟡 Warnings: ${evaluation.warnings.length}`,
 		`- 🟢 Improvements: ${workload.summary.improvements}`,
-		`- 🔴 Regressions: ${workload.summary.regressions}`,
 		`- ⚪ Stable: ${workload.summary.stable}`,
 		'',
 	]
@@ -92,15 +104,24 @@ function generateSummary(workload: WorkloadComparison, reportUrl?: string): stri
 		lines.push(`📊 [View detailed HTML report](${reportUrl})`, '')
 	}
 
-	// Top regressions
-	let regressions = workload.metrics
-		.filter((m) => m.change.direction === 'worse')
-		.sort((a, b) => Math.abs(b.change.percent) - Math.abs(a.change.percent))
+	// Critical failures
+	if (evaluation.failures.length > 0) {
+		lines.push('### ❌ Critical Thresholds Violated', '')
 
-	if (regressions.length > 0) {
-		lines.push('### Top Regressions', '')
+		for (let metric of evaluation.failures.slice(0, 5)) {
+			lines.push(
+				`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})`
+			)
+		}
 
-		for (let metric of regressions.slice(0, 5)) {
+		lines.push('')
+	}
+
+	// Warnings
+	if (evaluation.warnings.length > 0) {
+		lines.push('### ⚠️ Warning Thresholds Exceeded', '')
+
+		for (let metric of evaluation.warnings.slice(0, 5)) {
 			lines.push(
 				`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})`
 			)
@@ -115,7 +136,7 @@ function generateSummary(workload: WorkloadComparison, reportUrl?: string): stri
 		.sort((a, b) => Math.abs(b.change.percent) - Math.abs(a.change.percent))
 
 	if (improvements.length > 0) {
-		lines.push('### Top Improvements', '')
+		lines.push('### 🟢 Top Improvements', '')
 
 		for (let metric of improvements.slice(0, 5)) {
 			lines.push(

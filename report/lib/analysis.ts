@@ -2,14 +2,7 @@
  * Metrics analysis and comparison
  */
 
-import {
-	aggregateValues,
-	getMetricValue,
-	separateByRef,
-	type AggregateFunction,
-	type CollectedMetric,
-	type MetricsMap,
-} from './metrics.js'
+import { getMetricValue, type AggregateFunction, type CollectedMetric, type MetricsMap } from './metrics.js'
 
 export interface MetricComparison {
 	name: string
@@ -79,7 +72,8 @@ function inferMetricDirection(name: string): 'lower_is_better' | 'higher_is_bett
 function determineChangeDirection(
 	currentValue: number,
 	baseValue: number,
-	metricDirection: 'lower_is_better' | 'higher_is_better' | 'neutral'
+	metricDirection: 'lower_is_better' | 'higher_is_better' | 'neutral',
+	neutralThreshold: number = 5.0
 ): 'better' | 'worse' | 'neutral' | 'unknown' {
 	if (isNaN(currentValue) || isNaN(baseValue)) {
 		return 'unknown'
@@ -87,8 +81,8 @@ function determineChangeDirection(
 
 	let changePercent = Math.abs(((currentValue - baseValue) / baseValue) * 100)
 
-	// Consider < 5% as stable/neutral
-	if (changePercent < 5) {
+	// Consider change below threshold as stable/neutral
+	if (changePercent < neutralThreshold) {
 		return 'neutral'
 	}
 
@@ -106,7 +100,11 @@ function determineChangeDirection(
 /**
  * Compare single metric
  */
-export function compareMetric(metric: CollectedMetric, aggregate: AggregateFunction = 'avg'): MetricComparison {
+export function compareMetric(
+	metric: CollectedMetric,
+	aggregate: AggregateFunction = 'avg',
+	neutralThreshold?: number
+): MetricComparison {
 	let currentValue = getMetricValue(metric, 'current', aggregate)
 	let baseValue = getMetricValue(metric, 'base', aggregate)
 
@@ -114,7 +112,7 @@ export function compareMetric(metric: CollectedMetric, aggregate: AggregateFunct
 	let percent = isNaN(baseValue) || baseValue === 0 ? NaN : (absolute / baseValue) * 100
 
 	let metricDirection = inferMetricDirection(metric.name)
-	let direction = determineChangeDirection(currentValue, baseValue, metricDirection)
+	let direction = determineChangeDirection(currentValue, baseValue, metricDirection, neutralThreshold)
 
 	return {
 		name: metric.name,
@@ -141,12 +139,13 @@ export function compareMetric(metric: CollectedMetric, aggregate: AggregateFunct
 export function compareWorkloadMetrics(
 	workload: string,
 	metrics: MetricsMap,
-	aggregate: AggregateFunction = 'avg'
+	aggregate: AggregateFunction = 'avg',
+	neutralThreshold?: number
 ): WorkloadComparison {
 	let comparisons: MetricComparison[] = []
 
-	for (let [name, metric] of metrics) {
-		let comparison = compareMetric(metric, aggregate)
+	for (let [_name, metric] of metrics) {
+		let comparison = compareMetric(metric, aggregate, neutralThreshold)
 		comparisons.push(comparison)
 	}
 
