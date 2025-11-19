@@ -16,6 +16,16 @@ export interface DockerEvent {
 	timeNano: number
 }
 
+export interface ChaosEvent {
+	timestamp: string
+	epoch_ms: number
+	scenario: string
+	action: string
+	target: string
+	severity: 'info' | 'warning' | 'critical'
+	metadata: Record<string, unknown>
+}
+
 /**
  * Gets IP address of a Docker container
  */
@@ -75,22 +85,15 @@ export async function collectDockerEvents(options: { cwd: string; since: Date; u
 	try {
 		let chunks: string[] = []
 
+		// prettier-ignore
 		await exec(
 			`docker`,
 			[
 				`events`,
-				`--filter`,
-				`label=ydb.node.type=database`,
-				`--filter`,
-				`event=stop`,
-				`--filter`,
-				`event=start`,
-				`--filter`,
-				`event=kill`,
-				`--filter`,
-				`event=restart`,
-				`--since`,
-				options.since.toISOString(),
+				`--filter`, `type=container`,
+				`--filter`, `label=ydb.node.type=database`,
+				`--filter`, `label=ydb.node.type=storage`,
+				`--since`, options.since.toISOString(),
 				`--until`,
 				options.until.toISOString(),
 				`--format`,
@@ -111,6 +114,44 @@ export async function collectDockerEvents(options: { cwd: string; since: Date; u
 		}
 	} catch (error) {
 		warning(`Failed to collect Docker events: ${String(error)}`)
+	}
+
+	return events
+}
+
+/**
+ * Collects chaos events from chaos-monkey container
+ */
+export async function collectChaosEvents(cwd: string): Promise<ChaosEvent[]> {
+	let events: ChaosEvent[] = []
+
+	try {
+		let chunks: string[] = []
+
+		// Copy events file from chaos-monkey container volume
+		// The file is in a named volume, so we copy it from the container
+		await exec(`docker`, [`cp`, `ydb-chaos-monkey:/var/log/chaos-events.jsonl`, `-`], {
+			cwd,
+			silent: true,
+			ignoreReturnCode: true, // File might not exist if chaos-monkey hasn't run yet
+			listeners: {
+				stdout: (data) => chunks.push(data.toString()),
+			},
+		})
+
+		let content = chunks.join('')
+		if (content) {
+			let lines = content.split('\n').filter(Boolean)
+			for (let line of lines) {
+				try {
+					events.push(JSON.parse(line) as ChaosEvent)
+				} catch {
+					// Skip invalid JSON lines
+				}
+			}
+		}
+	} catch (error) {
+		warning(`Failed to collect chaos events: ${String(error)}`)
 	}
 
 	return events

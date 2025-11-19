@@ -5,7 +5,13 @@ import { fileURLToPath } from 'node:url'
 import { debug, getInput, getState, info, warning } from '@actions/core'
 
 import { uploadArtifacts, type ArtifactFile } from './lib/artifacts.js'
-import { collectComposeLogs, collectDockerEvents, getContainerIp, stopCompose } from './lib/docker.js'
+import {
+	collectChaosEvents,
+	collectComposeLogs,
+	collectDockerEvents,
+	getContainerIp,
+	stopCompose,
+} from './lib/docker.js'
 import { collectMetrics, parseMetricsYaml, type MetricDefinition } from './lib/metrics.js'
 
 async function post() {
@@ -19,6 +25,7 @@ async function post() {
 	let pullPath = getState('pull_info_path')
 	let logsPath = path.join(cwd, `${workload}-logs.txt`)
 	let eventsPath = path.join(cwd, `${workload}-events.jsonl`)
+	let chaosEventsPath = path.join(cwd, `${workload}-chaos-events.jsonl`)
 	let metricsPath = path.join(cwd, `${workload}-metrics.jsonl`)
 
 	let prometheusIp = await getContainerIp('prometheus', cwd)
@@ -48,7 +55,7 @@ async function post() {
 	}
 
 	{
-		info('Collecting events...')
+		info('Collecting docker events...')
 		let events = await collectDockerEvents({
 			cwd,
 			since: start,
@@ -57,6 +64,16 @@ async function post() {
 
 		let content = events.map((e) => JSON.stringify(e)).join('\n')
 		fs.writeFileSync(eventsPath, content, { encoding: 'utf-8' })
+	}
+
+	{
+		info('Collecting chaos events...')
+		let chaosEvents = await collectChaosEvents(cwd)
+
+		let content = chaosEvents.map((e) => JSON.stringify(e)).join('\n')
+		fs.writeFileSync(chaosEventsPath, content, { encoding: 'utf-8' })
+
+		info(`Collected ${chaosEvents.length} chaos events`)
 	}
 
 	{
@@ -98,6 +115,7 @@ async function post() {
 			{ name: `${workload}-pull.txt`, path: pullPath },
 			{ name: `${workload}-logs.txt`, path: logsPath },
 			{ name: `${workload}-events.jsonl`, path: eventsPath },
+			{ name: `${workload}-chaos-events.jsonl`, path: chaosEventsPath },
 			{ name: `${workload}-metrics.jsonl`, path: metricsPath },
 		]
 

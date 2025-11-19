@@ -147,8 +147,10 @@ services:
     environment:
       - CHAOS_INITIAL_DELAY=30
       - CHAOS_SCENARIO_DELAY=60
+      - CHAOS_EVENTS_FILE=/var/log/chaos-events.jsonl
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - chaos-events:/var/log
     depends_on:
       storage-1:
         condition: service_healthy
@@ -158,3 +160,6 @@ services:
         condition: service_healthy
       database-3:
         condition: service_healthy
+
+volumes:
+  chaos-events:

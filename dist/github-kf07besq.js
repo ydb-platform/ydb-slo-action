@@ -317,13 +317,13 @@ var require_dist_node6 = __commonJS((exports, module) => {
   }
   function expand(template, context) {
     var operators = ["+", "#", ".", "/", ";", "?", "&"];
-    if (template = template.replace(/\{([^{}]+)\}|([^{}]+)/g, function(_, expression, literal) {
+    if (template = template.replace(/\{([^\{\}]+)\}|([^\{\}]+)/g, function(_, expression, literal) {
       if (expression) {
         let operator = "", values = [];
         if (operators.indexOf(expression.charAt(0)) !== -1)
           operator = expression.charAt(0), expression = expression.substr(1);
         if (expression.split(/,/g).forEach(function(variable) {
-          var tmp = /([^:*]*)(?::(\d+)|(\*))?/.exec(variable);
+          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
           values.push(getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
         }), operator && operator !== "+") {
           var separator = ",";
@@ -350,7 +350,7 @@ var require_dist_node6 = __commonJS((exports, module) => {
       "request",
       "mediaType"
     ]), urlVariableNames = extractUrlVariableNames(url);
-    if (url = parseUrl(url).expand(parameters), !url.startsWith('http'))
+    if (url = parseUrl(url).expand(parameters), !/^http/.test(url))
       url = options.baseUrl + url;
     let omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl"), remainingParameters = omit(parameters, omittedParameters);
     if (!/application\/octet-stream/i.test(headers.accept)) {

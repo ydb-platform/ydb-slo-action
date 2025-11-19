@@ -8,8 +8,14 @@ import * as path from 'node:path'
 import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, info, warning } from '@actions/core'
 
-import type { DockerEvent } from './events.js'
-import { formatEvents, parseEventsJsonl, type FormattedEvent } from './events.js'
+import type { ChaosEvent, DockerEvent } from './events.js'
+import {
+	formatChaosEvents,
+	formatEvents,
+	parseChaosEventsJsonl,
+	parseEventsJsonl,
+	type FormattedEvent,
+} from './events.js'
 import { parseMetricsJsonl, type MetricsMap } from './metrics.js'
 
 export interface WorkloadArtifacts {
@@ -83,6 +89,7 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 			pull?: string
 			metrics?: string
 			events?: string
+			chaosEvents?: string
 			logs?: string
 		}
 	>()
@@ -115,6 +122,8 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 				group.pull = file
 			} else if (basename.endsWith('-metrics.jsonl')) {
 				group.metrics = file
+			} else if (basename.endsWith('-chaos-events.jsonl')) {
+				group.chaosEvents = file
 			} else if (basename.endsWith('-events.jsonl')) {
 				group.events = file
 			} else if (basename.endsWith('-logs.txt')) {
@@ -140,11 +149,23 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 			let metrics = parseMetricsJsonl(metricsContent)
 
 			let events: FormattedEvent[] = []
+
+			// Load docker events
 			if (files.events && fs.existsSync(files.events)) {
 				let eventsContent = fs.readFileSync(files.events, { encoding: 'utf-8' })
 				let rawEvents = parseEventsJsonl(eventsContent)
-				events = formatEvents(rawEvents)
+				events.push(...formatEvents(rawEvents))
 			}
+
+			// Load chaos events
+			if (files.chaosEvents && fs.existsSync(files.chaosEvents)) {
+				let chaosEventsContent = fs.readFileSync(files.chaosEvents, { encoding: 'utf-8' })
+				let rawChaosEvents = parseChaosEventsJsonl(chaosEventsContent)
+				events.push(...formatChaosEvents(rawChaosEvents))
+			}
+
+			// Sort events by timestamp
+			events.sort((a, b) => a.timestamp - b.timestamp)
 
 			workloads.push({
 				workload,

@@ -8,7 +8,9 @@ echo "Scenario: Instant restart (timeout 0)"
 
 nodeForChaos=$(get_random_database_node)
 echo "Selected node: ${nodeForChaos}"
+
 echo "Restarting with 0s timeout (instant kill)..."
+emit_event "02-instant-restart" "restart" "${nodeForChaos}" "warning" "{\"timeout\":0,\"type\":\"instant\"}"
 docker restart "${nodeForChaos}" -t 0
 
 echo "Instant restart scenario completed"
