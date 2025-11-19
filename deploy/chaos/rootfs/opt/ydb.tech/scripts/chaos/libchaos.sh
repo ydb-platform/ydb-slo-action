@@ -4,33 +4,111 @@
 # Events log file location (can be overridden via env)
 CHAOS_EVENTS_FILE="${CHAOS_EVENTS_FILE:-/tmp/chaos-events.jsonl}"
 
+# Timers storage (simulated associative array with | separator)
+EVENT_TIMERS=""
+
 # Logging with timestamp
 log() {
     echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*"
 }
 
-# Emit a structured chaos event in JSONL format
-# Usage: emit_event "scenario_name" "action" "target" ["severity"] ["metadata"]
-emit_event() {
-    scenario="${1:-unknown}"
-    action="${2:-unknown}"
-    target="${3:-unknown}"
-    severity="${4:-info}"  # info, warning, critical
-    metadata="${5:-{}}"
-    
+# Start measuring event duration (like console.time)
+# Usage: event_start "label"
+event_start() {
+    label="${1:-unknown}"
+    epoch_ms=$(date +%s%3N 2>/dev/null || echo "$(date +%s)000")
+
+    # Store timer: "label|timestamp|"
+    EVENT_TIMERS="${EVENT_TIMERS}${label}|${epoch_ms}|"
+}
+
+# End measuring event duration and emit event (like console.timeEnd)
+# Usage: event_end "label" "description"
+event_end() {
+    label="${1:-unknown}"
+    description="${2:-unknown}"
+
+    # Get script name from caller
+    script_name=$(basename "${BASH_SOURCE[1]:-unknown}")
+
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
     epoch_ms=$(date +%s%3N 2>/dev/null || echo "$(date +%s)000")
-    
+
+    # Find start time for this label
+    start_time=""
+    for entry in $(echo "$EVENT_TIMERS" | tr '|' '\n'); do
+        if [ -n "$entry" ]; then
+            if [ "$entry" = "$label" ]; then
+                # Next entry is the timestamp
+                continue
+            fi
+            if [ -z "$start_time" ] && echo "$EVENT_TIMERS" | grep -q "${label}|${entry}|"; then
+                start_time="$entry"
+                break
+            fi
+        fi
+    done
+
+    # Calculate duration
+    duration_ms=""
+    if [ -n "$start_time" ]; then
+        duration_ms=$((epoch_ms - start_time))
+    fi
+
     # Escape JSON strings
-    scenario_escaped=$(echo "$scenario" | sed 's/"/\\"/g')
-    action_escaped=$(echo "$action" | sed 's/"/\\"/g')
-    target_escaped=$(echo "$target" | sed 's/"/\\"/g')
-    
-    # Build JSON event
-    event="{\"timestamp\":\"$timestamp\",\"epoch_ms\":$epoch_ms,\"scenario\":\"$scenario_escaped\",\"action\":\"$action_escaped\",\"target\":\"$target_escaped\",\"severity\":\"$severity\",\"metadata\":$metadata}"
-    
-    # Write to events file (create if doesn't exist)
+    script_escaped=$(echo "$script_name" | sed 's/"/\\"/g')
+    description_escaped=$(echo "$description" | sed 's/"/\\"/g')
+
+    # Build JSON event with duration
+    if [ -n "$duration_ms" ]; then
+        event="{\"timestamp\":\"$timestamp\",\"epoch_ms\":$epoch_ms,\"script\":\"$script_escaped\",\"description\":\"$description_escaped\",\"duration_ms\":$duration_ms}"
+    else
+        event="{\"timestamp\":\"$timestamp\",\"epoch_ms\":$epoch_ms,\"script\":\"$script_escaped\",\"description\":\"$description_escaped\"}"
+    fi
+
+    # Write to events file
     echo "$event" >> "$CHAOS_EVENTS_FILE"
+}
+
+# Emit an instant event (no duration)
+# Usage: emit_event "description"
+emit_event() {
+    description="${1:-unknown}"
+
+    # Get script name from caller
+    script_name=$(basename "${BASH_SOURCE[1]:-unknown}")
+
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+    epoch_ms=$(date +%s%3N 2>/dev/null || echo "$(date +%s)000")
+
+    # Escape JSON strings
+    script_escaped=$(echo "$script_name" | sed 's/"/\\"/g')
+    description_escaped=$(echo "$description" | sed 's/"/\\"/g')
+
+    # Build JSON event
+    event="{\"timestamp\":\"$timestamp\",\"epoch_ms\":$epoch_ms,\"script\":\"$script_escaped\",\"description\":\"$description_escaped\"}"
+
+    # Write to events file
+    echo "$event" >> "$CHAOS_EVENTS_FILE"
+}
+
+# Wait for container to become healthy
+# Usage: wait_container_healthy "container_name" [timeout_seconds]
+# Returns: 0 if healthy, 1 if timeout
+wait_container_healthy() {
+    node="$1"
+    timeout="${2:-60}"
+
+    elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        if docker inspect "${node}" --format='{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+
+    return 1
 }
 
 # Get a random YDB database container

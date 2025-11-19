@@ -216,25 +216,47 @@ function generateSingleChartScript(metricName: string, metric: CollectedMetric, 
 		: '[]'
 
 	let annotations = events
-		.map(
-			(e) => `{
+		.map((e) => {
+			if (e.duration_ms) {
+				// Box annotation for events with duration
+				let xMax = e.timestamp * 1000 + e.duration_ms
+				return `{
+			type: 'box',
+			xMin: ${e.timestamp * 1000},
+			xMax: ${xMax},
+			backgroundColor: '#60a5fa20',
+			borderColor: '#3b82f6',
+			borderWidth: 3,
+			label: {
+				display: true,
+				content: '${escapeJs(e.label)}',
+				position: 'start',
+				backgroundColor: '#3b82f6',
+				color: '#fff',
+				font: { size: 12 },
+				padding: 6
+			}
+		}`
+			} else {
+				// Line annotation for instant events
+				return `{
 			type: 'line',
 			xMin: ${e.timestamp * 1000},
 			xMax: ${e.timestamp * 1000},
-			borderColor: '${e.color}',
-			borderWidth: 2,
-			borderDash: [5, 5],
+			borderColor: '#3b82f6',
+			borderWidth: 3,
 			label: {
 				display: true,
 				content: '${e.icon}',
 				position: 'start',
-				backgroundColor: '${e.color}',
+				backgroundColor: '#3b82f6',
 				color: '#fff',
 				font: { size: 14 },
 				padding: 4
 			}
 		}`
-		)
+			}
+		})
 		.join(',\n')
 
 	return `

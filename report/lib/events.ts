@@ -16,11 +16,9 @@ export interface DockerEvent {
 export interface ChaosEvent {
 	timestamp: string
 	epoch_ms: number
-	scenario: string
-	action: string
-	target: string
-	severity: 'info' | 'warning' | 'critical'
-	metadata: Record<string, unknown>
+	script: string
+	description: string
+	duration_ms?: number
 }
 
 export interface FormattedEvent {
@@ -32,6 +30,7 @@ export interface FormattedEvent {
 	color: string
 	actor: string
 	source: 'docker' | 'chaos'
+	duration_ms?: number
 }
 
 /**
@@ -91,12 +90,6 @@ function getEventIcon(action: string, attributes?: Record<string, string>): stri
 		die: '💤',
 		create: '🆕',
 		destroy: '🗑️',
-		healthy: '✅',
-		health_timeout: '⏱️',
-		scenario_start: '🎬',
-		scenario_complete: '🏁',
-		blackhole_create: '🕳️',
-		blackhole_remove: '🔌',
 	}
 
 	if (action === 'kill') {
@@ -107,19 +100,30 @@ function getEventIcon(action: string, attributes?: Record<string, string>): stri
 }
 
 /**
+ * Get icon for chaos event based on description keywords
+ */
+function getChaosEventIcon(description: string): string {
+	let lower = description.toLowerCase()
+
+	if (lower.includes('kill')) return '💀'
+	if (lower.includes('stopping') || lower.includes('stop')) return '⏹️'
+	if (lower.includes('starting') || lower.includes('start')) return '▶️'
+	if (lower.includes('restart')) return '🔄'
+	if (lower.includes('paus')) return '⏸️'
+	if (lower.includes('unpaus')) return '▶️'
+	if (lower.includes('blackhole')) return '🕳️'
+	if (lower.includes('healthy')) return '✅'
+	if (lower.includes('timeout') || lower.includes('warning')) return '⏱️'
+	if (lower.includes('completed') || lower.includes('finished')) return '🏁'
+	if (lower.includes('started') || lower.includes('starting')) return '🎬'
+
+	return '📌'
+}
+
+/**
  * Get color for event action
  */
-function getEventColor(action: string, severity?: string): string {
-	// Use severity for chaos events
-	if (severity === 'critical') {
-		return '#dc2626' // dark red
-	} else if (severity === 'warning') {
-		return '#f59e0b' // orange
-	} else if (severity === 'info') {
-		return '#10b981' // green
-	}
-
-	// Docker events colors
+function getEventColor(action: string): string {
 	let colors: Record<string, string> = {
 		pause: '#f59e0b', // orange
 		unpause: '#10b981', // green
@@ -133,6 +137,13 @@ function getEventColor(action: string, severity?: string): string {
 	}
 
 	return colors[action] || '#6b7280'
+}
+
+/**
+ * Get color for chaos event (simple light blue for all)
+ */
+function getChaosEventColor(): string {
+	return '#60a5fa' // light blue (blue-400)
 }
 
 /**
@@ -165,30 +176,16 @@ function formatEventLabel(event: DockerEvent): string {
  * Format chaos event label
  */
 function formatChaosEventLabel(event: ChaosEvent): string {
-	// Format target (shorten container name if needed)
-	let target = event.target
-	if (target.startsWith('ydb-')) {
-		target = target.replace('ydb-', '')
+	// Shorten container names in description
+	let description = event.description.replace(/ydb-/g, '')
+
+	// Add duration if present
+	if (event.duration_ms) {
+		let seconds = (event.duration_ms / 1000).toFixed(1)
+		return `[${event.script}] ${description} (${seconds}s)`
 	}
 
-	// Format action label
-	let label = `[${event.scenario}] ${event.action} ${target}`
-
-	// Add relevant metadata
-	if (event.metadata.timeout !== undefined) {
-		label += ` (timeout=${event.metadata.timeout}s)`
-	}
-	if (event.metadata.duration_seconds !== undefined) {
-		label += ` (${event.metadata.duration_seconds}s)`
-	}
-	if (event.metadata.recovery_time_seconds !== undefined) {
-		label += ` (recovery=${event.metadata.recovery_time_seconds}s)`
-	}
-	if (event.metadata.signal) {
-		label += ` (${event.metadata.signal})`
-	}
-
-	return label
+	return `[${event.script}] ${description}`
 }
 
 /**
@@ -213,12 +210,13 @@ export function formatEvents(events: DockerEvent[]): FormattedEvent[] {
 export function formatChaosEvents(events: ChaosEvent[]): FormattedEvent[] {
 	return events.map((event) => ({
 		timestamp: event.epoch_ms,
-		action: event.action,
+		action: 'chaos',
 		type: 'chaos',
 		label: formatChaosEventLabel(event),
-		icon: getEventIcon(event.action),
-		color: getEventColor(event.action, event.severity),
-		actor: event.scenario,
+		icon: getChaosEventIcon(event.description),
+		color: getChaosEventColor(),
+		actor: event.script,
 		source: 'chaos' as const,
+		duration_ms: event.duration_ms,
 	}))
 }

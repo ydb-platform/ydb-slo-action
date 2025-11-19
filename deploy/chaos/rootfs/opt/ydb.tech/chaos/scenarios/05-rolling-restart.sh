@@ -17,33 +17,22 @@ fi
 node_count=$(echo "$nodes" | wc -l)
 echo "Found ${node_count} database nodes"
 
-emit_event "05-rolling-restart" "scenario_start" "all-database-nodes" "info" "{\"total_nodes\":$node_count}"
-
 # Restart each node one by one
 node_num=1
 for node in $nodes; do
     echo ""
     echo "Restarting node ${node_num}/${node_count}: ${node}"
-    emit_event "05-rolling-restart" "restart" "${node}" "warning" "{\"node_num\":$node_num,\"total\":$node_count,\"timeout\":10}"
+    event_start "restart-${node}"
     docker restart "${node}" -t 10
 
     # Wait for node to become healthy before proceeding to next
     echo "Waiting for ${node} to become healthy..."
-    timeout=60
-    elapsed=0
-    while [ $elapsed -lt $timeout ]; do
-        if docker inspect "${node}" --format='{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
-            echo "${node} is healthy"
-            emit_event "05-rolling-restart" "healthy" "${node}" "info" "{\"recovery_time_seconds\":$elapsed}"
-            break
-        fi
-        sleep 2
-        elapsed=$((elapsed + 2))
-    done
-
-    if [ $elapsed -ge $timeout ]; then
-        echo "WARNING: ${node} did not become healthy within ${timeout}s"
-        emit_event "05-rolling-restart" "health_timeout" "${node}" "critical" "{\"timeout_seconds\":$timeout}"
+    if wait_container_healthy "${node}"; then
+        echo "${node} is healthy"
+        event_end "restart-${node}" "${node} unavailable"
+    else
+        echo "WARNING: ${node} did not become healthy within 60s"
+        event_end "restart-${node}" "${node} unavailable (timeout)"
     fi
 
     node_num=$((node_num + 1))
@@ -57,4 +46,3 @@ done
 
 echo ""
 echo "Rolling restart completed for all ${node_count} nodes"
-emit_event "05-rolling-restart" "scenario_complete" "all-database-nodes" "info" "{\"total_nodes\":$node_count}"

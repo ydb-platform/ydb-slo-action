@@ -23,7 +23,6 @@ fi
 log "Chaos Monkey started"
 log "Configuration: scenario_delay=${SCENARIO_DELAY}s"
 log "Events file: ${CHAOS_EVENTS_FILE}"
-emit_event "chaos-monkey" "start" "system" "info" "{\"scenario_delay\":${SCENARIO_DELAY},\"initial_delay\":${INITIAL_DELAY}}"
 echo ""
 
 if [ ! -d "$SCENARIOS_DIR" ]; then
@@ -56,7 +55,6 @@ for script in $(find "$SCENARIOS_DIR" -maxdepth 1 -name "*.sh" -type f | sort); 
 done
 
 log "Chaos Monkey finished"
-emit_event "chaos-monkey" "finish" "system" "info" "{\"total_scenarios\":$(find "$SCENARIOS_DIR" -maxdepth 1 -name "*.sh" -type f -executable | wc -l)}"
 echo ""
 
 # Execute additional commands if provided via CMD

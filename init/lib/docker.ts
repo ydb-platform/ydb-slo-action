@@ -19,11 +19,9 @@ export interface DockerEvent {
 export interface ChaosEvent {
 	timestamp: string
 	epoch_ms: number
-	scenario: string
-	action: string
-	target: string
-	severity: 'info' | 'warning' | 'critical'
-	metadata: Record<string, unknown>
+	script: string
+	description: string
+	duration_ms?: number
 }
 
 /**
@@ -90,14 +88,12 @@ export async function collectDockerEvents(options: { cwd: string; since: Date; u
 			`docker`,
 			[
 				`events`,
-				`--filter`, `type=container`,
-				`--filter`, `label=ydb.node.type=database`,
-				`--filter`, `label=ydb.node.type=storage`,
-				`--since`, options.since.toISOString(),
-				`--until`,
-				options.until.toISOString(),
-				`--format`,
-				`{{json .}}`,
+				`--filter`,	`type=container`,
+				`--filter`,	`label=ydb.node.type=database`,
+				`--filter`,	`label=ydb.node.type=storage`,
+				`--since`,	options.since.toISOString(),
+				`--until`,	options.until.toISOString(),
+				`--format`,	`{{json .}}`,
 			],
 			{
 				cwd: options.cwd,
