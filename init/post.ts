@@ -5,13 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { debug, getInput, getState, info, warning } from '@actions/core'
 
 import { uploadArtifacts, type ArtifactFile } from './lib/artifacts.js'
-import {
-	collectChaosEvents,
-	collectComposeLogs,
-	collectDockerEvents,
-	getContainerIp,
-	stopCompose,
-} from './lib/docker.js'
+import { collectChaosEvents, collectComposeLogs, getContainerIp, stopCompose } from './lib/docker.js'
 import { collectMetrics, parseMetricsYaml, type MetricDefinition } from './lib/metrics.js'
 
 async function post() {
@@ -24,8 +18,8 @@ async function post() {
 
 	let pullPath = getState('pull_info_path')
 	let logsPath = path.join(cwd, `${workload}-logs.txt`)
+	let metaPath = path.join(cwd, `${workload}-meta.json`)
 	let eventsPath = path.join(cwd, `${workload}-events.jsonl`)
-	let chaosEventsPath = path.join(cwd, `${workload}-chaos-events.jsonl`)
 	let metricsPath = path.join(cwd, `${workload}-metrics.jsonl`)
 
 	let prometheusIp = await getContainerIp('prometheus', cwd)
@@ -55,25 +49,10 @@ async function post() {
 	}
 
 	{
-		info('Collecting docker events...')
-		let events = await collectDockerEvents({
-			cwd,
-			since: start,
-			until: finish,
-		})
-
+		info('Collecting chaos events...')
+		let events = await collectChaosEvents(cwd)
 		let content = events.map((e) => JSON.stringify(e)).join('\n')
 		fs.writeFileSync(eventsPath, content, { encoding: 'utf-8' })
-	}
-
-	{
-		info('Collecting chaos events...')
-		let chaosEvents = await collectChaosEvents(cwd)
-
-		let content = chaosEvents.map((e) => JSON.stringify(e)).join('\n')
-		fs.writeFileSync(chaosEventsPath, content, { encoding: 'utf-8' })
-
-		info(`Collected ${chaosEvents.length} chaos events`)
 	}
 
 	{
@@ -109,13 +88,42 @@ async function post() {
 	}
 
 	{
+		info('Saving test metadata...')
+
+		let metadata: Record<string, any> = {
+			workload,
+			start_time: start.toISOString(),
+			start_epoch_ms: start.getTime(),
+			end_time: finish.toISOString(),
+			end_epoch_ms: finish.getTime(),
+			duration_ms: duration,
+		}
+
+		// Add baseline and current refs from inputs
+		let currentRef = getInput('workload_current_ref')
+		let baselineRef = getInput('workload_baseline_ref')
+
+		if (currentRef) {
+			metadata.workload_current_ref = currentRef
+			debug(`Workload current ref: ${currentRef}`)
+		}
+
+		if (baselineRef) {
+			metadata.workload_baseline_ref = baselineRef
+			debug(`Workload baseline ref: ${baselineRef}`)
+		}
+
+		fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), { encoding: 'utf-8' })
+	}
+
+	{
 		info('Uploading artifacts...')
 
 		let artifacts: ArtifactFile[] = [
 			{ name: `${workload}-pull.txt`, path: pullPath },
 			{ name: `${workload}-logs.txt`, path: logsPath },
+			{ name: `${workload}-meta.json`, path: metaPath },
 			{ name: `${workload}-events.jsonl`, path: eventsPath },
-			{ name: `${workload}-chaos-events.jsonl`, path: chaosEventsPath },
 			{ name: `${workload}-metrics.jsonl`, path: metricsPath },
 		]
 

@@ -8,12 +8,24 @@ export interface MetricComparison {
 	name: string
 	type: 'range' | 'instant'
 	current: {
-		value: number
+		value: number // avg by default for backward compat
 		available: boolean
+		aggregates?: {
+			avg: number
+			p50: number
+			p90: number
+			p95: number
+		}
 	}
-	base: {
-		value: number
+	baseline: {
+		value: number // avg by default for backward compat
 		available: boolean
+		aggregates?: {
+			avg: number
+			p50: number
+			p90: number
+			p95: number
+		}
 	}
 	change: {
 		absolute: number
@@ -71,15 +83,15 @@ function inferMetricDirection(name: string): 'lower_is_better' | 'higher_is_bett
  */
 function determineChangeDirection(
 	currentValue: number,
-	baseValue: number,
+	baselineValue: number,
 	metricDirection: 'lower_is_better' | 'higher_is_better' | 'neutral',
 	neutralThreshold: number = 5.0
 ): 'better' | 'worse' | 'neutral' | 'unknown' {
-	if (isNaN(currentValue) || isNaN(baseValue)) {
+	if (isNaN(currentValue) || isNaN(baselineValue)) {
 		return 'unknown'
 	}
 
-	let changePercent = Math.abs(((currentValue - baseValue) / baseValue) * 100)
+	let changePercent = Math.abs(((currentValue - baselineValue) / baselineValue) * 100)
 
 	// Consider change below threshold as stable/neutral
 	if (changePercent < neutralThreshold) {
@@ -87,11 +99,11 @@ function determineChangeDirection(
 	}
 
 	if (metricDirection === 'lower_is_better') {
-		return currentValue < baseValue ? 'better' : 'worse'
+		return currentValue < baselineValue ? 'better' : 'worse'
 	}
 
 	if (metricDirection === 'higher_is_better') {
-		return currentValue > baseValue ? 'better' : 'worse'
+		return currentValue > baselineValue ? 'better' : 'worse'
 	}
 
 	return 'neutral'
@@ -102,11 +114,13 @@ function determineChangeDirection(
  */
 export function compareMetric(
 	metric: CollectedMetric,
+	currentRef: string,
+	baselineRef: string,
 	aggregate: AggregateFunction = 'avg',
 	neutralThreshold?: number
 ): MetricComparison {
-	let currentValue = getMetricValue(metric, 'current', aggregate)
-	let baseValue = getMetricValue(metric, 'base', aggregate)
+	let currentValue = getMetricValue(metric, currentRef, aggregate)
+	let baseValue = getMetricValue(metric, baselineRef, aggregate)
 
 	let absolute = currentValue - baseValue
 	let percent = isNaN(baseValue) || baseValue === 0 ? NaN : (absolute / baseValue) * 100
@@ -114,16 +128,37 @@ export function compareMetric(
 	let metricDirection = inferMetricDirection(metric.name)
 	let direction = determineChangeDirection(currentValue, baseValue, metricDirection, neutralThreshold)
 
+	// Calculate multiple aggregates for range metrics
+	let currentAggregates: { avg: number; p50: number; p90: number; p95: number } | undefined
+	let baselineAggregates: { avg: number; p50: number; p90: number; p95: number } | undefined
+
+	if (metric.type === 'range') {
+		currentAggregates = {
+			avg: getMetricValue(metric, currentRef, 'avg'),
+			p50: getMetricValue(metric, currentRef, 'p50'),
+			p90: getMetricValue(metric, currentRef, 'p90'),
+			p95: getMetricValue(metric, currentRef, 'p95'),
+		}
+		baselineAggregates = {
+			avg: getMetricValue(metric, baselineRef, 'avg'),
+			p50: getMetricValue(metric, baselineRef, 'p50'),
+			p90: getMetricValue(metric, baselineRef, 'p90'),
+			p95: getMetricValue(metric, baselineRef, 'p95'),
+		}
+	}
+
 	return {
 		name: metric.name,
 		type: metric.type,
 		current: {
 			value: currentValue,
 			available: !isNaN(currentValue),
+			aggregates: currentAggregates,
 		},
-		base: {
+		baseline: {
 			value: baseValue,
 			available: !isNaN(baseValue),
+			aggregates: baselineAggregates,
 		},
 		change: {
 			absolute,
@@ -139,29 +174,31 @@ export function compareMetric(
 export function compareWorkloadMetrics(
 	workload: string,
 	metrics: MetricsMap,
+	currentRef: string,
+	baselineRef: string,
 	aggregate: AggregateFunction = 'avg',
 	neutralThreshold?: number
 ): WorkloadComparison {
 	let comparisons: MetricComparison[] = []
 
 	for (let [_name, metric] of metrics) {
-		let comparison = compareMetric(metric, aggregate, neutralThreshold)
+		let comparison = compareMetric(metric, currentRef, baselineRef, aggregate, neutralThreshold)
 		comparisons.push(comparison)
 	}
 
 	// Calculate summary
+	let stable = comparisons.filter((c) => c.change.direction === 'neutral').length
 	let regressions = comparisons.filter((c) => c.change.direction === 'worse').length
 	let improvements = comparisons.filter((c) => c.change.direction === 'better').length
-	let stable = comparisons.filter((c) => c.change.direction === 'neutral').length
 
 	return {
 		workload,
 		metrics: comparisons,
 		summary: {
 			total: comparisons.length,
+			stable,
 			regressions,
 			improvements,
-			stable,
 		},
 	}
 }

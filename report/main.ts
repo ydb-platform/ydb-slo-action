@@ -49,40 +49,33 @@ async function main() {
 
 		info(`Found ${workloads.length} workloads: ${workloads.map((w) => w.workload).join(', ')}`)
 
-		// Step 2: Get PR information
+		// Step 2: Get PR number (optional - may not exist for non-PR workflows)
 		let prNumber = workloads[0]?.pullNumber
-		if (!prNumber) {
-			setFailed('Pull request number not found in artifacts')
-			return
+		if (prNumber) {
+			info(`Processing PR #${prNumber}`)
+		} else {
+			info('No PR associated with this run (non-PR workflow)')
 		}
-
-		info(`Processing PR #${prNumber}`)
-
-		// Get PR details for commit info
-		let { getOctokit } = await import('@actions/github')
-		let octokit = getOctokit(token)
-
-		info('Fetching PR information...')
-		let { data: pr } = await octokit.rest.pulls.get({
-			owner: context.repo.owner,
-			repo: context.repo.repo,
-			pull_number: prNumber,
-		})
-
-		info(`PR: ${pr.title}`)
-		info(`Base branch: ${pr.base.ref}`)
-		info(`Head SHA: ${pr.head.sha}`)
 
 		// Step 3: Load thresholds configuration
 		info('⚙️  Loading thresholds configuration...')
 		let thresholds = await loadThresholds(getInput('thresholds_yaml'), getInput('thresholds_yaml_path'))
 		info(`Loaded thresholds: neutral_change=${thresholds.neutral_change_percent}%`)
 
-		// Step 4: Analyze metrics (already contain current and base series with ref label)
+		// Step 4: Analyze metrics
 		info('📊 Analyzing metrics...')
-		let comparisons = workloads.map((w) =>
-			compareWorkloadMetrics(w.workload, w.metrics, 'avg', thresholds.neutral_change_percent)
-		)
+		let comparisons = workloads.map((w) => {
+			let currentRef = w.metadata?.workload_current_ref || 'current'
+			let baselineRef = w.metadata?.workload_baseline_ref || 'base'
+			return compareWorkloadMetrics(
+				w.workload,
+				w.metrics,
+				currentRef,
+				baselineRef,
+				'avg',
+				thresholds.neutral_change_percent
+			)
+		})
 
 		// Step 5: Generate HTML reports
 		info('📝 Generating HTML reports...')
@@ -96,27 +89,20 @@ async function main() {
 			let workload = workloads[i]
 			let comparison = comparisons[i]
 
+			// Use refs from metadata for display
+			let currentRef = workload.metadata?.workload_current_ref || 'current'
+			let baselineRef = workload.metadata?.workload_baseline_ref || 'baseline'
+
 			let htmlData: HTMLReportData = {
 				workload: workload.workload,
 				comparison,
 				metrics: workload.metrics,
 				events: workload.events,
-				commits: {
-					current: {
-						sha: pr.head.sha,
-						url: `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${pr.head.sha}`,
-						short: pr.head.sha.substring(0, 7),
-					},
-					base: {
-						sha: pr.base.sha,
-						url: `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${pr.base.sha}`,
-						short: pr.base.sha.substring(0, 7),
-					},
-				},
-				meta: {
-					prNumber,
-					generatedAt: new Date().toISOString(),
-				},
+				currentRef,
+				baselineRef,
+				prNumber: prNumber || 0,
+				testStartTime: workload.metadata?.start_epoch_ms || Date.now() - 10 * 60 * 1000,
+				testEndTime: workload.metadata?.end_epoch_ms || Date.now(),
 			}
 
 			let html = generateHTMLReport(htmlData)
@@ -154,7 +140,7 @@ async function main() {
 					token,
 					owner: context.repo.owner,
 					repo: context.repo.repo,
-					sha: pr.head.sha,
+					sha: context.sha,
 					workload: comparison,
 					thresholds,
 				})
@@ -169,45 +155,50 @@ async function main() {
 		// Step 8: Write Job Summary
 		info('📋 Writing Job Summary...')
 
+		// Use refs from first workload for summary
+		let firstWorkload = workloads[0]
+		let summaryCurrentRef = firstWorkload.metadata?.workload_current_ref || 'current'
+		let summaryBaselineRef = firstWorkload.metadata?.workload_baseline_ref || 'baseline'
+
 		await writeJobSummary({
 			workloads: comparisons,
-			commits: {
-				current: {
-					sha: pr.head.sha,
-					url: `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${pr.head.sha}`,
-					short: pr.head.sha.substring(0, 7),
-				},
-				base: {
-					sha: pr.base.sha,
-					url: `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${pr.base.sha}`,
-					short: pr.base.sha.substring(0, 7),
-				},
-			},
+			currentRef: summaryCurrentRef,
+			baselineRef: summaryBaselineRef,
 		})
 
 		info('Job Summary written')
 
-		// Step 9: Create/Update PR comment
-		info('💬 Creating/updating PR comment...')
+		// Step 9: Create/Update PR comment (only if PR exists)
+		if (prNumber) {
+			info('💬 Creating/updating PR comment...')
 
-		// Artifact URLs (GitHub UI download)
-		let artifactUrls = new Map<string, string>()
-		let artifactBaseUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${uploadResult.id}`
+			// Artifact URLs (GitHub UI download)
+			let artifactUrls = new Map<string, string>()
+			let artifactBaseUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${uploadResult.id}`
 
-		for (let file of htmlFiles) {
-			artifactUrls.set(file.workload, artifactBaseUrl)
+			for (let file of htmlFiles) {
+				artifactUrls.set(file.workload, artifactBaseUrl)
+			}
+
+			let commentBody = generateCommentBody({
+				workloads: comparisons,
+				artifactUrls,
+				checkUrls,
+				jobSummaryUrl: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`,
+			})
+
+			let comment = await createOrUpdateComment(
+				token,
+				context.repo.owner,
+				context.repo.repo,
+				prNumber,
+				commentBody
+			)
+
+			info(`PR comment: ${comment.url}`)
+		} else {
+			info('Skipping PR comment (no PR associated with this run)')
 		}
-
-		let commentBody = generateCommentBody({
-			workloads: comparisons,
-			artifactUrls,
-			checkUrls,
-			jobSummaryUrl: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`,
-		})
-
-		let comment = await createOrUpdateComment(token, context.repo.owner, context.repo.repo, prNumber, commentBody)
-
-		info(`PR comment: ${comment.url}`)
 
 		info('✅ Report generation completed successfully!')
 	} catch (error) {

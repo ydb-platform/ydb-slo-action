@@ -8,15 +8,19 @@ import * as path from 'node:path'
 import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, info, warning } from '@actions/core'
 
-import type { ChaosEvent, DockerEvent } from './events.js'
-import {
-	formatChaosEvents,
-	formatEvents,
-	parseChaosEventsJsonl,
-	parseEventsJsonl,
-	type FormattedEvent,
-} from './events.js'
+import { formatEvents, parseEventsJsonl, type FormattedEvent } from './events.js'
 import { parseMetricsJsonl, type MetricsMap } from './metrics.js'
+
+export interface TestMetadata {
+	workload: string
+	start_time: string
+	start_epoch_ms: number
+	end_time: string
+	end_epoch_ms: number
+	duration_ms: number
+	workload_current_ref?: string
+	workload_baseline_ref?: string
+}
 
 export interface WorkloadArtifacts {
 	workload: string
@@ -24,6 +28,7 @@ export interface WorkloadArtifacts {
 	metrics: MetricsMap
 	events: FormattedEvent[]
 	logsPath?: string
+	metadata?: TestMetadata
 }
 
 export interface ArtifactDownloadOptions {
@@ -87,10 +92,11 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 		string,
 		{
 			pull?: string
-			metrics?: string
-			events?: string
-			chaosEvents?: string
+			meta?: string
 			logs?: string
+			events?: string
+			metrics?: string
+			chaosEvents?: string
 		}
 	>()
 
@@ -120,14 +126,14 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 
 			if (basename.endsWith('-pull.txt')) {
 				group.pull = file
-			} else if (basename.endsWith('-metrics.jsonl')) {
-				group.metrics = file
-			} else if (basename.endsWith('-chaos-events.jsonl')) {
-				group.chaosEvents = file
-			} else if (basename.endsWith('-events.jsonl')) {
-				group.events = file
 			} else if (basename.endsWith('-logs.txt')) {
 				group.logs = file
+			} else if (basename.endsWith('-meta.json')) {
+				group.meta = file
+			} else if (basename.endsWith('-events.jsonl')) {
+				group.chaosEvents = file
+			} else if (basename.endsWith('-metrics.jsonl')) {
+				group.metrics = file
 			}
 		}
 
@@ -150,22 +156,26 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 
 			let events: FormattedEvent[] = []
 
-			// Load docker events
-			if (files.events && fs.existsSync(files.events)) {
-				let eventsContent = fs.readFileSync(files.events, { encoding: 'utf-8' })
+			// Load events
+			if (files.chaosEvents && fs.existsSync(files.chaosEvents)) {
+				let eventsContent = fs.readFileSync(files.chaosEvents, { encoding: 'utf-8' })
 				let rawEvents = parseEventsJsonl(eventsContent)
 				events.push(...formatEvents(rawEvents))
 			}
 
-			// Load chaos events
-			if (files.chaosEvents && fs.existsSync(files.chaosEvents)) {
-				let chaosEventsContent = fs.readFileSync(files.chaosEvents, { encoding: 'utf-8' })
-				let rawChaosEvents = parseChaosEventsJsonl(chaosEventsContent)
-				events.push(...formatChaosEvents(rawChaosEvents))
-			}
-
 			// Sort events by timestamp
 			events.sort((a, b) => a.timestamp - b.timestamp)
+
+			// Load metadata
+			let metadata: TestMetadata | undefined
+			if (files.meta && fs.existsSync(files.meta)) {
+				try {
+					let metaContent = fs.readFileSync(files.meta, { encoding: 'utf-8' })
+					metadata = JSON.parse(metaContent) as TestMetadata
+				} catch (error) {
+					warning(`Failed to parse metadata for ${workload}: ${String(error)}`)
+				}
+			}
 
 			workloads.push({
 				workload,
@@ -173,9 +183,11 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 				metrics,
 				events,
 				logsPath: files.logs,
+				metadata,
 			})
 
-			info(`Parsed workload ${workload}: ${metrics.size} metrics, ${events.length} events`)
+			let testDuration = metadata ? `${(metadata.duration_ms / 1000).toFixed(0)}s` : 'unknown'
+			info(`Parsed workload ${workload}: ${metrics.size} metrics, ${events.length} events (${testDuration} test)`)
 		} catch (error) {
 			warning(`Failed to parse workload ${workload}: ${String(error)}`)
 			continue

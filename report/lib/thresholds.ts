@@ -178,7 +178,7 @@ function findMatchingThreshold(metricName: string, config: ThresholdConfig): Met
  */
 export function evaluateThreshold(comparison: MetricComparison, config: ThresholdConfig): ThresholdSeverity {
 	// Can't evaluate without base
-	if (!comparison.base.available) {
+	if (!comparison.baseline.available) {
 		return 'success'
 	}
 

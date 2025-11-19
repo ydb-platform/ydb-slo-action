@@ -11,6 +11,12 @@ inputs:
   workload_name:
     description: "The name of the workload used by the user to generate load on the YDB database."
     required: true
+  workload_current_ref:
+    description: "The current ref/branch name being tested (e.g., PR branch name). This will be used to identify current metrics."
+    required: true
+  workload_baseline_ref:
+    description: "The baseline ref/branch name used for comparison (e.g., 'main', 'master'). This will be used to identify base metrics."
+    required: true
   metrics_yaml:
     description: "Custom metrics configuration in YAML format (inline). Will be merged with default metrics."
     required: false

@@ -8,10 +8,8 @@ import { formatChange, formatValue, type WorkloadComparison } from './analysis.j
 
 export interface SummaryData {
 	workloads: WorkloadComparison[]
-	commits: {
-		current: { sha: string; url: string; short: string }
-		base: { sha: string; url: string; short: string }
-	}
+	currentRef: string
+	baselineRef: string
 	artifactUrls?: Map<string, string>
 }
 
@@ -24,9 +22,9 @@ export async function writeJobSummary(data: SummaryData): Promise<void> {
 	// Commits info
 	summary.addRaw(`
 <p>
-	<strong>Current:</strong> <a href="${data.commits.current.url}">${data.commits.current.short}</a>
+	<strong>Current:</strong> ${data.currentRef}
 	vs
-	<strong>Base:</strong> <a href="${data.commits.base.url}">${data.commits.base.short}</a>
+	<strong>Baseline:</strong> ${data.baselineRef}
 </p>
 	`)
 
@@ -68,14 +66,14 @@ export async function writeJobSummary(data: SummaryData): Promise<void> {
 			[
 				{ data: 'Metric', header: true },
 				{ data: 'Current', header: true },
-				{ data: 'Base', header: true },
+				{ data: 'Baseline', header: true },
 				{ data: 'Change', header: true },
 			],
 			...workload.metrics.map((m) => [
 				m.name,
 				formatValue(m.current.value, m.name),
-				m.base.available ? formatValue(m.base.value, m.name) : 'N/A',
-				m.base.available ? formatChange(m.change.percent, m.change.direction) : 'N/A',
+				m.baseline.available ? formatValue(m.baseline.value, m.name) : 'N/A',
+				m.baseline.available ? formatChange(m.change.percent, m.change.direction) : 'N/A',
 			]),
 		])
 

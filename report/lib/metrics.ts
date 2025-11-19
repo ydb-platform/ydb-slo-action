@@ -54,30 +54,41 @@ export function parseMetricsJsonl(content: string): MetricsMap {
  */
 export interface SeparatedSeries {
 	current: Series | InstantSeries | null
-	base: Series | InstantSeries | null
+	baseline: Series | InstantSeries | null
 }
 
-export function separateByRef(metric: CollectedMetric): SeparatedSeries {
+export function separateByRef(metric: CollectedMetric, currentRef: string, baselineRef: string): SeparatedSeries {
 	let current: Series | InstantSeries | null = null
-	let base: Series | InstantSeries | null = null
+	let baseline: Series | InstantSeries | null = null
 
 	if (metric.type === 'instant') {
 		let data = metric.data as InstantSeries[]
-		current = data.find((s) => s.metric.ref === 'current') || null
-		base = data.find((s) => s.metric.ref === 'base') || null
+		current = data.find((s) => s.metric.ref === currentRef) || null
+		baseline = data.find((s) => s.metric.ref === baselineRef) || null
 	} else {
 		let data = metric.data as Series[]
-		current = data.find((s) => s.metric.ref === 'current') || null
-		base = data.find((s) => s.metric.ref === 'base') || null
+		current = data.find((s) => s.metric.ref === currentRef) || null
+		baseline = data.find((s) => s.metric.ref === baselineRef) || null
 	}
 
-	return { current, base }
+	return { current, baseline }
 }
 
 /**
  * Aggregate function type for range metrics
  */
-export type AggregateFunction = 'last' | 'first' | 'avg' | 'min' | 'max' | 'p50' | 'p95' | 'p99' | 'sum' | 'count'
+export type AggregateFunction =
+	| 'last'
+	| 'first'
+	| 'avg'
+	| 'min'
+	| 'max'
+	| 'p50'
+	| 'p90'
+	| 'p95'
+	| 'p99'
+	| 'sum'
+	| 'count'
 
 /**
  * Calculate percentile
@@ -111,6 +122,8 @@ export function aggregateValues(values: [number, string][], fn: AggregateFunctio
 			return Math.max(...nums)
 		case 'p50':
 			return percentile(nums, 0.5)
+		case 'p90':
+			return percentile(nums, 0.9)
 		case 'p95':
 			return percentile(nums, 0.95)
 		case 'p99':
@@ -127,13 +140,16 @@ export function aggregateValues(values: [number, string][], fn: AggregateFunctio
 /**
  * Get single value from metric (instant or aggregated range)
  */
-export function getMetricValue(
-	metric: CollectedMetric,
-	ref: 'current' | 'base',
-	aggregate: AggregateFunction = 'avg'
-): number {
-	let separated = separateByRef(metric)
-	let series = ref === 'current' ? separated.current : separated.base
+export function getMetricValue(metric: CollectedMetric, ref: string, aggregate: AggregateFunction = 'avg'): number {
+	let series: Series | InstantSeries | null = null
+
+	if (metric.type === 'instant') {
+		let data = metric.data as InstantSeries[]
+		series = data.find((s) => s.metric.ref === ref) || null
+	} else {
+		let data = metric.data as Series[]
+		series = data.find((s) => s.metric.ref === ref) || null
+	}
 
 	if (!series) return NaN
 
