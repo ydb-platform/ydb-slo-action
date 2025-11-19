@@ -7,7 +7,6 @@ export interface MetricDefinition {
 	query: string
 	type?: 'range' | 'instant'
 	step?: string
-	time?: number
 }
 
 export interface CollectedMetric {
@@ -52,24 +51,14 @@ export async function parseMetricsYaml(yamlContent: string): Promise<MetricDefin
 }
 
 /**
- * Calculates optimal step to get ~200 data points regardless of test duration.
- * This provides good chart resolution without overloading Prometheus.
+ * Calculates optimal step for smooth, detailed charts.
+ * Targets ~2000 points for high accuracy calculations.
+ * Charts will downsample for rendering performance.
  */
-function calculateOptimalStep(durationSeconds: number): string {
-	let targetPoints = 200
-	let stepSeconds = Math.ceil(durationSeconds / targetPoints)
+function calculateOptimalStep(durationMs: number): string {
+	let stepMs = Math.ceil(durationMs / 2000)
 
-	stepSeconds = Math.max(5, Math.min(60, stepSeconds))
-
-	// Round to common intervals for better alignment with scrape intervals
-	let niceSteps = [5, 10, 15, 30, 60]
-	for (let niceStep of niceSteps) {
-		if (stepSeconds <= niceStep) {
-			return `${niceStep}s`
-		}
-	}
-
-	return '60s'
+	return `${Math.max(250, stepMs)}ms`
 }
 
 /**
@@ -77,15 +66,15 @@ function calculateOptimalStep(durationSeconds: number): string {
  */
 export async function collectMetrics(options: {
 	url: string
-	start: number
-	end: number
+	start: Date
+	finish: Date
 	metrics: MetricDefinition[]
 	timeout: number
 }): Promise<CollectedMetric[]> {
 	let results: CollectedMetric[] = []
 
-	let durationSeconds = options.end - options.start
-	let defaultStep = calculateOptimalStep(durationSeconds)
+	let durationMs = options.finish.getTime() - options.start.getTime()
+	let defaultStep = calculateOptimalStep(durationMs)
 
 	for (let metric of options.metrics) {
 		try {
@@ -95,7 +84,7 @@ export async function collectMetrics(options: {
 				let response = await queryInstant({
 					url: options.url,
 					query: metric.query,
-					time: metric.time || options.end,
+					time: options.finish.getTime() / 1000,
 					timeout: options.timeout,
 				})
 
@@ -111,8 +100,8 @@ export async function collectMetrics(options: {
 				let response = await queryRange({
 					url: options.url,
 					query: metric.query,
-					start: options.start,
-					end: options.end,
+					start: options.start.getTime() / 1000,
+					end: options.finish.getTime() / 1000,
 					step: metric.step || defaultStep,
 					timeout: options.timeout,
 				})

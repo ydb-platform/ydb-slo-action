@@ -72,8 +72,8 @@ async function post() {
 
 		let metrics = await collectMetrics({
 			url: prometheusUrl,
-			start: start.getTime() / 1000,
-			end: finish.getTime() / 1000,
+			start: start,
+			finish: finish,
 			metrics: metricsDef,
 			timeout: 30000,
 		})
