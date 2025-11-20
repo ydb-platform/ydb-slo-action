@@ -1,6 +1,10 @@
 # 95th percentile read operations latency in milliseconds
+# Optional: specify 'step' to override auto-calculated interval
+# Examples: '250ms', '500ms', '1s', '5s', '15s'
+# Default: auto-calculated to get ~2000 points (min 250ms, max 60s)
 - name: read_latency_ms
   query: 1000 * histogram_quantile(0.95, sum by(ref, le) (rate(sdk_operation_latency_seconds_bucket{operation_type="read"}[30s])))
+  # step: '500ms'  # Uncomment for very high-resolution data
 
 # 95th percentile write operations latency in milliseconds
 - name: write_latency_ms
