@@ -23,6 +23,12 @@ name: SLO Test
 
 on: pull_request
 
+# Required permissions for the report action
+permissions:
+    contents: read # Access repository
+    pull-requests: write # Create/update PR comments
+    checks: write # Create GitHub Checks (optional)
+
 jobs:
     test:
         runs-on: ubuntu-latest
@@ -31,6 +37,8 @@ jobs:
             - uses: ydb-platform/ydb-slo-action/init@v1
               with:
                   workload_name: my-sdk-test
+                  workload_current_ref: ${{ github.head_ref }}
+                  workload_baseline_ref: main
                   github_token: ${{ secrets.GITHUB_TOKEN }}
 
             # Run your SDK tests
@@ -421,13 +429,21 @@ This prevents conflicts when multiple workloads run in the same workflow.
 
 ### GitHub Token
 
-The action only needs these permissions:
+The action requires these permissions:
 
-- Read PR information
-- Upload/download artifacts
-- Post PR comments
+- `contents: read` — Read PR information and repository contents
+- `pull-requests: write` — Post and update PR comments
+- `checks: write` — Create GitHub Checks for SLO violations (optional, but recommended)
 
-Always use `secrets.GITHUB_TOKEN` provided by GitHub Actions (minimum permissions).
+Always use `secrets.GITHUB_TOKEN` provided by GitHub Actions. Add the `permissions` block to your workflow (see Quick Example above).
+
+**Without proper permissions**, you'll see warnings like:
+
+```
+Failed to create GitHub Checks: insufficient permissions. Add 'checks: write' to workflow permissions.
+```
+
+The action will still work and post PR comments, but GitHub Checks won't be created.
 
 ### Chaos Container
 

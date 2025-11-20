@@ -1,5 +1,13 @@
 name: "Generate & Publish Report"
 description: "Analyzes metrics, compares results with the base branch, and publishes a detailed report to the pull request."
+branding:
+  icon: "bar-chart-2"
+  color: "blue"
+
+# Required workflow permissions:
+# - contents: read (to access repository)
+# - pull-requests: write (to create/update PR comments)
+# - checks: write (optional, to create GitHub Checks for SLO violations)
 
 inputs:
   github_token:

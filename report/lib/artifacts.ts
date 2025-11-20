@@ -65,14 +65,16 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 		)}`
 	)
 
-	// Download all artifacts
+	// Download each artifact to its own subdirectory
 	let downloadedPaths = new Map<string, string>()
 
 	for (let artifact of artifacts) {
+		let artifactDir = path.join(options.downloadPath, artifact.name)
+
 		info(`Downloading artifact ${artifact.name}...`)
 
 		let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
-			path: options.downloadPath,
+			path: artifactDir,
 			findBy: {
 				token: options.token,
 				workflowRunId: options.workflowRunId,
@@ -81,8 +83,7 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 			},
 		})
 
-		// downloadPath already points to where the artifact was extracted
-		let artifactPath = downloadPath || options.downloadPath
+		let artifactPath = downloadPath || artifactDir
 		downloadedPaths.set(artifact.name, artifactPath)
 
 		info(`Downloaded artifact ${artifact.name} to ${artifactPath}`)
@@ -145,8 +146,13 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 	let workloads: WorkloadArtifacts[] = []
 
 	for (let [workload, files] of workloadFiles) {
+		// Validate that this is a real workload artifact from init action
+		// Each artifact is now in its own directory, so we just check for required files
 		if (!files.pull || !files.metrics) {
-			warning(`Skipping incomplete workload ${workload}: missing required files`)
+			debug(
+				`Skipping artifact '${workload}': not a workload artifact (missing -pull.txt or -metrics.jsonl). ` +
+					`This is expected for user-uploaded artifacts like logs.`
+			)
 			continue
 		}
 
