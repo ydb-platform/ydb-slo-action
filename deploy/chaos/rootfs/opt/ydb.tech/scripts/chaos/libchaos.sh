@@ -7,6 +7,10 @@ CHAOS_EVENTS_FILE="${CHAOS_EVENTS_FILE:-/tmp/chaos-events.jsonl}"
 # Timers storage (simulated associative array with | separator)
 EVENT_TIMERS=""
 
+# Save script name when library is sourced (POSIX sh compatible)
+# When library is sourced via '.', $0 points to the calling script
+CHAOS_SCRIPT_NAME="${CHAOS_SCRIPT_NAME:-$(basename "${0:-unknown}")}"
+
 # Logging with timestamp
 log() {
     echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*"
@@ -28,8 +32,8 @@ event_end() {
     label="${1:-unknown}"
     description="${2:-unknown}"
 
-    # Get script name from caller
-    script_name=$(basename "${BASH_SOURCE[1]:-unknown}")
+    # Get script name (POSIX sh compatible)
+    script_name="${CHAOS_SCRIPT_NAME:-unknown}"
 
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
     epoch_ms=$(date +%s%3N 2>/dev/null || echo "$(date +%s)000")
@@ -75,8 +79,8 @@ event_end() {
 emit_event() {
     description="${1:-unknown}"
 
-    # Get script name from caller
-    script_name=$(basename "${BASH_SOURCE[1]:-unknown}")
+    # Get script name (POSIX sh compatible)
+    script_name="${CHAOS_SCRIPT_NAME:-unknown}"
 
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
     epoch_ms=$(date +%s%3N 2>/dev/null || echo "$(date +%s)000")
