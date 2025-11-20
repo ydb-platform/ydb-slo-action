@@ -7,7 +7,7 @@ import * as path from 'node:path'
 
 import { DefaultArtifactClient } from '@actions/artifact'
 import { getInput, info, setFailed, warning } from '@actions/core'
-import { context } from '@actions/github'
+import { context, getOctokit } from '@actions/github'
 
 import { compareWorkloadMetrics } from './lib/analysis.js'
 import { downloadWorkloadArtifacts } from './lib/artifacts.js'
@@ -31,7 +31,18 @@ async function main() {
 		fs.mkdirSync(cwd, { recursive: true })
 		info(`Working directory: ${cwd}`)
 
-		// Step 1: Download artifacts from current run
+		// Step 1: Get SHA from the workflow run (for GitHub Checks)
+		info('🔍 Fetching workflow run information...')
+		let octokit = getOctokit(token)
+		let { data: workflowRun } = await octokit.rest.actions.getWorkflowRun({
+			owner: context.repo.owner,
+			repo: context.repo.repo,
+			run_id: runId,
+		})
+		let headSha = workflowRun.head_sha
+		info(`Workflow run SHA: ${headSha}`)
+
+		// Step 2: Download artifacts from current run
 		// NOTE: Artifacts already contain both current and base series (collected in init action)
 		info('📦 Downloading artifacts from current run...')
 		let workloads = await downloadWorkloadArtifacts({
@@ -140,7 +151,7 @@ async function main() {
 					token,
 					owner: context.repo.owner,
 					repo: context.repo.repo,
-					sha: context.sha,
+					sha: headSha,
 					workload: comparison,
 					thresholds,
 				})
