@@ -81,7 +81,8 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 			},
 		})
 
-		let artifactPath = path.join(downloadPath || options.downloadPath, artifact.name)
+		// downloadPath already points to where the artifact was extracted
+		let artifactPath = downloadPath || options.downloadPath
 		downloadedPaths.set(artifact.name, artifactPath)
 
 		info(`Downloaded artifact ${artifact.name} to ${artifactPath}`)
