@@ -36,9 +36,8 @@ event_end() {
     # Get script name (POSIX sh compatible)
     script_name="${CHAOS_SCRIPT_NAME:-unknown}"
 
-    # Get milliseconds timestamp (POSIX compatible: seconds * 1000)
-    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    epoch_ms=$(($(date +%s) * 1000))
+    # Get current time for duration calculation
+    end_epoch_ms=$(($(date +%s) * 1000))
 
     # Find start time for this label
     # EVENT_TIMERS format: "label1|timestamp1|label2|timestamp2|..."
@@ -56,11 +55,25 @@ event_end() {
     # Calculate duration
     duration_ms=""
     if [ -n "$start_time" ] && [ "$start_time" -gt 0 ] 2>/dev/null; then
-        duration_ms=$((epoch_ms - start_time))
+        duration_ms=$((end_epoch_ms - start_time))
         # Ensure duration is positive (sanity check)
         if [ "$duration_ms" -lt 0 ]; then
             duration_ms=""
         fi
+    fi
+
+    if [ -n "$start_time" ]; then
+        epoch_ms=$start_time
+        # Convert milliseconds to seconds for date command
+        start_seconds=$((start_time / 1000))
+        # Try different date formats for compatibility (Alpine/BusyBox, GNU, BSD)
+        timestamp=$(date -u -d "@${start_seconds}" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || \
+                    date -u -r ${start_seconds} +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || \
+                    date -u +"%Y-%m-%dT%H:%M:%SZ")
+    else
+        # Fallback to current time if no start_time found
+        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        epoch_ms=$end_epoch_ms
     fi
 
     # Remove used timer from EVENT_TIMERS to avoid reuse
