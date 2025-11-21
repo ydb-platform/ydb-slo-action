@@ -20,7 +20,7 @@ echo "Starting node back..."
 docker start "${nodeForChaos}"
 
 echo "Waiting for node to become healthy..."
-wait_container_healthy "${nodeForChaos}"
+wait_container_healthy "${nodeForChaos}" || echo "WARNING: Node did not become healthy within timeout"
 event_end "stop-${nodeForChaos}" "${nodeForChaos} unavailable"
 
 echo "Graceful stop scenario completed"

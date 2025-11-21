@@ -20,7 +20,13 @@ log() {
 # Usage: event_start "label"
 event_start() {
     label="${1:-unknown}"
-    epoch_ms=$(date +%s%3N 2>/dev/null || echo "$(date +%s)000")
+    # Get milliseconds timestamp (POSIX compatible)
+    # Try %3N (GNU date), fall back to seconds * 1000 if not supported
+    if date +%3N >/dev/null 2>&1; then
+        epoch_ms=$(date +%s%3N)
+    else
+        epoch_ms=$(($(date +%s) * 1000))
+    fi
 
     # Store timer: "label|timestamp|"
     EVENT_TIMERS="${EVENT_TIMERS}${label}|${epoch_ms}|"
@@ -35,28 +41,41 @@ event_end() {
     # Get script name (POSIX sh compatible)
     script_name="${CHAOS_SCRIPT_NAME:-unknown}"
 
-    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
-    epoch_ms=$(date +%s%3N 2>/dev/null || echo "$(date +%s)000")
+    # Try to get milliseconds, fall back to seconds if not supported
+    if date +%3N >/dev/null 2>&1; then
+        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+        epoch_ms=$(date +%s%3N)
+    else
+        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        epoch_ms=$(($(date +%s) * 1000))
+    fi
 
     # Find start time for this label
+    # EVENT_TIMERS format: "label1|timestamp1|label2|timestamp2|..."
+    # Extract the timestamp that follows our label
     start_time=""
-    for entry in $(echo "$EVENT_TIMERS" | tr '|' '\n'); do
-        if [ -n "$entry" ]; then
-            if [ "$entry" = "$label" ]; then
-                # Next entry is the timestamp
-                continue
-            fi
-            if [ -z "$start_time" ] && echo "$EVENT_TIMERS" | grep -q "${label}|${entry}|"; then
-                start_time="$entry"
-                break
-            fi
-        fi
-    done
+    case "$EVENT_TIMERS" in
+        *"${label}|"*)
+            # Extract everything after "label|"
+            temp="${EVENT_TIMERS#*${label}|}"
+            # Extract the timestamp (everything before next |)
+            start_time="${temp%%|*}"
+            ;;
+    esac
 
     # Calculate duration
     duration_ms=""
-    if [ -n "$start_time" ]; then
+    if [ -n "$start_time" ] && [ "$start_time" -gt 0 ] 2>/dev/null; then
         duration_ms=$((epoch_ms - start_time))
+        # Ensure duration is positive (sanity check)
+        if [ "$duration_ms" -lt 0 ]; then
+            duration_ms=""
+        fi
+    fi
+
+    # Remove used timer from EVENT_TIMERS to avoid reuse
+    if [ -n "$start_time" ]; then
+        EVENT_TIMERS=$(echo "$EVENT_TIMERS" | sed "s/${label}|${start_time}|//g")
     fi
 
     # Escape JSON strings
@@ -82,8 +101,14 @@ emit_event() {
     # Get script name (POSIX sh compatible)
     script_name="${CHAOS_SCRIPT_NAME:-unknown}"
 
-    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
-    epoch_ms=$(date +%s%3N 2>/dev/null || echo "$(date +%s)000")
+    # Try to get milliseconds, fall back to seconds if not supported
+    if date +%3N >/dev/null 2>&1; then
+        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+        epoch_ms=$(date +%s%3N)
+    else
+        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        epoch_ms=$(($(date +%s) * 1000))
+    fi
 
     # Escape JSON strings
     script_escaped=$(echo "$script_name" | sed 's/"/\\"/g')

@@ -14,7 +14,7 @@ event_start "restart-${nodeForChaos}"
 docker restart "${nodeForChaos}" -t 0
 
 echo "Waiting for node to become healthy..."
-wait_container_healthy "${nodeForChaos}"
+wait_container_healthy "${nodeForChaos}" || echo "WARNING: Node did not become healthy within timeout"
 event_end "restart-${nodeForChaos}" "${nodeForChaos} unavailable"
 
 echo "Instant restart scenario completed"

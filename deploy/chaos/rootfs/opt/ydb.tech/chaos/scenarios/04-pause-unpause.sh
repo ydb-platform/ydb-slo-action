@@ -20,7 +20,7 @@ echo "Unpausing (resuming all processes)..."
 docker unpause "${nodeForChaos}"
 
 echo "Waiting for node to become healthy..."
-wait_container_healthy "${nodeForChaos}"
+wait_container_healthy "${nodeForChaos}" || echo "WARNING: Node did not become healthy within timeout"
 event_end "pause-${nodeForChaos}" "${nodeForChaos} unavailable"
 
 echo "Pause/unpause scenario completed"

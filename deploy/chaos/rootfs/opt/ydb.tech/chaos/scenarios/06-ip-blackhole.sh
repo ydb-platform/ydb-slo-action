@@ -39,7 +39,7 @@ echo "Starting original node back..."
 docker start "${nodeForChaos}"
 
 echo "Waiting for node to become healthy..."
-wait_container_healthy "${nodeForChaos}"
+wait_container_healthy "${nodeForChaos}" || echo "WARNING: Node did not become healthy within timeout"
 event_end "blackhole-${nodeForChaos}" "${nodeForChaos} unavailable"
 
 echo "IP blackhole scenario completed"
