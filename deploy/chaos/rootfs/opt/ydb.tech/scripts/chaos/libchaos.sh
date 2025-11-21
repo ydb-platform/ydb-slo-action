@@ -20,13 +20,8 @@ log() {
 # Usage: event_start "label"
 event_start() {
     label="${1:-unknown}"
-    # Get milliseconds timestamp (POSIX compatible)
-    # Try %3N (GNU date), fall back to seconds * 1000 if not supported
-    if date +%3N >/dev/null 2>&1; then
-        epoch_ms=$(date +%s%3N)
-    else
-        epoch_ms=$(($(date +%s) * 1000))
-    fi
+    # Get milliseconds timestamp (POSIX compatible: seconds * 1000)
+    epoch_ms=$(($(date +%s) * 1000))
 
     # Store timer: "label|timestamp|"
     EVENT_TIMERS="${EVENT_TIMERS}${label}|${epoch_ms}|"
@@ -41,14 +36,9 @@ event_end() {
     # Get script name (POSIX sh compatible)
     script_name="${CHAOS_SCRIPT_NAME:-unknown}"
 
-    # Try to get milliseconds, fall back to seconds if not supported
-    if date +%3N >/dev/null 2>&1; then
-        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
-        epoch_ms=$(date +%s%3N)
-    else
-        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        epoch_ms=$(($(date +%s) * 1000))
-    fi
+    # Get milliseconds timestamp (POSIX compatible: seconds * 1000)
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    epoch_ms=$(($(date +%s) * 1000))
 
     # Find start time for this label
     # EVENT_TIMERS format: "label1|timestamp1|label2|timestamp2|..."
@@ -101,14 +91,9 @@ emit_event() {
     # Get script name (POSIX sh compatible)
     script_name="${CHAOS_SCRIPT_NAME:-unknown}"
 
-    # Try to get milliseconds, fall back to seconds if not supported
-    if date +%3N >/dev/null 2>&1; then
-        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
-        epoch_ms=$(date +%s%3N)
-    else
-        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        epoch_ms=$(($(date +%s) * 1000))
-    fi
+    # Get milliseconds timestamp (POSIX compatible: seconds * 1000)
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    epoch_ms=$(($(date +%s) * 1000))
 
     # Escape JSON strings
     script_escaped=$(echo "$script_name" | sed 's/"/\\"/g')
