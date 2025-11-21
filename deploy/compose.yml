@@ -89,6 +89,44 @@ services:
       database-init:
         condition: service_completed_successfully
 
+  database-4:
+    <<: *ydb-node
+    container_name: ydb-database-4
+    environment:
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_TENANT=/Root/testdb
+    networks:
+      ydb-net:
+        ipv4_address: 172.28.0.14
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-5:
+    <<: *ydb-node
+    container_name: ydb-database-5
+    environment:
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_TENANT=/Root/testdb
+    networks:
+      ydb-net:
+        ipv4_address: 172.28.0.15
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
   storage-init:
     <<: *ydb-node
     container_name: ydb-storage-init

@@ -10,10 +10,10 @@ config:
 
   actor_system_config:
     use_auto_config: true
-    cpu_count: 1
+    cpu_count: 4
 
   memory_controller_config:
-    hard_limit_bytes: 4294967296
+    hard_limit_bytes: 17179869184
 
   self_management_config:
     enabled: true
