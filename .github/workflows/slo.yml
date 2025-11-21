@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout current version
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: current
           fetch-depth: 0
@@ -56,7 +56,7 @@ jobs:
           echo "sha=$BASELINE" >> $GITHUB_OUTPUT
 
       - name: Checkout baseline version
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.baseline.outputs.sha }}
           path: baseline
