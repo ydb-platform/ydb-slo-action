@@ -3,12 +3,6 @@
 #   - thresholds_yaml input (inline YAML)
 #   - thresholds_yaml_path input (file path, default: .slo/thresholds.yaml)
 #
-# HOW IT WORKS:
-# - Custom thresholds are MERGED with defaults (not replaced)
-# - Add only metrics you want to override
-# - Use 'name' for exact metric name or 'pattern' for wildcard matching
-# - Exact names have higher priority than patterns
-#
 # Example custom config:
 #   metrics:
 #     - name: read_latency_ms              # Override specific metric

@@ -2,71 +2,12 @@
  * GitHub Checks API integration
  */
 
-import { info } from '@actions/core'
-import { getOctokit } from '@actions/github'
+import { formatChange, formatValue, type WorkloadComparison } from '../../shared/analysis.js'
+import { evaluateWorkloadThresholds } from '../../shared/thresholds.js'
 
-import { formatChange, formatValue, type WorkloadComparison } from './analysis.js'
-import { evaluateWorkloadThresholds, type ThresholdConfig } from './thresholds.js'
-
-export interface CheckOptions {
-	token: string
-	owner: string
-	repo: string
-	sha: string
-	workload: WorkloadComparison
-	thresholds: ThresholdConfig
-	reportUrl?: string
-}
-
-/**
- * Create GitHub Check for workload
- */
-export async function createWorkloadCheck(options: CheckOptions): Promise<{ id: number; url: string }> {
-	let octokit = getOctokit(options.token)
-
-	let name = `SLO: ${options.workload.workload}`
-	let evaluation = evaluateWorkloadThresholds(options.workload.metrics, options.thresholds)
-	let conclusion = determineConclusionFromEvaluation(evaluation.overall)
-	let title = generateTitle(options.workload, evaluation)
-	let summaryText = generateSummary(options.workload, evaluation, options.reportUrl)
-
-	info(`Creating check "${name}" with conclusion: ${conclusion}`)
-
-	let { data } = await octokit.rest.checks.create({
-		owner: options.owner,
-		repo: options.repo,
-		name,
-		head_sha: options.sha,
-		status: 'completed',
-		conclusion,
-		output: {
-			title,
-			summary: summaryText,
-		},
-	})
-
-	info(`Check created: ${data.html_url}`)
-
-	return { id: data.id, url: data.html_url! }
-}
-
-/**
- * Map threshold severity to GitHub Check conclusion
- */
-function determineConclusionFromEvaluation(
-	severity: 'success' | 'warning' | 'failure'
-): 'success' | 'neutral' | 'failure' {
-	if (severity === 'failure') return 'failure'
-	if (severity === 'warning') return 'neutral'
-	return 'success'
-}
-
-/**
- * Generate check title
- */
-function generateTitle(
-	workload: WorkloadComparison,
-	evaluation: { overall: string; failures: any[]; warnings: any[] }
+export function generateCheckTitle(
+	comparison: WorkloadComparison,
+	evaluation: ReturnType<typeof evaluateWorkloadThresholds>
 ): string {
 	if (evaluation.failures.length > 0) {
 		return `${evaluation.failures.length} critical threshold(s) violated`
@@ -76,32 +17,29 @@ function generateTitle(
 		return `${evaluation.warnings.length} warning threshold(s) exceeded`
 	}
 
-	if (workload.summary.improvements > 0) {
-		return `${workload.summary.improvements} improvement(s) detected`
+	if (comparison.summary.improvements > 0) {
+		return `${comparison.summary.improvements} improvement(s) detected`
 	}
 
 	return 'All metrics within thresholds'
 }
 
-/**
- * Generate check summary
- */
-function generateSummary(
-	workload: WorkloadComparison,
-	evaluation: { overall: string; failures: any[]; warnings: any[] },
-	reportUrl?: string
+export function generateCheckSummary(
+	comparison: WorkloadComparison,
+	evaluation: ReturnType<typeof evaluateWorkloadThresholds>,
+	reportURL?: string
 ): string {
 	let lines = [
-		`**Metrics analyzed:** ${workload.summary.total}`,
+		`**Metrics analyzed:** ${comparison.summary.total}`,
 		`- 🔴 Critical: ${evaluation.failures.length}`,
 		`- 🟡 Warnings: ${evaluation.warnings.length}`,
-		`- 🟢 Improvements: ${workload.summary.improvements}`,
-		`- ⚪ Stable: ${workload.summary.stable}`,
+		`- 🟢 Improvements: ${comparison.summary.improvements}`,
+		`- ⚪ Stable: ${comparison.summary.stable}`,
 		'',
 	]
 
-	if (reportUrl) {
-		lines.push(`📊 [View detailed HTML report](${reportUrl})`, '')
+	if (reportURL) {
+		lines.push(`📊 [View detailed HTML report](${reportURL})`, '')
 	}
 
 	// Critical failures
@@ -131,7 +69,7 @@ function generateSummary(
 	}
 
 	// Top improvements
-	let improvements = workload.metrics
+	let improvements = comparison.metrics
 		.filter((m) => m.change.direction === 'better')
 		.sort((a, b) => Math.abs(b.change.percent) - Math.abs(a.change.percent))
 

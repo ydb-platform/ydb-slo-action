@@ -11,9 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Publish YDB SLO Report
     permissions:
+      checks: write
       contents: read
       pull-requests: write
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.status == 'completed'
     steps:
       - name: Publish YDB SLO Report
         uses: ydb-platform/ydb-slo-action/report@main

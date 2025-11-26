@@ -2,16 +2,16 @@
  * HTML report generation with Chart.js
  */
 
-import { formatChange, formatValue, type WorkloadComparison } from './analysis.js'
-import type { FormattedEvent } from './events.js'
-import type { CollectedMetric, MetricsMap, Series } from './metrics.js'
+import type { FormattedEvent } from '../../shared/events.js'
+import type { CollectedMetric, RangeSeries } from '../../shared/metrics.js'
+import { formatChange, formatValue, type WorkloadComparison } from '../../shared/analysis.js'
 
 export interface HTMLReportData {
 	workload: string
 	currentRef: string
 	baselineRef: string
 	events: FormattedEvent[]
-	metrics: MetricsMap
+	metrics: CollectedMetric[]
 	comparison: WorkloadComparison
 	prNumber: number
 	testStartTime: number // epoch ms
@@ -172,7 +172,7 @@ function generateCharts(data: HTMLReportData, globalStartTime: number, globalEnd
 	return data.comparison.metrics
 		.filter((m) => m.type === 'range') // Only range metrics have charts
 		.map((comparison) => {
-			let metric = data.metrics.get(comparison.name)
+			let metric = data.metrics.find((m) => m.name === comparison.name)
 			if (!metric) return ''
 
 			// Skip metrics with no data (empty data array or no series)
@@ -181,7 +181,7 @@ function generateCharts(data: HTMLReportData, globalStartTime: number, globalEnd
 			}
 
 			// Skip if all series are empty
-			let hasData = (metric.data as Series[]).some((s) => s.values && s.values.length > 0)
+			let hasData = (metric.data as RangeSeries[]).some((s) => s.values && s.values.length > 0)
 			if (!hasData) {
 				return ''
 			}
@@ -294,14 +294,14 @@ function generateChartScripts(data: HTMLReportData, globalStartTime: number, glo
 	let chartScripts = data.comparison.metrics
 		.filter((m) => m.type === 'range')
 		.map((comparison) => {
-			let metric = data.metrics.get(comparison.name)
+			let metric = data.metrics.find((m) => m.name === comparison.name)
 			if (!metric) return ''
 
 			// Skip metrics with no data
 			if (!metric.data || metric.data.length === 0) {
 				return ''
 			}
-			let hasData = (metric.data as Series[]).some((s) => s.values && s.values.length > 0)
+			let hasData = (metric.data as RangeSeries[]).some((s) => s.values && s.values.length > 0)
 			if (!hasData) {
 				return ''
 			}
@@ -357,8 +357,8 @@ function generateSingleChartScript(
 	currentRef: string,
 	baselineRef: string
 ): string {
-	let currentSeries = (metric.data as Series[]).find((s) => s.metric.ref === currentRef)
-	let baselineSeries = (metric.data as Series[]).find((s) => s.metric.ref === baselineRef)
+	let currentSeries = (metric.data as RangeSeries[]).find((s) => s.metric.ref === currentRef)
+	let baselineSeries = (metric.data as RangeSeries[]).find((s) => s.metric.ref === baselineRef)
 
 	// Filter outliers from both series
 	let filteredCurrentValues = currentSeries ? filterOutliers(currentSeries.values) : []

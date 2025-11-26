@@ -6,101 +6,66 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 import { DefaultArtifactClient } from '@actions/artifact'
-import { debug, info, warning } from '@actions/core'
-
-import { formatEvents, parseEventsJsonl, type FormattedEvent } from './events.js'
-import { parseMetricsJsonl, type MetricsMap } from './metrics.js'
-
-export interface TestMetadata {
-	workload: string
-	start_time: string
-	start_epoch_ms: number
-	end_time: string
-	end_epoch_ms: number
-	duration_ms: number
-	workload_current_ref?: string
-	workload_baseline_ref?: string
-}
+import { debug, getInput, warning } from '@actions/core'
+import { context } from '@actions/github'
 
 export interface WorkloadArtifacts {
-	workload: string
-	pullNumber: number
-	metrics: MetricsMap
-	events: FormattedEvent[]
-	logsPath?: string
-	metadata?: TestMetadata
-}
-
-export interface ArtifactDownloadOptions {
-	token: string
-	workflowRunId: number
-	repositoryOwner: string
-	repositoryName: string
-	downloadPath: string
+	name: string
+	logsPath: string
+	eventsPath: string
+	metricsPath: string
+	metadataPath: string
 }
 
 /**
- * Download and parse artifacts for a workflow run
+ * Download artifacts for a workflow run
  */
-export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions): Promise<WorkloadArtifacts[]> {
+export async function downloadRunArtifacts(destinationPath: string): Promise<Map<string, WorkloadArtifacts>> {
+	let token = getInput('github_token')
+	let workflowRunId = parseInt(getInput('github_run_id') || String(context.runId))
+
+	if (!token || !workflowRunId) {
+		throw new Error('GitHub token and workflow run ID are required to download artifacts')
+	}
+
 	let artifactClient = new DefaultArtifactClient()
-
-	info(`Listing artifacts for workflow run ${options.workflowRunId}...`)
-
 	let { artifacts } = await artifactClient.listArtifacts({
 		findBy: {
-			token: options.token,
-			workflowRunId: options.workflowRunId,
-			repositoryOwner: options.repositoryOwner,
-			repositoryName: options.repositoryName,
+			token: token,
+			workflowRunId: workflowRunId,
+			repositoryName: context.repo.repo,
+			repositoryOwner: context.repo.owner,
 		},
 	})
 
-	info(`Found ${artifacts.length} artifacts`)
-	debug(
-		`Artifacts: ${JSON.stringify(
-			artifacts.map((a) => a.name),
-			null,
-			2
-		)}`
-	)
+	debug(`Found ${artifacts.length} artifacts in workflow run ${workflowRunId}`)
 
 	// Download each artifact to its own subdirectory
 	let downloadedPaths = new Map<string, string>()
 
 	for (let artifact of artifacts) {
-		let artifactDir = path.join(options.downloadPath, artifact.name)
+		let artifactDir = path.join(destinationPath, artifact.name)
 
-		info(`Downloading artifact ${artifact.name}...`)
+		debug(`Downloading artifact ${artifact.name}...`)
 
 		let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
 			path: artifactDir,
 			findBy: {
-				token: options.token,
-				workflowRunId: options.workflowRunId,
-				repositoryOwner: options.repositoryOwner,
-				repositoryName: options.repositoryName,
+				token: token,
+				workflowRunId: workflowRunId,
+				repositoryName: context.repo.repo,
+				repositoryOwner: context.repo.owner,
 			},
 		})
 
 		let artifactPath = downloadPath || artifactDir
 		downloadedPaths.set(artifact.name, artifactPath)
 
-		info(`Downloaded artifact ${artifact.name} to ${artifactPath}`)
+		debug(`Downloaded artifact ${artifact.name} to ${artifactPath}`)
 	}
 
-	// Group files by workload
-	let workloadFiles = new Map<
-		string,
-		{
-			pull?: string
-			meta?: string
-			logs?: string
-			events?: string
-			metrics?: string
-			chaosEvents?: string
-		}
-	>()
+	// Group artifacts by workload
+	let runArtifacts = new Map<string, WorkloadArtifacts>()
 
 	for (let [artifactName, artifactPath] of downloadedPaths) {
 		// Artifact name is the workload name, files inside have workload prefix
@@ -121,85 +86,25 @@ export async function downloadWorkloadArtifacts(options: ArtifactDownloadOptions
 			files = [artifactPath]
 		}
 
-		let group = workloadFiles.get(workload) || {}
+		let group = runArtifacts.get(workload) || ({} as WorkloadArtifacts)
+		group.name = workload
 
 		for (let file of files) {
 			let basename = path.basename(file)
 
-			if (basename.endsWith('-pull.txt')) {
-				group.pull = file
-			} else if (basename.endsWith('-logs.txt')) {
-				group.logs = file
-			} else if (basename.endsWith('-meta.json')) {
-				group.meta = file
+			if (basename.endsWith('-logs.txt')) {
+				group.logsPath = file
 			} else if (basename.endsWith('-events.jsonl')) {
-				group.chaosEvents = file
+				group.eventsPath = file
 			} else if (basename.endsWith('-metrics.jsonl')) {
-				group.metrics = file
+				group.metricsPath = file
+			} else if (basename.endsWith('-metadata.json')) {
+				group.metadataPath = file
 			}
 		}
 
-		workloadFiles.set(workload, group)
+		runArtifacts.set(workload, group)
 	}
 
-	// Parse workload data
-	let workloads: WorkloadArtifacts[] = []
-
-	for (let [workload, files] of workloadFiles) {
-		// Validate that this is a real workload artifact from init action
-		// Each artifact is now in its own directory, so we just check for required files
-		if (!files.pull || !files.metrics) {
-			debug(
-				`Skipping artifact '${workload}': not a workload artifact (missing -pull.txt or -metrics.jsonl). ` +
-					`This is expected for user-uploaded artifacts like logs.`
-			)
-			continue
-		}
-
-		try {
-			let pullNumber = parseInt(fs.readFileSync(files.pull, { encoding: 'utf-8' }).trim())
-			let metricsContent = fs.readFileSync(files.metrics, { encoding: 'utf-8' })
-			let metrics = parseMetricsJsonl(metricsContent)
-
-			let events: FormattedEvent[] = []
-
-			// Load events
-			if (files.chaosEvents && fs.existsSync(files.chaosEvents)) {
-				let eventsContent = fs.readFileSync(files.chaosEvents, { encoding: 'utf-8' })
-				let rawEvents = parseEventsJsonl(eventsContent)
-				events.push(...formatEvents(rawEvents))
-			}
-
-			// Sort events by timestamp
-			events.sort((a, b) => a.timestamp - b.timestamp)
-
-			// Load metadata
-			let metadata: TestMetadata | undefined
-			if (files.meta && fs.existsSync(files.meta)) {
-				try {
-					let metaContent = fs.readFileSync(files.meta, { encoding: 'utf-8' })
-					metadata = JSON.parse(metaContent) as TestMetadata
-				} catch (error) {
-					warning(`Failed to parse metadata for ${workload}: ${String(error)}`)
-				}
-			}
-
-			workloads.push({
-				workload,
-				pullNumber,
-				metrics,
-				events,
-				logsPath: files.logs,
-				metadata,
-			})
-
-			let testDuration = metadata ? `${(metadata.duration_ms / 1000).toFixed(0)}s` : 'unknown'
-			info(`Parsed workload ${workload}: ${metrics.size} metrics, ${events.length} events (${testDuration} test)`)
-		} catch (error) {
-			warning(`Failed to parse workload ${workload}: ${String(error)}`)
-			continue
-		}
-	}
-
-	return workloads
+	return runArtifacts
 }

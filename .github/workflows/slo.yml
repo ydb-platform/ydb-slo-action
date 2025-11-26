@@ -17,7 +17,18 @@ on:
         required: false
 
 jobs:
-  ydb-slo-action:
+  ydb-slo-pre:
+    if: (!contains(github.event.pull_request.labels.*.name, 'no slo'))
+
+    name: Generate SLO Pre-Summary
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          echo "# 🌋 SLO Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  ydb-slo-test:
     if: (!contains(github.event.pull_request.labels.*.name, 'no slo'))
 
     name: Run YDB SLO Tests
@@ -63,13 +74,13 @@ jobs:
           fetch-depth: 1
 
       - name: Initialize YDB SLO
-        uses: ydb-platform/ydb-slo-action/init@feat/ydb-config-v2
+        uses: ydb-platform/ydb-slo-action/init@main
         with:
           github_pull_request_number: ${{ github.event.inputs.github_pull_request_number }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workload_name: ${{ matrix.workload }}
 
-      - name: Build network checker images
+      - name: Build workload images
         run: |
           # Build current version
           if [ -f "$GITHUB_WORKSPACE/current/deploy/app/Dockerfile" ]; then
@@ -189,3 +200,17 @@ jobs:
           # Stop and remove app containers
           docker stop ydb-app-current ydb-app-baseline 2>/dev/null || true
           docker rm ydb-app-current ydb-app-baseline 2>/dev/null || true
+
+  ydb-slo-post:
+    if: (!contains(github.event.pull_request.labels.*.name, 'no slo'))
+
+    name: Generate SLO Summary
+    runs-on: ubuntu-latest
+    needs: ydb-slo-action
+
+    steps:
+      - run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ SLO Tests Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the logs of the 'Run YDB SLO Tests' job for detailed results." >> $GITHUB_STEP_SUMMARY

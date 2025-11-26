@@ -14,10 +14,6 @@ export interface PrometheusRangeValue {
 	values: Array<[number, string]>
 }
 
-export interface PrometheusScalarValue {
-	value: [number, string]
-}
-
 export interface PrometheusResponse<T = PrometheusInstantValue | PrometheusRangeValue> {
 	status: 'success' | 'error'
 	data?: {
@@ -44,7 +40,7 @@ export interface PrometheusRangeQueryParams extends PrometheusQueryOptions {
 	query: string
 	start: string | number
 	end: string | number
-	step: string
+	step?: string
 	queryTimeout?: string
 }
 
@@ -94,7 +90,10 @@ export async function queryRange(
 	url.searchParams.set('query', params.query)
 	url.searchParams.set('start', params.start.toString())
 	url.searchParams.set('end', params.end.toString())
-	url.searchParams.set('step', params.step)
+
+	if (params.step) {
+		url.searchParams.set('step', params.step)
+	}
 
 	if (params.queryTimeout) {
 		url.searchParams.set('timeout', params.queryTimeout)

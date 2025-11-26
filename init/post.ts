@@ -1,136 +1,131 @@
-import * as fs from 'node:fs'
+import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-import { debug, getInput, getState, info, warning } from '@actions/core'
+import { debug, getInput, getState, info, saveState } from '@actions/core'
+import { exec } from '@actions/exec'
 
-import { uploadArtifacts, type ArtifactFile } from './lib/artifacts.js'
-import { collectChaosEvents, collectComposeLogs, getContainerIp, stopCompose } from './lib/docker.js'
-import { collectMetrics, parseMetricsYaml, type MetricDefinition } from './lib/metrics.js'
+import { compareWorkloadMetrics } from '../shared/analysis.js'
+import { loadMetricConfig, type CollectedMetric } from '../shared/metrics.js'
+import { collectComposeLogs, copyFromContainer, getContainerIp } from './lib/docker.js'
+import { uploadArtifacts } from './lib/github.js'
+import { collectMetricsFromPrometheus } from './lib/metrics.js'
+import { writeJobSummary } from './lib/summary.js'
 
 async function post() {
+	saveState('finish', new Date().toISOString())
+
 	let cwd = getState('cwd')
 	let workload = getState('workload')
 
-	let start = new Date(getState('start'))
-	let finish = new Date()
-	let duration = finish.getTime() - start.getTime()
-
-	let pullPath = getState('pull_info_path')
 	let logsPath = path.join(cwd, `${workload}-logs.txt`)
-	let metaPath = path.join(cwd, `${workload}-meta.json`)
+	saveState('logs_path', logsPath)
 	let eventsPath = path.join(cwd, `${workload}-events.jsonl`)
+	saveState('events_path', eventsPath)
 	let metricsPath = path.join(cwd, `${workload}-metrics.jsonl`)
+	saveState('metrics_path', metricsPath)
+	let metadataPath = path.join(cwd, `${workload}-metadata.json`)
+	saveState('metadata_path', metadataPath)
 
-	let prometheusIp = await getContainerIp('prometheus', cwd)
-	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://localhost:9090'
+	let logsContent = await collectLogs()
+	await fs.writeFile(logsPath, logsContent, { encoding: 'utf-8' })
+
+	let eventsContent = await collectEvents()
+	await fs.writeFile(eventsPath, eventsContent, { encoding: 'utf-8' })
+
+	let metricsContent = await collectMetrics()
+	await fs.writeFile(metricsPath, metricsContent, { encoding: 'utf-8' })
+
+	let metadataContent = await collectMetadata()
+	await fs.writeFile(metadataPath, metadataContent, { encoding: 'utf-8' })
+
+	await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], {
+		cwd: path.resolve(process.env['GITHUB_ACTION_PATH'], 'deploy'),
+	})
+
+	await uploadArtifacts(workload, [logsPath, eventsPath, metricsPath, metadataPath], cwd)
+	await writeWorkloadSummary(metricsContent)
+}
+
+async function collectLogs(): Promise<string> {
+	info('Collecting logs...')
+	let cwd = getState('cwd')
+	let content = await collectComposeLogs(cwd)
+
+	return content
+}
+
+async function collectEvents(): Promise<string> {
+	info('Collecting events...')
+
+	let content = await copyFromContainer({
+		container: 'ydb-chaos-monkey',
+		sourcePath: '/var/log/chaos-events.jsonl',
+	})
+
+	return content || ''
+}
+
+async function collectMetrics(): Promise<string> {
+	info('Collecting metrics...')
+
+	let start = new Date(getState('start'))
+	let finish = new Date(getState('finish'))
+
+	let prometheusIp = await getContainerIp('prometheus')
+	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://prometheus:9090'
 	debug(`Prometheus URL: ${prometheusUrl}`)
 
-	let actionRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../')
-	let defaultMetricsPath = path.join(actionRoot, 'deploy', 'metrics.yaml')
+	let config = await loadMetricConfig(getInput('metrics_yaml'), getInput('metrics_yaml_path'))
+	let metrics = await collectMetricsFromPrometheus(prometheusUrl, start, finish, config)
+	let content = metrics.map((m) => JSON.stringify(m)).join('\n')
 
-	let metricsYaml = fs.readFileSync(defaultMetricsPath, { encoding: 'utf-8' })
-	let customMetricsYaml = getInput('metrics_yaml')
+	return content
+}
 
-	if (getInput('metrics_yaml_path')) {
-		let customMetricsPath = getInput('metrics_yaml_path')
-		if (!fs.existsSync(customMetricsPath)) {
-			warning(`Custom metrics file not found: ${customMetricsPath}`)
-		} else {
-			customMetricsYaml = fs.readFileSync(customMetricsPath, { encoding: 'utf-8' })
-		}
-	}
+async function collectMetadata(): Promise<string> {
+	info('Saving metadata...')
 
-	{
-		info('Collecting logs...')
-		let logs = await collectComposeLogs(cwd)
+	let pull = getState('pull')
+	let commit = getState('commit')
+	let start = new Date(getState('start'))
+	let finish = new Date(getState('finish'))
+	let duration = finish.getTime() - start.getTime()
 
-		fs.writeFileSync(logsPath, logs, { encoding: 'utf-8' })
-	}
+	let workload = getState('workload')
+	let workload_current_ref = getInput('workload_current_ref')
+	let workload_baseline_ref = getInput('workload_baseline_ref')
 
-	{
-		info('Collecting chaos events...')
-		let events = await collectChaosEvents(cwd)
-		let content = events.map((e) => JSON.stringify(e)).join('\n')
-		fs.writeFileSync(eventsPath, content, { encoding: 'utf-8' })
-	}
+	let content = JSON.stringify({
+		pull,
+		commit,
+		workload,
+		workload_current_ref,
+		workload_baseline_ref,
+		start_time: start.toISOString(),
+		start_epoch_ms: start.getTime(),
+		finish_time: finish.toISOString(),
+		finish_epoch_ms: finish.getTime(),
+		duration_ms: duration,
+	})
 
-	{
-		info('Collecting metrics...')
+	return content
+}
 
-		let metricsDef: MetricDefinition[] = []
+async function writeWorkloadSummary(metricsContent: string) {
+	info('Writing Job Summary...')
 
-		if (metricsYaml) {
-			let defaultMetrics = await parseMetricsYaml(metricsYaml)
-			metricsDef.push(...defaultMetrics)
-		}
+	let workload = getState('workload')
+	let currentRef = getInput('workload_current_ref')
+	let baselineRef = getInput('workload_baseline_ref')
 
-		if (customMetricsYaml) {
-			let customMetrics = await parseMetricsYaml(customMetricsYaml)
-			metricsDef.push(...customMetrics)
-		}
+	let metrics = metricsContent
+		.split('\n')
+		.filter((line) => line.trim().length > 0)
+		.map((line) => JSON.parse(line)) as CollectedMetric[]
 
-		let metrics = await collectMetrics({
-			url: prometheusUrl,
-			start: start,
-			finish: finish,
-			metrics: metricsDef,
-			timeout: 30000,
-		})
+	let comparison = compareWorkloadMetrics(workload, metrics, currentRef, baselineRef, 'avg')
 
-		let content = metrics.map((m) => JSON.stringify(m)).join('\n')
-		fs.writeFileSync(metricsPath, content, { encoding: 'utf-8' })
-	}
-
-	{
-		info('Stopping YDB services...')
-		await stopCompose(cwd)
-	}
-
-	{
-		info('Saving test metadata...')
-
-		let metadata: Record<string, any> = {
-			workload,
-			start_time: start.toISOString(),
-			start_epoch_ms: start.getTime(),
-			end_time: finish.toISOString(),
-			end_epoch_ms: finish.getTime(),
-			duration_ms: duration,
-		}
-
-		// Add baseline and current refs from inputs
-		let currentRef = getInput('workload_current_ref')
-		let baselineRef = getInput('workload_baseline_ref')
-
-		if (currentRef) {
-			metadata.workload_current_ref = currentRef
-			debug(`Workload current ref: ${currentRef}`)
-		}
-
-		if (baselineRef) {
-			metadata.workload_baseline_ref = baselineRef
-			debug(`Workload baseline ref: ${baselineRef}`)
-		}
-
-		fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), { encoding: 'utf-8' })
-	}
-
-	{
-		info('Uploading artifacts...')
-
-		let artifacts: ArtifactFile[] = [
-			{ name: `${workload}-pull.txt`, path: pullPath },
-			{ name: `${workload}-logs.txt`, path: logsPath },
-			{ name: `${workload}-meta.json`, path: metaPath },
-			{ name: `${workload}-events.jsonl`, path: eventsPath },
-			{ name: `${workload}-metrics.jsonl`, path: metricsPath },
-		]
-
-		await uploadArtifacts(workload, artifacts, cwd)
-	}
-
-	info(`YDB SLO Test duration: ${(duration / 1000).toFixed(1)}s`)
+	await writeJobSummary(comparison)
 }
 
 post()

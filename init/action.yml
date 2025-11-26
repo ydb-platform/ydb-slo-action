@@ -2,7 +2,7 @@ name: "Setup & Run YDB"
 description: "Sets up YDB test environment with monitoring. Collects and uploads metrics during cleanup."
 
 inputs:
-  github_pull_request_number:
+  github_issue:
     description: "The number of the associated pull request. If not provided, the action will attempt to infer it automatically."
     required: false
   github_token:
@@ -23,6 +23,12 @@ inputs:
   metrics_yaml_path:
     description: "Path to a file containing custom metrics configuration in YAML format. Will be merged with default metrics."
     required: false
+
+outputs:
+  status:
+    description: "The status of the SLO evaluation after running the action. Possible values are 'passed', 'warning', or 'failed'."
+  summary:
+    description: "A summary of the SLO evaluation results, including key metrics and any violations detected."
 
 runs:
   using: "node24"
