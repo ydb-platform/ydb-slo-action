@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { debug, getInput, getState, info, saveState } from '@actions/core'
+import { debug, getInput, getState, info } from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { compareWorkloadMetrics } from '../shared/analysis.js'
@@ -15,19 +15,13 @@ import { writeJobSummary } from './lib/summary.js'
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
 
 async function post() {
-	saveState('finish', new Date().toISOString())
-
 	let cwd = getState('cwd')
 	let workload = getState('workload')
 
 	let logsPath = path.join(cwd, `${workload}-logs.txt`)
-	saveState('logs_path', logsPath)
 	let eventsPath = path.join(cwd, `${workload}-events.jsonl`)
-	saveState('events_path', eventsPath)
 	let metricsPath = path.join(cwd, `${workload}-metrics.jsonl`)
-	saveState('metrics_path', metricsPath)
 	let metadataPath = path.join(cwd, `${workload}-metadata.json`)
-	saveState('metadata_path', metadataPath)
 
 	let logsContent = await collectLogs()
 	await fs.writeFile(logsPath, logsContent, { encoding: 'utf-8' })
@@ -72,7 +66,7 @@ async function collectMetrics(): Promise<string> {
 	info('Collecting metrics...')
 
 	let start = new Date(getState('start'))
-	let finish = new Date(getState('finish'))
+	let finish = new Date()
 
 	let prometheusIp = await getContainerIp('prometheus')
 	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://prometheus:9090'
@@ -91,7 +85,7 @@ async function collectMetadata(): Promise<string> {
 	let pull = getState('pull')
 	let commit = getState('commit')
 	let start = new Date(getState('start'))
-	let finish = new Date(getState('finish'))
+	let finish = new Date()
 	let duration = finish.getTime() - start.getTime()
 
 	let workload = getState('workload')
