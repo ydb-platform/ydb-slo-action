@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { debug, getInput, getState, info, saveState } from '@actions/core'
 import { exec } from '@actions/exec'
@@ -10,6 +11,8 @@ import { collectComposeLogs, copyFromContainer, getContainerIp } from './lib/doc
 import { uploadArtifacts } from './lib/github.js'
 import { collectMetricsFromPrometheus } from './lib/metrics.js'
 import { writeJobSummary } from './lib/summary.js'
+
+process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
 
 async function post() {
 	saveState('finish', new Date().toISOString())

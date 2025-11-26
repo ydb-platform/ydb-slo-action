@@ -1,21 +1,24 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, info, setFailed } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
 
 import { compareWorkloadMetrics, type WorkloadComparison } from '../shared/analysis.js'
+import type { FormattedEvent } from '../shared/events.js'
+import type { TestMetadata } from '../shared/metadata.js'
+import type { CollectedMetric } from '../shared/metrics.js'
+import { evaluateWorkloadThresholds, loadThresholdConfig, type ThresholdConfig } from '../shared/thresholds.js'
 import { downloadRunArtifacts } from './lib/artifacts.js'
 import { generateCheckSummary, generateCheckTitle } from './lib/checks.js'
 import { createOrUpdateComment, generateCommentBody } from './lib/comment.js'
-import { generateHTMLReport, type HTMLReportData } from './lib/html.js'
-import { evaluateWorkloadThresholds, loadThresholdConfig, type ThresholdConfig } from '../shared/thresholds.js'
-import { loadCollectedMetrics } from './lib/metrics.js'
-import type { TestMetadata } from '../shared/metadata.js'
-import type { CollectedMetric } from '../shared/metrics.js'
-import type { FormattedEvent } from '../shared/events.js'
 import { loadChaosEvents } from './lib/events.js'
+import { generateHTMLReport, type HTMLReportData } from './lib/html.js'
+import { loadCollectedMetrics } from './lib/metrics.js'
+
+process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
 
 type WorkloadReport = {
 	workload: string

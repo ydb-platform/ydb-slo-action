@@ -1,10 +1,13 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { debug, getInput, info, saveState, setFailed } from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { getPullRequestNumber } from './lib/github.js'
+
+process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
 
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
