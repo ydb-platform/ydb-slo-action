@@ -37,7 +37,7 @@ async function main() {
 	await fs.mkdir(cwd, { recursive: true })
 
 	let runArtifacts = await downloadRunArtifacts(cwd)
-	info(`Found ${runArtifacts.size} workloads: ${[...runArtifacts.keys()].join(', ')}`)
+	info(`Found ${runArtifacts.size} artifacts: ${[...runArtifacts.keys()].join(', ')}`)
 
 	if (runArtifacts.size === 0) {
 		setFailed('No workload artifacts found in current run')
@@ -49,6 +49,11 @@ async function main() {
 	let thresholds = await loadThresholdConfig()
 
 	for (let [, artifact] of runArtifacts) {
+		if (!artifact.metadataPath || !artifact.metricsPath || !artifact.eventsPath) {
+			info(`Skipping artifact ${artifact.name}: missing required files`)
+			continue
+		}
+
 		let events: FormattedEvent[] = loadChaosEvents(await fs.readFile(artifact.eventsPath, 'utf-8'))
 		let metrics: CollectedMetric[] = loadCollectedMetrics(await fs.readFile(artifact.metricsPath, 'utf-8'))
 		let metadata = JSON.parse(await fs.readFile(artifact.metadataPath, 'utf-8')) as TestMetadata
