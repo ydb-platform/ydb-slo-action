@@ -31,10 +31,10 @@ export function generateCheckSummary(
 ): string {
 	let lines = [
 		`**Metrics analyzed:** ${comparison.summary.total}`,
+		`- ⚪ Stable: ${comparison.summary.stable}`,
 		`- 🔴 Critical: ${evaluation.failures.length}`,
 		`- 🟡 Warnings: ${evaluation.warnings.length}`,
 		`- 🟢 Improvements: ${comparison.summary.improvements}`,
-		`- ⚪ Stable: ${comparison.summary.stable}`,
 		'',
 	]
 
