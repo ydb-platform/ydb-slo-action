@@ -25,6 +25,7 @@ export function generateCommentBody(
 		`## 🌋 SLO Test Results`,
 		``,
 		`**Status**: ${statusEmoji} ${comparisons.length} workloads tested • ${statusText}`,
+		'',
 	].join('\n')
 
 	let content = [
