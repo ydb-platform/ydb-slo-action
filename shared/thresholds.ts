@@ -194,25 +194,25 @@ export function evaluateThreshold(comparison: MetricComparison, config: Threshol
 		if (threshold.critical_min !== undefined && comparison.current.value < threshold.critical_min) {
 			debug(`${comparison.name}: below critical_min (${comparison.current.value} < ${threshold.critical_min})`)
 			severity = 'failure'
-			reason = `Value ${comparison.current.value} < critical min ${threshold.critical_min}`
+			reason = `Value ${comparison.current.value.toFixed(2)} < critical min ${threshold.critical_min}`
 		}
 		// Check critical_max
 		else if (threshold.critical_max !== undefined && comparison.current.value > threshold.critical_max) {
 			debug(`${comparison.name}: above critical_max (${comparison.current.value} > ${threshold.critical_max})`)
 			severity = 'failure'
-			reason = `Value ${comparison.current.value} > critical max ${threshold.critical_max}`
+			reason = `Value ${comparison.current.value.toFixed(2)} > critical max ${threshold.critical_max}`
 		}
 		// Check warning_min
 		else if (threshold.warning_min !== undefined && comparison.current.value < threshold.warning_min) {
 			debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`)
 			severity = 'warning'
-			reason = `Value ${comparison.current.value} < warning min ${threshold.warning_min}`
+			reason = `Value ${comparison.current.value.toFixed(2)} < warning min ${threshold.warning_min}`
 		}
 		// Check warning_max
 		else if (threshold.warning_max !== undefined && comparison.current.value > threshold.warning_max) {
 			debug(`${comparison.name}: above warning_max (${comparison.current.value} > ${threshold.warning_max})`)
 			severity = 'warning'
-			reason = `Value ${comparison.current.value} > warning max ${threshold.warning_max}`
+			reason = `Value ${comparison.current.value.toFixed(2)} > warning max ${threshold.warning_max}`
 		}
 	}
 
@@ -229,10 +229,10 @@ export function evaluateThreshold(comparison: MetricComparison, config: Threshol
 			if (severity !== 'failure') {
 				if (changePercent > criticalThreshold) {
 					severity = 'failure'
-					reason = `Regression ${changePercent.toFixed(1)}% > critical ${criticalThreshold}%`
+					reason = `Regression ${changePercent.toFixed(2)}% > critical ${criticalThreshold}%`
 				} else if (severity !== 'warning' && changePercent > warningThreshold) {
 					severity = 'warning'
-					reason = `Regression ${changePercent.toFixed(1)}% > warning ${warningThreshold}%`
+					reason = `Regression ${changePercent.toFixed(2)}% > warning ${warningThreshold}%`
 				}
 			}
 		}
