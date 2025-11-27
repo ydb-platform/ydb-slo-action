@@ -1,43 +1,64 @@
 import { debug, getInput, info } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
 import type { WorkloadComparison } from '../../shared/analysis.js'
+import { evaluateWorkloadThresholds, type ThresholdConfig } from '../../shared/thresholds.js'
+
+export interface CommentReportData {
+	workload: string
+	thresholds: ThresholdConfig
+	comparison: WorkloadComparison
+	checkUrl?: string
+	reportUrl?: string
+}
 
 /**
  * Generate PR comment body
  */
-export function generateCommentBody(
-	checkUrls: Map<string, string>,
-	reportUrls: Map<string, string>,
-	comparisons: WorkloadComparison[]
-): string {
-	let totalRegressions = comparisons.reduce((sum, w) => sum + w.summary.regressions, 0)
-	let totalImprovements = comparisons.reduce((sum, w) => sum + w.summary.improvements, 0)
+export function generateCommentBody(reports: CommentReportData[]): string {
+	let totalFailures = 0
+	let totalWarnings = 0
 
-	let statusEmoji = totalRegressions > 0 ? '🟡' : totalImprovements > 0 ? '🟢' : '⚪'
+	let rows = reports.map((report) => {
+		let evaluation = evaluateWorkloadThresholds(report.comparison.metrics, report.thresholds)
+
+		if (evaluation.overall === 'failure') totalFailures++
+		if (evaluation.overall === 'warning') totalWarnings++
+
+		let emoji =
+			evaluation.overall === 'failure'
+				? '🔴'
+				: evaluation.overall === 'warning'
+					? '🟡'
+					: report.comparison.summary.improvements > 0
+						? '🚀'
+						: '🟢'
+
+		let checkLink = report.checkUrl || '#'
+		let reportLink = report.reportUrl || '#'
+		let comp = report.comparison
+
+		return `| ${emoji} | ${comp.workload} | ${comp.summary.total} | ${comp.summary.regressions} | ${comp.summary.improvements} | [Report](${reportLink}) • [Check](${checkLink}) |`
+	})
+
+	let statusEmoji = totalFailures > 0 ? '🔴' : totalWarnings > 0 ? '🟡' : '🟢'
 	let statusText =
-		totalRegressions > 0
-			? `${totalRegressions} regressions`
-			: totalImprovements > 0
-				? `${totalImprovements} improvements`
-				: 'All clear'
+		totalFailures > 0
+			? `${totalFailures} workloads failed`
+			: totalWarnings > 0
+				? `${totalWarnings} workloads with warnings`
+				: 'All passed'
 
 	let header = [
 		`## 🌋 SLO Test Results`,
 		``,
-		`**Status**: ${statusEmoji} ${comparisons.length} workloads tested • ${statusText}`,
+		`**Status**: ${statusEmoji} ${reports.length} workloads tested • ${statusText}`,
 		'',
 	].join('\n')
 
 	let content = [
 		'| | Workload | Metrics | Regressions | Improvements | Links |',
 		'|-|----------|---------|-------------|--------------|-------|',
-		comparisons.map((comp) => {
-			let emoji = comp.summary.regressions > 0 ? '🟡' : comp.summary.improvements > 0 ? '🟢' : '⚪'
-			let checkLink = checkUrls.get(comp.workload) || '#'
-			let reportLink = reportUrls.get(comp.workload) || '#'
-
-			return `| ${emoji} | ${comp.workload} | ${comp.summary.total} | ${comp.summary.regressions} | ${comp.summary.improvements} | [Report](${reportLink}) • [Check](${checkLink}) |`
-		}),
+		...rows,
 	]
 		.flat()
 		.join('\n')

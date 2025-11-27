@@ -41,6 +41,7 @@ export type EvaluatedThreshold = {
 	threshold_name?: string
 	threshold_pattern?: string
 	threshold_severity: ThresholdSeverity
+	reason?: string
 }
 
 /**
@@ -185,6 +186,7 @@ function findMatchingThreshold(metricName: string, config: ThresholdConfig): Met
 export function evaluateThreshold(comparison: MetricComparison, config: ThresholdConfig): EvaluatedThreshold {
 	let threshold = findMatchingThreshold(comparison.name, config)
 	let severity: ThresholdSeverity = 'success'
+	let reason: string | undefined
 
 	// Check absolute value thresholds first
 	if (threshold) {
@@ -192,24 +194,25 @@ export function evaluateThreshold(comparison: MetricComparison, config: Threshol
 		if (threshold.critical_min !== undefined && comparison.current.value < threshold.critical_min) {
 			debug(`${comparison.name}: below critical_min (${comparison.current.value} < ${threshold.critical_min})`)
 			severity = 'failure'
+			reason = `Value ${comparison.current.value} < critical min ${threshold.critical_min}`
 		}
-
-		// Check warning_min
-		if (threshold.warning_min !== undefined && comparison.current.value < threshold.warning_min) {
-			debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`)
-			severity = 'warning'
-		}
-
 		// Check critical_max
-		if (threshold.critical_max !== undefined && comparison.current.value > threshold.critical_max) {
+		else if (threshold.critical_max !== undefined && comparison.current.value > threshold.critical_max) {
 			debug(`${comparison.name}: above critical_max (${comparison.current.value} > ${threshold.critical_max})`)
 			severity = 'failure'
+			reason = `Value ${comparison.current.value} > critical max ${threshold.critical_max}`
 		}
-
+		// Check warning_min
+		else if (threshold.warning_min !== undefined && comparison.current.value < threshold.warning_min) {
+			debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`)
+			severity = 'warning'
+			reason = `Value ${comparison.current.value} < warning min ${threshold.warning_min}`
+		}
 		// Check warning_max
-		if (threshold.warning_max !== undefined && comparison.current.value > threshold.warning_max) {
+		else if (threshold.warning_max !== undefined && comparison.current.value > threshold.warning_max) {
 			debug(`${comparison.name}: above warning_max (${comparison.current.value} > ${threshold.warning_max})`)
 			severity = 'warning'
+			reason = `Value ${comparison.current.value} > warning max ${threshold.warning_max}`
 		}
 	}
 
@@ -223,14 +226,14 @@ export function evaluateThreshold(comparison: MetricComparison, config: Threshol
 
 		// Only trigger if change is in "worse" direction
 		if (comparison.change.direction === 'worse') {
-			if (changePercent > criticalThreshold) {
-				debug(`${comparison.name}: critical regression (${changePercent.toFixed(1)}% > ${criticalThreshold}%)`)
-				severity = 'failure'
-			}
-
-			if (changePercent > warningThreshold) {
-				debug(`${comparison.name}: warning regression (${changePercent.toFixed(1)}% > ${warningThreshold}%)`)
-				severity = 'warning'
+			if (severity !== 'failure') {
+				if (changePercent > criticalThreshold) {
+					severity = 'failure'
+					reason = `Regression ${changePercent.toFixed(1)}% > critical ${criticalThreshold}%`
+				} else if (severity !== 'warning' && changePercent > warningThreshold) {
+					severity = 'warning'
+					reason = `Regression ${changePercent.toFixed(1)}% > warning ${warningThreshold}%`
+				}
 			}
 		}
 	}
@@ -240,6 +243,7 @@ export function evaluateThreshold(comparison: MetricComparison, config: Threshol
 		threshold_name: threshold?.name,
 		threshold_pattern: threshold?.pattern,
 		threshold_severity: severity,
+		reason,
 	}
 }
 
@@ -251,19 +255,19 @@ export function evaluateWorkloadThresholds(
 	config: ThresholdConfig
 ): {
 	overall: ThresholdSeverity
-	failures: MetricComparison[]
-	warnings: MetricComparison[]
+	failures: (MetricComparison & { reason?: string })[]
+	warnings: (MetricComparison & { reason?: string })[]
 } {
-	let failures: MetricComparison[] = []
-	let warnings: MetricComparison[] = []
+	let failures: (MetricComparison & { reason?: string })[] = []
+	let warnings: (MetricComparison & { reason?: string })[] = []
 
 	for (let comparison of comparisons) {
 		let severity = evaluateThreshold(comparison, config)
 
 		if (severity.threshold_severity === 'failure') {
-			failures.push(comparison)
+			failures.push({ ...comparison, reason: severity.reason })
 		} else if (severity.threshold_severity === 'warning') {
-			warnings.push(comparison)
+			warnings.push({ ...comparison, reason: severity.reason })
 		}
 	}
 

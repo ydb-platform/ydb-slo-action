@@ -31,10 +31,10 @@ export function generateCheckSummary(
 ): string {
 	let lines = [
 		`**Metrics analyzed:** ${comparison.summary.total}`,
-		`- ⚪ Stable: ${comparison.summary.stable}`,
+		`- 🟢 Stable: ${comparison.summary.stable}`,
 		`- 🔴 Critical: ${evaluation.failures.length}`,
 		`- 🟡 Warnings: ${evaluation.warnings.length}`,
-		`- 🟢 Improvements: ${comparison.summary.improvements}`,
+		`- 🚀 Improvements: ${comparison.summary.improvements}`,
 		'',
 	]
 
@@ -44,11 +44,12 @@ export function generateCheckSummary(
 
 	// Critical failures
 	if (evaluation.failures.length > 0) {
-		lines.push('### ❌ Critical Thresholds Violated', '')
+		lines.push('### ⛔ Critical Thresholds Violated', '')
 
 		for (let metric of evaluation.failures.slice(0, 5)) {
+			let reason = metric.reason ? ` — ${metric.reason}` : ''
 			lines.push(
-				`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})`
+				`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})${reason}`
 			)
 		}
 
@@ -60,8 +61,9 @@ export function generateCheckSummary(
 		lines.push('### ⚠️ Warning Thresholds Exceeded', '')
 
 		for (let metric of evaluation.warnings.slice(0, 5)) {
+			let reason = metric.reason ? ` — ${metric.reason}` : ''
 			lines.push(
-				`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})`
+				`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})${reason}`
 			)
 		}
 
@@ -74,7 +76,7 @@ export function generateCheckSummary(
 		.sort((a, b) => Math.abs(b.change.percent) - Math.abs(a.change.percent))
 
 	if (improvements.length > 0) {
-		lines.push('### 🟢 Top Improvements', '')
+		lines.push('### 🚀 Top Improvements', '')
 
 		for (let metric of improvements.slice(0, 5)) {
 			lines.push(

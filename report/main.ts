@@ -166,23 +166,15 @@ async function createWorkloadHTMLReport(cwd: string, reports: WorkloadReport[]) 
 async function createPullRequestComment(issue: number, reports: WorkloadReport[]) {
 	info('💬 Creating/updating PR comment...')
 
-	let checkUrls = new Map<string, string>()
-	let reportUrls = new Map<string, string>()
-	let comparisons: WorkloadComparison[] = []
-
-	for (let report of reports) {
-		if (report.checkUrl) {
-			checkUrls.set(report.workload, report.checkUrl)
-		}
-
-		if (report.reportUrl) {
-			reportUrls.set(report.workload, report.reportUrl)
-		}
-
-		comparisons.push(report.comparison)
-	}
-
-	let body = generateCommentBody(checkUrls, reportUrls, comparisons)
+	let body = generateCommentBody(
+		reports.map((r) => ({
+			workload: r.workload,
+			comparison: r.comparison,
+			thresholds: r.thresholds,
+			checkUrl: r.checkUrl,
+			reportUrl: r.reportUrl,
+		}))
+	)
 	await createOrUpdateComment(issue, body)
 }
 
