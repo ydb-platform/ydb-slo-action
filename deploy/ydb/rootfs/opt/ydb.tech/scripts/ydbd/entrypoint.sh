@@ -34,14 +34,25 @@ start_ydb_node() {
     local grpc_port="${YDB_GRPC_PORT:-2136}"
     local mon_port="${YDB_MON_PORT:-8765}"
     local ic_port="${YDB_IC_PORT:-19001}"
+    local extra_args=()
 
-    local ydb_args=(
+    if [ -n "${EXTRA_YDB_ARGS:-}" ]; then
+        read -r -a arr <<< "${EXTRA_YDB_ARGS}"
+        extra_args+=("${arr[@]}")
+    fi
+
+    if [ -n "${PUBLIC_IPV4:-}" ]; then
+        extra_args+=("--grpc-public-address-v4" "${PUBLIC_IPV4}")
+    fi
+
+    ydb_args=(
         "ydbd"
         "server"
         "--yaml-config" "/opt/ydb.tech/ydbd/cfg/config.yaml"
         "--grpc-port" "$grpc_port"
         "--mon-port" "$mon_port"
         "--ic-port" "$ic_port"
+        "${extra_args[@]}"
     )
 
     if [[ -z "$YDB_TENANT" ]]; then

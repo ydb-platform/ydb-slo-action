@@ -26,7 +26,7 @@ RUN groupadd -r ydb && useradd -r -g ydb -u 1001 -d /home/ydb -m ydb && \
     chown -R 1001:1001 /home/ydb /opt/ydb.tech && \
     chmod 755 /home/ydb /opt/ydb.tech
 
-EXPOSE ${YDB_GRPC_PORT:-2136} ${YDB_MON_PORT:-8765} ${YDB_IC_PORT:-19001}
+    EXPOSE ${YDB_GRPC_PORT:-2136} ${YDB_MON_PORT:-8765} ${YDB_IC_PORT:-19001}
 
 WORKDIR /home/ydb
 USER 1001

@@ -26,6 +26,8 @@ services:
     container_name: ydb-storage-1
     <<: *ydb-node
     hostname: ydb-storage-1
+    environment:
+      - PUBLIC_IPV4=172.28.0.10
     networks:
       ydb-net:
         ipv4_address: 172.28.0.10
@@ -38,6 +40,7 @@ services:
     environment:
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - PUBLIC_IPV4=172.28.0.11
     networks:
       ydb-net:
         ipv4_address: 172.28.0.11
@@ -57,6 +60,7 @@ services:
     environment:
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - PUBLIC_IPV4=172.28.0.12
     networks:
       ydb-net:
         ipv4_address: 172.28.0.12
@@ -76,6 +80,7 @@ services:
     environment:
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - PUBLIC_IPV4=172.28.0.13
     networks:
       ydb-net:
         ipv4_address: 172.28.0.13
@@ -95,6 +100,7 @@ services:
     environment:
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - PUBLIC_IPV4=172.28.0.14
     networks:
       ydb-net:
         ipv4_address: 172.28.0.14
@@ -114,6 +120,7 @@ services:
     environment:
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - PUBLIC_IPV4=172.28.0.15
     networks:
       ydb-net:
         ipv4_address: 172.28.0.15
