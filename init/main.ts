@@ -12,7 +12,7 @@ process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
 	let workload = getInput('workload_name') || 'unspecified'
-
+	const enableChaos: boolean = getInput('enable_chaos') === 'true';
 	saveState('cwd', cwd)
 	saveState('pull', await getPullRequestNumber())
 	saveState('commit', process.env['GITHUB_SHA'])
@@ -37,7 +37,17 @@ async function main() {
 		debug(`Deploy assets copied to ${cwd}`)
 	}
 
-	await exec(`docker`, [`compose`, `-f`, `compose.yml`, `up`, `--quiet-pull`, `-d`], {
+    const args = [
+		'compose',
+		... enableChaos ? ['--profile', 'chaos'] : [],
+		'-f',
+		'compose.yml',
+		'up',
+		'--quiet-pull',
+		'-d',
+    ]
+
+	await exec(`docker`, args, {
 		cwd: path.resolve(process.env['GITHUB_ACTION_PATH'], 'deploy'),
 	})
 

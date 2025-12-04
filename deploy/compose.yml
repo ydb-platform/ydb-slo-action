@@ -153,6 +153,7 @@ services:
         condition: service_completed_successfully
 
   blackhole:
+    profiles: [chaos]
     image: alpine/socat
     container_name: ydb-blackhole
     restart: unless-stopped
@@ -176,6 +177,7 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
 
   chaos-monkey:
+    profiles: [chaos]
     build:
       context: ./chaos
     restart: on-failure

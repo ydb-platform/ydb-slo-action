@@ -9,11 +9,24 @@ scrape_configs:
       - targets:
           - ydb-storage-1:8765
 
-  - job_name: ydb-database-nodes
-    scrape_interval: 10s
-    metrics_path: /counters/prometheus
+  - job_name: ydb
+    scrape_interval: 5s
+    metrics_path: /counters/counters=ydb/name_label=name/prometheus
     static_configs:
       - targets:
           - ydb-database-1:8765
           - ydb-database-2:8765
           - ydb-database-3:8765
+          - ydb-database-4:8765
+          - ydb-database-5:8765
+
+  - job_name: interconnect
+    scrape_interval: 5s
+    metrics_path: /counters/counters=interconnect/prometheus
+    static_configs:
+      - targets:
+          - ydb-database-1:8765
+          - ydb-database-2:8765
+          - ydb-database-3:8765
+          - ydb-database-4:8765
+          - ydb-database-5:8765
