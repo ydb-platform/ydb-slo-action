@@ -17,8 +17,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY rootfs /
-COPY --from=ghcr.io/ydb-platform/local-ydb:trunk /ydb /opt/ydb.tech/ydb/bin/ydb
-COPY --from=ghcr.io/ydb-platform/local-ydb:trunk /ydbd /opt/ydb.tech/ydbd/bin/ydbd
+COPY --from=ghcr.io/ydb-platform/local-ydb:stable-25-3 /ydb /opt/ydb.tech/ydb/bin/ydb
+COPY --from=ghcr.io/ydb-platform/local-ydb:stable-25-3 /ydbd /opt/ydb.tech/ydbd/bin/ydbd
 
 RUN groupadd -r ydb && useradd -r -g ydb -u 1001 -d /home/ydb -m ydb && \
     chmod +x /opt/ydb.tech/scripts/ydbd/entrypoint.sh && \

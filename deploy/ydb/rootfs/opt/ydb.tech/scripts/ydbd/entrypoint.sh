@@ -56,13 +56,14 @@ start_ydb_node() {
         ydb_args+=("--node-broker" "$YDB_ENDPOINT")
     fi
 
-    log "Starting YDB node with: ${ydb_args[*]}"
+    log "Starting YDB node with: ${ydb_args[*]} $*"
     exec "${ydb_args[@]}" "$@"
 }
 
 ydb version --disable-checks > /dev/null 2>&1
 
-if [[ "$1" == "/opt/ydb.tech/ydbd/bin/ydbd" || -n "$YDB_INIT_OPERATION" ]]; then
+# Check if we should handle init operations
+if [[ -n "$YDB_INIT_OPERATION" ]]; then
     case "$YDB_INIT_OPERATION" in
         "bootstrap")
             perform_cluster_bootstrap
@@ -70,15 +71,12 @@ if [[ "$1" == "/opt/ydb.tech/ydbd/bin/ydbd" || -n "$YDB_INIT_OPERATION" ]]; then
         "create-database")
             perform_database_creation
             ;;
-        "")
-            start_ydb_node
-            ;;
         *)
             log "Unknown init operation: $YDB_INIT_OPERATION"
             exit 1
             ;;
     esac
 else
-    log "Executing command: $*"
-    exec "$@"
+    # Start YDB node with all provided arguments
+    start_ydb_node "$@"
 fi

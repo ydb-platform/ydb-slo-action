@@ -23,9 +23,10 @@ networks:
 
 services:
   storage-1:
-    container_name: ydb-storage-1
     <<: *ydb-node
     hostname: ydb-storage-1
+    container_name: ydb-storage-1
+    command: ["--grpc-public-address-v4", "172.28.0.10"]
     networks:
       ydb-net:
         ipv4_address: 172.28.0.10
@@ -33,11 +34,12 @@ services:
       - ydb.node.type=storage
 
   database-1:
-    container_name: ydb-database-1
     <<: *ydb-node
+    container_name: ydb-database-1
+    command: ["--grpc-public-address-v4", "172.28.0.11"]
     environment:
-      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
     networks:
       ydb-net:
         ipv4_address: 172.28.0.11
@@ -54,9 +56,10 @@ services:
   database-2:
     <<: *ydb-node
     container_name: ydb-database-2
+    command: ["--grpc-public-address-v4", "172.28.0.12"]
     environment:
-      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
     networks:
       ydb-net:
         ipv4_address: 172.28.0.12
@@ -73,9 +76,10 @@ services:
   database-3:
     <<: *ydb-node
     container_name: ydb-database-3
+    command: ["--grpc-public-address-v4", "172.28.0.13"]
     environment:
-      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
     networks:
       ydb-net:
         ipv4_address: 172.28.0.13
@@ -92,9 +96,10 @@ services:
   database-4:
     <<: *ydb-node
     container_name: ydb-database-4
+    command: ["--grpc-public-address-v4", "172.28.0.14"]
     environment:
-      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
     networks:
       ydb-net:
         ipv4_address: 172.28.0.14
@@ -111,9 +116,10 @@ services:
   database-5:
     <<: *ydb-node
     container_name: ydb-database-5
+    command: ["--grpc-public-address-v4", "172.28.0.15"]
     environment:
-      - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
     networks:
       ydb-net:
         ipv4_address: 172.28.0.15
