@@ -21,6 +21,9 @@ networks:
       config:
         - subnet: 172.28.0.0/16
 
+volumes:
+  chaos-events:
+
 services:
   storage-1:
     <<: *ydb-node
@@ -166,6 +169,8 @@ services:
       ydb-net:
         ipv4_address: 172.28.0.99
     command: tcp-listen:2136,fork,reuseaddr exec:'/bin/cat'
+    profiles:
+      - chaos
     labels:
       - ydb.node.type=blackhole
 
@@ -180,6 +185,8 @@ services:
       - --web.enable-otlp-receiver
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    profiles:
+      - telemetry
 
   chaos-monkey:
     build:
@@ -204,6 +211,9 @@ services:
         condition: service_healthy
       database-3:
         condition: service_healthy
-
-volumes:
-  chaos-events:
+      database-4:
+        condition: service_healthy
+      database-5:
+        condition: service_healthy
+    profiles:
+      - chaos

@@ -23,6 +23,9 @@ inputs:
   metrics_yaml_path:
     description: "Path to a file containing custom metrics configuration in YAML format. Will be merged with default metrics."
     required: false
+  disable_compose_profiles:
+    description: "Comma-separated list of compose profiles to disable (e.g., 'chaos,telemetry'). By default, all profiles are enabled."
+    required: false
 
 outputs:
   status:

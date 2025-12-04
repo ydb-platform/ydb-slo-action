@@ -85,3 +85,29 @@ export async function collectComposeLogs(cwd: string): Promise<string> {
 		return ''
 	}
 }
+
+/**
+ * Gets all profiles defined in a Docker Compose file
+ */
+export async function getComposeProfiles(cwd: string): Promise<string[]> {
+	try {
+		let chunks: string[] = []
+
+		await exec(`yq`, [`-r`, `.. | .profiles? | select(. != null) | .[]`, `compose.yml`], {
+			cwd,
+			silent: true,
+			ignoreReturnCode: true,
+			listeners: {
+				stdout: (data) => chunks.push(data.toString()),
+			},
+		})
+
+		let stdout = chunks.join('')
+		let allProfiles = stdout.trim().split('\n').filter(Boolean)
+
+		return [...new Set(allProfiles)]
+	} catch (error) {
+		warning(`Failed to detect profiles dynamically: ${String(error)}`)
+		return []
+	}
+}

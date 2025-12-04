@@ -5,13 +5,14 @@ import { fileURLToPath } from 'node:url'
 import { debug, getInput, info, saveState, setFailed } from '@actions/core'
 import { exec } from '@actions/exec'
 
+import { getComposeProfiles } from './lib/docker.js'
 import { getPullRequestNumber } from './lib/github.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
-
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
 	let workload = getInput('workload_name') || 'unspecified'
+	let disableProfiles = getInput('disable_compose_profiles') || ''
 
 	saveState('cwd', cwd)
 	saveState('pull', await getPullRequestNumber())
@@ -37,9 +38,20 @@ async function main() {
 		debug(`Deploy assets copied to ${cwd}`)
 	}
 
-	await exec(`docker`, [`compose`, `-f`, `compose.yml`, `up`, `--quiet-pull`, `-d`], {
-		cwd: path.resolve(process.env['GITHUB_ACTION_PATH'], 'deploy'),
-	})
+	{
+		let profiles = await getComposeProfiles(cwd)
+		profiles = profiles.filter((profile: string) => !disableProfiles.includes(profile))
+
+		await exec(`docker`, [`compose`, `up`, `--quiet-pull`, `--quiet-build`, `--detach`], {
+			cwd,
+			env: {
+				...process.env,
+				COMPOSE_PROFILES: profiles.join(','),
+			},
+		})
+
+		debug(`Ran with profiles: ${profiles.join(', ')}`)
+	}
 
 	let start = new Date()
 	info(`YDB started at ${start}`)
