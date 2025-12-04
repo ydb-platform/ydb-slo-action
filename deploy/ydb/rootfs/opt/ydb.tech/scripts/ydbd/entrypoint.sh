@@ -57,7 +57,7 @@ start_ydb_node() {
     fi
 
     log "Starting YDB node with: ${ydb_args[*]}"
-    exec "${ydb_args[@]}"
+    exec "${ydb_args[@]}" "$@"
 }
 
 ydb version --disable-checks > /dev/null 2>&1
