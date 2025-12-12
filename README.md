@@ -58,6 +58,39 @@ jobs:
 
 That's it! The action handles infrastructure, chaos injection, metrics collection, and reporting automatically.
 
+### Action Outputs
+
+The `init` action provides several outputs that you can use in subsequent steps:
+
+```yaml
+- uses: ydb-platform/ydb-slo-action/init@v1
+  id: ydb-init
+  with:
+      workload_name: my-sdk-test
+      github_token: ${{ secrets.GITHUB_TOKEN }}
+
+# Use outputs in later steps
+- name: Run tests with YDB endpoints
+  run: |
+      echo "Storage nodes: ${{ steps.ydb-init.outputs.ydb-storage-ips }}"
+      echo "Database nodes: ${{ steps.ydb-init.outputs.ydb-database-ips }}"
+      echo "Prometheus URL: ${{ steps.ydb-init.outputs.ydb-prometheus-url }}"
+      echo "Prometheus OTLP: ${{ steps.ydb-init.outputs.ydb-prometheus-otlp }}"
+```
+
+**Available outputs:**
+
+- `ydb-storage-ips` — Comma-separated list of YDB storage node IP addresses
+- `ydb-database-ips` — Comma-separated list of YDB database node IP addresses
+- `ydb-prometheus-url` — Prometheus HTTP endpoint (only if telemetry profile is enabled)
+- `ydb-prometheus-otlp` — Prometheus OTLP receiver endpoint (only if telemetry profile is enabled)
+
+These outputs are useful when you need to:
+
+- Connect your tests directly to specific YDB nodes
+- Send custom metrics to Prometheus
+- Configure your SDK with explicit endpoints
+
 ## How It Works
 
 ### Two Actions Working Together
