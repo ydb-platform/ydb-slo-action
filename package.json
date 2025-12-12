@@ -10,7 +10,7 @@
 		"lint": "bunx --bun oxlint **/*.ts --fix --node-plugin --import-plugin"
 	},
 	"dependencies": {
-		"@actions/artifact": "^4.0.0",
+		"@actions/artifact": "^5.0.0",
 		"@actions/core": "^1.11.1",
 		"@actions/exec": "^1.1.1",
 		"@actions/github": "^6.0.0"
