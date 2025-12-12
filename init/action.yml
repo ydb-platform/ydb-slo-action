@@ -34,6 +34,8 @@ outputs:
     description: "Comma-separated list of YDB databse node IP addresses."
   ydb-prometheus-url:
     description: "The prometheus url if telemetry profile is not disabled."
+  ydb-prometheus-otlp:
+    description: "The prometheus otlp receiver url if telemetry profile is not disabled."
 
 runs:
   using: "node24"

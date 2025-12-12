@@ -75,6 +75,7 @@ async function main() {
 		if (profiles.includes('telemetry')) {
 			let prometheusIp = await getContainerIp('ydb-prometheus')
 			setOutput('ydb-prometheus-url', `http://${prometheusIp}:9090`)
+			setOutput('ydb-prometheus-otlp', `http://${prometheusIp}:9090/api/v1/otlp/v1/metrics`)
 		}
 	}
 
