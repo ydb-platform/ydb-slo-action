@@ -178,7 +178,7 @@ services:
     image: prom/prometheus:latest
     restart: unless-stopped
     <<: *runtime
-    container_name: prometheus
+    container_name: ydb-prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-remote-write-receiver

@@ -28,10 +28,12 @@ inputs:
     required: false
 
 outputs:
-  status:
-    description: "The status of the SLO evaluation after running the action. Possible values are 'passed', 'warning', or 'failed'."
-  summary:
-    description: "A summary of the SLO evaluation results, including key metrics and any violations detected."
+  ydb-storage-ips:
+    description: "Comma-separated list of YDB storage node IP addresses."
+  ydb-database-ips:
+    description: "Comma-separated list of YDB databse node IP addresses."
+  ydb-prometheus-url:
+    description: "The prometheus url if telemetry profile is not disabled."
 
 runs:
   using: "node24"

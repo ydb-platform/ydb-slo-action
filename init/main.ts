@@ -2,10 +2,10 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { debug, getInput, info, saveState, setFailed } from '@actions/core'
+import { debug, getInput, info, saveState, setFailed, setOutput } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import { getComposeProfiles } from './lib/docker.js'
+import { getComposeProfiles, getContainerIp } from './lib/docker.js'
 import { getPullRequestNumber } from './lib/github.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
@@ -51,6 +51,31 @@ async function main() {
 		})
 
 		debug(`Ran with profiles: ${profiles.join(', ')}`)
+
+		// prettier-ignore
+		let ydbStorageIps = [
+			await getContainerIp('ydb-storage-1')
+		]
+
+		let ydbDatabaseIps = [
+			await getContainerIp('ydb-database-1'),
+			await getContainerIp('ydb-database-2'),
+			await getContainerIp('ydb-database-3'),
+			await getContainerIp('ydb-database-4'),
+			await getContainerIp('ydb-database-5'),
+		]
+
+		if (profiles.includes('chaos')) {
+			ydbDatabaseIps.push(await getContainerIp('ydb-blackhole'))
+		}
+
+		setOutput('ydb-storage-ips', ydbStorageIps.filter(Boolean).join(','))
+		setOutput('ydb-database-ips', ydbDatabaseIps.filter(Boolean).join(','))
+
+		if (profiles.includes('telemetry')) {
+			let prometheusIp = await getContainerIp('ydb-prometheus')
+			setOutput('ydb-prometheus-url', `http://${prometheusIp}:9090`)
+		}
 	}
 
 	let start = new Date()
