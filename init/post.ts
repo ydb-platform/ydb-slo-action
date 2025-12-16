@@ -68,7 +68,7 @@ async function collectMetrics(): Promise<string> {
 	let start = new Date(getState('start'))
 	let finish = new Date()
 
-	let prometheusIp = await getContainerIp('prometheus')
+	let prometheusIp = await getContainerIp('ydb-prometheus')
 	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://prometheus:9090'
 	debug(`Prometheus URL: ${prometheusUrl}`)
 
