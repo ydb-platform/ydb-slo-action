@@ -6,6 +6,9 @@
 		"prepare": "husky",
 		"prebundle": "rm -rf dist",
 		"bundle": "bun build init/main.ts init/post.ts report/main.ts --target=node --format=esm --splitting --minify-syntax --sourcemap=inline --outdir dist",
+		"test": "bun test",
+		"test:watch": "bun test --watch",
+		"test:coverage": "bun test --coverage",
 		"format": "bunx --bun prettier **/*.ts --write",
 		"lint": "bunx --bun oxlint **/*.ts --fix --node-plugin --import-plugin"
 	},

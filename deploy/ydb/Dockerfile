@@ -1,7 +1,8 @@
 FROM --platform=linux/amd64 debian:bookworm-slim
+ARG APP_VERSION=stable-25-3
 
 ENV APP_NAME="ydb" \
-    APP_VERSION="trunk" \
+    APP_VERSION="${APP_VERSION}" \
     PATH="/opt/ydb.tech/ydb/bin:/opt/ydb.tech/ydbd/bin:$PATH"
 
 SHELL ["/bin/bash", "-o", "errexit", "-o", "nounset", "-o", "pipefail", "-c"]

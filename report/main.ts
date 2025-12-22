@@ -46,7 +46,7 @@ async function main() {
 
 	let pull = context.issue.number
 	let reports: WorkloadReport[] = []
-	let thresholds = await loadThresholdConfig()
+	let thresholds = await loadThresholdConfig(getInput('thresholds_yaml'), getInput('thresholds_yaml_path'))
 
 	for (let [, artifact] of runArtifacts) {
 		if (!artifact.metadataPath || !artifact.metricsPath || !artifact.eventsPath) {

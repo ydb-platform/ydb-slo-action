@@ -12,6 +12,9 @@
 	"[jsonc]": {
 		"editor.defaultFormatter": "prettier.prettier-vscode"
 	},
+	"[yaml]": {
+		"editor.defaultFormatter": "prettier.prettier-vscode"
+	},
 	"npm.scriptRunner": "bun",
 	"npm.packageManager": "bun"
 }
