@@ -5,7 +5,7 @@
 	"scripts": {
 		"prepare": "husky",
 		"prebundle": "rm -rf dist",
-		"bundle": "bun build init/main.ts init/post.ts report/main.ts --target=node --format=esm --splitting --minify-syntax --sourcemap=inline --outdir dist",
+		"bundle": "bun build init/main.ts init/post.ts report/main.ts --target=node --format=esm --splitting --minify-syntax --sourcemap=none --outdir dist",
 		"test": "bun test",
 		"test:watch": "bun test --watch",
 		"test:coverage": "bun test --coverage",
@@ -53,7 +53,7 @@
 		]
 	},
 	"lint-staged": {
-		"**/*.{ts,js,json,md}": [
+		"**/*.{ts,json,md}": [
 			"bun run --bun oxlint --fix --node-plugin --import-plugin",
 			"bun run --bun prettier --write"
 		],
