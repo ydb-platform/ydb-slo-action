@@ -4,6 +4,7 @@
  * Copied from report/lib/analysis.ts and adjusted to import from shared/metrics.ts
  */
 
+import { debug } from '@actions/core'
 import { getMetricValue, type AggregateFunction, type CollectedMetric } from './metrics.js'
 
 export interface MetricComparison {
@@ -121,6 +122,9 @@ export function compareMetric(
 	aggregate: AggregateFunction = 'avg',
 	neutralThreshold?: number
 ): MetricComparison {
+	debug(
+		`Comparing metric "${metric.name}" of type "${metric.type}" between refs "${currentRef}" and "${baselineRef}" using aggregate "${aggregate}"`
+	)
 	let currentValue = getMetricValue(metric, currentRef, aggregate)
 	let baselineValue = getMetricValue(metric, baselineRef, aggregate)
 
