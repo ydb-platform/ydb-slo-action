@@ -76,7 +76,7 @@ jobs:
       - name: Initialize YDB SLO
         uses: ydb-platform/ydb-slo-action/init@main
         with:
-          github_pull_request_number: ${{ github.event.inputs.github_pull_request_number }}
+          github_issue: ${{ github.event.inputs.github_pull_request_number }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workload_name: ${{ matrix.workload }}
 
