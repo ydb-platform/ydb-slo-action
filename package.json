@@ -56,10 +56,6 @@
 		"**/*.{ts,json,md}": [
 			"bun run --bun oxlint --fix --node-plugin --import-plugin",
 			"bun run --bun prettier --write"
-		],
-		"{init,report}/**": [
-			"sh -c 'bun run bundle'",
-			"git add -f dist"
 		]
 	}
 }
