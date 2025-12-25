@@ -2,14 +2,14 @@ import {
   compareWorkloadMetrics,
   formatChange,
   formatValue
-} from "../main-7myt13pq.js";
+} from "../main-8r5kb7hp.js";
 import {
   __toESM,
   require_artifact,
   require_core,
   require_exec,
   require_github
-} from "../main-h98689qs.js";
+} from "../main-17vzr5te.js";
 
 // report/main.ts
 var import_artifact2 = __toESM(require_artifact(), 1), import_core4 = __toESM(require_core(), 1), import_github3 = __toESM(require_github(), 1);
@@ -1362,7 +1362,7 @@ async function createWorkloadHTMLReport(cwd, reports) {
     let { id } = await artifactClient.uploadArtifact(report.workload + "-html-report", [htmlPath], cwd, {
       retentionDays: 30
     }), runId = import_github3.context.runId.toString();
-    report.reportUrl = `https://api.github.com/repos/${import_github3.context.repo.owner}/${import_github3.context.repo.repo}/actions/runs/${runId}/artifacts/${id}`;
+    report.reportUrl = `https://github.com/${import_github3.context.repo.owner}/${import_github3.context.repo.repo}/actions/runs/${runId}/artifacts/${id}`;
   }
 }
 async function createPullRequestComment(issue, reports) {

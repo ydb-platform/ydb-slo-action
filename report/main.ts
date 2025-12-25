@@ -159,7 +159,7 @@ async function createWorkloadHTMLReport(cwd: string, reports: WorkloadReport[]) 
 		})
 
 		let runId = context.runId.toString()
-		report.reportUrl = `https://api.github.com/repos/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${id}`
+		report.reportUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${id}`
 	}
 }
 
