@@ -26,11 +26,11 @@ metrics:
 
   # Read attempts throughput
   - name: read_attempts
-    query: sum by(ref) (rate(sdk_retry_attempts{operation_type="read"}[10s]) > 0)
+    query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="read"}[10s]) > 0)
 
   # Write attempts throughput
   - name: write_attempts
-    query: sum by(ref) (rate(sdk_retry_attempts{operation_type="write"}[10s]) > 0)
+    query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="write"}[10s]) > 0)
 
   # Read operations availability
   - name: read_availability
