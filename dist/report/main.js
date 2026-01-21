@@ -2,14 +2,14 @@ import {
   compareWorkloadMetrics,
   formatChange,
   formatValue
-} from "../main-7myt13pq.js";
+} from "../main-8xcrq42h.js";
 import {
   __toESM,
   require_artifact,
   require_core,
   require_exec,
   require_github
-} from "../main-h98689qs.js";
+} from "../main-mj2ce5f3.js";
 
 // report/main.ts
 var import_artifact2 = __toESM(require_artifact(), 1), import_core4 = __toESM(require_core(), 1), import_github3 = __toESM(require_github(), 1);
@@ -1310,7 +1310,7 @@ async function main() {
     let events = loadChaosEvents(await fs3.readFile(artifact.eventsPath, "utf-8")), metrics = loadCollectedMetrics(await fs3.readFile(artifact.metricsPath, "utf-8")), metadata = JSON.parse(await fs3.readFile(artifact.metadataPath, "utf-8"));
     if (metadata.pull && metadata.pull !== pull)
       pull = metadata.pull;
-    let comparison = compareWorkloadMetrics(metadata.workload, metrics, metadata.workload_current_ref || "current", metadata.workload_baseline_ref || "baseline", "avg", thresholds.neutral_change_percent), report = {
+    let comparison = compareWorkloadMetrics(metadata.workload, metrics, metadata.workload_current_ref || "current", metadata.workload_baseline_ref || "baseline", "p95", thresholds.neutral_change_percent), report = {
       workload: metadata.workload,
       events,
       metrics,

@@ -3,18 +3,18 @@ import {
   copyFromContainer,
   getContainerIp,
   uploadArtifacts
-} from "../main-77exffx0.js";
+} from "../main-cjm6n7yr.js";
 import {
   compareWorkloadMetrics,
   formatChange,
   formatValue,
   loadMetricConfig
-} from "../main-7myt13pq.js";
+} from "../main-8xcrq42h.js";
 import {
   __toESM,
   require_core,
   require_exec
-} from "../main-h98689qs.js";
+} from "../main-mj2ce5f3.js";
 
 // init/post.ts
 var import_core2 = __toESM(require_core(), 1), import_exec = __toESM(require_exec(), 1);
@@ -95,7 +95,6 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
 // init/lib/summary.ts
 var import_core = __toESM(require_core(), 1);
 async function writeJobSummary(comparison) {
-  import_core.summary.addBreak();
   let statusEmoji = comparison.summary.regressions > 0 ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
   import_core.summary.addHeading(`${statusEmoji} ${comparison.workload}`, 3);
   let matrix = [

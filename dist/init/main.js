@@ -1,13 +1,14 @@
 import {
   getComposeProfiles,
   getContainerIp,
-  getPullRequestNumber
-} from "../main-77exffx0.js";
+  getPullRequestNumber,
+  waitForContainerCompletion
+} from "../main-cjm6n7yr.js";
 import {
   __toESM,
   require_core,
   require_exec
-} from "../main-h98689qs.js";
+} from "../main-mj2ce5f3.js";
 
 // init/main.ts
 var import_core = __toESM(require_core(), 1), import_exec = __toESM(require_exec(), 1);
@@ -38,7 +39,9 @@ async function main() {
         ...process.env,
         COMPOSE_PROFILES: profiles.join(",")
       }
-    }), import_core.debug(`Ran with profiles: ${profiles.join(", ")}`);
+    }), import_core.debug(`Ran with profiles: ${profiles.join(", ")}`), import_core.info("Waiting for database readiness check to complete..."), await waitForContainerCompletion({
+      container: "ydb-database-readiness"
+    }), import_core.info("All database nodes are ready");
     let ydbStorageIps = [
       await getContainerIp("ydb-storage-1")
     ], ydbDatabaseIps = [
