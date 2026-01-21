@@ -118,7 +118,7 @@ export function compareMetric(
 	metric: CollectedMetric,
 	currentRef: string,
 	baselineRef: string,
-	aggregate: AggregateFunction = 'avg',
+	aggregate: AggregateFunction = 'p95',
 	neutralThreshold?: number
 ): MetricComparison {
 	let currentValue = getMetricValue(metric, currentRef, aggregate)
