@@ -67,7 +67,7 @@ async function main() {
 			metrics,
 			metadata.workload_current_ref || 'current',
 			metadata.workload_baseline_ref || 'baseline',
-			'avg',
+			'p95',
 			thresholds.neutral_change_percent
 		)
 
