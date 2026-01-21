@@ -71,6 +71,10 @@ if [[ -n "$YDB_INIT_OPERATION" ]]; then
         "create-database")
             perform_database_creation
             ;;
+        "check-readiness")
+            log "Running readiness check"
+            exec /opt/ydb.tech/scripts/ydbd/check-readiness.sh
+            ;;
         *)
             log "Unknown init operation: $YDB_INIT_OPERATION"
             exit 1

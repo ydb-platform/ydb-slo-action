@@ -161,6 +161,21 @@ services:
       storage-init:
         condition: service_completed_successfully
 
+  database-readiness:
+    <<: *ydb-node
+    container_name: ydb-database-readiness
+    restart: no
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_INIT_OPERATION=check-readiness
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
   blackhole:
     image: alpine/socat
     container_name: ydb-blackhole
@@ -203,17 +218,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - chaos-events:/var/log
     depends_on:
-      storage-1:
-        condition: service_healthy
-      database-1:
-        condition: service_healthy
-      database-2:
-        condition: service_healthy
-      database-3:
-        condition: service_healthy
-      database-4:
-        condition: service_healthy
-      database-5:
-        condition: service_healthy
+      database-readiness:
+        condition: service_completed_successfully
     profiles:
       - chaos

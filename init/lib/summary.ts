@@ -14,8 +14,6 @@ import { formatChange, formatValue, type WorkloadComparison } from '../../shared
  * Write Job Summary for a workload comparison
  */
 export async function writeJobSummary(comparison: WorkloadComparison): Promise<void> {
-	summary.addBreak()
-
 	let statusEmoji = comparison.summary.regressions > 0 ? '🟡' : '🟢'
 	summary.addHeading(`${statusEmoji} ${comparison.workload}`, 3)
 

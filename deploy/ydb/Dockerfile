@@ -23,6 +23,7 @@ COPY --from=ghcr.io/ydb-platform/local-ydb:stable-25-3 /ydbd /opt/ydb.tech/ydbd/
 
 RUN groupadd -r ydb && useradd -r -g ydb -u 1001 -d /home/ydb -m ydb && \
 	chmod +x /opt/ydb.tech/scripts/ydbd/entrypoint.sh && \
+	chmod +x /opt/ydb.tech/scripts/ydbd/check-readiness.sh && \
 	mkdir -p /home/ydb && \
 	chown -R 1001:1001 /home/ydb /opt/ydb.tech && \
 	chmod 755 /home/ydb /opt/ydb.tech

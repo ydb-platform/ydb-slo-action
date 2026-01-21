@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { debug, getInput, info, saveState, setFailed, setOutput } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import { getComposeProfiles, getContainerIp } from './lib/docker.js'
+import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
 import { getPullRequestNumber } from './lib/github.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
@@ -51,6 +51,12 @@ async function main() {
 		})
 
 		debug(`Ran with profiles: ${profiles.join(', ')}`)
+
+		info('Waiting for database readiness check to complete...')
+		await waitForContainerCompletion({
+			container: 'ydb-database-readiness',
+		})
+		info('All database nodes are ready')
 
 		// prettier-ignore
 		let ydbStorageIps = [
