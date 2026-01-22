@@ -35,7 +35,9 @@ metrics:
   # Read operations availability
   - name: read_availability
     query: 100 * sum by (ref) (increase(sdk_operations_success_total{operation_type="read"}[10s])) / sum by (ref) (increase(sdk_operations_total{operation_type="read"}[10s]))
+    round: 0.01
 
   # Write operations availability
   - name: write_availability
     query: 100 * sum by (ref) (increase(sdk_operations_success_total{operation_type="write"}[10s])) / sum by (ref) (increase(sdk_operations_total{operation_type="write"}[10s]))
+    round: 0.01

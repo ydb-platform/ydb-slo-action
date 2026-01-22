@@ -11,6 +11,7 @@ export interface MetricDefinition {
 	query: string
 	type?: MetricType
 	step?: string
+	round?: number
 }
 
 export interface MetricConfig {
@@ -42,6 +43,7 @@ export interface SeparatedSeries {
 export type CollectedMetric = {
 	name: string
 	query: string
+	round?: number
 } & (
 	| {
 			type: 'range'
@@ -86,13 +88,42 @@ export async function parseMetricsYaml(yamlContent: string): Promise<MetricConfi
  * Merge two metric configs (custom extends/overrides default)
  */
 function mergeMetricConfigs(defaultConfig: MetricConfig, customConfig: MetricConfig): MetricConfig {
+	let mergedByName = new Map<string, MetricDefinition>()
+
+	// Start with defaults
+	for (let metric of defaultConfig.metrics || []) {
+		mergedByName.set(metric.name, metric)
+	}
+
+	// Overlay custom, merging fields so custom can override only what it needs (e.g. `round`)
+	for (let metric of customConfig.metrics || []) {
+		let base = mergedByName.get(metric.name)
+		mergedByName.set(metric.name, base ? { ...base, ...metric } : metric)
+	}
+
+	// Preserve order: custom metrics first, then remaining defaults
+	let metrics: MetricDefinition[] = []
+	let seen = new Set<string>()
+
+	for (let metric of customConfig.metrics || []) {
+		let merged = mergedByName.get(metric.name)
+		if (!merged) continue
+		metrics.push(merged)
+		seen.add(metric.name)
+	}
+
+	for (let metric of defaultConfig.metrics || []) {
+		if (seen.has(metric.name)) continue
+		metrics.push(metric)
+	}
+
 	// prettier-ignore
 	return {
 		default: {
 			step: customConfig.default?.step ?? defaultConfig.default.step,
 			timeout: customConfig.default?.timeout ?? defaultConfig.default.timeout,
 		},
-		metrics: [...(customConfig.metrics || []), ...(defaultConfig.metrics || [])],
+		metrics,
 	}
 }
 
@@ -180,39 +211,81 @@ export type AggregateFunction =
 /**
  * Aggregate range metric values using specified function
  */
-export function aggregateValues(values: [number, string][], fn: AggregateFunction): number {
+function decimalsFromStep(step: number): number {
+	let s = String(step)
+
+	// Handle scientific notation like 1e-6
+	let exp = s.match(/e-(\d+)$/i)
+	if (exp) return parseInt(exp[1]!, 10)
+
+	let dot = s.indexOf('.')
+	if (dot === -1) return 0
+
+	return s.length - dot - 1
+}
+
+function roundNumberToStep(value: number, step: number): number {
+	if (!Number.isFinite(value)) return value
+	if (!Number.isFinite(step) || step <= 0) return value
+
+	// Round to nearest step, then normalize representation to avoid binary float tails.
+	let rounded = Math.round(value / step) * step
+	let decimals = decimalsFromStep(step)
+
+	if (decimals > 0) {
+		rounded = parseFloat(rounded.toFixed(decimals))
+	}
+
+	return Object.is(rounded, -0) ? 0 : rounded
+}
+
+export function aggregateValues(values: [number, string][], fn: AggregateFunction, roundStep?: number): number {
 	if (values.length === 0) return NaN
 
 	let nums = values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
 
 	if (nums.length === 0) return NaN
 
+	let result: number
 	switch (fn) {
 		case 'last':
-			return nums[nums.length - 1]
+			result = nums[nums.length - 1]
+			break
 		case 'first':
-			return nums[0]
+			result = nums[0]
+			break
 		case 'avg':
-			return nums.reduce((a, b) => a + b, 0) / nums.length
+			result = nums.reduce((a, b) => a + b, 0) / nums.length
+			break
 		case 'min':
-			return Math.min(...nums)
+			result = Math.min(...nums)
+			break
 		case 'max':
-			return Math.max(...nums)
+			result = Math.max(...nums)
+			break
 		case 'p50':
-			return percentile(nums, 0.5)
+			result = percentile(nums, 0.5)
+			break
 		case 'p90':
-			return percentile(nums, 0.9)
+			result = percentile(nums, 0.9)
+			break
 		case 'p95':
-			return percentile(nums, 0.95)
+			result = percentile(nums, 0.95)
+			break
 		case 'p99':
-			return percentile(nums, 0.99)
+			result = percentile(nums, 0.99)
+			break
 		case 'sum':
-			return nums.reduce((a, b) => a + b, 0)
+			result = nums.reduce((a, b) => a + b, 0)
+			break
 		case 'count':
-			return nums.length
+			result = nums.length
+			break
 		default:
 			return NaN
 	}
+
+	return roundStep !== undefined ? roundNumberToStep(result, roundStep) : result
 }
 
 /**
@@ -224,10 +297,11 @@ export function getMetricValue(metric: CollectedMetric, ref: string, aggregate: 
 	if (!series) return NaN
 
 	if (metric.type === 'instant') {
-		return parseFloat((series as InstantSeries).value[1])
+		let v = parseFloat((series as InstantSeries).value[1])
+		return metric.round !== undefined ? roundNumberToStep(v, metric.round) : v
 	}
 
-	return aggregateValues((series as RangeSeries).values, aggregate)
+	return aggregateValues((series as RangeSeries).values, aggregate, metric.round)
 }
 
 /**

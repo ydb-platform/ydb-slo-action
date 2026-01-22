@@ -2,7 +2,7 @@ import {
   compareWorkloadMetrics,
   formatChange,
   formatValue
-} from "../main-8xcrq42h.js";
+} from "../main-na54qh2e.js";
 import {
   __toESM,
   require_artifact,

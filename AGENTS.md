@@ -129,10 +129,13 @@ State passed via `saveState()`/`getState()`: cwd, workload name, PR number, star
 
 ### Metrics Collection
 
-1. Define metrics in YAML: name, PromQL query, step
-2. Parse YAML at runtime
-3. Query Prometheus API
-4. Serialize as JSONL (not JSON array)
+1. Define metrics in YAML: `name`, PromQL `query`, optional `type`, optional `step`
+2. (Optional) Control numeric precision in reports with `round` (number step), e.g. `round: 0.01` to round to 2 decimal places.
+    - Rounding is applied consistently to instant values and aggregated range values during analysis/report rendering.
+    - This avoids floating-point noise in charts/tables without adding name-based heuristics in code.
+3. Parse YAML at runtime
+4. Query Prometheus API
+5. Serialize as JSONL (not JSON array)
 
 ### Report Generation
 

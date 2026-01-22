@@ -9,7 +9,7 @@ import {
   formatChange,
   formatValue,
   loadMetricConfig
-} from "../main-8xcrq42h.js";
+} from "../main-na54qh2e.js";
 import {
   __toESM,
   require_core,
@@ -67,6 +67,7 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
             type: "instant",
             name: metric.name,
             query: metric.query,
+            round: metric.round,
             data: response.data.result
           });
       } else {
@@ -83,6 +84,7 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
             type: "range",
             name: metric.name,
             query: metric.query,
+            round: metric.round,
             data: response.data.result
           });
       }

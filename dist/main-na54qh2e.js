@@ -27,12 +27,31 @@ async function parseMetricsYaml(yamlContent) {
   }
 }
 function mergeMetricConfigs(defaultConfig, customConfig) {
+  let mergedByName = /* @__PURE__ */ new Map;
+  for (let metric of defaultConfig.metrics || [])
+    mergedByName.set(metric.name, metric);
+  for (let metric of customConfig.metrics || []) {
+    let base = mergedByName.get(metric.name);
+    mergedByName.set(metric.name, base ? { ...base, ...metric } : metric);
+  }
+  let metrics = [], seen = /* @__PURE__ */ new Set;
+  for (let metric of customConfig.metrics || []) {
+    let merged = mergedByName.get(metric.name);
+    if (!merged)
+      continue;
+    metrics.push(merged), seen.add(metric.name);
+  }
+  for (let metric of defaultConfig.metrics || []) {
+    if (seen.has(metric.name))
+      continue;
+    metrics.push(metric);
+  }
   return {
     default: {
       step: customConfig.default?.step ?? defaultConfig.default.step,
       timeout: customConfig.default?.timeout ?? defaultConfig.default.timeout
     },
-    metrics: [...customConfig.metrics || [], ...defaultConfig.metrics || []]
+    metrics
   };
 }
 async function loadDefaultMetricConfig() {
@@ -71,46 +90,80 @@ function percentile(values, p) {
   let sorted = [...values].sort((a, b) => a - b), index = Math.ceil(sorted.length * p) - 1;
   return sorted[Math.max(0, index)];
 }
-function aggregateValues(values, fn) {
+function decimalsFromStep(step) {
+  let s = String(step), exp = s.match(/e-(\d+)$/i);
+  if (exp)
+    return parseInt(exp[1], 10);
+  let dot = s.indexOf(".");
+  if (dot === -1)
+    return 0;
+  return s.length - dot - 1;
+}
+function roundNumberToStep(value, step) {
+  if (!Number.isFinite(value))
+    return value;
+  if (!Number.isFinite(step) || step <= 0)
+    return value;
+  let rounded = Math.round(value / step) * step, decimals = decimalsFromStep(step);
+  if (decimals > 0)
+    rounded = parseFloat(rounded.toFixed(decimals));
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+function aggregateValues(values, fn, roundStep) {
   if (values.length === 0)
     return NaN;
   let nums = values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n));
   if (nums.length === 0)
     return NaN;
+  let result;
   switch (fn) {
     case "last":
-      return nums[nums.length - 1];
+      result = nums[nums.length - 1];
+      break;
     case "first":
-      return nums[0];
+      result = nums[0];
+      break;
     case "avg":
-      return nums.reduce((a, b) => a + b, 0) / nums.length;
+      result = nums.reduce((a, b) => a + b, 0) / nums.length;
+      break;
     case "min":
-      return Math.min(...nums);
+      result = Math.min(...nums);
+      break;
     case "max":
-      return Math.max(...nums);
+      result = Math.max(...nums);
+      break;
     case "p50":
-      return percentile(nums, 0.5);
+      result = percentile(nums, 0.5);
+      break;
     case "p90":
-      return percentile(nums, 0.9);
+      result = percentile(nums, 0.9);
+      break;
     case "p95":
-      return percentile(nums, 0.95);
+      result = percentile(nums, 0.95);
+      break;
     case "p99":
-      return percentile(nums, 0.99);
+      result = percentile(nums, 0.99);
+      break;
     case "sum":
-      return nums.reduce((a, b) => a + b, 0);
+      result = nums.reduce((a, b) => a + b, 0);
+      break;
     case "count":
-      return nums.length;
+      result = nums.length;
+      break;
     default:
       return NaN;
   }
+  return roundStep !== void 0 ? roundNumberToStep(result, roundStep) : result;
 }
 function getMetricValue(metric, ref, aggregate = "avg") {
   let series = metric.data.find((s) => s.metric.ref === ref) || null;
   if (!series)
     return NaN;
-  if (metric.type === "instant")
-    return parseFloat(series.value[1]);
-  return aggregateValues(series.values, aggregate);
+  if (metric.type === "instant") {
+    let v = parseFloat(series.value[1]);
+    return metric.round !== void 0 ? roundNumberToStep(v, metric.round) : v;
+  }
+  return aggregateValues(series.values, aggregate, metric.round);
 }
 
 // shared/analysis.ts
