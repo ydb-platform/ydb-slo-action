@@ -22,17 +22,17 @@ node_num=1
 for node in $nodes; do
     echo ""
     echo "Restarting node ${node_num}/${node_count}: ${node}"
-    event_start "restart-${node}"
+    chaos_inject "rolling-restart" "${node}"
     docker restart "${node}" -t 10
 
     # Wait for node to become healthy before proceeding to next
     echo "Waiting for ${node} to become healthy..."
     if wait_container_healthy "${node}"; then
         echo "${node} is healthy"
-        event_end "restart-${node}" "${node} unavailable"
+        chaos_recover "rolling-restart" "${nodeForChaos}" "Node restarted"
     else
         echo "WARNING: ${node} did not become healthy within 60s"
-        event_end "restart-${node}" "${node} unavailable (timeout)"
+        chaos_recover "rolling-restart" "${nodeForChaos}" "Node restarted (timeout)"
     fi
 
     node_num=$((node_num + 1))

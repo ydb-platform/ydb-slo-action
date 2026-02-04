@@ -10,7 +10,7 @@ nodeForChaos=$(get_random_database_node)
 echo "Selected node: ${nodeForChaos}"
 
 echo "Pausing (freezing all processes)..."
-event_start "pause-${nodeForChaos}"
+chaos_inject "pause-unpause" "${nodeForChaos}"
 docker pause "${nodeForChaos}"
 
 echo "Container paused for 30 seconds..."
@@ -21,6 +21,6 @@ docker unpause "${nodeForChaos}"
 
 echo "Waiting for node to become healthy..."
 wait_container_healthy "${nodeForChaos}" || echo "WARNING: Node did not become healthy within timeout"
-event_end "pause-${nodeForChaos}" "${nodeForChaos} unavailable"
+chaos_recover "pause-unpause" "${nodeForChaos}" "Node resumed"
 
 echo "Pause/unpause scenario completed"

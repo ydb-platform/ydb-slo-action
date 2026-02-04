@@ -1,122 +1,58 @@
 #!/bin/sh
 # Chaos Monkey helper library
+# Depends on: libotel.sh
 
-# Events log file location (can be overridden via env)
-CHAOS_EVENTS_FILE="${CHAOS_EVENTS_FILE:-/tmp/chaos-events.jsonl}"
+# Source OTLP integration library
+. /opt/ydb.tech/scripts/chaos/libotel.sh
 
-# Timers storage (simulated associative array with | separator)
-EVENT_TIMERS=""
-
-# Save script name when library is sourced (POSIX sh compatible)
-# When library is sourced via '.', $0 points to the calling script
-CHAOS_SCRIPT_NAME="${CHAOS_SCRIPT_NAME:-$(basename "${0:-unknown}")}"
+# Script name for event attribution
+SCRIPT_NAME="${CHAOS_SCRIPT_NAME:-$(basename "${0:-unknown}")}"
 
 # Logging with timestamp
 log() {
     echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*"
 }
 
-# Start measuring event duration (like console.time)
-# Usage: event_start "label"
-event_start() {
-    label="${1:-unknown}"
-    # Get milliseconds timestamp (POSIX compatible: seconds * 1000)
-    epoch_ms=$(($(date +%s) * 1000))
+# Start a chaos fault injection
+# Usage: chaos_inject "fault_name" "node"
+chaos_inject() {
+    fault_name="${1:-unknown}"
+    node="${2:-}"
 
-    # Store timer: "label|timestamp|"
-    EVENT_TIMERS="${EVENT_TIMERS}${label}|${epoch_ms}|"
+    log "Injecting fault: $fault_name on $node"
+
+    # Send metrics to OTLP
+    if otel_cli_available && otel_is_configured; then
+        event_type="${SCRIPT_NAME:-chaos}"
+
+        # Gauge: mark fault as active (1)
+        # This allows building region annotations via Alertmanager or State Timeline
+        otel_send_gauge "chaos_active" 1 \
+            "event_type=${event_type}" \
+            "fault=${fault_name}" \
+            "node=${node}"
+    fi
 }
 
-# End measuring event duration and emit event (like console.timeEnd)
-# Usage: event_end "label" "description"
-event_end() {
-    label="${1:-unknown}"
-    description="${2:-unknown}"
+# Recover from a chaos fault injection
+# Usage: chaos_recover "fault_name" "node" "description"
+chaos_recover() {
+    fault_name="${1:-unknown}"
+    node="${2:-}"
+    description="${3:-unknown}"
 
-    # Get script name (POSIX sh compatible)
-    script_name="${CHAOS_SCRIPT_NAME:-unknown}"
+    log "Recovered: $fault_name ($description)"
 
-    # Get current time for duration calculation
-    end_epoch_ms=$(($(date +%s) * 1000))
+    # Send metrics to OTLP
+    if otel_cli_available && otel_is_configured; then
+        event_type="${SCRIPT_NAME:-chaos}"
 
-    # Find start time for this label
-    # EVENT_TIMERS format: "label1|timestamp1|label2|timestamp2|..."
-    # Extract the timestamp that follows our label
-    start_time=""
-    case "$EVENT_TIMERS" in
-        *"${label}|"*)
-            # Extract everything after "label|"
-            temp="${EVENT_TIMERS#*${label}|}"
-            # Extract the timestamp (everything before next |)
-            start_time="${temp%%|*}"
-            ;;
-    esac
-
-    # Calculate duration
-    duration_ms=""
-    if [ -n "$start_time" ] && [ "$start_time" -gt 0 ] 2>/dev/null; then
-        duration_ms=$((end_epoch_ms - start_time))
-        # Ensure duration is positive (sanity check)
-        if [ "$duration_ms" -lt 0 ]; then
-            duration_ms=""
-        fi
+        # Gauge: mark fault as inactive (0)
+        otel_send_gauge "chaos_active" 0 \
+            "event_type=${event_type}" \
+            "fault=${fault_name}" \
+            "node=${node}"
     fi
-
-    if [ -n "$start_time" ]; then
-        epoch_ms=$start_time
-        # Convert milliseconds to seconds for date command
-        start_seconds=$((start_time / 1000))
-        # Try different date formats for compatibility (Alpine/BusyBox, GNU, BSD)
-        timestamp=$(date -u -d "@${start_seconds}" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || \
-                    date -u -r ${start_seconds} +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || \
-                    date -u +"%Y-%m-%dT%H:%M:%SZ")
-    else
-        # Fallback to current time if no start_time found
-        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        epoch_ms=$end_epoch_ms
-    fi
-
-    # Remove used timer from EVENT_TIMERS to avoid reuse
-    if [ -n "$start_time" ]; then
-        EVENT_TIMERS=$(echo "$EVENT_TIMERS" | sed "s/${label}|${start_time}|//g")
-    fi
-
-    # Escape JSON strings
-    script_escaped=$(echo "$script_name" | sed 's/"/\\"/g')
-    description_escaped=$(echo "$description" | sed 's/"/\\"/g')
-
-    # Build JSON event with duration
-    if [ -n "$duration_ms" ]; then
-        event="{\"timestamp\":\"$timestamp\",\"epoch_ms\":$epoch_ms,\"script\":\"$script_escaped\",\"description\":\"$description_escaped\",\"duration_ms\":$duration_ms}"
-    else
-        event="{\"timestamp\":\"$timestamp\",\"epoch_ms\":$epoch_ms,\"script\":\"$script_escaped\",\"description\":\"$description_escaped\"}"
-    fi
-
-    # Write to events file
-    echo "$event" >> "$CHAOS_EVENTS_FILE"
-}
-
-# Emit an instant event (no duration)
-# Usage: emit_event "description"
-emit_event() {
-    description="${1:-unknown}"
-
-    # Get script name (POSIX sh compatible)
-    script_name="${CHAOS_SCRIPT_NAME:-unknown}"
-
-    # Get milliseconds timestamp (POSIX compatible: seconds * 1000)
-    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    epoch_ms=$(($(date +%s) * 1000))
-
-    # Escape JSON strings
-    script_escaped=$(echo "$script_name" | sed 's/"/\\"/g')
-    description_escaped=$(echo "$description" | sed 's/"/\\"/g')
-
-    # Build JSON event
-    event="{\"timestamp\":\"$timestamp\",\"epoch_ms\":$epoch_ms,\"script\":\"$script_escaped\",\"description\":\"$description_escaped\"}"
-
-    # Write to events file
-    echo "$event" >> "$CHAOS_EVENTS_FILE"
 }
 
 # Wait for container to become healthy

@@ -20,10 +20,10 @@ docker stop "${nodeForChaos}"
 # Create a "black hole" container on the same IP
 # This container accepts TCP connections but doesn't respond (like /dev/null)
 echo "Creating blackhole container on IP ${old_ip}..."
-event_start "blackhole-${nodeForChaos}"
+chaos_inject "ip-blackhole" "${nodeForChaos}"
 docker run -d --rm \
   --name ydb-blackhole-temp \
-  --network ydb_ydb-net \
+  --network ydb_slo \
   --ip "${old_ip}" \
   alpine/socat \
   tcp-listen:2135,fork,reuseaddr exec:'/bin/cat'
@@ -40,6 +40,6 @@ docker start "${nodeForChaos}"
 
 echo "Waiting for node to become healthy..."
 wait_container_healthy "${nodeForChaos}" || echo "WARNING: Node did not become healthy within timeout"
-event_end "blackhole-${nodeForChaos}" "${nodeForChaos} unavailable"
+chaos_recover "ip-blackhole" "${nodeForChaos}" "Node restarted"
 
 echo "IP blackhole scenario completed"
