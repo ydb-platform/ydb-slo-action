@@ -215,6 +215,54 @@
 				flex-shrink: 0;
 			}
 
+			/* Values tooltip on hover */
+			.values-tooltip {
+				position: fixed;
+				background: var(--bg-panel);
+				border: 1px solid var(--border);
+				border-radius: 4px;
+				padding: 8px 12px;
+				font-size: 12px;
+				pointer-events: none;
+				z-index: 1001;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+				min-width: 140px;
+			}
+
+			.values-tooltip-time {
+				color: var(--text-secondary);
+				font-family: 'Monaco', 'Courier New', monospace;
+				font-size: 11px;
+				margin-bottom: 6px;
+				padding-bottom: 6px;
+				border-bottom: 1px solid var(--border);
+			}
+
+			.values-tooltip-row {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				margin-top: 4px;
+			}
+
+			.values-tooltip-color {
+				width: 10px;
+				height: 3px;
+				border-radius: 1px;
+				flex-shrink: 0;
+			}
+
+			.values-tooltip-label {
+				color: var(--text-secondary);
+				flex: 1;
+			}
+
+			.values-tooltip-value {
+				color: var(--text-primary);
+				font-weight: 500;
+				font-family: 'Monaco', 'Courier New', monospace;
+			}
+
 			.alert-name {
 				flex: 1;
 				color: var(--text-primary);
@@ -491,6 +539,77 @@
 					})
 				}
 
+				// Values tooltip plugin
+				function valuesTooltipPlugin(currentRef, baselineRef, hasBaseline) {
+					let tooltip = null
+
+					return {
+						hooks: {
+							ready: (u) => {
+								tooltip = document.createElement('div')
+								tooltip.className = 'values-tooltip'
+								tooltip.style.display = 'none'
+								document.body.appendChild(tooltip)
+							},
+							setCursor: (u) => {
+								const { idx } = u.cursor
+								if (idx == null || idx < 0) {
+									if (tooltip) tooltip.style.display = 'none'
+									return
+								}
+
+								const ts = u.data[0][idx]
+								const currentVal = u.data[1][idx]
+								const baselineVal = hasBaseline ? u.data[2]?.[idx] : null
+
+								if (currentVal == null) {
+									if (tooltip) tooltip.style.display = 'none'
+									return
+								}
+
+								const d = new Date(ts * 1000)
+								const hh = String(d.getHours()).padStart(2, '0')
+								const mm = String(d.getMinutes()).padStart(2, '0')
+								const ss = String(d.getSeconds()).padStart(2, '0')
+								const timeStr = `${hh}:${mm}:${ss}`
+
+								let html = `<div class="values-tooltip-time">${timeStr}</div>`
+								html += `
+									<div class="values-tooltip-row">
+										<div class="values-tooltip-color" style="background: var(--current)"></div>
+										<div class="values-tooltip-label">${shortRef(currentRef) || 'current'}</div>
+										<div class="values-tooltip-value">${currentVal.toFixed(2)}</div>
+									</div>
+								`
+
+								if (hasBaseline && baselineVal != null) {
+									html += `
+										<div class="values-tooltip-row">
+											<div class="values-tooltip-color" style="background: var(--baseline)"></div>
+											<div class="values-tooltip-label">${shortRef(baselineRef) || 'baseline'}</div>
+											<div class="values-tooltip-value">${baselineVal.toFixed(2)}</div>
+										</div>
+									`
+								}
+
+								tooltip.innerHTML = html
+								tooltip.style.display = 'block'
+
+								// Position near cursor
+								const left = u.cursor.left + u.root.getBoundingClientRect().left
+								const top = u.cursor.top + u.root.getBoundingClientRect().top
+								tooltip.style.left = left + 16 + 'px'
+								tooltip.style.top = top - 10 + 'px'
+							},
+							destroy: (u) => {
+								if (tooltip && tooltip.parentNode) {
+									tooltip.parentNode.removeChild(tooltip)
+								}
+							},
+						},
+					}
+				}
+
 				// Alert annotations plugin (Grafana-style)
 				function alertsPlugin(metricAlerts, panelEl) {
 					let tooltip = null
@@ -645,8 +764,19 @@
 							x: false,
 							y: false,
 						},
+						points: {
+							size: 6,
+							fill: (u, i) => (i === 1 ? 'rgba(51, 181, 229, 1)' : 'rgba(184, 184, 184, 0.8)'),
+						},
 					},
-					plugins: [alertsPlugin(metricAlerts, panel)],
+					plugins: [
+						alertsPlugin(metricAlerts, panel),
+						valuesTooltipPlugin(
+							data.meta.workload_current_ref,
+							data.meta.workload_baseline_ref,
+							!!baselineValues
+						),
+					],
 				}
 
 				const plot = new uPlot(opts, plotData, document.getElementById(`chart-${metricIndex}`))
