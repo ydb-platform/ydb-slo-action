@@ -222,3 +222,67 @@ services:
         condition: service_completed_successfully
     profiles:
       - chaos
+
+  workload-current:
+    <<: *runtime
+    image: ${WORKLOAD_CURRENT_IMAGE:-ydb-workload-current}
+    container_name: ydb-workload-current
+    restart: no
+    command: ${WORKLOAD_CURRENT_COMMAND:-}
+    extra_hosts:
+      - "ydb:172.28.0.11"
+      - "ydb:172.28.0.12"
+      - "ydb:172.28.0.13"
+      - "ydb:172.28.0.14"
+      - "ydb:172.28.0.15"
+      - "ydb:172.28.0.99"
+    environment:
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_DATABASE=/Root/testdb
+      - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
+      - WORKLOAD_NAME=current
+      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-0}
+      - PROMETHEUS_URL=http://ydb-prometheus:9090
+      - PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query
+      - PROMETHEUS_REMOTE_WRITE_URL=http://ydb-prometheus:9090/api/v1/write
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp
+    depends_on:
+      database-readiness:
+        condition: service_completed_successfully
+    profiles:
+      - workloads
+      - workload-current
+    labels:
+      - ydb.node.type=workload
+
+  workload-baseline:
+    <<: *runtime
+    image: ${WORKLOAD_BASELINE_IMAGE:-ydb-workload-baseline}
+    container_name: ydb-workload-baseline
+    restart: no
+    command: ${WORKLOAD_BASELINE_COMMAND:-}
+    extra_hosts:
+      - "ydb:172.28.0.11"
+      - "ydb:172.28.0.12"
+      - "ydb:172.28.0.13"
+      - "ydb:172.28.0.14"
+      - "ydb:172.28.0.15"
+      - "ydb:172.28.0.99"
+    environment:
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_DATABASE=/Root/testdb
+      - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
+      - WORKLOAD_NAME=baseline
+      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-0}
+      - PROMETHEUS_URL=http://ydb-prometheus:9090
+      - PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query
+      - PROMETHEUS_REMOTE_WRITE_URL=http://ydb-prometheus:9090/api/v1/write
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp
+    depends_on:
+      database-readiness:
+        condition: service_completed_successfully
+    profiles:
+      - workloads
+      - workload-baseline
+    labels:
+      - ydb.node.type=workload
