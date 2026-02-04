@@ -7,14 +7,25 @@ default:
   neutral_change_percent: 5.0 # Neutral change threshold
 
 metrics:
-  # 95th percentile read operations latency in milliseconds
-  - name: read_latency_ms
-    query: 1000 * histogram_quantile(0.95, sum by(ref, le) (rate(sdk_operation_latency_seconds_bucket{operation_type="read"}[10s])))
-  # step: '500ms'  # Uncomment for very high-resolution data
+  # Read operations latency percentiles (milliseconds)
+  - name: read_latency_p50_ms
+    query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="read"})
 
-  # 95th percentile write operations latency in milliseconds
-  - name: write_latency_ms
-    query: 1000 * histogram_quantile(0.95, sum by(ref, le) (rate(sdk_operation_latency_seconds_bucket{operation_type="write"}[10s])))
+  - name: read_latency_p95_ms
+    query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="read"})
+
+  - name: read_latency_p99_ms
+    query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="read"})
+
+  # Write operations latency percentiles (milliseconds)
+  - name: write_latency_p50_ms
+    query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="write"})
+
+  - name: write_latency_p95_ms
+    query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="write"})
+
+  - name: write_latency_p99_ms
+    query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="write"})
 
   # Read operations throughput
   - name: read_throughput

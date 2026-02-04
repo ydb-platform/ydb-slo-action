@@ -221,7 +221,7 @@ services:
       - --web.enable-remote-write-receiver
       - --web.enable-otlp-receiver
     volumes:
-      - ./rules.yml:/etc/prometheus/rules.yml
+      - ./alertrules.yml:/etc/prometheus/alertrules.yml
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090"
@@ -267,8 +267,9 @@ services:
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_DATABASE=/Root/testdb
       - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
-      - WORKLOAD_NAME=current
-      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-0}
+      - WORKLOAD_REF=${WORKLOAD_CURRENT_REF:-current}
+      - WORKLOAD_NAME=${WORKLOAD_NAME:-kv}
+      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-60}
       - PROMETHEUS_URL=http://ydb-prometheus:9090
       - PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query
       - PROMETHEUS_REMOTE_WRITE_URL=http://ydb-prometheus:9090/api/v1/write
@@ -299,8 +300,9 @@ services:
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_DATABASE=/Root/testdb
       - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
-      - WORKLOAD_NAME=baseline
-      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-0}
+      - WORKLOAD_REF=${WORKLOAD_BASELINE_REF:-baseline}
+      - WORKLOAD_NAME=${WORKLOAD_NAME:-kv}
+      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-60}
       - PROMETHEUS_URL=http://ydb-prometheus:9090
       - PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query
       - PROMETHEUS_REMOTE_WRITE_URL=http://ydb-prometheus:9090/api/v1/write
