@@ -181,6 +181,32 @@
 				background: rgba(255, 255, 255, 0.06);
 			}
 
+			/* Tooltip for chart annotations */
+			.annotation-tooltip {
+				position: fixed;
+				background: var(--bg-panel);
+				border: 1px solid var(--border);
+				border-radius: 4px;
+				padding: 8px 12px;
+				font-size: 12px;
+				pointer-events: none;
+				z-index: 1000;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+				max-width: 280px;
+			}
+
+			.annotation-tooltip-title {
+				font-weight: 500;
+				color: var(--text-primary);
+				margin-bottom: 4px;
+			}
+
+			.annotation-tooltip-time {
+				color: var(--text-secondary);
+				font-family: 'Monaco', 'Courier New', monospace;
+				font-size: 11px;
+			}
+
 			.alert-marker {
 				width: 6px;
 				height: 6px;
@@ -465,15 +491,21 @@
 					})
 				}
 
-				// Alert annotations plugin
-				function alertsPlugin(metricAlerts) {
+				// Alert annotations plugin (Grafana-style)
+				function alertsPlugin(metricAlerts, panelEl) {
+					let tooltip = null
+					let alertRegions = [] // Store regions for hit detection
+
 					return {
 						hooks: {
-							drawClear: (u) => {
+							draw: (u) => {
 								if (metricAlerts.length === 0) return
 
 								const ctx = u.ctx
 								const { left, top, width, height } = u.bbox
+								const bottomBarHeight = 6
+
+								alertRegions = [] // Reset regions
 
 								metricAlerts.forEach((alert) => {
 									const x1 = u.valToPos(alert.epoch_ms / 1000, 'x', true)
@@ -483,14 +515,23 @@
 
 									const color = getAlertColor(alert.alertname, uniqueAlertNames)
 
-									// Semi-transparent region
-									ctx.fillStyle = color + '1a'
+									// Store region for hit detection
+									alertRegions.push({ x1, x2, top, height, alert, color })
+
+									// Light semi-transparent fill for the whole region
+									ctx.fillStyle = color + '15'
 									ctx.fillRect(x1, top, x2 - x1, height)
 
-									// Start line
+									// Bright bottom bar (Grafana-style)
+									ctx.fillStyle = color + '99'
+									ctx.fillRect(x1, top + height - bottomBarHeight, x2 - x1, bottomBarHeight)
+
+									// Solid vertical lines
 									ctx.strokeStyle = color
-									ctx.lineWidth = 2
-									ctx.setLineDash([3, 3])
+									ctx.lineWidth = 1
+									ctx.setLineDash([])
+
+									// Start line
 									ctx.beginPath()
 									ctx.moveTo(x1, top)
 									ctx.lineTo(x1, top + height)
@@ -501,9 +542,59 @@
 									ctx.moveTo(x2, top)
 									ctx.lineTo(x2, top + height)
 									ctx.stroke()
-
-									ctx.setLineDash([])
 								})
+							},
+							ready: (u) => {
+								const wrap = u.root.querySelector('.u-wrap')
+								if (!wrap) return
+
+								// Create tooltip element
+								tooltip = document.createElement('div')
+								tooltip.className = 'annotation-tooltip'
+								tooltip.style.display = 'none'
+								document.body.appendChild(tooltip)
+
+								wrap.addEventListener('mousemove', (e) => {
+									const rect = wrap.getBoundingClientRect()
+									const x = e.clientX - rect.left
+
+									// Find if cursor is over any alert region
+									let found = null
+									for (const region of alertRegions) {
+										if (x >= region.x1 && x <= region.x2) {
+											found = region
+											break
+										}
+									}
+
+									if (found) {
+										const alert = found.alert
+										const fault = alert.labels?.fault || alert.alertname
+										const node = alert.labels?.node || ''
+										const startTime = formatTime(alert.epoch_ms)
+										const endTime = formatTime(alert.epoch_ms + alert.duration_ms)
+										const duration = (alert.duration_ms / 1000).toFixed(1)
+
+										tooltip.innerHTML = `
+											<div class="annotation-tooltip-title" style="color: ${found.color}">${fault}${node ? ' on ' + node : ''}</div>
+											<div class="annotation-tooltip-time">${startTime} → ${endTime} (${duration}s)</div>
+										`
+										tooltip.style.display = 'block'
+										tooltip.style.left = e.clientX + 12 + 'px'
+										tooltip.style.top = e.clientY - 10 + 'px'
+									} else {
+										tooltip.style.display = 'none'
+									}
+								})
+
+								wrap.addEventListener('mouseleave', () => {
+									if (tooltip) tooltip.style.display = 'none'
+								})
+							},
+							destroy: (u) => {
+								if (tooltip && tooltip.parentNode) {
+									tooltip.parentNode.removeChild(tooltip)
+								}
 							},
 						},
 					}
@@ -526,7 +617,15 @@
 							font: '11px Inter, sans-serif',
 							labelFont: '11px Inter, sans-serif',
 							labelSize: 20,
-							space: 60,
+							space: 50,
+							values: (u, vals) =>
+								vals.map((v) => {
+									const d = new Date(v * 1000)
+									const hh = String(d.getHours()).padStart(2, '0')
+									const mm = String(d.getMinutes()).padStart(2, '0')
+									const ss = String(d.getSeconds()).padStart(2, '0')
+									return `${hh}:${mm}:${ss}`
+								}),
 						},
 						{
 							stroke: '#71717a',
@@ -547,7 +646,7 @@
 							y: false,
 						},
 					},
-					plugins: [alertsPlugin(metricAlerts)],
+					plugins: [alertsPlugin(metricAlerts, panel)],
 				}
 
 				const plot = new uPlot(opts, plotData, document.getElementById(`chart-${metricIndex}`))
