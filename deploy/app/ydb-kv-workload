@@ -1,0 +1,139 @@
+#!/bin/bash
+set -e
+
+# YDB connection parameters from environment or defaults
+ENDPOINT="${YDB_ENDPOINT:-grpc://ydb:2136}"
+DATABASE="${YDB_DATABASE:-/Root/testdb}"
+
+# Workload parameters
+DURATION="${WORKLOAD_DURATION:-10}"
+THREADS="${WORKLOAD_THREADS:-10}"
+RATE="${WORKLOAD_RATE:-1000}"
+
+# OTLP parameters
+export OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://ydb-prometheus:9090/api/v1/otlp/v1/metrics}"
+export OTEL_SERVICE_NAME="${OTEL_SERVICE_NAME:-ydb-kv-workload}"
+WORKLOAD_NAME="${WORKLOAD_NAME:-current}"
+
+# Cleanup function
+cleanup() {
+	echo "Cleaning up KV workload tables..."
+	ydb --endpoint "$ENDPOINT" --database "$DATABASE" workload kv clean || true
+
+	# Kill background jobs
+	jobs -p | xargs -r kill 2>/dev/null || true
+}
+
+# Register cleanup on exit
+trap cleanup EXIT
+
+# Function to push metric via OTLP
+push_metric() {
+	local type=$1
+	local name=$2
+	local value=$3
+	local operation_type=$4
+	shift 4
+
+	if ! command -v python3 >/dev/null 2>&1 || [ -z "$value" ]; then
+		return
+	fi
+
+	python3 /usr/local/bin/otel_metric.py "$type" "$name" "$value" "ref=$WORKLOAD_NAME" "operation_type=$operation_type" "$@" 2>/dev/null || true
+}
+
+# Function to process workload output
+process_workload() {
+	local operation_type=$1
+
+	while read -r line; do
+		# Print the line with prefix
+		echo "[$operation_type] $line"
+
+		# Skip header line
+		if [[ "$line" =~ ^Window ]]; then
+			continue
+		fi
+
+		# Skip header line
+		if [[ "$line" =~ ^Total ]]; then
+			continue
+		fi
+
+		# Parse tab-separated values
+		IFS=$'\t' read -r window txs txs_sec retries errors p50 p95 p99 pmax timestamp rest <<< "$line"
+
+		# Skip if essential values are missing
+		if [ -z "$txs" ] || [ -z "$errors" ]; then
+			continue
+		fi
+
+		# Push counter metrics
+		push_metric "counter" "sdk_operations_total" "$txs" "$operation_type"
+		push_metric "counter" "sdk_retry_attempts_total" "$retries" "$operation_type"
+		push_metric "counter" "sdk_operations_success_total" "$((txs - errors))" "$operation_type"
+
+		# Push gauge metrics for latencies (in seconds)
+		if [ -n "$p50" ]; then
+			push_metric "gauge" "sdk_operation_latency_p50_seconds" "$(echo "scale=6; $p50 / 1000" | bc)" "$operation_type"
+		fi
+		if [ -n "$p95" ]; then
+			push_metric "gauge" "sdk_operation_latency_p95_seconds" "$(echo "scale=6; $p95 / 1000" | bc)" "$operation_type"
+		fi
+		if [ -n "$p99" ]; then
+			push_metric "gauge" "sdk_operation_latency_p99_seconds" "$(echo "scale=6; $p99 / 1000" | bc)" "$operation_type"
+		fi
+
+		# Small delay to ensure timestamp ordering
+		sleep 0.05
+	done
+}
+
+echo "Initializing KV workload tables..."
+ydb --endpoint "$ENDPOINT" --database "$DATABASE" workload kv init
+
+echo "Starting parallel workloads (duration=${DURATION}s, threads=${THREADS}, rate=${RATE})..."
+
+# Start write workload (upsert) in background
+echo "Starting write workload (upsert)..."
+(
+	ydb --endpoint "$ENDPOINT" --database "$DATABASE" workload kv run upsert \
+		--seconds "$DURATION" \
+		--threads "$THREADS" \
+		--rate "$RATE" \
+		--print-timestamp \
+		"$@" | process_workload "write"
+) &
+
+WRITE_PID=$!
+
+# Start read workload (select) in background
+echo "Starting read workload (select)..."
+(
+	ydb --endpoint "$ENDPOINT" --database "$DATABASE" workload kv run select \
+		--seconds "$DURATION" \
+		--threads "$THREADS" \
+		--rate "$RATE" \
+		--print-timestamp \
+		"$@" | process_workload "read"
+) &
+
+READ_PID=$!
+
+# Wait for both workloads to complete
+echo "Waiting for workloads to complete..."
+wait $WRITE_PID
+WRITE_EXIT=$?
+wait $READ_PID
+READ_EXIT=$?
+
+echo ""
+echo "Write workload exit code: $WRITE_EXIT"
+echo "Read workload exit code: $READ_EXIT"
+
+if [ $WRITE_EXIT -ne 0 ] || [ $READ_EXIT -ne 0 ]; then
+	echo "ERROR: One or more workloads failed"
+	exit 1
+fi
+
+echo "SUCCESS: All workloads completed successfully"
