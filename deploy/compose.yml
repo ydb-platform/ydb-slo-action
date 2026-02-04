@@ -33,6 +33,8 @@ services:
     networks:
       ydb-net:
         ipv4_address: 172.28.0.10
+    ports:
+      - "8765"
     labels:
       - ydb.node.type=storage
 
@@ -201,6 +203,8 @@ services:
     volumes:
       - ./rules.yml:/etc/prometheus/rules.yml
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090"
     profiles:
       - telemetry
 
