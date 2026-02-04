@@ -26,6 +26,19 @@ networks:
         - subnet: 172.28.0.0/16
 
 services:
+  blackhole:
+    image: alpine/socat
+    container_name: ydb-blackhole
+    restart: unless-stopped
+    networks:
+      slo:
+        ipv4_address: 172.28.0.99
+    command: tcp-listen:2136,fork,reuseaddr exec:'/bin/cat'
+    profiles:
+      - chaos
+    labels:
+      - ydb.node.type=blackhole
+
   storage-1:
     <<: *ydb-node
     hostname: ydb-storage-1
@@ -179,18 +192,24 @@ services:
       database-init:
         condition: service_completed_successfully
 
-  blackhole:
-    image: alpine/socat
-    container_name: ydb-blackhole
+  grafana:
+    image: grafana/grafana:latest
+    <<: *runtime
+    container_name: ydb-grafana
     restart: unless-stopped
-    networks:
-      ydb-net:
-        ipv4_address: 172.28.0.99
-    command: tcp-listen:2136,fork,reuseaddr exec:'/bin/cat'
+    ports:
+      - "3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      prometheus:
+        condition: service_started
     profiles:
-      - chaos
-    labels:
-      - ydb.node.type=blackhole
+      - telemetry
 
   prometheus:
     image: prom/prometheus:latest
