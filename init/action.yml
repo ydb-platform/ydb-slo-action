@@ -2,40 +2,67 @@ name: "Setup & Run YDB"
 description: "Sets up YDB test environment with monitoring. Collects and uploads metrics during cleanup."
 
 inputs:
-  github_issue:
-    description: "The number of the associated pull request. If not provided, the action will attempt to infer it automatically."
-    required: false
+  # GitHub
   github_token:
-    description: "GitHub token used to access the GitHub API for inferring the pull request number."
+    description: "GitHub token for API access."
     required: false
+  github_issue:
+    description: "Pull request number. Auto-detected if not provided."
+    required: false
+
+  # Workload: general
   workload_name:
-    description: "The name of the workload used by the user to generate load on the YDB database."
+    description: "Name of the workload (used for artifact naming)."
     required: true
+  workload_duration:
+    description: "Duration of the workload in seconds."
+    required: false
+    default: "60"
+
+  # Workload: current
   workload_current_ref:
-    description: "The current ref/branch name being tested (e.g., PR branch name). This will be used to identify current metrics."
+    description: "Git ref for current version (used as 'ref' label in metrics)."
+    required: false
+    default: "current"
+  workload_current_image:
+    description: "Docker image for current workload."
     required: true
+  workload_current_command:
+    description: "Command arguments for current workload."
+    required: false
+    default: ""
+
+  # Workload: baseline
   workload_baseline_ref:
-    description: "The baseline ref/branch name used for comparison (e.g., 'main', 'master'). This will be used to identify base metrics."
-    required: true
+    description: "Git ref for baseline version (used as 'ref' label in metrics)."
+    required: false
+    default: "baseline"
+  workload_baseline_image:
+    description: "Docker image for baseline workload. If not provided, baseline comparison is skipped."
+    required: false
+  workload_baseline_command:
+    description: "Command arguments for baseline workload."
+    required: false
+    default: ""
+
+  # Metrics
   metrics_yaml:
-    description: "Custom metrics configuration in YAML format (inline). Will be merged with default metrics."
+    description: "Custom metrics configuration (inline YAML)."
     required: false
   metrics_yaml_path:
-    description: "Path to a file containing custom metrics configuration in YAML format. Will be merged with default metrics."
+    description: "Path to custom metrics configuration file."
     required: false
+
+  # Infrastructure
   disable_compose_profiles:
-    description: "Comma-separated list of compose profiles to disable (e.g., 'chaos,telemetry'). By default, all profiles are enabled."
+    description: "Comma-separated list of compose profiles to disable (e.g., 'chaos,telemetry')."
     required: false
 
 outputs:
-  ydb-storage-ips:
-    description: "Comma-separated list of YDB storage node IP addresses."
-  ydb-database-ips:
-    description: "Comma-separated list of YDB databse node IP addresses."
   ydb-prometheus-url:
-    description: "The prometheus url if telemetry profile is not disabled."
+    description: "Prometheus URL (if telemetry profile is enabled)."
   ydb-prometheus-otlp:
-    description: "The prometheus otlp receiver url if telemetry profile is not disabled."
+    description: "Prometheus OTLP receiver URL (if telemetry profile is enabled)."
 
 runs:
   using: "node24"

@@ -7,7 +7,8 @@ import { exec } from '@actions/exec'
 
 import { compareWorkloadMetrics } from '../shared/analysis.js'
 import { loadMetricConfig, type CollectedMetric } from '../shared/metrics.js'
-import { collectComposeLogs, copyFromContainer, getContainerIp } from './lib/docker.js'
+import { collectAlertsFromPrometheus } from './lib/alerts.js'
+import { collectComposeLogs, getComposeProfiles, getContainerIp } from './lib/docker.js'
 import { uploadArtifacts } from './lib/github.js'
 import { collectMetricsFromPrometheus } from './lib/metrics.js'
 import { writeJobSummary } from './lib/summary.js'
@@ -19,15 +20,15 @@ async function post() {
 	let workload = getState('workload')
 
 	let logsPath = path.join(cwd, `${workload}-logs.txt`)
-	let eventsPath = path.join(cwd, `${workload}-events.jsonl`)
+	let alertsPath = path.join(cwd, `${workload}-alerts.jsonl`)
 	let metricsPath = path.join(cwd, `${workload}-metrics.jsonl`)
 	let metadataPath = path.join(cwd, `${workload}-metadata.json`)
 
 	let logsContent = await collectLogs()
 	await fs.writeFile(logsPath, logsContent, { encoding: 'utf-8' })
 
-	let eventsContent = await collectEvents()
-	await fs.writeFile(eventsPath, eventsContent, { encoding: 'utf-8' })
+	let alertsContent = await collectAlerts()
+	await fs.writeFile(alertsPath, alertsContent, { encoding: 'utf-8' })
 
 	let metricsContent = await collectMetrics()
 	await fs.writeFile(metricsPath, metricsContent, { encoding: 'utf-8' })
@@ -35,11 +36,16 @@ async function post() {
 	let metadataContent = await collectMetadata()
 	await fs.writeFile(metadataPath, metadataContent, { encoding: 'utf-8' })
 
+	let profiles = await getComposeProfiles(cwd)
 	await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], {
 		cwd: path.resolve(process.env['GITHUB_ACTION_PATH'], 'deploy'),
+		env: {
+			...process.env,
+			COMPOSE_PROFILES: profiles.join(','),
+		},
 	})
 
-	await uploadArtifacts(workload, [logsPath, eventsPath, metricsPath, metadataPath], cwd)
+	await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath], cwd)
 	await writeWorkloadSummary(metricsContent)
 }
 
@@ -51,22 +57,26 @@ async function collectLogs(): Promise<string> {
 	return content
 }
 
-async function collectEvents(): Promise<string> {
-	info('Collecting events...')
+async function collectAlerts(): Promise<string> {
+	info('Collecting alerts from Prometheus...')
 
-	let content = await copyFromContainer({
-		container: 'ydb-chaos-monkey',
-		sourcePath: '/var/log/chaos-events.jsonl',
-	})
+	let start = new Date(getState('start'))
+	let finish = getState('finish') ? new Date(getState('finish')) : new Date()
 
-	return content || ''
+	let prometheusIp = await getContainerIp('ydb-prometheus')
+	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://prometheus:9090'
+	debug(`Prometheus URL for alerts: ${prometheusUrl}`)
+
+	let alerts = await collectAlertsFromPrometheus(prometheusUrl, start, finish)
+	let content = alerts.map((a) => JSON.stringify(a)).join('\n')
+	return content
 }
 
 async function collectMetrics(): Promise<string> {
 	info('Collecting metrics...')
 
 	let start = new Date(getState('start'))
-	let finish = new Date()
+	let finish = getState('finish') ? new Date(getState('finish')) : new Date()
 
 	let prometheusIp = await getContainerIp('ydb-prometheus')
 	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://prometheus:9090'
@@ -85,7 +95,7 @@ async function collectMetadata(): Promise<string> {
 	let pull = getState('pull')
 	let commit = getState('commit')
 	let start = new Date(getState('start'))
-	let finish = new Date()
+	let finish = getState('finish') ? new Date(getState('finish')) : new Date()
 	let duration = finish.getTime() - start.getTime()
 
 	let workload = getState('workload')
