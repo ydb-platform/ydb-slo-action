@@ -1,0 +1,52 @@
+name: "YDB SLO Report v2"
+description: "Generate SLO performance reports with custom HTML templates and uPlot charts"
+author: "YDB Platform"
+
+branding:
+  icon: "bar-chart-2"
+  color: "blue"
+
+inputs:
+  github_token:
+    description: "GitHub token for API access (artifacts, comments, checks)"
+    required: true
+
+  github_run_id:
+    description: "The id of the workflow run where the desired download artifact was uploaded from."
+    required: true
+
+  github_issue:
+    description: "GitHub issue number where the report will be published. If not provided, will try to get from artifact metadata."
+    required: false
+
+  template_path:
+    description: "Path to HTML template file (default: built-in template)"
+    required: false
+    default: ""
+
+  post_comment:
+    description: "Post report as PR comment (default: true)"
+    required: false
+    default: "true"
+
+  thresholds_yaml:
+    description: "Custom thresholds configuration in YAML format (inline). Will be merged with default thresholds."
+    required: false
+
+  thresholds_yaml_path:
+    description: "Path to a file containing custom thresholds configuration in YAML format. Will be merged with default thresholds."
+    required: false
+
+  fail_on_threshold:
+    description: "Fail the action if any metric exceeds its threshold (default: false)"
+    required: false
+    default: "false"
+
+  artifact_retention_days:
+    description: "Days to retain HTML report artifacts (default: 30)"
+    required: false
+    default: "30"
+
+runs:
+  using: "node24"
+  main: "../dist/report2/main.js"

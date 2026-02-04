@@ -1,4 +1,8 @@
 import {
+  evaluateWorkloadThresholds,
+  loadThresholdConfig
+} from "../main-836f19h8.js";
+import {
   compareWorkloadMetrics,
   formatChange,
   formatValue
@@ -7,7 +11,6 @@ import {
   DefaultArtifactClient,
   context,
   debug,
-  exec,
   getInput,
   getOctokit,
   info,
@@ -16,135 +19,9 @@ import {
 } from "../main-st7zz2z8.js";
 
 // report/main.ts
-import * as fs3 from "node:fs/promises";
-import * as path3 from "node:path";
+import * as fs2 from "node:fs/promises";
+import * as path2 from "node:path";
 import { fileURLToPath } from "node:url";
-
-// shared/thresholds.ts
-import * as fs from "node:fs";
-import * as path from "node:path";
-async function parseThresholdsYaml(yamlContent) {
-  if (!yamlContent || yamlContent.trim() === "")
-    return null;
-  try {
-    let chunks = [];
-    await exec("yq", ["-o=json", "."], {
-      input: Buffer.from(yamlContent, "utf-8"),
-      silent: !0,
-      listeners: {
-        stdout: (data) => chunks.push(data.toString())
-      }
-    });
-    let json = chunks.join("");
-    return JSON.parse(json);
-  } catch (error) {
-    return warning(`Failed to parse thresholds YAML: ${String(error)}`), null;
-  }
-}
-function mergeThresholdConfigs(defaultConfig, customConfig) {
-  return {
-    neutral_change_percent: customConfig.neutral_change_percent ?? defaultConfig.neutral_change_percent,
-    default: {
-      warning_change_percent: customConfig.default?.warning_change_percent ?? defaultConfig.default.warning_change_percent,
-      critical_change_percent: customConfig.default?.critical_change_percent ?? defaultConfig.default.critical_change_percent
-    },
-    metrics: [...customConfig.metrics || [], ...defaultConfig.metrics || []]
-  };
-}
-async function loadDefaultThresholdConfig() {
-  debug("Loading default thresholds from GITHUB_ACTION_PATH/deploy/thresholds.yaml");
-  let actionRoot = path.resolve(process.env.GITHUB_ACTION_PATH), defaultPath = path.join(actionRoot, "deploy", "thresholds.yaml");
-  if (fs.existsSync(defaultPath)) {
-    let content = fs.readFileSync(defaultPath, { encoding: "utf-8" }), config = await parseThresholdsYaml(content);
-    if (config)
-      return config;
-  }
-  return warning("Could not load default thresholds, using hardcoded defaults"), {
-    neutral_change_percent: 5,
-    default: {
-      warning_change_percent: 20,
-      critical_change_percent: 50
-    }
-  };
-}
-async function loadThresholdConfig(customYaml, customPath) {
-  let config = await loadDefaultThresholdConfig();
-  if (customYaml) {
-    debug("Merging custom thresholds from inline YAML");
-    let customConfig = await parseThresholdsYaml(customYaml);
-    if (customConfig)
-      config = mergeThresholdConfigs(config, customConfig);
-  }
-  if (customPath && fs.existsSync(customPath)) {
-    debug(`Merging custom thresholds from file: ${customPath}`);
-    let content = fs.readFileSync(customPath, { encoding: "utf-8" }), customConfig = await parseThresholdsYaml(content);
-    if (customConfig)
-      config = mergeThresholdConfigs(config, customConfig);
-  }
-  return config;
-}
-function matchPattern(metricName, pattern) {
-  let regexPattern = pattern.replace(/\*/g, ".*").replace(/\?/g, ".");
-  return new RegExp(`^${regexPattern}$`, "i").test(metricName);
-}
-function findMatchingThreshold(metricName, config) {
-  if (!config.metrics)
-    return null;
-  for (let threshold of config.metrics)
-    if (threshold.name && threshold.name === metricName)
-      return threshold;
-  for (let threshold of config.metrics)
-    if (threshold.pattern && matchPattern(metricName, threshold.pattern))
-      return threshold;
-  return null;
-}
-function evaluateThreshold(comparison, config) {
-  let threshold = findMatchingThreshold(comparison.name, config), severity = "success", reason;
-  if (threshold) {
-    if (threshold.critical_min !== void 0 && comparison.current.value < threshold.critical_min)
-      debug(`${comparison.name}: below critical_min (${comparison.current.value} < ${threshold.critical_min})`), severity = "failure", reason = `Value ${comparison.current.value.toFixed(2)} < critical min ${threshold.critical_min}`;
-    else if (threshold.critical_max !== void 0 && comparison.current.value > threshold.critical_max)
-      debug(`${comparison.name}: above critical_max (${comparison.current.value} > ${threshold.critical_max})`), severity = "failure", reason = `Value ${comparison.current.value.toFixed(2)} > critical max ${threshold.critical_max}`;
-    else if (threshold.warning_min !== void 0 && comparison.current.value < threshold.warning_min)
-      debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`), severity = "warning", reason = `Value ${comparison.current.value.toFixed(2)} < warning min ${threshold.warning_min}`;
-    else if (threshold.warning_max !== void 0 && comparison.current.value > threshold.warning_max)
-      debug(`${comparison.name}: above warning_max (${comparison.current.value} > ${threshold.warning_max})`), severity = "warning", reason = `Value ${comparison.current.value.toFixed(2)} > warning max ${threshold.warning_max}`;
-  }
-  if (!isNaN(comparison.change.percent)) {
-    let changePercent = Math.abs(comparison.change.percent), warningThreshold = threshold?.warning_change_percent ?? config.default.warning_change_percent, criticalThreshold = threshold?.critical_change_percent ?? config.default.critical_change_percent;
-    if (comparison.change.direction === "worse") {
-      if (severity !== "failure") {
-        if (changePercent > criticalThreshold)
-          severity = "failure", reason = `Regression ${changePercent.toFixed(2)}% > critical ${criticalThreshold}%`;
-        else if (severity !== "warning" && changePercent > warningThreshold)
-          severity = "warning", reason = `Regression ${changePercent.toFixed(2)}% > warning ${warningThreshold}%`;
-      }
-    }
-  }
-  return {
-    metric_name: comparison.name,
-    threshold_name: threshold?.name,
-    threshold_pattern: threshold?.pattern,
-    threshold_severity: severity,
-    reason
-  };
-}
-function evaluateWorkloadThresholds(comparisons, config) {
-  let failures = [], warnings = [];
-  for (let comparison of comparisons) {
-    let severity = evaluateThreshold(comparison, config);
-    if (severity.threshold_severity === "failure")
-      failures.push({ ...comparison, reason: severity.reason });
-    else if (severity.threshold_severity === "warning")
-      warnings.push({ ...comparison, reason: severity.reason });
-  }
-  let overall = "success";
-  if (failures.length > 0)
-    overall = "failure";
-  else if (warnings.length > 0)
-    overall = "warning";
-  return { overall, failures, warnings };
-}
 
 // report/lib/alerts.ts
 function loadCollectedAlerts(content) {
@@ -180,8 +57,8 @@ function formatAlertLabel(alert) {
 }
 
 // report/lib/artifacts.ts
-import * as fs2 from "node:fs";
-import * as path2 from "node:path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 async function downloadRunArtifacts(destinationPath) {
   let token = getInput("github_token"), workflowRunId = parseInt(getInput("github_run_id") || String(context.runId));
   if (!token || !workflowRunId)
@@ -197,7 +74,7 @@ async function downloadRunArtifacts(destinationPath) {
   debug(`Found ${artifacts.length} artifacts in workflow run ${workflowRunId}`);
   let downloadedPaths = /* @__PURE__ */ new Map;
   for (let artifact of artifacts) {
-    let artifactDir = path2.join(destinationPath, artifact.name);
+    let artifactDir = path.join(destinationPath, artifact.name);
     debug(`Downloading artifact ${artifact.name}...`);
     let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
       path: artifactDir,
@@ -213,19 +90,19 @@ async function downloadRunArtifacts(destinationPath) {
   let runArtifacts = /* @__PURE__ */ new Map;
   for (let [artifactName, artifactPath] of downloadedPaths) {
     let workload = artifactName;
-    if (!fs2.existsSync(artifactPath)) {
+    if (!fs.existsSync(artifactPath)) {
       warning(`Artifact path does not exist: ${artifactPath}`);
       continue;
     }
-    let stat = fs2.statSync(artifactPath), files = [];
+    let stat = fs.statSync(artifactPath), files = [];
     if (stat.isDirectory())
-      files = fs2.readdirSync(artifactPath).map((f) => path2.join(artifactPath, f));
+      files = fs.readdirSync(artifactPath).map((f) => path.join(artifactPath, f));
     else
       files = [artifactPath];
     let group = runArtifacts.get(workload) || {};
     group.name = workload;
     for (let file of files) {
-      let basename2 = path2.basename(file);
+      let basename2 = path.basename(file);
       if (basename2.endsWith("-logs.txt"))
         group.logsPath = file;
       else if (basename2.endsWith("-alerts.jsonl"))
@@ -1297,8 +1174,8 @@ function loadCollectedMetrics(content) {
 // report/main.ts
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function main() {
-  let cwd = path3.join(process.cwd(), ".slo-reports");
-  await fs3.mkdir(cwd, { recursive: !0 });
+  let cwd = path2.join(process.cwd(), ".slo-reports");
+  await fs2.mkdir(cwd, { recursive: !0 });
   let runArtifacts = await downloadRunArtifacts(cwd);
   if (info(`Found ${runArtifacts.size} artifacts: ${[...runArtifacts.keys()].join(", ")}`), runArtifacts.size === 0) {
     setFailed("No workload artifacts found in current run");
@@ -1310,7 +1187,7 @@ async function main() {
       info(`Skipping artifact ${artifact.name}: missing required files`);
       continue;
     }
-    let alerts = loadCollectedAlerts(await fs3.readFile(artifact.alertsPath, "utf-8")), metrics = loadCollectedMetrics(await fs3.readFile(artifact.metricsPath, "utf-8")), metadata = JSON.parse(await fs3.readFile(artifact.metadataPath, "utf-8"));
+    let alerts = loadCollectedAlerts(await fs2.readFile(artifact.alertsPath, "utf-8")), metrics = loadCollectedMetrics(await fs2.readFile(artifact.metricsPath, "utf-8")), metadata = JSON.parse(await fs2.readFile(artifact.metadataPath, "utf-8"));
     if (metadata.pull && metadata.pull !== pull)
       pull = metadata.pull;
     let comparison = compareWorkloadMetrics(metadata.workload, metrics, metadata.workload_current_ref || "current", metadata.workload_baseline_ref || "baseline", "p95", thresholds.neutral_change_percent), report = {
@@ -1360,8 +1237,8 @@ async function createWorkloadHTMLReport(cwd, reports) {
       prNumber: report.metadata.pull,
       testStartTime: report.metadata?.start_epoch_ms || Date.now() - 600000,
       testEndTime: report.metadata?.finish_epoch_ms || Date.now()
-    }, html = generateHTMLReport(htmlData), htmlPath = path3.join(cwd, `${report.workload}-report.html`);
-    await fs3.writeFile(htmlPath, html, { encoding: "utf-8" }), htmlFiles.push({ workload: report.workload, path: htmlPath });
+    }, html = generateHTMLReport(htmlData), htmlPath = path2.join(cwd, `${report.workload}-report.html`);
+    await fs2.writeFile(htmlPath, html, { encoding: "utf-8" }), htmlFiles.push({ workload: report.workload, path: htmlPath });
     let { id } = await artifactClient.uploadArtifact(report.workload + "-html-report", [htmlPath], cwd, {
       retentionDays: 30
     }), runId = context.runId.toString();
