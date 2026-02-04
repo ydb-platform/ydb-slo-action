@@ -122,3 +122,23 @@ jobs:
           # workload_baseline_ref: ${{ steps.baseline.outputs.ref }}
           # workload_baseline_image: ydb-workload-baseline
           disable_compose_profiles: workload-baseline
+
+  ydb-slo-report:
+    needs: ydb-slo-test
+    runs-on: ubuntu-latest
+    name: Publish YDB SLO Report
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout current version
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Publish YDB SLO Report
+        uses: ./report2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_run_id: ${{ github.run_id }}
