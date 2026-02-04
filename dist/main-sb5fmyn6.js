@@ -22,10 +22,17 @@ async function getContainerIp(containerName) {
     return warning(`Failed to get container IP for ${containerName}: ${String(error)}`), null;
   }
 }
-async function collectComposeLogs(cwd) {
+async function collectComposeLogs(cwd, profiles) {
   try {
     let chunks = [];
-    return await exec("docker", ["compose", "-f", "compose.yml", "logs", "--no-color"], {
+    return await exec("docker", [
+      "compose",
+      ...profiles.flatMap((profile) => ["--profile", profile]),
+      "-f",
+      "compose.yml",
+      "logs",
+      "--no-color"
+    ], {
       cwd,
       silent: !0,
       listeners: {
@@ -37,7 +44,7 @@ async function collectComposeLogs(cwd) {
     return warning(`Failed to collect docker compose logs: ${String(error)}`), "";
   }
 }
-async function getComposeProfiles(cwd) {
+async function getComposeProfiles(cwd, disableProfiles = []) {
   try {
     let chunks = [];
     await exec("yq", ["-r", ".. | .profiles? | select(. != null) | .[]", "compose.yml"], {
@@ -48,9 +55,9 @@ async function getComposeProfiles(cwd) {
         stdout: (data) => chunks.push(data.toString())
       }
     });
-    let allProfiles = chunks.join("").trim().split(`
-`).filter(Boolean);
-    return [...new Set(allProfiles)];
+    let profiles = chunks.join("").trim().split(`
+`).filter(Boolean).filter((profile) => !disableProfiles.includes(profile));
+    return [...new Set(profiles)];
   } catch (error) {
     return warning(`Failed to detect profiles dynamically: ${String(error)}`), [];
   }

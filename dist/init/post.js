@@ -3,7 +3,7 @@ import {
   getComposeProfiles,
   getContainerIp,
   uploadArtifacts
-} from "../main-8w6z7rd7.js";
+} from "../main-sb5fmyn6.js";
 import {
   compareWorkloadMetrics,
   formatChange,
@@ -208,8 +208,8 @@ async function post() {
 }
 async function collectLogs() {
   info("Collecting logs...");
-  let cwd = getState("cwd");
-  return await collectComposeLogs(cwd);
+  let cwd = getState("cwd"), profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(","));
+  return await collectComposeLogs(cwd, profiles);
 }
 async function collectAlerts() {
   info("Collecting alerts from Prometheus...");

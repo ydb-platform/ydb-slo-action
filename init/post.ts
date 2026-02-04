@@ -52,7 +52,8 @@ async function post() {
 async function collectLogs(): Promise<string> {
 	info('Collecting logs...')
 	let cwd = getState('cwd')
-	let content = await collectComposeLogs(cwd)
+	let profiles = await getComposeProfiles(cwd, getInput('disable_compose_profiles').split(','))
+	let content = await collectComposeLogs(cwd, profiles)
 
 	return content
 }

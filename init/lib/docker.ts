@@ -66,18 +66,29 @@ export async function getContainerIp(containerName: string): Promise<string | nu
 /**
  * Collects logs from Docker Compose services
  */
-export async function collectComposeLogs(cwd: string): Promise<string> {
+export async function collectComposeLogs(cwd: string, profiles: string[]): Promise<string> {
 	try {
 		let chunks: string[] = []
 
-		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `logs`, `--no-color`], {
-			cwd,
-			silent: true,
-			listeners: {
-				stdout: (data) => chunks.push(data.toString()),
-				stderr: (data) => chunks.push(data.toString()),
-			},
-		})
+		await exec(
+			`docker`,
+			[
+				`compose`,
+				...profiles.flatMap((profile) => ['--profile', profile]),
+				`-f`,
+				`compose.yml`,
+				`logs`,
+				`--no-color`,
+			],
+			{
+				cwd,
+				silent: true,
+				listeners: {
+					stdout: (data) => chunks.push(data.toString()),
+					stderr: (data) => chunks.push(data.toString()),
+				},
+			}
+		)
 
 		return chunks.join('')
 	} catch (error) {
@@ -89,7 +100,7 @@ export async function collectComposeLogs(cwd: string): Promise<string> {
 /**
  * Gets all profiles defined in a Docker Compose file
  */
-export async function getComposeProfiles(cwd: string): Promise<string[]> {
+export async function getComposeProfiles(cwd: string, disableProfiles: string[] = []): Promise<string[]> {
 	try {
 		let chunks: string[] = []
 
@@ -103,9 +114,13 @@ export async function getComposeProfiles(cwd: string): Promise<string[]> {
 		})
 
 		let stdout = chunks.join('')
-		let allProfiles = stdout.trim().split('\n').filter(Boolean)
+		let profiles = stdout
+			.trim()
+			.split('\n')
+			.filter(Boolean)
+			.filter((profile: string) => !disableProfiles.includes(profile))
 
-		return [...new Set(allProfiles)]
+		return [...new Set(profiles)]
 	} catch (error) {
 		warning(`Failed to detect profiles dynamically: ${String(error)}`)
 		return []

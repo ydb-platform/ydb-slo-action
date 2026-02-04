@@ -3,7 +3,7 @@ import {
   getContainerIp,
   getPullRequestNumber,
   waitForContainerCompletion
-} from "../main-8w6z7rd7.js";
+} from "../main-sb5fmyn6.js";
 import {
   debug,
   exec,
@@ -36,9 +36,7 @@ async function copyAssets(cwd) {
   debug(`Deploy assets copied to ${cwd}`);
 }
 async function deployInfra(cwd, workload) {
-  let profiles = await getComposeProfiles(cwd), disableProfiles = getInput("disable_compose_profiles") || "";
-  profiles = profiles.filter((profile) => !disableProfiles.includes(profile));
-  let workloadDuration = getInput("workload_duration") || "60", workloadCurrentRef = getInput("workload_current_ref") || "current", workloadCurrentImage = getInput("workload_current_image"), workloadCurrentCommand = getInput("workload_current_command") || "", workloadBaselineRef = getInput("workload_baseline_ref") || "baseline", workloadBaselineImage = getInput("workload_baseline_image") || "", workloadBaselineCommand = getInput("workload_baseline_command") || "";
+  let profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(",")), workloadDuration = getInput("workload_duration") || "60", workloadCurrentRef = getInput("workload_current_ref") || "current", workloadCurrentImage = getInput("workload_current_image"), workloadCurrentCommand = getInput("workload_current_command") || "", workloadBaselineRef = getInput("workload_baseline_ref") || "baseline", workloadBaselineImage = getInput("workload_baseline_image") || "", workloadBaselineCommand = getInput("workload_baseline_command") || "";
   if (workloadCurrentImage)
     profiles.push("workload-current");
   if (workloadBaselineImage)
