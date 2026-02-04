@@ -540,7 +540,7 @@ var template_default = `<!doctype html>
 						<span>\${data.meta.workload_current_ref || 'current'}</span>
 					</div>
 					\${
-						metric.data.baseline
+						metric.data.length > 1
 							? \`
 					<div class="legend-item">
 						<div class="legend-color" style="background: var(--baseline)"></div>
@@ -556,10 +556,25 @@ var template_default = `<!doctype html>
 
 				container.appendChild(panel)
 
+				// Find current and baseline series by ref
+				const currentRef = data.meta.workload_current_ref
+				const baselineRef = data.meta.workload_baseline_ref
+
+				const currentSeries = metric.data.find((s) => s.metric?.ref === currentRef)
+				const baselineSeries = metric.data.find((s) => s.metric?.ref === baselineRef)
+
+				// Skip if no current data
+				if (!currentSeries || !currentSeries.values || currentSeries.values.length === 0) {
+					console.warn(\`No current data for metric: \${metric.name}\`)
+					return
+				}
+
 				// Prepare uPlot data
-				const timestamps = metric.data.current.map(([ts]) => ts / 1000)
-				const currentValues = metric.data.current.map(([, val]) => val)
-				const baselineValues = metric.data.baseline ? metric.data.baseline.map(([, val]) => val) : null
+				const timestamps = currentSeries.values.map(([ts]) => ts)
+				const currentValues = currentSeries.values.map(([, val]) => parseFloat(val))
+				const baselineValues = baselineSeries?.values
+					? baselineSeries.values.map(([, val]) => parseFloat(val))
+					: null
 
 				const plotData = baselineValues
 					? [timestamps, currentValues, baselineValues]
