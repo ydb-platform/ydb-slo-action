@@ -3,7 +3,7 @@ import {
   getComposeProfiles,
   getContainerIp,
   uploadArtifacts
-} from "../main-mk8n9v09.js";
+} from "../main-8w6z7rd7.js";
 import {
   compareWorkloadMetrics,
   formatChange,

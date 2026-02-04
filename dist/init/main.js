@@ -3,7 +3,7 @@ import {
   getContainerIp,
   getPullRequestNumber,
   waitForContainerCompletion
-} from "../main-mk8n9v09.js";
+} from "../main-8w6z7rd7.js";
 import {
   debug,
   exec,
@@ -65,20 +65,22 @@ async function deployInfra(cwd, workload) {
 async function waitForWorkloads() {
   let start = /* @__PURE__ */ new Date;
   saveState("start", start.toISOString()), info(`Workloads started at ${start}`);
-  let workloadCurrentImage = getInput("workload_current_image"), workloadBaselineImage = getInput("workload_baseline_image") || "", workloadTimeoutMs = (parseInt(getInput("workload_duration") || "60", 10) + 60) * 1000, workloadsToWait = [];
+  let workloadCurrentImage = getInput("workload_current_image"), workloadBaselineImage = getInput("workload_baseline_image") || "", workloadDuration = parseInt(getInput("workload_duration") || "60", 10), workloadTimeoutMs = (workloadDuration + 180) * 1000;
+  debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms`);
+  let workloadsToWait = [];
   if (workloadCurrentImage)
     workloadsToWait.push({ name: "current", container: "ydb-workload-current" });
   if (workloadBaselineImage)
     workloadsToWait.push({ name: "baseline", container: "ydb-workload-baseline" });
   if (workloadsToWait.length > 0) {
-    info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`);
+    info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`), info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 180s buffer)`);
     try {
       await Promise.all(workloadsToWait.map((w) => waitForContainerCompletion({
         container: w.container,
         timeoutMs: workloadTimeoutMs
       }))), info("All workloads completed successfully");
     } catch (error) {
-      setFailed(`Workload failed: ${error}`);
+      throw setFailed(`Workload failed: ${error}`), error;
     }
   }
   let finish = /* @__PURE__ */ new Date;
