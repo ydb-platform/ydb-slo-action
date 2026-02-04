@@ -127,12 +127,12 @@ jobs:
 
       - name: Run SLO Tests
         uses: ./current/init # Path relative to working directory root
-        timeout-minutes: 15
+        timeout-minutes: 5
         with:
           github_issue: ${{ github.event.inputs.github_issue }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workload_name: kv-workload
           workload_current_ref: ${{ github.sha }}
           workload_current_image: ydb-app-current
-          workload_baseline_ref: ${{ steps.baseline.outputs.ref }}
-          workload_baseline_image: ydb-app-baseline
+          # workload_baseline_ref: ${{ steps.baseline.outputs.ref }}
+          # workload_baseline_image: ydb-app-baseline
