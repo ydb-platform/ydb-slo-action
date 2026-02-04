@@ -46,7 +46,6 @@ Chaos testing utilities that provide a high-level API for fault injection and re
 - `event_type` - Script name (e.g., `01-graceful-stop.sh`)
 - `fault` - Fault name (e.g., `graceful-stop`)
 - `node` - Node name (e.g., `ydb-database-3`)
-- `description` - Recovery description (only on recover)
 
 ## Usage Examples
 
