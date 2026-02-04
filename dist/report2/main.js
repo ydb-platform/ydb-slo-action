@@ -436,6 +436,16 @@ var template_default = `<!doctype html>
 		<script>
 			/*DATA_INJECTION*/
 
+			// Shorten long commit SHAs (40 hex chars) to 7 chars
+			function shortRef(ref) {
+				if (!ref) return ref
+				// Check if it looks like a full SHA (40 hex characters)
+				if (/^[0-9a-f]{40}$/i.test(ref)) {
+					return ref.slice(0, 7)
+				}
+				return ref
+			}
+
 			// Alert color palette (Grafana-inspired)
 			const ALERT_COLORS = {
 				default: '#e02f44',
@@ -480,8 +490,9 @@ var template_default = `<!doctype html>
 
 			// Populate header
 			document.getElementById('workload-name').textContent = data.meta.workload || 'SLO Report'
-			document.getElementById('current-ref').textContent = data.meta.workload_current_ref || 'current'
-			document.getElementById('baseline-ref').textContent = data.meta.workload_baseline_ref || 'baseline'
+			document.getElementById('current-ref').textContent = shortRef(data.meta.workload_current_ref) || 'current'
+			document.getElementById('baseline-ref').textContent =
+				shortRef(data.meta.workload_baseline_ref) || 'baseline'
 			document.getElementById('pr-number').textContent = data.meta.pull || '-'
 			document.getElementById('duration').textContent = formatDuration(data.meta.duration_ms || 0)
 
@@ -537,14 +548,14 @@ var template_default = `<!doctype html>
 				<div class="legend">
 					<div class="legend-item">
 						<div class="legend-color" style="background: var(--current)"></div>
-						<span>\${data.meta.workload_current_ref || 'current'}</span>
+						<span>\${shortRef(data.meta.workload_current_ref) || 'current'}</span>
 					</div>
 					\${
 						metric.data.length > 1
 							? \`
 					<div class="legend-item">
 						<div class="legend-color" style="background: var(--baseline)"></div>
-						<span>\${data.meta.workload_baseline_ref || 'baseline'}</span>
+						<span>\${shortRef(data.meta.workload_baseline_ref) || 'baseline'}</span>
 					</div>
 					\`
 							: ''
