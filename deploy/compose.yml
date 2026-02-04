@@ -8,6 +8,10 @@ x-ydb-node: &ydb-node
     context: ./ydb
   restart: always
   <<: *runtime
+  expose:
+    - "2135-2136"
+    - "8765-8766"
+    - "19001-19002"
   extra_hosts:
     - "ydb:172.28.0.10"
 
