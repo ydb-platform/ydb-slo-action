@@ -13,7 +13,7 @@ RATE="${WORKLOAD_RATE:-1000}"
 # OTLP parameters
 export OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://ydb-prometheus:9090/api/v1/otlp/v1/metrics}"
 export OTEL_SERVICE_NAME="${OTEL_SERVICE_NAME:-ydb-kv-workload}"
-WORKLOAD_NAME="${WORKLOAD_NAME:-current}"
+WORKLOAD_REF="${WORKLOAD_REF:-current}"
 
 # Cleanup function
 cleanup() {
@@ -39,7 +39,7 @@ push_metric() {
 		return
 	fi
 
-	python3 /usr/local/bin/otel_metric.py "$type" "$name" "$value" "ref=$WORKLOAD_NAME" "operation_type=$operation_type" "$@" 2>/dev/null || true
+	python3 /usr/local/bin/otel_metric.py "$type" "$name" "$value" "ref=$WORKLOAD_REF" "operation_type=$operation_type" "$@" 2>/dev/null || true
 }
 
 # Function to process workload output
