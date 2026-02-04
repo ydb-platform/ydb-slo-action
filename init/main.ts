@@ -44,9 +44,7 @@ async function copyAssets(cwd: string): Promise<void> {
 }
 
 async function deployInfra(cwd: string, workload: string): Promise<void> {
-	let profiles = await getComposeProfiles(cwd)
-	let disableProfiles = getInput('disable_compose_profiles') || ''
-	profiles = profiles.filter((profile: string) => !disableProfiles.includes(profile))
+	let profiles = await getComposeProfiles(cwd, getInput('disable_compose_profiles').split(','))
 
 	let workloadDuration = getInput('workload_duration') || '60'
 	let workloadCurrentRef = getInput('workload_current_ref') || 'current'
