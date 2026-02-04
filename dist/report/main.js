@@ -2,23 +2,25 @@ import {
   compareWorkloadMetrics,
   formatChange,
   formatValue
-} from "../main-d4a954td.js";
+} from "../main-bzx26vvv.js";
 import {
-  __toESM,
-  require_artifact,
-  require_core,
-  require_exec,
-  require_github
-} from "../main-1qcptng8.js";
+  DefaultArtifactClient,
+  context,
+  debug,
+  exec,
+  getInput,
+  getOctokit,
+  info,
+  setFailed,
+  warning
+} from "../main-st7zz2z8.js";
 
 // report/main.ts
-var import_artifact2 = __toESM(require_artifact(), 1), import_core4 = __toESM(require_core(), 1), import_github3 = __toESM(require_github(), 1);
 import * as fs3 from "node:fs/promises";
 import * as path3 from "node:path";
 import { fileURLToPath } from "node:url";
 
 // shared/thresholds.ts
-var import_exec = __toESM(require_exec(), 1), import_core = __toESM(require_core(), 1);
 import * as fs from "node:fs";
 import * as path from "node:path";
 async function parseThresholdsYaml(yamlContent) {
@@ -26,7 +28,7 @@ async function parseThresholdsYaml(yamlContent) {
     return null;
   try {
     let chunks = [];
-    await import_exec.exec("yq", ["-o=json", "."], {
+    await exec("yq", ["-o=json", "."], {
       input: Buffer.from(yamlContent, "utf-8"),
       silent: !0,
       listeners: {
@@ -36,7 +38,7 @@ async function parseThresholdsYaml(yamlContent) {
     let json = chunks.join("");
     return JSON.parse(json);
   } catch (error) {
-    return import_core.warning(`Failed to parse thresholds YAML: ${String(error)}`), null;
+    return warning(`Failed to parse thresholds YAML: ${String(error)}`), null;
   }
 }
 function mergeThresholdConfigs(defaultConfig, customConfig) {
@@ -50,14 +52,14 @@ function mergeThresholdConfigs(defaultConfig, customConfig) {
   };
 }
 async function loadDefaultThresholdConfig() {
-  import_core.debug("Loading default thresholds from GITHUB_ACTION_PATH/deploy/thresholds.yaml");
+  debug("Loading default thresholds from GITHUB_ACTION_PATH/deploy/thresholds.yaml");
   let actionRoot = path.resolve(process.env.GITHUB_ACTION_PATH), defaultPath = path.join(actionRoot, "deploy", "thresholds.yaml");
   if (fs.existsSync(defaultPath)) {
     let content = fs.readFileSync(defaultPath, { encoding: "utf-8" }), config = await parseThresholdsYaml(content);
     if (config)
       return config;
   }
-  return import_core.warning("Could not load default thresholds, using hardcoded defaults"), {
+  return warning("Could not load default thresholds, using hardcoded defaults"), {
     neutral_change_percent: 5,
     default: {
       warning_change_percent: 20,
@@ -68,13 +70,13 @@ async function loadDefaultThresholdConfig() {
 async function loadThresholdConfig(customYaml, customPath) {
   let config = await loadDefaultThresholdConfig();
   if (customYaml) {
-    import_core.debug("Merging custom thresholds from inline YAML");
+    debug("Merging custom thresholds from inline YAML");
     let customConfig = await parseThresholdsYaml(customYaml);
     if (customConfig)
       config = mergeThresholdConfigs(config, customConfig);
   }
   if (customPath && fs.existsSync(customPath)) {
-    import_core.debug(`Merging custom thresholds from file: ${customPath}`);
+    debug(`Merging custom thresholds from file: ${customPath}`);
     let content = fs.readFileSync(customPath, { encoding: "utf-8" }), customConfig = await parseThresholdsYaml(content);
     if (customConfig)
       config = mergeThresholdConfigs(config, customConfig);
@@ -100,13 +102,13 @@ function evaluateThreshold(comparison, config) {
   let threshold = findMatchingThreshold(comparison.name, config), severity = "success", reason;
   if (threshold) {
     if (threshold.critical_min !== void 0 && comparison.current.value < threshold.critical_min)
-      import_core.debug(`${comparison.name}: below critical_min (${comparison.current.value} < ${threshold.critical_min})`), severity = "failure", reason = `Value ${comparison.current.value.toFixed(2)} < critical min ${threshold.critical_min}`;
+      debug(`${comparison.name}: below critical_min (${comparison.current.value} < ${threshold.critical_min})`), severity = "failure", reason = `Value ${comparison.current.value.toFixed(2)} < critical min ${threshold.critical_min}`;
     else if (threshold.critical_max !== void 0 && comparison.current.value > threshold.critical_max)
-      import_core.debug(`${comparison.name}: above critical_max (${comparison.current.value} > ${threshold.critical_max})`), severity = "failure", reason = `Value ${comparison.current.value.toFixed(2)} > critical max ${threshold.critical_max}`;
+      debug(`${comparison.name}: above critical_max (${comparison.current.value} > ${threshold.critical_max})`), severity = "failure", reason = `Value ${comparison.current.value.toFixed(2)} > critical max ${threshold.critical_max}`;
     else if (threshold.warning_min !== void 0 && comparison.current.value < threshold.warning_min)
-      import_core.debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`), severity = "warning", reason = `Value ${comparison.current.value.toFixed(2)} < warning min ${threshold.warning_min}`;
+      debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`), severity = "warning", reason = `Value ${comparison.current.value.toFixed(2)} < warning min ${threshold.warning_min}`;
     else if (threshold.warning_max !== void 0 && comparison.current.value > threshold.warning_max)
-      import_core.debug(`${comparison.name}: above warning_max (${comparison.current.value} > ${threshold.warning_max})`), severity = "warning", reason = `Value ${comparison.current.value.toFixed(2)} > warning max ${threshold.warning_max}`;
+      debug(`${comparison.name}: above warning_max (${comparison.current.value} > ${threshold.warning_max})`), severity = "warning", reason = `Value ${comparison.current.value.toFixed(2)} > warning max ${threshold.warning_max}`;
   }
   if (!isNaN(comparison.change.percent)) {
     let changePercent = Math.abs(comparison.change.percent), warningThreshold = threshold?.warning_change_percent ?? config.default.warning_change_percent, criticalThreshold = threshold?.critical_change_percent ?? config.default.critical_change_percent;
@@ -145,42 +147,41 @@ function evaluateWorkloadThresholds(comparisons, config) {
 }
 
 // report/lib/artifacts.ts
-var import_artifact = __toESM(require_artifact(), 1), import_core2 = __toESM(require_core(), 1), import_github = __toESM(require_github(), 1);
 import * as fs2 from "node:fs";
 import * as path2 from "node:path";
 async function downloadRunArtifacts(destinationPath) {
-  let token = import_core2.getInput("github_token"), workflowRunId = parseInt(import_core2.getInput("github_run_id") || String(import_github.context.runId));
+  let token = getInput("github_token"), workflowRunId = parseInt(getInput("github_run_id") || String(context.runId));
   if (!token || !workflowRunId)
     throw Error("GitHub token and workflow run ID are required to download artifacts");
-  let artifactClient = new import_artifact.DefaultArtifactClient, { artifacts } = await artifactClient.listArtifacts({
+  let artifactClient = new DefaultArtifactClient, { artifacts } = await artifactClient.listArtifacts({
     findBy: {
       token,
       workflowRunId,
-      repositoryName: import_github.context.repo.repo,
-      repositoryOwner: import_github.context.repo.owner
+      repositoryName: context.repo.repo,
+      repositoryOwner: context.repo.owner
     }
   });
-  import_core2.debug(`Found ${artifacts.length} artifacts in workflow run ${workflowRunId}`);
+  debug(`Found ${artifacts.length} artifacts in workflow run ${workflowRunId}`);
   let downloadedPaths = /* @__PURE__ */ new Map;
   for (let artifact of artifacts) {
     let artifactDir = path2.join(destinationPath, artifact.name);
-    import_core2.debug(`Downloading artifact ${artifact.name}...`);
+    debug(`Downloading artifact ${artifact.name}...`);
     let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
       path: artifactDir,
       findBy: {
         token,
         workflowRunId,
-        repositoryName: import_github.context.repo.repo,
-        repositoryOwner: import_github.context.repo.owner
+        repositoryName: context.repo.repo,
+        repositoryOwner: context.repo.owner
       }
     }), artifactPath = downloadPath || artifactDir;
-    downloadedPaths.set(artifact.name, artifactPath), import_core2.debug(`Downloaded artifact ${artifact.name} to ${artifactPath}`);
+    downloadedPaths.set(artifact.name, artifactPath), debug(`Downloaded artifact ${artifact.name} to ${artifactPath}`);
   }
   let runArtifacts = /* @__PURE__ */ new Map;
   for (let [artifactName, artifactPath] of downloadedPaths) {
     let workload = artifactName;
     if (!fs2.existsSync(artifactPath)) {
-      import_core2.warning(`Artifact path does not exist: ${artifactPath}`);
+      warning(`Artifact path does not exist: ${artifactPath}`);
       continue;
     }
     let stat = fs2.statSync(artifactPath), files = [];
@@ -254,7 +255,6 @@ function generateCheckSummary(comparison, evaluation, reportURL) {
 }
 
 // report/lib/comment.ts
-var import_core3 = __toESM(require_core(), 1), import_github2 = __toESM(require_github(), 1);
 function generateCommentBody(reports) {
   let totalFailures = 0, totalWarnings = 0, rows = reports.map((report) => {
     let evaluation = evaluateWorkloadThresholds(report.comparison.metrics, report.thresholds);
@@ -281,38 +281,38 @@ function generateCommentBody(reports) {
   return header + content + footer;
 }
 async function findExistingComment(pull) {
-  let token = import_core3.getInput("github_token"), octokit = import_github2.getOctokit(token);
-  import_core3.info(`Searching for existing SLO comment in PR #${pull}...`);
+  let token = getInput("github_token"), octokit = getOctokit(token);
+  info(`Searching for existing SLO comment in PR #${pull}...`);
   let { data: comments } = await octokit.rest.issues.listComments({
     issue_number: pull,
-    owner: import_github2.context.repo.owner,
-    repo: import_github2.context.repo.repo
+    owner: context.repo.owner,
+    repo: context.repo.repo
   });
   for (let comment of comments)
     if (comment.body?.includes("\uD83C\uDF0B SLO Test Results"))
-      return import_core3.info(`Found existing comment: ${comment.id}`), comment.id;
+      return info(`Found existing comment: ${comment.id}`), comment.id;
   return null;
 }
 async function createOrUpdateComment(pull, body) {
-  let token = import_core3.getInput("github_token"), octokit = import_github2.getOctokit(token), existingId = await findExistingComment(pull);
+  let token = getInput("github_token"), octokit = getOctokit(token), existingId = await findExistingComment(pull);
   if (existingId) {
-    import_core3.info(`Updating existing comment ${existingId}...`);
+    info(`Updating existing comment ${existingId}...`);
     let { data } = await octokit.rest.issues.updateComment({
       comment_id: existingId,
-      owner: import_github2.context.repo.owner,
-      repo: import_github2.context.repo.repo,
+      owner: context.repo.owner,
+      repo: context.repo.repo,
       body
     });
-    return import_core3.debug(`Comment updated: ${data.html_url}`), { url: data.html_url, id: data.id };
+    return debug(`Comment updated: ${data.html_url}`), { url: data.html_url, id: data.id };
   } else {
-    import_core3.info("Creating new comment...");
+    info("Creating new comment...");
     let { data } = await octokit.rest.issues.createComment({
       issue_number: pull,
-      owner: import_github2.context.repo.owner,
-      repo: import_github2.context.repo.repo,
+      owner: context.repo.owner,
+      repo: context.repo.repo,
       body
     });
-    return import_core3.debug(`Comment created: ${data.html_url}`), { url: data.html_url, id: data.id };
+    return debug(`Comment created: ${data.html_url}`), { url: data.html_url, id: data.id };
   }
 }
 
@@ -1297,14 +1297,14 @@ async function main() {
   let cwd = path3.join(process.cwd(), ".slo-reports");
   await fs3.mkdir(cwd, { recursive: !0 });
   let runArtifacts = await downloadRunArtifacts(cwd);
-  if (import_core4.info(`Found ${runArtifacts.size} artifacts: ${[...runArtifacts.keys()].join(", ")}`), runArtifacts.size === 0) {
-    import_core4.setFailed("No workload artifacts found in current run");
+  if (info(`Found ${runArtifacts.size} artifacts: ${[...runArtifacts.keys()].join(", ")}`), runArtifacts.size === 0) {
+    setFailed("No workload artifacts found in current run");
     return;
   }
-  let pull = import_github3.context.issue.number, reports = [], thresholds = await loadThresholdConfig(import_core4.getInput("thresholds_yaml"), import_core4.getInput("thresholds_yaml_path"));
+  let pull = context.issue.number, reports = [], thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path"));
   for (let [, artifact] of runArtifacts) {
     if (!artifact.metadataPath || !artifact.metricsPath || !artifact.eventsPath) {
-      import_core4.info(`Skipping artifact ${artifact.name}: missing required files`);
+      info(`Skipping artifact ${artifact.name}: missing required files`);
       continue;
     }
     let events = loadChaosEvents(await fs3.readFile(artifact.eventsPath, "utf-8")), metrics = loadCollectedMetrics(await fs3.readFile(artifact.metricsPath, "utf-8")), metadata = JSON.parse(await fs3.readFile(artifact.metadataPath, "utf-8"));
@@ -1324,15 +1324,15 @@ async function main() {
     await createPullRequestComment(pull, reports);
 }
 async function createWorkloadCheck(name, commit, comparison, thresholds, reportURL) {
-  let token = import_core4.getInput("github_token"), octokit = import_github3.getOctokit(token), evaluation = evaluateWorkloadThresholds(comparison.metrics, thresholds), conclusion = "success";
+  let token = getInput("github_token"), octokit = getOctokit(token), evaluation = evaluateWorkloadThresholds(comparison.metrics, thresholds), conclusion = "success";
   if (evaluation.overall === "failure")
     conclusion = "failure";
   if (evaluation.overall === "warning")
     conclusion = "neutral";
   let title = generateCheckTitle(comparison, evaluation), summary = generateCheckSummary(comparison, evaluation, reportURL), { data } = await octokit.rest.checks.create({
     name,
-    repo: import_github3.context.repo.repo,
-    owner: import_github3.context.repo.owner,
+    repo: context.repo.repo,
+    owner: context.repo.owner,
     head_sha: commit,
     status: "completed",
     conclusion,
@@ -1341,11 +1341,11 @@ async function createWorkloadCheck(name, commit, comparison, thresholds, reportU
       summary
     }
   });
-  return import_core4.debug(`Created check "${name}" with conclusion: ${conclusion}, url: ${data.html_url}`), { id: data.id, url: data.html_url };
+  return debug(`Created check "${name}" with conclusion: ${conclusion}, url: ${data.html_url}`), { id: data.id, url: data.html_url };
 }
 async function createWorkloadHTMLReport(cwd, reports) {
-  import_core4.info("\uD83D\uDCDD Generating HTML reports...");
-  let artifactClient = new import_artifact2.DefaultArtifactClient, htmlFiles = [];
+  info("\uD83D\uDCDD Generating HTML reports...");
+  let artifactClient = new DefaultArtifactClient, htmlFiles = [];
   for (let report of reports) {
     let htmlData = {
       workload: report.workload,
@@ -1361,12 +1361,12 @@ async function createWorkloadHTMLReport(cwd, reports) {
     await fs3.writeFile(htmlPath, html, { encoding: "utf-8" }), htmlFiles.push({ workload: report.workload, path: htmlPath });
     let { id } = await artifactClient.uploadArtifact(report.workload + "-html-report", [htmlPath], cwd, {
       retentionDays: 30
-    }), runId = import_github3.context.runId.toString();
-    report.reportUrl = `https://github.com/${import_github3.context.repo.owner}/${import_github3.context.repo.repo}/actions/runs/${runId}/artifacts/${id}`;
+    }), runId = context.runId.toString();
+    report.reportUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${id}`;
   }
 }
 async function createPullRequestComment(issue, reports) {
-  import_core4.info("\uD83D\uDCAC Creating/updating PR comment...");
+  info("\uD83D\uDCAC Creating/updating PR comment...");
   let body = generateCommentBody(reports.map((r) => ({
     workload: r.workload,
     comparison: r.comparison,

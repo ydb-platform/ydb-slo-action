@@ -3,27 +3,26 @@ import {
   getComposeProfiles,
   getContainerIp,
   uploadArtifacts
-} from "../main-jq95dajc.js";
+} from "../main-mk8n9v09.js";
 import {
   compareWorkloadMetrics,
   formatChange,
   formatValue,
   loadMetricConfig
-} from "../main-d4a954td.js";
+} from "../main-bzx26vvv.js";
 import {
-  __toESM,
-  require_core,
-  require_exec
-} from "../main-1qcptng8.js";
+  debug,
+  exec,
+  getInput,
+  getState,
+  info,
+  summary
+} from "../main-st7zz2z8.js";
 
 // init/post.ts
-var import_core3 = __toESM(require_core(), 1), import_exec = __toESM(require_exec(), 1);
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-
-// init/lib/alerts.ts
-var import_core = __toESM(require_core(), 1);
 
 // init/lib/prometheus.ts
 async function queryInstant(params) {
@@ -55,7 +54,7 @@ async function queryRange(params) {
 
 // init/lib/alerts.ts
 async function collectAlertsFromPrometheus(url, start, end, step = "15s") {
-  import_core.debug('Querying alerts: ALERTS{alertstate="firing"}');
+  debug('Querying alerts: ALERTS{alertstate="firing"}');
   let response = await queryRange({
     url,
     query: 'ALERTS{alertstate="firing"}',
@@ -64,9 +63,9 @@ async function collectAlertsFromPrometheus(url, start, end, step = "15s") {
     step
   });
   if (response.status !== "success" || !response.data)
-    return import_core.debug(`No alerts data: ${response.error || "empty response"}`), [];
+    return debug(`No alerts data: ${response.error || "empty response"}`), [];
   let alerts = parseAlertsFromRange(response.data.result, step);
-  return import_core.debug(`Collected ${alerts.length} alerts`), alerts;
+  return debug(`Collected ${alerts.length} alerts`), alerts;
 }
 function parseAlertsFromRange(results, step) {
   let alerts = [], stepMs = parseStepToMs(step);
@@ -167,10 +166,9 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
 }
 
 // init/lib/summary.ts
-var import_core2 = __toESM(require_core(), 1);
 async function writeJobSummary(comparison) {
   let statusEmoji = comparison.summary.regressions > 0 ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
-  import_core2.summary.addHeading(`${statusEmoji} ${comparison.workload}`, 3);
+  summary.addHeading(`${statusEmoji} ${comparison.workload}`, 3);
   let matrix = [
     [
       { data: "Metric", header: !0 },
@@ -185,13 +183,13 @@ async function writeJobSummary(comparison) {
       m.baseline.available ? formatChange(m.change.percent, m.change.direction) : "N/A"
     ])
   ];
-  import_core2.summary.addTable(matrix), import_core2.summary.addBreak(), await import_core2.summary.write();
+  summary.addTable(matrix), summary.addBreak(), await summary.write();
 }
 
 // init/post.ts
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function post() {
-  let cwd = import_core3.getState("cwd"), workload = import_core3.getState("workload"), logsPath = path.join(cwd, `${workload}-logs.txt`), alertsPath = path.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path.join(cwd, `${workload}-metadata.json`), logsContent = await collectLogs();
+  let cwd = getState("cwd"), workload = getState("workload"), logsPath = path.join(cwd, `${workload}-logs.txt`), alertsPath = path.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path.join(cwd, `${workload}-metadata.json`), logsContent = await collectLogs();
   await fs.writeFile(logsPath, logsContent, { encoding: "utf-8" });
   let alertsContent = await collectAlerts();
   await fs.writeFile(alertsPath, alertsContent, { encoding: "utf-8" });
@@ -200,7 +198,7 @@ async function post() {
   let metadataContent = await collectMetadata();
   await fs.writeFile(metadataPath, metadataContent, { encoding: "utf-8" });
   let profiles = await getComposeProfiles(cwd);
-  await import_exec.exec("docker", ["compose", "-f", "compose.yml", "down"], {
+  await exec("docker", ["compose", "-f", "compose.yml", "down"], {
     cwd: path.resolve(process.env.GITHUB_ACTION_PATH, "deploy"),
     env: {
       ...process.env,
@@ -209,27 +207,27 @@ async function post() {
   }), await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath], cwd), await writeWorkloadSummary(metricsContent);
 }
 async function collectLogs() {
-  import_core3.info("Collecting logs...");
-  let cwd = import_core3.getState("cwd");
+  info("Collecting logs...");
+  let cwd = getState("cwd");
   return await collectComposeLogs(cwd);
 }
 async function collectAlerts() {
-  import_core3.info("Collecting alerts from Prometheus...");
-  let start = new Date(import_core3.getState("start")), finish = import_core3.getState("finish") ? new Date(import_core3.getState("finish")) : /* @__PURE__ */ new Date, prometheusIp = await getContainerIp("ydb-prometheus"), prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : "http://prometheus:9090";
-  return import_core3.debug(`Prometheus URL for alerts: ${prometheusUrl}`), (await collectAlertsFromPrometheus(prometheusUrl, start, finish)).map((a) => JSON.stringify(a)).join(`
+  info("Collecting alerts from Prometheus...");
+  let start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, prometheusIp = await getContainerIp("ydb-prometheus"), prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : "http://prometheus:9090";
+  return debug(`Prometheus URL for alerts: ${prometheusUrl}`), (await collectAlertsFromPrometheus(prometheusUrl, start, finish)).map((a) => JSON.stringify(a)).join(`
 `);
 }
 async function collectMetrics() {
-  import_core3.info("Collecting metrics...");
-  let start = new Date(import_core3.getState("start")), finish = import_core3.getState("finish") ? new Date(import_core3.getState("finish")) : /* @__PURE__ */ new Date, prometheusIp = await getContainerIp("ydb-prometheus"), prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : "http://prometheus:9090";
-  import_core3.debug(`Prometheus URL: ${prometheusUrl}`);
-  let config = await loadMetricConfig(import_core3.getInput("metrics_yaml"), import_core3.getInput("metrics_yaml_path"));
+  info("Collecting metrics...");
+  let start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, prometheusIp = await getContainerIp("ydb-prometheus"), prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : "http://prometheus:9090";
+  debug(`Prometheus URL: ${prometheusUrl}`);
+  let config = await loadMetricConfig(getInput("metrics_yaml"), getInput("metrics_yaml_path"));
   return (await collectMetricsFromPrometheus(prometheusUrl, start, finish, config)).map((m) => JSON.stringify(m)).join(`
 `);
 }
 async function collectMetadata() {
-  import_core3.info("Saving metadata...");
-  let pull = import_core3.getState("pull"), commit = import_core3.getState("commit"), start = new Date(import_core3.getState("start")), finish = import_core3.getState("finish") ? new Date(import_core3.getState("finish")) : /* @__PURE__ */ new Date, duration = finish.getTime() - start.getTime(), workload = import_core3.getState("workload"), workload_current_ref = import_core3.getInput("workload_current_ref"), workload_baseline_ref = import_core3.getInput("workload_baseline_ref");
+  info("Saving metadata...");
+  let pull = getState("pull"), commit = getState("commit"), start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, duration = finish.getTime() - start.getTime(), workload = getState("workload"), workload_current_ref = getInput("workload_current_ref"), workload_baseline_ref = getInput("workload_baseline_ref");
   return JSON.stringify({
     pull,
     commit,
@@ -244,8 +242,8 @@ async function collectMetadata() {
   });
 }
 async function writeWorkloadSummary(metricsContent) {
-  import_core3.info("Writing Job Summary...");
-  let workload = import_core3.getState("workload"), currentRef = import_core3.getInput("workload_current_ref"), baselineRef = import_core3.getInput("workload_baseline_ref"), metrics = metricsContent.split(`
+  info("Writing Job Summary...");
+  let workload = getState("workload"), currentRef = getInput("workload_current_ref"), baselineRef = getInput("workload_baseline_ref"), metrics = metricsContent.split(`
 `).filter((line) => line.trim().length > 0).map((line) => JSON.parse(line)), comparison = compareWorkloadMetrics(workload, metrics, currentRef, baselineRef, "avg");
   await writeJobSummary(comparison);
 }
