@@ -12,7 +12,7 @@ import { context } from '@actions/github'
 export interface WorkloadArtifacts {
 	name: string
 	logsPath: string
-	eventsPath: string
+	alertsPath: string
 	metricsPath: string
 	metadataPath: string
 }
@@ -94,8 +94,8 @@ export async function downloadRunArtifacts(destinationPath: string): Promise<Map
 
 			if (basename.endsWith('-logs.txt')) {
 				group.logsPath = file
-			} else if (basename.endsWith('-events.jsonl')) {
-				group.eventsPath = file
+			} else if (basename.endsWith('-alerts.jsonl')) {
+				group.alertsPath = file
 			} else if (basename.endsWith('-metrics.jsonl')) {
 				group.metricsPath = file
 			} else if (basename.endsWith('-metadata.json')) {

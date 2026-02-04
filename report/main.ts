@@ -7,14 +7,15 @@ import { debug, getInput, info, setFailed } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
 
 import { compareWorkloadMetrics, type WorkloadComparison } from '../shared/analysis.js'
+import type { CollectedAlert } from '../shared/alerts.js'
 import type { FormattedEvent } from '../shared/events.js'
 import type { TestMetadata } from '../shared/metadata.js'
 import type { CollectedMetric } from '../shared/metrics.js'
 import { evaluateWorkloadThresholds, loadThresholdConfig, type ThresholdConfig } from '../shared/thresholds.js'
+import { formatAlertsForVisualization, loadCollectedAlerts } from './lib/alerts.js'
 import { downloadRunArtifacts } from './lib/artifacts.js'
 import { generateCheckSummary, generateCheckTitle } from './lib/checks.js'
 import { createOrUpdateComment, generateCommentBody } from './lib/comment.js'
-import { loadChaosEvents } from './lib/events.js'
 import { generateHTMLReport, type HTMLReportData } from './lib/html.js'
 import { loadCollectedMetrics } from './lib/metrics.js'
 
@@ -22,7 +23,7 @@ process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta
 
 type WorkloadReport = {
 	workload: string
-	events: FormattedEvent[]
+	alerts: CollectedAlert[]
 	metrics: CollectedMetric[]
 	metadata: TestMetadata
 	thresholds: ThresholdConfig
@@ -49,12 +50,12 @@ async function main() {
 	let thresholds = await loadThresholdConfig(getInput('thresholds_yaml'), getInput('thresholds_yaml_path'))
 
 	for (let [, artifact] of runArtifacts) {
-		if (!artifact.metadataPath || !artifact.metricsPath || !artifact.eventsPath) {
+		if (!artifact.metadataPath || !artifact.metricsPath || !artifact.alertsPath) {
 			info(`Skipping artifact ${artifact.name}: missing required files`)
 			continue
 		}
 
-		let events: FormattedEvent[] = loadChaosEvents(await fs.readFile(artifact.eventsPath, 'utf-8'))
+		let alerts: CollectedAlert[] = loadCollectedAlerts(await fs.readFile(artifact.alertsPath, 'utf-8'))
 		let metrics: CollectedMetric[] = loadCollectedMetrics(await fs.readFile(artifact.metricsPath, 'utf-8'))
 		let metadata = JSON.parse(await fs.readFile(artifact.metadataPath, 'utf-8')) as TestMetadata
 
@@ -73,7 +74,7 @@ async function main() {
 
 		let report: WorkloadReport = {
 			workload: metadata.workload,
-			events,
+			alerts,
 			metrics,
 			metadata,
 			thresholds,
@@ -140,7 +141,7 @@ async function createWorkloadHTMLReport(cwd: string, reports: WorkloadReport[]) 
 			workload: report.workload,
 			comparison: report.comparison,
 			metrics: report.metrics,
-			events: report.events,
+			events: formatAlertsForVisualization(report.alerts),
 			currentRef: report.metadata.workload_current_ref || 'current',
 			baselineRef: report.metadata.workload_baseline_ref || 'baseline',
 			prNumber: report.metadata.pull!,
