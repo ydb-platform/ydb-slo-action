@@ -10,11 +10,11 @@ nodeForChaos=$(get_random_database_node)
 echo "Selected node: ${nodeForChaos}"
 
 echo "Restarting with 0s timeout (instant kill)..."
-event_start "restart-${nodeForChaos}"
+chaos_inject "instant-restart" "${nodeForChaos}"
 docker restart "${nodeForChaos}" -t 0
 
 echo "Waiting for node to become healthy..."
 wait_container_healthy "${nodeForChaos}" || echo "WARNING: Node did not become healthy within timeout"
-event_end "restart-${nodeForChaos}" "${nodeForChaos} unavailable"
+chaos_recover "instant-restart" "${nodeForChaos}" "Node restarted"
 
 echo "Instant restart scenario completed"

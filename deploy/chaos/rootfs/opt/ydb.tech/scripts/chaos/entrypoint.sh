@@ -8,12 +8,6 @@ SCENARIOS_DIR="/opt/ydb.tech/chaos/scenarios"
 SCENARIO_DELAY="${CHAOS_SCENARIO_DELAY:-60}"
 INITIAL_DELAY="${CHAOS_INITIAL_DELAY:-0}"
 
-# Initialize events file
-if [ -f "$CHAOS_EVENTS_FILE" ]; then
-    rm "$CHAOS_EVENTS_FILE"
-fi
-touch "$CHAOS_EVENTS_FILE"
-
 # Wait before starting chaos scenarios to let other services initialize
 if [ "$INITIAL_DELAY" -gt 0 ]; then
     echo "Waiting ${INITIAL_DELAY}s before starting Chaos Monkey..."
@@ -22,7 +16,6 @@ fi
 
 log "Chaos Monkey started"
 log "Configuration: scenario_delay=${SCENARIO_DELAY}s"
-log "Events file: ${CHAOS_EVENTS_FILE}"
 echo ""
 
 if [ ! -d "$SCENARIOS_DIR" ]; then
