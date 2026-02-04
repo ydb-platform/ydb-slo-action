@@ -278,7 +278,6 @@ services:
       database-readiness:
         condition: service_completed_successfully
     profiles:
-      - workloads
       - workload-current
     labels:
       - ydb.node.type=workload
@@ -311,7 +310,6 @@ services:
       database-readiness:
         condition: service_completed_successfully
     profiles:
-      - workloads
       - workload-baseline
     labels:
       - ydb.node.type=workload

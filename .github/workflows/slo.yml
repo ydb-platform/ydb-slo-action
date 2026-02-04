@@ -136,3 +136,4 @@ jobs:
           workload_current_image: ydb-workload-current
           # workload_baseline_ref: ${{ steps.baseline.outputs.ref }}
           # workload_baseline_image: ydb-workload-baseline
+          disable_compose_profiles: workload-baseline
