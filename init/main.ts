@@ -95,7 +95,7 @@ async function waitForWorkloads(): Promise<void> {
 	let workloadCurrentImage = getInput('workload_current_image')
 	let workloadBaselineImage = getInput('workload_baseline_image') || ''
 	let workloadDuration = parseInt(getInput('workload_duration') || '60', 10)
-	let workloadTimeoutMs = (workloadDuration + 30) * 1000
+	let workloadTimeoutMs = (workloadDuration + 60) * 1000
 
 	debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms`)
 
@@ -111,7 +111,7 @@ async function waitForWorkloads(): Promise<void> {
 	if (workloadsToWait.length > 0) {
 		info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`)
 		info(`  - ${workloadsToWait.map((w) => w.name).join(', ')}`)
-		info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 30s buffer)`)
+		info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 60s buffer)`)
 
 		try {
 			await Promise.all(
