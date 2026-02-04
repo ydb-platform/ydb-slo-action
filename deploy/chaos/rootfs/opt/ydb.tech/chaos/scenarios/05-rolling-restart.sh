@@ -29,10 +29,10 @@ for node in $nodes; do
     echo "Waiting for ${node} to become healthy..."
     if wait_container_healthy "${node}"; then
         echo "${node} is healthy"
-        chaos_recover "rolling-restart" "${nodeForChaos}" "Node restarted"
+        chaos_recover "rolling-restart" "${node}" "Node restarted"
     else
         echo "WARNING: ${node} did not become healthy within 60s"
-        chaos_recover "rolling-restart" "${nodeForChaos}" "Node restarted (timeout)"
+        chaos_recover "rolling-restart" "${node}" "Node restarted (timeout)"
     fi
 
     node_num=$((node_num + 1))
