@@ -56,6 +56,7 @@ async function deployInfra(cwd: string, workload: string): Promise<void> {
 	let workloadBaselineImage = getInput('workload_baseline_image') || ''
 	let workloadBaselineCommand = getInput('workload_baseline_command') || ''
 
+	// Only activate workload profiles if images are provided
 	if (workloadCurrentImage) {
 		profiles.push('workload-current')
 	}

@@ -65,7 +65,7 @@ async function deployInfra(cwd, workload) {
 async function waitForWorkloads() {
   let start = /* @__PURE__ */ new Date;
   saveState("start", start.toISOString()), info(`Workloads started at ${start}`);
-  let workloadCurrentImage = getInput("workload_current_image"), workloadBaselineImage = getInput("workload_baseline_image") || "", workloadDuration = parseInt(getInput("workload_duration") || "60", 10), workloadTimeoutMs = (workloadDuration + 180) * 1000;
+  let workloadCurrentImage = getInput("workload_current_image"), workloadBaselineImage = getInput("workload_baseline_image") || "", workloadDuration = parseInt(getInput("workload_duration") || "60", 10), workloadTimeoutMs = (workloadDuration + 30) * 1000;
   debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms`);
   let workloadsToWait = [];
   if (workloadCurrentImage)
@@ -73,7 +73,7 @@ async function waitForWorkloads() {
   if (workloadBaselineImage)
     workloadsToWait.push({ name: "baseline", container: "ydb-workload-baseline" });
   if (workloadsToWait.length > 0) {
-    info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`), info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 180s buffer)`);
+    info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`), info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 30s buffer)`);
     try {
       await Promise.all(workloadsToWait.map((w) => waitForContainerCompletion({
         container: w.container,
