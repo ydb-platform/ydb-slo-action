@@ -5,10 +5,35 @@ set -e
 ENDPOINT="${YDB_ENDPOINT:-grpc://ydb:2136}"
 DATABASE="${YDB_DATABASE:-/Root/testdb}"
 
-# Workload parameters
+# Parse command-line arguments
+RATE=""
+THREADS=""
 DURATION="${WORKLOAD_DURATION:-60}"
-THREADS="${WORKLOAD_THREADS:-10}"
-RATE="${WORKLOAD_RATE:-1000}"
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--threads)
+			THREADS="$2"
+			shift 2
+			;;
+		--rate)
+			RATE="$2"
+			shift 2
+			;;
+		--duration)
+			DURATION="$2"
+			shift 2
+			;;
+		*)
+			# Pass unknown arguments to ydb workload
+			break
+			;;
+	esac
+done
+
+# Apply defaults if not provided
+RATE="${RATE:-1000}"
+THREADS="${THREADS:-1}"
 
 # OTLP parameters
 export OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://ydb-prometheus:9090/api/v1/otlp/v1/metrics}"
