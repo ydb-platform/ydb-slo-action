@@ -204,6 +204,21 @@ export async function waitForContainerCompletion(options: WaitForCompletionOptio
 			throw new Error(`Container ${container} exited with code ${exitCode}`)
 		}
 	} catch (error) {
-		throw new Error(`Failed to wait for container ${container}: ${String(error)}`)
+		// Get container status for debugging
+		let statusInfo = ''
+		try {
+			let statusChunks: string[] = []
+			await exec('docker', ['inspect', '-f', '{{.State.Status}} ({{.State.ExitCode}})', container], {
+				silent: true,
+				listeners: {
+					stdout: (data) => statusChunks.push(data.toString()),
+				},
+			})
+			statusInfo = ` [Status: ${statusChunks.join('').trim()}]`
+		} catch {
+			// Ignore errors getting status
+		}
+
+		throw new Error(`Failed to wait for container ${container}${statusInfo}: ${String(error)}`)
 	}
 }

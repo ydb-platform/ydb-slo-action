@@ -6,7 +6,7 @@
 
 **YDB SLO Action** helps you test your YDB SDK's reliability under real-world conditions. Instead of just running tests against a perfect database, this action:
 
-- 🚀 **Deploys a full YDB cluster** (1 storage + 3 database nodes)
+- 🚀 **Deploys a full YDB cluster** (1 storage + 5 database nodes)
 - 💥 **Introduces chaos** (random node failures, network issues, etc.)
 - 📊 **Collects metrics** via Prometheus during your tests
 - 📈 **Generates reports** comparing performance with your base branch
@@ -141,6 +141,55 @@ Want to track your own Prometheus queries? Provide custom metrics:
 
 Fork this repo and add your own chaos scripts to `deploy/chaos/scenarios/`. See existing scenarios for examples.
 
+## Developing Your Workload
+
+Your workload runs as a Docker container and receives these environment variables:
+
+**YDB Connection:**
+
+- `YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb` (recommended)
+- `YDB_ENDPOINT=grpc://ydb:2136` + `YDB_DATABASE=/Root/testdb` (legacy)
+
+**Workload Control:**
+
+- `WORKLOAD_DURATION` — duration in seconds (0 = unlimited)
+
+**Prometheus Endpoints:**
+
+- `PROMETHEUS_URL` — base URL
+- `PROMETHEUS_QUERY_URL` — for querying metrics
+- `PROMETHEUS_REMOTE_WRITE_URL` — for pushing metrics
+- `OTEL_EXPORTER_OTLP_ENDPOINT` — for OpenTelemetry OTLP
+
+### Required Metrics
+
+Your workload should expose these metrics for SLO reporting:
+
+```promql
+# Operation counters
+sdk_operations_total{operation_type="read|write", ref="current|baseline"}
+sdk_operations_success_total{operation_type="read|write", ref="current|baseline"}
+
+# Latency histogram
+sdk_operation_latency_seconds{operation_type="read|write", ref="current|baseline"}
+
+# Retry attempts
+sdk_retry_attempts_total{operation_type="read|write", ref="current|baseline"}
+```
+
+The `ref` label distinguishes between current and baseline runs.
+
+### Best Practices
+
+1. **Accept CLI arguments** — make your workload configurable via `WORKLOAD_CURRENT_COMMAND`
+2. **Use `YDB_CONNECTION_STRING`** — modern connection format
+3. **Push metrics regularly** — every 5-15 seconds
+4. **Respect `WORKLOAD_DURATION`** — exit gracefully when duration expires
+5. **Use OpenTelemetry** — `OTEL_EXPORTER_OTLP_ENDPOINT` is pre-configured
+6. **Handle failures gracefully** — temporary YDB failures are expected during chaos testing
+
+See `deploy/README.md` for full infrastructure documentation and `deploy/app/README.md` for the `netcheck` example workload.
+
 ## For Contributors: Getting Started
 
 Welcome! Here's how to start contributing to this project.
@@ -185,7 +234,7 @@ docker compose up -d
 
 This starts:
 
-- YDB cluster (1 storage + 3 database nodes)
+- YDB cluster (1 storage + 5 database nodes)
 - Prometheus on port 9090
 - Chaos monkey injecting faults
 
@@ -194,6 +243,70 @@ Stop everything with:
 ```bash
 docker compose down
 ```
+
+#### Using Custom Workloads
+
+The `deploy/compose.yml` supports workload containers with configurable environment variables:
+
+```bash
+# Run with default settings
+docker compose --profile workload-current up
+
+# Override workload duration (in seconds, 0 = unlimited)
+WORKLOAD_DURATION=300 docker compose --profile workload-current up
+
+# Use custom workload image
+WORKLOAD_CURRENT_IMAGE=my-custom-workload docker compose --profile workload-current up
+
+# Override workload command/arguments
+WORKLOAD_CURRENT_COMMAND="--threads 10 --duration 300" docker compose --profile workload-current up
+
+# Combine multiple options
+WORKLOAD_CURRENT_IMAGE=my-workload \
+WORKLOAD_CURRENT_COMMAND="--verbose --mode stress" \
+WORKLOAD_DURATION=300 \
+docker compose --profile workload-current up
+
+# Run both current and baseline workloads simultaneously
+WORKLOAD_CURRENT_IMAGE=my-workload:pr-123 \
+WORKLOAD_BASELINE_IMAGE=my-workload:main \
+WORKLOAD_CURRENT_COMMAND="--threads 20" \
+WORKLOAD_BASELINE_COMMAND="--threads 10" \
+docker compose --profile telemetry --profile workloads up
+```
+
+Or create a `.env` file in the `deploy/` directory:
+
+```bash
+# Copy example
+cp env.example .env
+
+# Edit with your values
+vim .env
+```
+
+**Available environment variables:**
+
+| Variable                    | Default                 | Description                                                  |
+| --------------------------- | ----------------------- | ------------------------------------------------------------ |
+| `WORKLOAD_DURATION`         | `0`                     | Workload duration in seconds (0 = unlimited)                 |
+| `WORKLOAD_CURRENT_IMAGE`    | `ydb-workload-current`  | Docker image for current workload                            |
+| `WORKLOAD_BASELINE_IMAGE`   | `ydb-workload-baseline` | Docker image for baseline workload                           |
+| `WORKLOAD_CURRENT_COMMAND`  | _(empty)_               | Override command for current workload (e.g., `--threads 10`) |
+| `WORKLOAD_BASELINE_COMMAND` | _(empty)_               | Override command for baseline workload                       |
+
+**Note:** The following are pre-configured in `compose.yml` and should not be overridden:
+
+- YDB connection:
+    - `YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb` — recommended connection string format
+    - `YDB_ENDPOINT=grpc://ydb:2136` and `YDB_DATABASE=/Root/testdb` — legacy format (still supported)
+- Prometheus endpoints:
+    - `PROMETHEUS_URL=http://ydb-prometheus:9090` — base URL
+    - `PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query` — for PromQL queries
+    - `PROMETHEUS_REMOTE_WRITE_URL=http://ydb-prometheus:9090/api/v1/write` — for pushing metrics
+    - `OTEL_EXPORTER_OTLP_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp` — for OpenTelemetry OTLP metrics
+
+See `deploy/env.example` for complete configuration options.
 
 ### Code Style
 
