@@ -519,10 +519,13 @@ var template_default = `<!doctype html>
 						.map((alert, idx) => {
 							const color = getAlertColor(alert.alertname, uniqueAlertNames)
 							const duration = (alert.duration_ms / 1000).toFixed(1)
+							const fault = alert.labels?.fault || alert.alertname
+							const node = alert.labels?.node
+							const description = node ? \`\${fault} on \${node}\` : fault
 							return \`
 						<div class="alert-item" style="--alert-color: \${color}" data-alert-idx="\${idx}">
 							<div class="alert-marker"></div>
-							<div class="alert-name">\${alert.alertname}</div>
+							<div class="alert-name">\${description}</div>
 							<div class="alert-time">\${formatTime(alert.epoch_ms)}</div>
 							<div class="alert-duration">\${duration}s</div>
 						</div>
@@ -532,7 +535,7 @@ var template_default = `<!doctype html>
 
 					alertsHTML = \`
 					<div class="alert-timeline">
-						<div class="alert-timeline-title">🚨 Alerts (\${metricAlerts.length})</div>
+						<div class="alert-timeline-title">Alerts (\${metricAlerts.length})</div>
 						<div class="alert-items">
 							\${alertItemsHTML}
 						</div>
