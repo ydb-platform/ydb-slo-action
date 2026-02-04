@@ -1,7 +1,7 @@
 x-runtime: &runtime
   platform: linux/amd64
   networks:
-    - ydb-net
+    - slo
 
 x-ydb-node: &ydb-node
   build:
@@ -14,7 +14,7 @@ x-ydb-node: &ydb-node
 name: ydb
 
 networks:
-  ydb-net:
+  slo:
     driver: bridge
     ipam:
       driver: default
@@ -31,7 +31,7 @@ services:
     container_name: ydb-storage-1
     command: ["--grpc-public-address-v4", "172.28.0.10"]
     networks:
-      ydb-net:
+      slo:
         ipv4_address: 172.28.0.10
     ports:
       - "8765"
@@ -46,7 +46,7 @@ services:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
     networks:
-      ydb-net:
+      slo:
         ipv4_address: 172.28.0.11
     labels:
       - ydb.node.type=database
@@ -66,7 +66,7 @@ services:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
     networks:
-      ydb-net:
+      slo:
         ipv4_address: 172.28.0.12
     labels:
       - ydb.node.type=database
@@ -86,7 +86,7 @@ services:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
     networks:
-      ydb-net:
+      slo:
         ipv4_address: 172.28.0.13
     labels:
       - ydb.node.type=database
@@ -106,7 +106,7 @@ services:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
     networks:
-      ydb-net:
+      slo:
         ipv4_address: 172.28.0.14
     labels:
       - ydb.node.type=database
@@ -126,7 +126,7 @@ services:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
     networks:
-      ydb-net:
+      slo:
         ipv4_address: 172.28.0.15
     labels:
       - ydb.node.type=database
