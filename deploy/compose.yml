@@ -25,9 +25,6 @@ networks:
       config:
         - subnet: 172.28.0.0/16
 
-volumes:
-  chaos-events:
-
 services:
   storage-1:
     <<: *ydb-node
@@ -223,9 +220,11 @@ services:
       - CHAOS_INITIAL_DELAY=30
       - CHAOS_SCENARIO_DELAY=60
       - CHAOS_EVENTS_FILE=/var/log/chaos-events.jsonl
+      - OTEL_SERVICE_NAME=chaos-monkey
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp/v1/metrics
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - chaos-events:/var/log
     depends_on:
       database-readiness:
         condition: service_completed_successfully
