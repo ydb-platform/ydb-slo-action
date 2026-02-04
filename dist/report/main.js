@@ -146,6 +146,39 @@ function evaluateWorkloadThresholds(comparisons, config) {
   return { overall, failures, warnings };
 }
 
+// report/lib/alerts.ts
+function loadCollectedAlerts(content) {
+  let alerts = [], lines = content.trim().split(`
+`);
+  for (let line of lines) {
+    if (!line.trim())
+      continue;
+    try {
+      let alert = JSON.parse(line);
+      alerts.push(alert);
+    } catch {
+      continue;
+    }
+  }
+  return alerts;
+}
+function formatAlertsForVisualization(alerts) {
+  return alerts.map((alert) => ({
+    icon: alert.duration_ms > 0 ? "⏱️" : "\uD83D\uDCCD",
+    label: formatAlertLabel(alert),
+    timestamp: alert.epoch_ms,
+    duration_ms: alert.duration_ms
+  }));
+}
+function formatAlertLabel(alert) {
+  let parts = [alert.alertname], relevantLabels = Object.entries(alert.labels).filter(([key]) => !["alertstate", "job", "instance"].includes(key));
+  if (relevantLabels.length > 0) {
+    let labelStr = relevantLabels.map(([k, v]) => `${k}=${v}`).join(", ");
+    parts.push(`(${labelStr})`);
+  }
+  return parts.join(" ");
+}
+
 // report/lib/artifacts.ts
 import * as fs2 from "node:fs";
 import * as path2 from "node:path";
@@ -195,8 +228,8 @@ async function downloadRunArtifacts(destinationPath) {
       let basename2 = path2.basename(file);
       if (basename2.endsWith("-logs.txt"))
         group.logsPath = file;
-      else if (basename2.endsWith("-events.jsonl"))
-        group.eventsPath = file;
+      else if (basename2.endsWith("-alerts.jsonl"))
+        group.alertsPath = file;
       else if (basename2.endsWith("-metrics.jsonl"))
         group.metricsPath = file;
       else if (basename2.endsWith("-metadata.json"))
@@ -314,36 +347,6 @@ async function createOrUpdateComment(pull, body) {
     });
     return debug(`Comment created: ${data.html_url}`), { url: data.html_url, id: data.id };
   }
-}
-
-// shared/events.ts
-function getEventIcon(hasDuration) {
-  return hasDuration ? "⏱️" : "\uD83D\uDCCD";
-}
-function formatChaosEvents(events) {
-  return events.map((event) => ({
-    icon: getEventIcon(!!event.duration_ms),
-    label: event.description,
-    timestamp: event.epoch_ms,
-    duration_ms: event.duration_ms
-  }));
-}
-
-// report/lib/events.ts
-function loadChaosEvents(content) {
-  let events = [], lines = content.trim().split(`
-`);
-  for (let line of lines) {
-    if (!line.trim())
-      continue;
-    try {
-      let event = JSON.parse(line);
-      events.push(event);
-    } catch {
-      continue;
-    }
-  }
-  return formatChaosEvents(events);
 }
 
 // report/lib/html.ts
@@ -1303,16 +1306,16 @@ async function main() {
   }
   let pull = context.issue.number, reports = [], thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path"));
   for (let [, artifact] of runArtifacts) {
-    if (!artifact.metadataPath || !artifact.metricsPath || !artifact.eventsPath) {
+    if (!artifact.metadataPath || !artifact.metricsPath || !artifact.alertsPath) {
       info(`Skipping artifact ${artifact.name}: missing required files`);
       continue;
     }
-    let events = loadChaosEvents(await fs3.readFile(artifact.eventsPath, "utf-8")), metrics = loadCollectedMetrics(await fs3.readFile(artifact.metricsPath, "utf-8")), metadata = JSON.parse(await fs3.readFile(artifact.metadataPath, "utf-8"));
+    let alerts = loadCollectedAlerts(await fs3.readFile(artifact.alertsPath, "utf-8")), metrics = loadCollectedMetrics(await fs3.readFile(artifact.metricsPath, "utf-8")), metadata = JSON.parse(await fs3.readFile(artifact.metadataPath, "utf-8"));
     if (metadata.pull && metadata.pull !== pull)
       pull = metadata.pull;
     let comparison = compareWorkloadMetrics(metadata.workload, metrics, metadata.workload_current_ref || "current", metadata.workload_baseline_ref || "baseline", "p95", thresholds.neutral_change_percent), report = {
       workload: metadata.workload,
-      events,
+      alerts,
       metrics,
       metadata,
       thresholds,
@@ -1351,7 +1354,7 @@ async function createWorkloadHTMLReport(cwd, reports) {
       workload: report.workload,
       comparison: report.comparison,
       metrics: report.metrics,
-      events: report.events,
+      events: formatAlertsForVisualization(report.alerts),
       currentRef: report.metadata.workload_current_ref || "current",
       baselineRef: report.metadata.workload_baseline_ref || "baseline",
       prNumber: report.metadata.pull,
