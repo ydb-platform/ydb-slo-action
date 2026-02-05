@@ -33,7 +33,7 @@ done
 
 # Apply defaults if not provided
 RATE="${RATE:-1000}"
-THREADS="${THREADS:-1}"
+THREADS="${THREADS:-10}"
 
 # OTLP parameters
 export OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://ydb-prometheus:9090/api/v1/otlp/v1/metrics}"
@@ -52,24 +52,28 @@ cleanup() {
 # Register cleanup on exit
 trap cleanup EXIT
 
-# Function to push metric via OTLP
-push_metric() {
-	local type=$1
-	local name=$2
-	local value=$3
-	local operation_type=$4
-	shift 4
+# Function to push metrics in one OTLP export (same timeline)
+push_metrics_batch() {
+	local operation_type=$1
+	local txs=$2
+	local retries=$3
+	local success=$4
+	local p50=$5
+	local p95=$6
+	local p99=$7
 
-	if ! command -v python3 >/dev/null 2>&1 || [ -z "$value" ]; then
+	if ! command -v python3 >/dev/null 2>&1; then
 		return
 	fi
 
-	python3 /usr/local/bin/otel_metric.py "$type" "$name" "$value" "ref=$WORKLOAD_REF" "operation_type=$operation_type" "$@" 2>/dev/null || true
+	python3 /usr/local/bin/otel_metric.py batch "$operation_type" "$txs" "$retries" "$success" "$p50" "$p95" "$p99" 2>/dev/null || true
 }
 
 # Function to process workload output
 process_workload() {
 	local operation_type=$1
+
+	push_metrics_batch "$operation_type" "0" "0" "0" "0" "0" "0"
 
 	while read -r line; do
 		# Print the line with prefix
@@ -93,24 +97,23 @@ process_workload() {
 			continue
 		fi
 
-		# Push counter metrics
-		push_metric "counter" "sdk_operations_total" "$txs" "$operation_type"
-		push_metric "counter" "sdk_retry_attempts_total" "$retries" "$operation_type"
-		push_metric "counter" "sdk_operations_success_total" "$((txs - errors))" "$operation_type"
+		local success=$((txs - errors))
+		local p50_seconds=""
+		local p95_seconds=""
+		local p99_seconds=""
 
-		# Push gauge metrics for latencies (in seconds)
 		if [ -n "$p50" ]; then
-			push_metric "gauge" "sdk_operation_latency_p50_seconds" "$(echo "scale=6; $p50 / 1000" | bc)" "$operation_type"
+			p50_seconds="$(echo "scale=6; $p50 / 1000" | bc)"
 		fi
 		if [ -n "$p95" ]; then
-			push_metric "gauge" "sdk_operation_latency_p95_seconds" "$(echo "scale=6; $p95 / 1000" | bc)" "$operation_type"
+			p95_seconds="$(echo "scale=6; $p95 / 1000" | bc)"
 		fi
 		if [ -n "$p99" ]; then
-			push_metric "gauge" "sdk_operation_latency_p99_seconds" "$(echo "scale=6; $p99 / 1000" | bc)" "$operation_type"
+			p99_seconds="$(echo "scale=6; $p99 / 1000" | bc)"
 		fi
 
-		# Small delay to ensure timestamp ordering
-		sleep 0.05
+		# Push all metrics in a single OTLP export
+		push_metrics_batch "$operation_type" "$txs" "$retries" "$success" "$p50_seconds" "$p95_seconds" "$p99_seconds"
 	done
 }
 
@@ -153,8 +156,11 @@ wait $READ_PID
 READ_EXIT=$?
 
 echo ""
-echo "Write workload exit code: $WRITE_EXIT"
 echo "Read workload exit code: $READ_EXIT"
+echo "Write workload exit code: $WRITE_EXIT"
+
+push_metrics_batch "read" "0" "0" "0" "0" "0" "0"
+push_metrics_batch "write" "0" "0" "0" "0" "0" "0"
 
 if [ $WRITE_EXIT -ne 0 ] || [ $READ_EXIT -ne 0 ]; then
 	echo "ERROR: One or more workloads failed"
