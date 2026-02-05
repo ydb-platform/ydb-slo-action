@@ -8,9 +8,11 @@ export type MetricType = 'range' | 'instant'
 
 export interface MetricDefinition {
 	name: string
+	title?: string
 	query: string
 	type?: MetricType
 	step?: string
+	unit?: string
 	round?: number
 }
 
@@ -42,7 +44,9 @@ export interface SeparatedSeries {
  */
 export type CollectedMetric = {
 	name: string
+	title?: string
 	query: string
+	unit?: string
 	round?: number
 } & (
 	| {
