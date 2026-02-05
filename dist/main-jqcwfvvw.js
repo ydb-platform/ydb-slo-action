@@ -2,7 +2,7 @@ import {
   debug,
   exec,
   warning
-} from "./main-st7zz2z8.js";
+} from "./main-qx9yp3g6.js";
 
 // shared/thresholds.ts
 import * as fs from "node:fs";
@@ -83,25 +83,37 @@ function findMatchingThreshold(metricName, config) {
   return null;
 }
 function evaluateThreshold(comparison, config) {
-  let threshold = findMatchingThreshold(comparison.name, config), severity = "success", reason;
+  let threshold = findMatchingThreshold(comparison.name, config), severity = "success", reason, thresholdDirection = threshold?.direction ?? "neutral", checkMin = thresholdDirection !== "lower_is_better", checkMax = thresholdDirection !== "higher_is_better";
   if (threshold) {
-    if (threshold.critical_min !== void 0 && comparison.current.value < threshold.critical_min)
+    if (checkMin && threshold.critical_min !== void 0 && comparison.current.value < threshold.critical_min)
       debug(`${comparison.name}: below critical_min (${comparison.current.value} < ${threshold.critical_min})`), severity = "failure", reason = `Value ${comparison.current.value.toFixed(2)} < critical min ${threshold.critical_min}`;
-    else if (threshold.critical_max !== void 0 && comparison.current.value > threshold.critical_max)
+    else if (checkMax && threshold.critical_max !== void 0 && comparison.current.value > threshold.critical_max)
       debug(`${comparison.name}: above critical_max (${comparison.current.value} > ${threshold.critical_max})`), severity = "failure", reason = `Value ${comparison.current.value.toFixed(2)} > critical max ${threshold.critical_max}`;
-    else if (threshold.warning_min !== void 0 && comparison.current.value < threshold.warning_min)
+    else if (checkMin && threshold.warning_min !== void 0 && comparison.current.value < threshold.warning_min)
       debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`), severity = "warning", reason = `Value ${comparison.current.value.toFixed(2)} < warning min ${threshold.warning_min}`;
-    else if (threshold.warning_max !== void 0 && comparison.current.value > threshold.warning_max)
+    else if (checkMax && threshold.warning_max !== void 0 && comparison.current.value > threshold.warning_max)
       debug(`${comparison.name}: above warning_max (${comparison.current.value} > ${threshold.warning_max})`), severity = "warning", reason = `Value ${comparison.current.value.toFixed(2)} > warning max ${threshold.warning_max}`;
   }
   if (!isNaN(comparison.change.percent)) {
-    let changePercent = Math.abs(comparison.change.percent), warningThreshold = threshold?.warning_change_percent ?? config.default.warning_change_percent, criticalThreshold = threshold?.critical_change_percent ?? config.default.critical_change_percent;
-    if (comparison.change.direction === "worse") {
+    let changePercent = Math.abs(comparison.change.percent), warningThreshold = threshold?.warning_change_percent ?? config.default.warning_change_percent, criticalThreshold = threshold?.critical_change_percent ?? config.default.critical_change_percent, directionHint = threshold?.direction ? ` (${threshold.direction.replace(/_/g, " ")})` : "", effectiveDirection = comparison.change.direction;
+    if (thresholdDirection !== "neutral") {
+      let currentValue = comparison.current.value, baselineValue = comparison.baseline.value;
+      if (!isNaN(currentValue) && !isNaN(baselineValue)) {
+        let neutralThreshold = config.neutral_change_percent;
+        if (changePercent < neutralThreshold)
+          effectiveDirection = "neutral";
+        else if (thresholdDirection === "lower_is_better")
+          effectiveDirection = currentValue > baselineValue ? "worse" : "better";
+        else if (thresholdDirection === "higher_is_better")
+          effectiveDirection = currentValue < baselineValue ? "worse" : "better";
+      }
+    }
+    if (effectiveDirection === "worse") {
       if (severity !== "failure") {
         if (changePercent > criticalThreshold)
-          severity = "failure", reason = `Regression ${changePercent.toFixed(2)}% > critical ${criticalThreshold}%`;
+          severity = "failure", reason = `Regression${directionHint} ${changePercent.toFixed(2)}% > critical ${criticalThreshold}%`;
         else if (severity !== "warning" && changePercent > warningThreshold)
-          severity = "warning", reason = `Regression ${changePercent.toFixed(2)}% > warning ${warningThreshold}%`;
+          severity = "warning", reason = `Regression${directionHint} ${changePercent.toFixed(2)}% > warning ${warningThreshold}%`;
       }
     }
   }

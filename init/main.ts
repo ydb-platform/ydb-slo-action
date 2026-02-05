@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { debug, getInput, info, saveState, setFailed, setOutput } from '@actions/core'
+import { debug, error, getInput, info, saveState, setFailed, setOutput } from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
@@ -123,15 +123,16 @@ async function waitForWorkloads(): Promise<void> {
 				)
 			)
 			info('All workloads completed successfully')
-		} catch (error) {
-			setFailed(`Workload failed: ${error}`)
-			throw error
+		} catch (err) {
+			error(`Workload failed: ${err}`)
 		}
 	}
 
 	let finish = new Date()
 	saveState('finish', finish.toISOString())
 	info(`Workloads finished at ${finish}`)
+
+	process.exit(0)
 }
 
 main()
