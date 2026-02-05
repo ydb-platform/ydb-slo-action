@@ -106,6 +106,16 @@ async function collectMetadata(): Promise<string> {
 	let content = JSON.stringify({
 		pull,
 		commit,
+		repo_url:
+			process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY
+				? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`
+				: undefined,
+		repo_full_name: process.env.GITHUB_REPOSITORY,
+		run_id: process.env.GITHUB_RUN_ID,
+		run_url:
+			process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+				? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+				: undefined,
 		workload,
 		workload_current_ref,
 		workload_baseline_ref,
