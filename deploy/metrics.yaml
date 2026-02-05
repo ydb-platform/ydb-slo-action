@@ -7,48 +7,62 @@ default:
   neutral_change_percent: 5.0 # Neutral change threshold
 
 metrics:
+  # Supported fields: name, title, query, type, step, unit, round
+  # title is used for HTML display name (pretty header), unit for formatting (Grafana-like): ms, s, %, B, B/s, ops/s
   # Read operations latency percentiles (milliseconds)
   - name: read_latency_p50_ms
+    unit: ms
     query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="read"})
 
   - name: read_latency_p95_ms
+    unit: ms
     query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="read"})
 
   - name: read_latency_p99_ms
+    unit: ms
     query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="read"})
 
   # Write operations latency percentiles (milliseconds)
   - name: write_latency_p50_ms
+    unit: ms
     query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="write"})
 
   - name: write_latency_p95_ms
+    unit: ms
     query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="write"})
 
   - name: write_latency_p99_ms
+    unit: ms
     query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="write"})
 
   # Read operations throughput
   - name: read_throughput
+    unit: ops/s
     query: sum by(ref) (rate(sdk_operations_total{operation_type="read"}[10s]) > 0)
 
   # Write operations throughput
   - name: write_throughput
+    unit: ops/s
     query: sum by(ref) (rate(sdk_operations_total{operation_type="write"}[10s]) > 0)
 
   # Read attempts throughput
   - name: read_attempts
+    unit: ops/s
     query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="read"}[10s]) > 0)
 
   # Write attempts throughput
   - name: write_attempts
+    unit: ops/s
     query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="write"}[10s]) > 0)
 
   # Read operations availability
   - name: read_availability
+    unit: "%"
     query: clamp_max(100 * sum by (ref) (rate(sdk_operations_success_total{operation_type="read"}[10s])) / sum by (ref) (rate(sdk_operations_total{operation_type="read"}[10s])), 100)
     round: 0.01
 
   # Write operations availability
   - name: write_availability
+    unit: "%"
     query: clamp_max(100 * sum by (ref) (rate(sdk_operations_success_total{operation_type="write"}[10s])) / sum by (ref) (rate(sdk_operations_total{operation_type="write"}[10s])), 100)
     round: 0.01

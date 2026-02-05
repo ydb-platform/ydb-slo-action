@@ -11,6 +11,7 @@ import { info } from '@actions/core'
 import type { CollectedAlert } from '../../shared/alerts.js'
 import type { CollectedMetric } from '../../shared/metrics.js'
 import type { TestMetadata } from '../../shared/metadata.js'
+import type { ThresholdConfig } from '../../shared/thresholds.js'
 
 import defaultTemplate from '../template.html' with { type: 'text' }
 
@@ -18,6 +19,8 @@ export interface ReportData {
 	meta: TestMetadata
 	alerts: CollectedAlert[]
 	metrics: CollectedMetric[]
+	evaluation?: unknown
+	thresholds?: ThresholdConfig | null
 }
 
 /**
@@ -47,8 +50,10 @@ export async function generateHTMLReport(
 	meta: TestMetadata,
 	alerts: CollectedAlert[],
 	metrics: CollectedMetric[],
-	templatePath?: string
+	templatePath?: string,
+	evaluation?: unknown,
+	thresholds?: ThresholdConfig | null
 ): Promise<string> {
 	let template = await loadTemplate(templatePath)
-	return injectData(template, { meta, alerts, metrics })
+	return injectData(template, { meta, alerts, metrics, evaluation, thresholds })
 }

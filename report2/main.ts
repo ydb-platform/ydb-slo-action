@@ -80,7 +80,7 @@ async function main() {
 		}
 
 		// Generate HTML report
-		let html = await generateHTMLReport(meta, alerts, metrics, templatePath)
+		let html = await generateHTMLReport(meta, alerts, metrics, templatePath, evaluation, thresholdsConfig)
 		let htmlPath = path.join(cwd, `${workload}-report.html`)
 		await fs.writeFile(htmlPath, html, 'utf-8')
 
