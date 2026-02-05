@@ -4,24 +4,73 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>SLO Report</title>
+		<script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+		<script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.3"></script>
 		<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.iife.min.js"></script>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.min.css" />
 		<style>
 			:root {
 				--bg-canvas: #111217;
-				--bg-panel: #18181b;
+				--bg-panel: #181b1f;
 				--bg-panel-hover: #212124;
-				--border: #2d2d30;
-				--text-primary: #d4d4d8;
-				--text-secondary: #a1a1aa;
-				--text-disabled: #71717a;
-				--current: #33b5e5;
-				--baseline: #b8b8b8;
-				--alert-red: #e02f44;
-				--alert-orange: #ff9830;
-				--alert-yellow: #fade2a;
-				--success: #73bf69;
-				--error: #e02f44;
+				--bg-nav: #111217;
+				--border: rgba(204, 204, 220, 0.12);
+				--text-primary: rgb(204, 204, 220);
+				--text-secondary: rgba(204, 204, 220, 0.65);
+				--text-disabled: rgba(204, 204, 220, 0.61);
+				--current: #6e9fff;
+				--baseline: rgba(204, 204, 220, 0.65);
+				--alert-red: #d10e5c;
+				--action-hover: rgba(204, 204, 220, 0.16);
+				--action-selected: rgba(204, 204, 220, 0.12);
+				--action-selected-border: #ff9900;
+				--secondary-bg: rgba(204, 204, 220, 0.1);
+				--threshold-success: #1a7f4b;
+				--threshold-warning: #ff9900;
+				--threshold-failure: #d10e5c;
+				--radius-sm: 2px;
+				--radius-md: 3px;
+				--radius-lg: 5px;
+				--tooltip-bg: #22252b;
+				--tooltip-border: rgba(204, 204, 220, 0.2);
+				--tooltip-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+				--nav-width: 220px;
+				--font-sans: 'Inter', 'Helvetica', 'Arial', sans-serif;
+				--font-mono: 'Roboto Mono', monospace;
+				--font-size-base: 14px;
+				--font-size-xs: 10px;
+				--font-size-sm: 12px;
+				--font-size-md: 14px;
+				--font-size-lg: 18px;
+				--font-weight-regular: 400;
+				--font-weight-semibold: 500;
+				--line-height-md: 1.5;
+			}
+
+			@media (prefers-color-scheme: light) {
+				:root {
+					--bg-canvas: #fbfbfb;
+					--bg-panel: #ffffff;
+					--bg-panel-hover: #f4f5f5;
+					--bg-nav: #fbfbfb;
+					--border: rgba(36, 41, 46, 0.12);
+					--text-primary: rgba(36, 41, 46, 1);
+					--text-secondary: rgba(36, 41, 46, 0.75);
+					--text-disabled: rgba(36, 41, 46, 0.65);
+					--current: #1f62e0;
+					--baseline: rgba(36, 41, 46, 0.75);
+					--alert-red: #e0226e;
+					--action-hover: rgba(36, 41, 46, 0.12);
+					--action-selected: rgba(36, 41, 46, 0.08);
+					--action-selected-border: #ff9900;
+					--secondary-bg: rgba(36, 41, 46, 0.08);
+					--threshold-success: #1b855e;
+					--threshold-warning: #ff9900;
+					--threshold-failure: #e0226e;
+					--tooltip-bg: #ffffff;
+					--tooltip-border: rgba(36, 41, 46, 0.2);
+					--tooltip-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+				}
 			}
 
 			* {
@@ -31,70 +80,144 @@
 			}
 
 			body {
-				font-family:
-					'Inter',
-					-apple-system,
-					BlinkMacSystemFont,
-					sans-serif;
+				font-family: var(--font-sans);
+				font-size: var(--font-size-base);
+				font-weight: var(--font-weight-regular);
 				background: var(--bg-canvas);
 				color: var(--text-primary);
+				line-height: var(--line-height-md);
+			}
+
+			/* Full-width header */
+			slo-report-header {
+				display: block;
+				background: var(--bg-panel);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-lg);
+				padding: 14px 18px;
+				margin-bottom: 20px;
+				width: 100%;
+				box-shadow: none;
+			}
+
+			.header-content {
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+			}
+
+			.header-top {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+			}
+
+			.header-title {
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+			}
+
+			.repo-line {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				font-size: var(--font-size-sm);
+				color: var(--text-secondary);
+			}
+
+			.repo-line a {
+				color: var(--text-secondary);
+				text-decoration: none;
+			}
+
+			.repo-line a:hover {
+				color: var(--text-primary);
+				text-decoration: underline;
+			}
+
+			.repo-sep {
+				color: var(--text-disabled);
+			}
+
+			slo-report-header h1 {
+				font-size: 21px;
+				font-weight: var(--font-weight-semibold);
+				margin: 0;
+			}
+
+			/* Layout with sidebar */
+			.layout {
+				display: grid;
+				grid-template-columns: var(--nav-width) 1fr;
+				min-height: 100vh;
+			}
+
+			/* Left navigation */
+			.nav {
+				width: var(--nav-width);
+				background: var(--bg-nav);
+				border-right: 1px solid var(--border);
+				padding: 10px 8px;
+				position: sticky;
+				height: 100vh;
+				top: 0;
+				left: 0;
+				bottom: 0;
+				overflow-y: auto;
+				flex-shrink: 0;
+			}
+
+			.nav-title {
+				font-size: var(--font-size-xs);
+				font-weight: var(--font-weight-semibold);
+				text-transform: uppercase;
+				letter-spacing: 0.8px;
+				color: var(--text-disabled);
+				padding: 6px 16px;
+				margin-bottom: 6px;
+			}
+
+			.nav-item {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 8px 10px;
+				margin: 2px 6px;
+				font-size: var(--font-size-sm);
+				font-weight: var(--font-weight-semibold);
+				line-height: 1.4;
+				color: var(--text-secondary);
+				text-decoration: none;
+				border-radius: var(--radius-md);
+				transition: all 0.15s;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.nav-item:hover {
+				background: var(--action-hover);
+				color: var(--text-primary);
+			}
+
+			.nav-item.active {
+				background: var(--action-selected);
+				color: var(--text-primary);
+				box-shadow: inset 3px 0 0 var(--action-selected-border);
+			}
+
+			/* Main content */
+			.main {
+				flex: 1;
 				padding: 20px;
-				line-height: 1.5;
+				min-width: 0;
 			}
 
 			.container {
 				max-width: 1600px;
 				margin: 0 auto;
-			}
-
-			.header {
-				background: var(--bg-panel);
-				border: 1px solid var(--border);
-				border-radius: 4px;
-				padding: 24px;
-				margin-bottom: 20px;
-			}
-
-			.header h1 {
-				font-size: 24px;
-				font-weight: 500;
-				margin-bottom: 12px;
-			}
-
-			.meta {
-				display: flex;
-				gap: 24px;
-				flex-wrap: wrap;
-				font-size: 13px;
-				color: var(--text-secondary);
-			}
-
-			.meta-item {
-				display: flex;
-				align-items: center;
-				gap: 6px;
-			}
-
-			.ref-badge {
-				display: inline-flex;
-				align-items: center;
-				padding: 2px 8px;
-				border-radius: 2px;
-				font-family: 'Monaco', 'Courier New', monospace;
-				font-size: 12px;
-				font-weight: 500;
-			}
-
-			.ref-badge.current {
-				background: rgba(51, 181, 229, 0.15);
-				color: var(--current);
-				border: 1px solid rgba(51, 181, 229, 0.3);
-			}
-
-			.ref-badge.baseline {
-				background: rgba(184, 184, 184, 0.15);
-				color: var(--baseline);
-				border: 1px solid rgba(184, 184, 184, 0.3);
 			}
 
 			.metrics-grid {
@@ -105,13 +228,17 @@
 			.metric-panel {
 				background: var(--bg-panel);
 				border: 1px solid var(--border);
-				border-radius: 4px;
-				padding: 16px;
+				border-radius: var(--radius-lg);
+				padding: 14px 16px;
+				box-shadow: none;
 				transition: border-color 0.2s;
+				scroll-margin-top: 20px;
 			}
 
 			.metric-panel:hover {
-				border-color: #3d3d40;
+				background: var(--bg-panel);
+				border-color: var(--border);
+				box-shadow: none;
 			}
 
 			.metric-header {
@@ -121,20 +248,79 @@
 				margin-bottom: 16px;
 			}
 
+			.metric-title-row {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				min-width: 0;
+			}
+
+			.threshold-badge {
+				display: inline-flex;
+				align-items: center;
+				padding: 2px 6px;
+				border-radius: var(--radius-sm);
+				font-size: var(--font-size-xs);
+				font-weight: var(--font-weight-semibold);
+				letter-spacing: 0.4px;
+				text-transform: uppercase;
+				border: 1px solid var(--border);
+				background: var(--secondary-bg);
+				color: var(--text-secondary);
+			}
+
+			.threshold-badge.success {
+				color: var(--threshold-success);
+			}
+
+			.threshold-badge.warning {
+				color: var(--threshold-warning);
+			}
+
+			.threshold-badge.failure {
+				color: var(--threshold-failure);
+			}
+
+			.threshold-dot {
+				width: 6px;
+				height: 6px;
+				border-radius: 999px;
+				background: var(--text-disabled);
+				flex-shrink: 0;
+			}
+
+			.threshold-dot.success {
+				background: var(--threshold-success);
+			}
+
+			.threshold-dot.warning {
+				background: var(--threshold-warning);
+			}
+
+			.threshold-dot.failure {
+				background: var(--threshold-failure);
+			}
+
+			.nav-label {
+				min-width: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
 			.metric-title {
-				font-size: 14px;
-				font-weight: 500;
+				font-size: var(--font-size-md);
+				font-weight: var(--font-weight-semibold);
 				color: var(--text-primary);
 			}
 
 			.metric-type {
-				font-size: 11px;
+				font-size: var(--font-size-xs);
 				color: var(--text-disabled);
 				text-transform: uppercase;
 				letter-spacing: 0.5px;
 				padding: 2px 6px;
-				background: rgba(255, 255, 255, 0.05);
-				border-radius: 2px;
+				background: var(--secondary-bg);
+				border-radius: var(--radius-sm);
 			}
 
 			.chart-container {
@@ -145,168 +331,165 @@
 				margin: 0 !important;
 			}
 
-			.alert-timeline {
-				margin-top: 12px;
-				padding-top: 12px;
-				border-top: 1px solid var(--border);
-			}
-
-			.alert-timeline-title {
-				font-size: 12px;
-				color: var(--text-secondary);
-				margin-bottom: 8px;
-				font-weight: 500;
-			}
-
-			.alert-items {
-				display: flex;
-				flex-direction: column;
-				gap: 6px;
-			}
-
-			.alert-item {
-				display: flex;
-				align-items: center;
-				gap: 10px;
-				padding: 6px 10px;
-				background: rgba(255, 255, 255, 0.03);
-				border-radius: 2px;
-				border-left: 2px solid var(--alert-color);
-				font-size: 12px;
-				transition: background 0.2s;
-				cursor: pointer;
-			}
-
-			.alert-item:hover {
-				background: rgba(255, 255, 255, 0.06);
-			}
-
-			/* Tooltip for chart annotations */
-			.annotation-tooltip {
-				position: fixed;
-				background: var(--bg-panel);
-				border: 1px solid var(--border);
-				border-radius: 4px;
-				padding: 8px 12px;
-				font-size: 12px;
-				pointer-events: none;
-				z-index: 1000;
-				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-				max-width: 280px;
-			}
-
-			.annotation-tooltip-title {
-				font-weight: 500;
-				color: var(--text-primary);
-				margin-bottom: 4px;
-			}
-
-			.annotation-tooltip-time {
-				color: var(--text-secondary);
-				font-family: 'Monaco', 'Courier New', monospace;
-				font-size: 11px;
-			}
-
-			.alert-marker {
-				width: 6px;
-				height: 6px;
-				border-radius: 50%;
-				background: var(--alert-color);
-				flex-shrink: 0;
-			}
-
-			/* Values tooltip on hover */
-			.values-tooltip {
-				position: fixed;
-				background: var(--bg-panel);
-				border: 1px solid var(--border);
-				border-radius: 4px;
-				padding: 8px 12px;
-				font-size: 12px;
+			/* Unified tooltip */
+			.unified-tooltip {
+				position: absolute;
+				background: var(--tooltip-bg);
+				border: 1px solid var(--tooltip-border);
+				border-radius: var(--radius-md);
+				padding: 10px 14px;
+				font-size: var(--font-size-sm);
+				font-family: var(--font-sans);
+				font-variant-numeric: tabular-nums;
 				pointer-events: none;
 				z-index: 1001;
-				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-				min-width: 140px;
+				box-shadow: var(--tooltip-shadow);
+				min-width: 160px;
+				max-width: 320px;
 			}
 
-			.values-tooltip-time {
+			.tooltip-time {
 				color: var(--text-secondary);
-				font-family: 'Monaco', 'Courier New', monospace;
-				font-size: 11px;
-				margin-bottom: 6px;
-				padding-bottom: 6px;
+				font-family: var(--font-mono);
+				font-size: var(--font-size-xs);
+				margin-bottom: 8px;
+				padding-bottom: 8px;
 				border-bottom: 1px solid var(--border);
 			}
 
-			.values-tooltip-row {
+			.tooltip-values {
+				margin-bottom: 0;
+			}
+
+			.tooltip-values.has-alerts {
+				margin-bottom: 10px;
+				padding-bottom: 10px;
+				border-bottom: 1px solid var(--border);
+			}
+
+			.tooltip-row {
 				display: flex;
 				align-items: center;
 				gap: 8px;
 				margin-top: 4px;
 			}
 
-			.values-tooltip-color {
+			.tooltip-row:first-child {
+				margin-top: 0;
+			}
+
+			.tooltip-color {
 				width: 10px;
 				height: 3px;
 				border-radius: 1px;
 				flex-shrink: 0;
 			}
 
-			.values-tooltip-label {
+			.tooltip-label {
 				color: var(--text-secondary);
 				flex: 1;
 			}
 
-			.values-tooltip-value {
+			.tooltip-value {
 				color: var(--text-primary);
-				font-weight: 500;
-				font-family: 'Monaco', 'Courier New', monospace;
+				font-weight: var(--font-weight-semibold);
+				font-family: var(--font-mono);
 			}
 
-			.alert-name {
-				flex: 1;
-				color: var(--text-primary);
-				font-weight: 500;
-			}
-
-			.alert-time {
+			.tooltip-alerts-title {
+				font-size: var(--font-size-xs);
+				font-weight: var(--font-weight-semibold);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
 				color: var(--text-disabled);
-				font-family: 'Monaco', 'Courier New', monospace;
-				font-size: 11px;
+				margin-bottom: 6px;
 			}
 
-			.alert-duration {
-				color: var(--text-secondary);
-				font-size: 11px;
-				padding: 2px 6px;
-				background: rgba(255, 255, 255, 0.05);
-				border-radius: 2px;
-			}
-
-			.legend {
-				display: flex;
-				gap: 16px;
-				margin-bottom: 16px;
-				font-size: 12px;
-			}
-
-			.legend-item {
+			.tooltip-alert {
 				display: flex;
 				align-items: center;
 				gap: 6px;
+				margin-top: 4px;
+				font-size: var(--font-size-xs);
+			}
+
+			.tooltip-alert:first-of-type {
+				margin-top: 0;
+			}
+
+			.tooltip-alert-marker {
+				width: 4px;
+				height: 4px;
+				border-radius: 50%;
+				flex-shrink: 0;
+			}
+
+			.tooltip-alert-name {
+				color: var(--text-primary);
+				flex: 1;
+			}
+
+			.tooltip-alert-duration {
+				color: var(--text-disabled);
+				font-family: var(--font-mono);
+				font-size: var(--font-size-xs);
+			}
+
+			.legend {
+				margin-top: 12px;
+				border-top: 1px solid var(--border);
+				padding-top: 12px;
+				font-size: var(--font-size-sm);
+			}
+
+			.legend-row {
+				display: grid;
+				grid-template-columns: minmax(140px, 1.6fr) repeat(4, minmax(70px, 0.6fr));
+				gap: 12px;
+				align-items: center;
+				padding: 4px 0;
+			}
+
+			.legend-row.legend-header {
+				color: var(--text-disabled);
+				font-size: var(--font-size-xs);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+
+			.legend-series {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				min-width: 0;
 			}
 
 			.legend-color {
-				width: 12px;
+				width: 14px;
 				height: 2px;
 				border-radius: 1px;
+				flex-shrink: 0;
+			}
+
+			.legend-cell {
+				font-family: var(--font-mono);
+				color: var(--text-secondary);
+			}
+
+			.legend-value {
+				color: var(--text-primary);
+				font-family: var(--font-mono);
+			}
+
+			.legend-delta {
+				color: var(--text-secondary);
 			}
 
 			footer {
 				text-align: center;
 				padding: 32px 0;
 				color: var(--text-disabled);
-				font-size: 12px;
+				font-size: var(--font-size-sm);
 			}
 
 			footer a {
@@ -317,88 +500,151 @@
 			footer a:hover {
 				color: var(--text-primary);
 			}
+
+			/* Scrollbar styling for nav */
+			.nav::-webkit-scrollbar {
+				width: 6px;
+			}
+
+			.nav::-webkit-scrollbar-track {
+				background: transparent;
+			}
+
+			.nav::-webkit-scrollbar-thumb {
+				background: var(--border);
+				border-radius: var(--radius-md);
+			}
+
+			.nav::-webkit-scrollbar-thumb:hover {
+				background: #3d3d40;
+			}
 		</style>
 	</head>
 	<body>
-		<div class="container">
-			<div class="header">
-				<h1 id="workload-name">SLO Report</h1>
-				<div class="meta">
-					<div class="meta-item">
-						<span>Current:</span>
-						<span class="ref-badge current" id="current-ref">loading...</span>
-					</div>
-					<div class="meta-item">
-						<span>vs</span>
-					</div>
-					<div class="meta-item">
-						<span>Baseline:</span>
-						<span class="ref-badge baseline" id="baseline-ref">loading...</span>
-					</div>
-					<div class="meta-item">•</div>
-					<div class="meta-item">
-						<span>PR #<span id="pr-number">-</span></span>
-					</div>
-					<div class="meta-item">•</div>
-					<div class="meta-item">
-						<span>Duration: <span id="duration">-</span></span>
+		<div class="layout">
+			<slo-metrics-nav class="nav"></slo-metrics-nav>
+
+			<div class="main">
+				<div class="container">
+					<slo-report-header></slo-report-header>
+					<slo-metrics-grid class="metrics-grid"></slo-metrics-grid>
+
+					<footer>
+						<p>
+							Powered by <a href="https://github.com/leeoniya/uPlot" target="_blank">uPlot</a> • Generated
+							by
+							<a href="https://github.com/ydb-platform/ydb-slo-action" target="_blank">ydb-slo-action</a>
+						</p>
+					</footer>
+				</div>
+			</div>
+		</div>
+
+		<template id="slo-header-template">
+			<div class="header-content">
+				<div class="header-top">
+					<div class="header-title">
+						<h1 class="workload-name">SLO Report</h1>
+						<div class="repo-line">
+							<a class="repo-name" href="#" target="_blank"></a>
+							<span class="repo-sep">•</span>
+							<a class="repo-pr" href="#" target="_blank"></a>
+							<span class="repo-sep run-sep">•</span>
+							<a class="repo-run" href="#" target="_blank"></a>
+						</div>
 					</div>
 				</div>
 			</div>
+		</template>
 
-			<div class="metrics-grid" id="metrics-container">
-				<!-- Charts will be inserted here -->
+		<template id="slo-nav-template">
+			<div class="nav-title">Metrics</div>
+			<div class="nav-items"></div>
+		</template>
+
+		<template id="slo-legend-template">
+			<div class="legend">
+				<div class="legend-row legend-header">
+					<div class="legend-cell">Series</div>
+					<div class="legend-cell">Min</div>
+					<div class="legend-cell">Max</div>
+					<div class="legend-cell">Avg</div>
+					<div class="legend-cell">Δ Avg</div>
+				</div>
+				<div class="legend-row legend-current">
+					<div class="legend-series">
+						<div class="legend-color"></div>
+						<span class="legend-value"></span>
+					</div>
+					<div class="legend-cell legend-min"></div>
+					<div class="legend-cell legend-max"></div>
+					<div class="legend-cell legend-avg"></div>
+					<div class="legend-cell legend-delta"></div>
+				</div>
+				<div class="legend-row legend-baseline">
+					<div class="legend-series">
+						<div class="legend-color"></div>
+						<span class="legend-value"></span>
+					</div>
+					<div class="legend-cell legend-min"></div>
+					<div class="legend-cell legend-max"></div>
+					<div class="legend-cell legend-avg"></div>
+					<div class="legend-cell legend-delta">—</div>
+				</div>
 			</div>
+		</template>
 
-			<footer>
-				<p>
-					Powered by <a href="https://github.com/leeoniya/uPlot" target="_blank">uPlot</a> • Generated by
-					<a href="https://github.com/ydb-platform/ydb-slo-action" target="_blank">ydb-slo-action</a>
-				</p>
-			</footer>
-		</div>
+		<template id="slo-metric-panel-template">
+			<div class="metric-header">
+				<div class="metric-title-row">
+					<div class="metric-title"></div>
+					<div class="threshold-badge"></div>
+				</div>
+				<div class="metric-type"></div>
+			</div>
+			<div class="chart-container"></div>
+		</template>
 
-		<script>
+		<template id="slo-tooltip-template">
+			<div class="tooltip-time"></div>
+			<div class="tooltip-values">
+				<div class="tooltip-row tooltip-current">
+					<div class="tooltip-color"></div>
+					<div class="tooltip-label"></div>
+					<div class="tooltip-value"></div>
+				</div>
+				<div class="tooltip-row tooltip-baseline">
+					<div class="tooltip-color"></div>
+					<div class="tooltip-label"></div>
+					<div class="tooltip-value"></div>
+				</div>
+			</div>
+			<div class="tooltip-alerts-title">Active Alerts</div>
+			<div class="tooltip-alerts"></div>
+		</template>
+
+		<script type="module">
 			/*DATA_INJECTION*/
+			import { data } from 'https://gist.githack.com/polRk/86e7c906e947597c4a15f964be8ffa67/raw/9a31af0c74a3482cdebc75a0f70f9c916d25d697/slo-report.js'
 
-			// Shorten long commit SHAs (40 hex chars) to 7 chars
+			window.reportData = data
+		</script>
+
+		<script type="module">
+			// Utils
 			function shortRef(ref) {
 				if (!ref) return ref
-				// Check if it looks like a full SHA (40 hex characters)
 				if (/^[0-9a-f]{40}$/i.test(ref)) {
 					return ref.slice(0, 7)
 				}
 				return ref
 			}
 
-			// Alert color palette (Grafana-inspired)
-			const ALERT_COLORS = {
-				default: '#e02f44',
-				0: '#e02f44',
-				1: '#ff9830',
-				2: '#fade2a',
-				3: '#73bf69',
-				4: '#5794f2',
-				5: '#b877d9',
-				6: '#f2495c',
-				7: '#ff7383',
-				8: '#ffb357',
-				9: '#96d98d',
-			}
-
-			// Generate color map for alert names
-			function getAlertColor(alertName, alertNames) {
-				const index = alertNames.indexOf(alertName)
-				return ALERT_COLORS[index % 10] || ALERT_COLORS.default
-			}
-
-			// Format timestamp
 			function formatTime(epochMs) {
 				const date = new Date(epochMs)
 				return date.toLocaleTimeString('en-US', { hour12: false })
 			}
 
-			// Format duration
 			function formatDuration(ms) {
 				const seconds = Math.floor(ms / 1000)
 				const minutes = Math.floor(seconds / 60)
@@ -413,381 +659,799 @@
 				}
 			}
 
-			// Populate header
-			document.getElementById('workload-name').textContent = data.meta.workload || 'SLO Report'
-			document.getElementById('current-ref').textContent = shortRef(data.meta.workload_current_ref) || 'current'
-			document.getElementById('baseline-ref').textContent =
-				shortRef(data.meta.workload_baseline_ref) || 'baseline'
-			document.getElementById('pr-number').textContent = data.meta.pull || '-'
-			document.getElementById('duration').textContent = formatDuration(data.meta.duration_ms || 0)
+			function formatShort(value) {
+				if (!Number.isFinite(value)) return 'N/A'
+				let abs = Math.abs(value)
+				let sign = value < 0 ? '-' : ''
+				if (abs === 0) return '0'
+				let units = ['', 'k', 'M', 'G', 'T', 'P', 'E']
+				let idx = 0
+				while (abs >= 1000 && idx < units.length - 1) {
+					abs /= 1000
+					idx += 1
+				}
+				let decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : 2
+				return `${sign}${abs.toFixed(decimals)}${units[idx]}`
+			}
 
-			// Get unique alert names for color mapping
-			const uniqueAlertNames = [...new Set(data.alerts.map((a) => a.alertname))]
+			function formatBytes(value) {
+				if (!Number.isFinite(value)) return 'N/A'
+				let abs = Math.abs(value)
+				let sign = value < 0 ? '-' : ''
+				let units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']
+				let idx = 0
+				while (abs >= 1024 && idx < units.length - 1) {
+					abs /= 1024
+					idx += 1
+				}
+				let decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : 2
+				return `${sign}${abs.toFixed(decimals)}${units[idx]}`
+			}
 
-			// Render metrics
-			const container = document.getElementById('metrics-container')
+			function formatSeconds(value) {
+				if (!Number.isFinite(value)) return 'N/A'
+				let abs = Math.abs(value)
+				if (abs >= 3600) {
+					return `${(value / 3600).toFixed(2)}h`
+				}
+				if (abs >= 60) {
+					return `${(value / 60).toFixed(2)}m`
+				}
+				return `${value.toFixed(2)}s`
+			}
 
-			data.metrics.forEach((metric, metricIndex) => {
-				const panel = document.createElement('div')
-				panel.className = 'metric-panel'
-				panel.id = `metric-${metricIndex}`
+			function formatWithUnit(value, unit) {
+				if (value == null || Number.isNaN(value)) return 'N/A'
+				if (!unit) return formatShort(value)
 
-				// Filter alerts for this metric's timeframe
-				const metricAlerts = data.alerts.filter((alert) => {
-					return alert.epoch_ms >= data.meta.start_epoch_ms && alert.epoch_ms <= data.meta.finish_epoch_ms
-				})
+				let normalized = unit.toLowerCase()
 
-				// Build alerts timeline HTML
-				let alertsHTML = ''
-				if (metricAlerts.length > 0) {
-					const alertItemsHTML = metricAlerts
-						.map((alert, idx) => {
-							const color = getAlertColor(alert.alertname, uniqueAlertNames)
-							const duration = (alert.duration_ms / 1000).toFixed(1)
-							const fault = alert.labels?.fault || alert.alertname
-							const node = alert.labels?.node
-							const description = node ? `${fault} on ${node}` : fault
-							return `
-						<div class="alert-item" style="--alert-color: ${color}" data-alert-idx="${idx}">
-							<div class="alert-marker"></div>
-							<div class="alert-name">${description}</div>
-							<div class="alert-time">${formatTime(alert.epoch_ms)}</div>
-							<div class="alert-duration">${duration}s</div>
-						</div>
-					`
-						})
-						.join('')
-
-					alertsHTML = `
-					<div class="alert-timeline">
-						<div class="alert-timeline-title">Alerts (${metricAlerts.length})</div>
-						<div class="alert-items">
-							${alertItemsHTML}
-						</div>
-					</div>
-				`
+				if (normalized === '%' || normalized === 'percent') {
+					return `${value.toFixed(2)}%`
 				}
 
-				panel.innerHTML = `
-				<div class="metric-header">
-					<div class="metric-title">${metric.name}</div>
-					<div class="metric-type">${metric.type}</div>
-				</div>
-				<div class="legend">
-					<div class="legend-item">
-						<div class="legend-color" style="background: var(--current)"></div>
-						<span>${shortRef(data.meta.workload_current_ref) || 'current'}</span>
-					</div>
-					${
-						metric.data.length > 1
-							? `
-					<div class="legend-item">
-						<div class="legend-color" style="background: var(--baseline)"></div>
-						<span>${shortRef(data.meta.workload_baseline_ref) || 'baseline'}</span>
-					</div>
-					`
-							: ''
+				if (normalized === 'ms' || normalized === 'millisecond' || normalized === 'milliseconds') {
+					return Math.abs(value) >= 1000 ? `${(value / 1000).toFixed(2)}s` : `${value.toFixed(2)}ms`
+				}
+
+				if (normalized === 's' || normalized === 'sec' || normalized === 'second' || normalized === 'seconds') {
+					return formatSeconds(value)
+				}
+
+				if (normalized === 'b' || normalized === 'byte' || normalized === 'bytes') {
+					return formatBytes(value)
+				}
+
+				if (normalized === 'b/s' || normalized === 'bytes/s' || normalized === 'byte/s') {
+					return `${formatBytes(value)}/s`
+				}
+
+				return `${formatShort(value)} ${unit}`.trim()
+			}
+
+			function computeStats(values) {
+				const nums = values.filter((v) => Number.isFinite(v))
+				if (!nums.length) {
+					return { min: NaN, max: NaN, avg: NaN }
+				}
+
+				const min = Math.min(...nums)
+				const max = Math.max(...nums)
+				const avg = nums.reduce((sum, v) => sum + v, 0) / nums.length
+
+				return { min, max, avg }
+			}
+
+			function formatPercentChange(currentValue, baselineValue) {
+				if (!Number.isFinite(currentValue) || !Number.isFinite(baselineValue) || baselineValue === 0) {
+					return '—'
+				}
+
+				const diff = ((currentValue - baselineValue) / baselineValue) * 100
+				const sign = diff > 0 ? '+' : ''
+				return `${sign}${diff.toFixed(1)}%`
+			}
+
+			function getPRUrl(repoUrl, prNumber) {
+				if (!repoUrl || !prNumber) return null
+				const cleanUrl = repoUrl.replace(/\.git$/, '')
+				return `${cleanUrl}/pull/${prNumber}`
+			}
+
+			function getThresholdSeverity(metricName) {
+				let evaluation = window.reportData?.evaluation
+				if (!evaluation) return null
+				if (evaluation.failures?.some((item) => item.name === metricName)) {
+					return 'failure'
+				}
+				if (evaluation.warnings?.some((item) => item.name === metricName)) {
+					return 'warning'
+				}
+				return 'success'
+			}
+
+			window.shortRef = shortRef
+			window.formatTime = formatTime
+			window.formatDuration = formatDuration
+			window.formatShort = formatShort
+			window.formatBytes = formatBytes
+			window.formatSeconds = formatSeconds
+			window.formatWithUnit = formatWithUnit
+			window.computeStats = computeStats
+			window.formatPercentChange = formatPercentChange
+			window.getPRUrl = getPRUrl
+			window.getThresholdSeverity = getThresholdSeverity
+		</script>
+
+		<script type="module">
+			// uPlot plugins
+			const ALERT_COLOR =
+				getComputedStyle(document.documentElement).getPropertyValue('--alert-red').trim() || '#f2495c'
+
+			function unifiedTooltipPlugin(currentRef, baselineRef, hasBaseline, alerts, alertNames, metric) {
+				let tooltip = null
+				let timeEl = null
+				let valuesEl = null
+				let currentRow = null
+				let currentLabelEl = null
+				let currentValueEl = null
+				let baselineRow = null
+				let baselineLabelEl = null
+				let baselineValueEl = null
+				let alertsTitle = null
+				let alertsList = null
+				let tooltipTemplate = null
+
+				function clearChildren(el) {
+					while (el.firstChild) el.removeChild(el.firstChild)
+				}
+
+				return {
+					hooks: {
+						ready: (u) => {
+							tooltipTemplate = document.getElementById('slo-tooltip-template')
+							if (!tooltipTemplate) return
+
+							tooltip = document.createElement('div')
+							tooltip.className = 'unified-tooltip'
+							tooltip.style.display = 'none'
+
+							let content = tooltipTemplate.content.cloneNode(true)
+							tooltip.appendChild(content)
+
+							timeEl = tooltip.querySelector('.tooltip-time')
+							valuesEl = tooltip.querySelector('.tooltip-values')
+							currentRow = tooltip.querySelector('.tooltip-current')
+							currentLabelEl = tooltip.querySelector('.tooltip-current .tooltip-label')
+							currentValueEl = tooltip.querySelector('.tooltip-current .tooltip-value')
+							baselineRow = tooltip.querySelector('.tooltip-baseline')
+							baselineLabelEl = tooltip.querySelector('.tooltip-baseline .tooltip-label')
+							baselineValueEl = tooltip.querySelector('.tooltip-baseline .tooltip-value')
+							alertsTitle = tooltip.querySelector('.tooltip-alerts-title')
+							alertsList = tooltip.querySelector('.tooltip-alerts')
+
+							let currentColor = tooltip.querySelector('.tooltip-current .tooltip-color')
+							if (currentColor) currentColor.style.background = 'var(--current)'
+							let baselineColor = tooltip.querySelector('.tooltip-baseline .tooltip-color')
+							if (baselineColor) baselineColor.style.background = 'var(--baseline)'
+
+							document.body.appendChild(tooltip)
+						},
+						setCursor: (u) => {
+							let idx = u.cursor.idx
+							if (idx == null || idx < 0) {
+								if (tooltip) tooltip.style.display = 'none'
+								return
+							}
+
+							let ts = u.data[0][idx]
+							let currentVal = u.data[1][idx]
+							let baselineVal = hasBaseline ? u.data[2]?.[idx] : null
+
+							let tsMs = ts * 1000
+							let activeAlerts = alerts.filter((alert) => {
+								let alertStart = alert.epoch_ms
+								let alertEnd = alert.epoch_ms + alert.duration_ms
+								return tsMs >= alertStart && tsMs <= alertEnd
+							})
+
+							let hasActiveAlerts = activeAlerts.length > 0
+
+							if (currentVal == null && baselineVal == null && !hasActiveAlerts) {
+								if (tooltip) tooltip.style.display = 'none'
+								return
+							}
+
+							let d = new Date(ts * 1000)
+							let hh = String(d.getHours()).padStart(2, '0')
+							let mm = String(d.getMinutes()).padStart(2, '0')
+							let ss = String(d.getSeconds()).padStart(2, '0')
+							let timeStr = `${hh}:${mm}:${ss}`
+
+							timeEl.textContent = timeStr
+							valuesEl.classList.toggle('has-alerts', hasActiveAlerts)
+
+							currentLabelEl.textContent = window.shortRef(currentRef) || 'current'
+							currentValueEl.textContent = window.formatWithUnit(currentVal, metric.unit)
+
+							if (hasBaseline && baselineVal != null) {
+								baselineRow.style.display = ''
+								baselineLabelEl.textContent = window.shortRef(baselineRef) || 'baseline'
+								baselineValueEl.textContent = window.formatWithUnit(baselineVal, metric.unit)
+							} else {
+								baselineRow.style.display = 'none'
+							}
+
+							alertsList.innerHTML = ''
+							if (hasActiveAlerts) {
+								alertsTitle.style.display = ''
+								let alertsHtml = activeAlerts
+									.map((alert) => {
+										let color = ALERT_COLOR
+										let fault = alert.labels?.fault || alert.alertname
+										let node = alert.labels?.node
+										let name = node ? `${fault} on ${node}` : fault
+										let duration = (alert.duration_ms / 1000).toFixed(1) + 's'
+										return `
+											<div class="tooltip-alert">
+												<div class="tooltip-alert-marker" style="background: ${color}"></div>
+												<div class="tooltip-alert-name">${name}</div>
+												<div class="tooltip-alert-duration">${duration}</div>
+											</div>
+										`
+									})
+									.join('')
+								alertsList.innerHTML = alertsHtml
+							} else {
+								alertsTitle.style.display = 'none'
+							}
+
+							const chartRect = u.over.getBoundingClientRect()
+							const clientX = chartRect.left + u.cursor.left
+							const clientY = chartRect.top + u.cursor.top
+
+							const virtualEl = {
+								getBoundingClientRect() {
+									return {
+										width: 0,
+										height: 0,
+										x: clientX,
+										y: clientY,
+										left: clientX,
+										right: clientX,
+										top: clientY,
+										bottom: clientY,
+									}
+								},
+								contextElement: u.over,
+							}
+
+							FloatingUIDOM.computePosition(virtualEl, tooltip, {
+								placement: 'right-start',
+								middleware: [
+									FloatingUIDOM.offset({ mainAxis: 10, crossAxis: 10 }),
+									FloatingUIDOM.flip(),
+									FloatingUIDOM.shift({ padding: 10 }),
+								],
+							}).then(({ x, y }) => {
+								Object.assign(tooltip.style, {
+									left: `${x}px`,
+									top: `${y}px`,
+									display: 'block',
+								})
+							})
+						},
+						destroy: (u) => {
+							if (tooltip && tooltip.parentNode) {
+								tooltip.parentNode.removeChild(tooltip)
+							}
+						},
+					},
+				}
+			}
+
+			function alertsPlugin(metricAlerts) {
+				return {
+					hooks: {
+						drawClear: (u) => {
+							if (metricAlerts.length === 0) return
+
+							const ctx = u.ctx
+							const { left, top, width, height } = u.bbox
+
+							ctx.save()
+
+							metricAlerts.forEach((alert) => {
+								const x1 = u.valToPos(alert.epoch_ms / 1000, 'x', true)
+								const x2 = u.valToPos((alert.epoch_ms + alert.duration_ms) / 1000, 'x', true)
+
+								if (x1 == null || x2 == null) return
+
+								const color = ALERT_COLOR
+
+								ctx.fillStyle = color + '1a'
+								ctx.fillRect(x1, top, x2 - x1, height)
+
+								ctx.strokeStyle = color
+								ctx.lineWidth = 2
+								ctx.setLineDash([5, 5])
+
+								ctx.beginPath()
+								ctx.moveTo(x1, top)
+								ctx.lineTo(x1, top + height)
+								ctx.stroke()
+
+								ctx.beginPath()
+								ctx.moveTo(x2, top)
+								ctx.lineTo(x2, top + height)
+								ctx.stroke()
+
+								ctx.fillStyle = color
+								ctx.fillRect(x1, top + height - 5, x2 - x1, 5)
+							})
+
+							ctx.restore()
+						},
+					},
+				}
+			}
+
+			window.ALERT_COLOR = ALERT_COLOR
+			window.unifiedTooltipPlugin = unifiedTooltipPlugin
+			window.alertsPlugin = alertsPlugin
+		</script>
+
+		<script type="module">
+			// Web components
+			function cloneTemplate(id) {
+				let template = document.getElementById(id)
+				if (!template) return null
+				return template.content.cloneNode(true)
+			}
+
+			class SloReportHeader extends HTMLElement {
+				set data(value) {
+					this.render(value)
+				}
+
+				render(data) {
+					if (!data) return
+
+					this.innerHTML = ''
+					let content = cloneTemplate('slo-header-template')
+					if (!content) return
+					this.appendChild(content)
+
+					let titleEl = this.querySelector('.workload-name')
+					if (titleEl) titleEl.textContent = data.meta.workload || 'SLO Report'
+
+					let repoNameEl = this.querySelector('.repo-name')
+					let repoSepEl = this.querySelector('.repo-sep')
+					let prEl = this.querySelector('.repo-pr')
+					let runSepEl = this.querySelector('.run-sep')
+					let runEl = this.querySelector('.repo-run')
+
+					let repoName = data.meta.repo_full_name
+					if (!repoName && data.meta.repo_url) {
+						repoName = data.meta.repo_url.replace(/^https?:\/\/[^/]+\//, '')
 					}
-				</div>
-				<div class="chart-container" id="chart-${metricIndex}"></div>
-				${alertsHTML}
-			`
 
-				container.appendChild(panel)
+					if (repoNameEl) {
+						repoNameEl.textContent = repoName || 'repo'
+						if (data.meta.repo_url) {
+							repoNameEl.href = data.meta.repo_url
+						} else {
+							repoNameEl.removeAttribute('href')
+						}
+					}
 
-				// Find current and baseline series by ref
-				const currentRef = data.meta.workload_current_ref
-				const baselineRef = data.meta.workload_baseline_ref
+					if (prEl) {
+						if (data.meta.pull) {
+							let prUrl = window.getPRUrl(data.meta.repo_url, data.meta.pull)
+							prEl.textContent = `PR #${data.meta.pull}`
+							if (prUrl) {
+								prEl.href = prUrl
+							} else {
+								prEl.removeAttribute('href')
+							}
+							if (repoSepEl) repoSepEl.style.display = ''
+						} else {
+							prEl.style.display = 'none'
+							if (repoSepEl) repoSepEl.style.display = 'none'
+						}
+					}
 
-				const currentSeries = metric.data.find((s) => s.metric?.ref === currentRef)
-				const baselineSeries = metric.data.find((s) => s.metric?.ref === baselineRef)
+					if (runEl) {
+						if (data.meta.run_id) {
+							runEl.textContent = `Run #${data.meta.run_id}`
+							if (data.meta.run_url) {
+								runEl.href = data.meta.run_url
+							} else {
+								runEl.removeAttribute('href')
+							}
+							if (runSepEl) runSepEl.style.display = ''
+						} else {
+							runEl.style.display = 'none'
+							if (runSepEl) runSepEl.style.display = 'none'
+						}
+					}
+				}
+			}
 
-				// Skip if no current data
-				if (!currentSeries || !currentSeries.values || currentSeries.values.length === 0) {
-					console.warn(`No current data for metric: ${metric.name}`)
+			class SloMetricsNav extends HTMLElement {
+				constructor() {
+					super()
+					this.items = []
+				}
+
+				set data(value) {
+					this.render(value)
+				}
+
+				render(data) {
+					if (!data) return
+					this.items = []
+					this.innerHTML = ''
+
+					let content = cloneTemplate('slo-nav-template')
+					if (!content) return
+					this.appendChild(content)
+
+					let itemsContainer = this.querySelector('.nav-items')
+					if (!itemsContainer) return
+
+					let navHtml = data.metrics
+						.map((metric, idx) => {
+							let severity = window.getThresholdSeverity?.(metric.name)
+							let indicator = severity ? `<span class="threshold-dot ${severity}"></span>` : ''
+							return `<a class="nav-item" href="#metric-${idx}" title="${metric.name}" data-metric-idx="${idx}">${indicator}<span class="nav-label">${metric.name}</span></a>`
+						})
+						.join('')
+					itemsContainer.innerHTML = navHtml
+					this.items = Array.from(this.querySelectorAll('.nav-item'))
+				}
+
+				setActive(idx) {
+					this.items.forEach((item) => item.classList.remove('active'))
+					let activeItem = this.items.find((item) => item.dataset.metricIdx === String(idx))
+					if (activeItem) activeItem.classList.add('active')
+				}
+			}
+
+			class SloLegend extends HTMLElement {
+				set data(value) {
+					this.render(value)
+				}
+
+				render(data) {
+					if (!data) return
+
+					this.innerHTML = ''
+					let content = cloneTemplate('slo-legend-template')
+					if (!content) return
+					this.appendChild(content)
+
+					let currentRow = this.querySelector('.legend-current')
+					let baselineRow = this.querySelector('.legend-baseline')
+
+					let currentColor = this.querySelector('.legend-current .legend-color')
+					if (currentColor) currentColor.style.background = 'var(--current)'
+					let currentLabel = this.querySelector('.legend-current .legend-value')
+					if (currentLabel) {
+						currentLabel.textContent = window.shortRef(data.meta.workload_current_ref) || 'current'
+					}
+					let currentMin = this.querySelector('.legend-current .legend-min')
+					let currentMax = this.querySelector('.legend-current .legend-max')
+					let currentAvg = this.querySelector('.legend-current .legend-avg')
+					let currentDelta = this.querySelector('.legend-current .legend-delta')
+					if (currentMin) currentMin.textContent = window.formatWithUnit(data.current.min, data.metric.unit)
+					if (currentMax) currentMax.textContent = window.formatWithUnit(data.current.max, data.metric.unit)
+					if (currentAvg) currentAvg.textContent = window.formatWithUnit(data.current.avg, data.metric.unit)
+					if (currentDelta) currentDelta.textContent = data.avgDelta
+
+					if (data.baseline) {
+						let baselineColor = this.querySelector('.legend-baseline .legend-color')
+						if (baselineColor) baselineColor.style.background = 'var(--baseline)'
+						let baselineLabel = this.querySelector('.legend-baseline .legend-value')
+						if (baselineLabel) {
+							baselineLabel.textContent = window.shortRef(data.meta.workload_baseline_ref) || 'baseline'
+						}
+						let baselineMin = this.querySelector('.legend-baseline .legend-min')
+						let baselineMax = this.querySelector('.legend-baseline .legend-max')
+						let baselineAvg = this.querySelector('.legend-baseline .legend-avg')
+						if (baselineMin)
+							baselineMin.textContent = window.formatWithUnit(data.baseline.min, data.metric.unit)
+						if (baselineMax)
+							baselineMax.textContent = window.formatWithUnit(data.baseline.max, data.metric.unit)
+						if (baselineAvg)
+							baselineAvg.textContent = window.formatWithUnit(data.baseline.avg, data.metric.unit)
+						if (baselineRow) baselineRow.style.display = ''
+					} else if (baselineRow) {
+						baselineRow.style.display = 'none'
+					}
+				}
+			}
+
+			class SloMetricPanel extends HTMLElement {
+				constructor() {
+					super()
+					this.plot = null
+					this.resizeObserver = null
+				}
+
+				set data(value) {
+					this.render(value)
+				}
+
+				render(data) {
+					if (!data) return
+
+					this.className = 'metric-panel'
+					this.id = `metric-${data.metricIndex}`
+					this.innerHTML = ''
+
+					let metric = data.metric
+					let meta = data.meta
+
+					let content = cloneTemplate('slo-metric-panel-template')
+					if (!content) return
+					this.appendChild(content)
+
+					let titleEl = this.querySelector('.metric-title')
+					let typeEl = this.querySelector('.metric-type')
+					let chartContainer = this.querySelector('.chart-container')
+					let thresholdBadge = this.querySelector('.threshold-badge')
+
+					let metricTitle = metric.title || metric.name
+					if (titleEl) titleEl.textContent = metricTitle
+					if (typeEl) typeEl.textContent = metric.type
+					if (chartContainer) chartContainer.id = `chart-${data.metricIndex}`
+
+					let severity = window.getThresholdSeverity?.(metric.name)
+					if (thresholdBadge) {
+						if (!severity) {
+							thresholdBadge.style.display = 'none'
+						} else {
+							thresholdBadge.style.display = ''
+							thresholdBadge.classList.add(severity)
+							thresholdBadge.textContent =
+								severity === 'failure' ? 'critical' : severity === 'warning' ? 'warning' : 'ok'
+						}
+					}
+
+					let metricAlerts = data.alerts.filter((alert) => {
+						return alert.epoch_ms >= meta.start_epoch_ms && alert.epoch_ms <= meta.finish_epoch_ms
+					})
+
+					let currentRef = meta.workload_current_ref
+					let baselineRef = meta.workload_baseline_ref
+					let currentSeries = metric.data.find((s) => s.metric?.ref === currentRef)
+					let baselineSeries = metric.data.find((s) => s.metric?.ref === baselineRef)
+					let metricHasBaseline = baselineSeries?.values && baselineSeries.values.length > 0
+
+					let currentValues = currentSeries?.values
+						? currentSeries.values.map(([, val]) => parseFloat(val))
+						: []
+					let baselineValues = metricHasBaseline
+						? baselineSeries.values.map(([, val]) => parseFloat(val))
+						: null
+
+					let currentStats = window.computeStats(currentValues)
+					let baselineStats = baselineValues ? window.computeStats(baselineValues) : null
+					let avgDelta = baselineStats ? window.formatPercentChange(currentStats.avg, baselineStats.avg) : '—'
+
+					let legend = document.createElement('slo-legend')
+					legend.data = {
+						meta: meta,
+						metric: metric,
+						current: currentStats,
+						baseline: baselineStats,
+						avgDelta: avgDelta,
+					}
+					this.appendChild(legend)
+
+					if (!currentSeries || !currentSeries.values || currentSeries.values.length === 0) {
+						console.warn(`No current data for metric: ${metric.name}`)
+						return
+					}
+
+					let timestamps = currentSeries.values.map(([ts]) => ts)
+
+					let plotData = baselineValues
+						? [timestamps, currentValues, baselineValues]
+						: [timestamps, currentValues]
+
+					let rootStyles = getComputedStyle(document.documentElement)
+					let axisColor = rootStyles.getPropertyValue('--text-disabled').trim() || '#7b8087'
+					let gridColor = rootStyles.getPropertyValue('--border').trim() || '#2c3235'
+					let fontSizeXs = rootStyles.getPropertyValue('--font-size-xs').trim() || '10px'
+					let fontSans = rootStyles.getPropertyValue('--font-sans').trim() || 'Inter, sans-serif'
+					let axisFont = `${fontSizeXs} ${fontSans}`
+					let currentColor = rootStyles.getPropertyValue('--current').trim() || 'rgba(51, 181, 229, 1)'
+					let baselineColor = rootStyles.getPropertyValue('--baseline').trim() || 'rgba(184, 184, 184, 0.8)'
+
+					let series = [
+						{},
+						{
+							label: meta.workload_current_ref || 'current',
+							stroke: currentColor,
+							width: 2,
+							points: { show: false },
+						},
+					]
+
+					if (baselineValues) {
+						series.push({
+							label: meta.workload_baseline_ref || 'baseline',
+							stroke: baselineColor,
+							width: 2,
+							points: { show: false },
+						})
+					}
+
+					let opts = {
+						width: this.clientWidth - 32,
+						height: 300,
+						scales: {
+							x: {
+								time: true,
+							},
+						},
+						axes: [
+							{
+								stroke: axisColor,
+								font: axisFont,
+								grid: { stroke: gridColor, width: 1 },
+								ticks: { stroke: gridColor, width: 1 },
+								values: (u, vals) =>
+									vals.map((v) => {
+										let d = new Date(v * 1000)
+										let hh = String(d.getHours()).padStart(2, '0')
+										let mm = String(d.getMinutes()).padStart(2, '0')
+										let ss = String(d.getSeconds()).padStart(2, '0')
+										return `${hh}:${mm}:${ss}`
+									}),
+							},
+							{
+								stroke: axisColor,
+								font: axisFont,
+								grid: { stroke: gridColor, width: 1 },
+								ticks: { stroke: gridColor, width: 1 },
+								values: (u, vals) => vals.map((v) => window.formatShort(v)),
+							},
+						],
+						series: series,
+						legend: {
+							show: false,
+						},
+						cursor: {
+							drag: {
+								x: false,
+								y: false,
+							},
+							points: {
+								size: 6,
+								fill: (u, i) => (i === 1 ? currentColor : baselineColor),
+							},
+						},
+						plugins: [
+							window.alertsPlugin(metricAlerts),
+							window.unifiedTooltipPlugin(
+								meta.workload_current_ref,
+								meta.workload_baseline_ref,
+								!!baselineValues,
+								metricAlerts,
+								null,
+								metric
+							),
+						],
+					}
+
+					this.plot = new uPlot(opts, plotData, chartContainer)
+
+					if (this.resizeObserver) {
+						this.resizeObserver.disconnect()
+					}
+
+					this.resizeObserver = new ResizeObserver((entries) => {
+						let entry = entries[0]
+						if (entry) {
+							let newWidth = Math.floor(entry.contentRect.width)
+							this.plot.setSize({ width: newWidth, height: 300 })
+						}
+					})
+					this.resizeObserver.observe(this)
+				}
+			}
+
+			class SloMetricsGrid extends HTMLElement {
+				constructor() {
+					super()
+					this.panels = []
+				}
+
+				set data(value) {
+					this.render(value)
+				}
+
+				render(data) {
+					if (!data) return
+					this.panels = []
+					this.innerHTML = ''
+
+					data.metrics.forEach((metric, metricIndex) => {
+						let panel = document.createElement('slo-metric-panel')
+						panel.data = {
+							metric: metric,
+							metricIndex: metricIndex,
+							meta: data.meta,
+							alerts: data.alerts,
+						}
+						this.appendChild(panel)
+						this.panels.push(panel)
+					})
+				}
+			}
+
+			customElements.define('slo-legend', SloLegend)
+			customElements.define('slo-report-header', SloReportHeader)
+			customElements.define('slo-metric-panel', SloMetricPanel)
+			customElements.define('slo-metrics-nav', SloMetricsNav)
+			customElements.define('slo-metrics-grid', SloMetricsGrid)
+		</script>
+
+		<script type="module">
+			// Init
+			function initReport() {
+				let data = window.reportData
+				if (!data) {
+					console.error('Report data not loaded')
 					return
 				}
 
-				// Prepare uPlot data
-				const timestamps = currentSeries.values.map(([ts]) => ts)
-				const currentValues = currentSeries.values.map(([, val]) => parseFloat(val))
-				const baselineValues = baselineSeries?.values
-					? baselineSeries.values.map(([, val]) => parseFloat(val))
-					: null
+				let header = document.querySelector('slo-report-header')
+				let nav = document.querySelector('slo-metrics-nav')
+				let grid = document.querySelector('slo-metrics-grid')
 
-				const plotData = baselineValues
-					? [timestamps, currentValues, baselineValues]
-					: [timestamps, currentValues]
+				if (header) header.data = data
+				if (nav) nav.data = data
+				if (grid) grid.data = data
 
-				const series = [
-					{},
-					{
-						label: data.meta.workload_current_ref || 'current',
-						stroke: 'rgba(51, 181, 229, 1)',
-						width: 2,
-						points: { show: false },
-					},
-				]
+				if (!nav || !grid) return
 
-				if (baselineValues) {
-					series.push({
-						label: data.meta.workload_baseline_ref || 'baseline',
-						stroke: 'rgba(184, 184, 184, 0.8)',
-						width: 2,
-						dash: [5, 5],
-						points: { show: false },
-					})
-				}
-
-				// Values tooltip plugin
-				function valuesTooltipPlugin(currentRef, baselineRef, hasBaseline) {
-					let tooltip = null
-
-					return {
-						hooks: {
-							ready: (u) => {
-								tooltip = document.createElement('div')
-								tooltip.className = 'values-tooltip'
-								tooltip.style.display = 'none'
-								document.body.appendChild(tooltip)
-							},
-							setCursor: (u) => {
-								const { idx } = u.cursor
-								if (idx == null || idx < 0) {
-									if (tooltip) tooltip.style.display = 'none'
-									return
-								}
-
-								const ts = u.data[0][idx]
-								const currentVal = u.data[1][idx]
-								const baselineVal = hasBaseline ? u.data[2]?.[idx] : null
-
-								if (currentVal == null) {
-									if (tooltip) tooltip.style.display = 'none'
-									return
-								}
-
-								const d = new Date(ts * 1000)
-								const hh = String(d.getHours()).padStart(2, '0')
-								const mm = String(d.getMinutes()).padStart(2, '0')
-								const ss = String(d.getSeconds()).padStart(2, '0')
-								const timeStr = `${hh}:${mm}:${ss}`
-
-								let html = `<div class="values-tooltip-time">${timeStr}</div>`
-								html += `
-									<div class="values-tooltip-row">
-										<div class="values-tooltip-color" style="background: var(--current)"></div>
-										<div class="values-tooltip-label">${shortRef(currentRef) || 'current'}</div>
-										<div class="values-tooltip-value">${currentVal.toFixed(2)}</div>
-									</div>
-								`
-
-								if (hasBaseline && baselineVal != null) {
-									html += `
-										<div class="values-tooltip-row">
-											<div class="values-tooltip-color" style="background: var(--baseline)"></div>
-											<div class="values-tooltip-label">${shortRef(baselineRef) || 'baseline'}</div>
-											<div class="values-tooltip-value">${baselineVal.toFixed(2)}</div>
-										</div>
-									`
-								}
-
-								tooltip.innerHTML = html
-								tooltip.style.display = 'block'
-
-								// Position near cursor
-								const left = u.cursor.left + u.root.getBoundingClientRect().left
-								const top = u.cursor.top + u.root.getBoundingClientRect().top
-								tooltip.style.left = left + 16 + 'px'
-								tooltip.style.top = top - 10 + 'px'
-							},
-							destroy: (u) => {
-								if (tooltip && tooltip.parentNode) {
-									tooltip.parentNode.removeChild(tooltip)
-								}
-							},
-						},
+				function updateActiveNav() {
+					let panels = grid.panels || []
+					if (!panels.length) return
+					let scrollPos = window.scrollY + 140
+					let activeIndex = 0
+					for (let i = 0; i < panels.length; i++) {
+						if (panels[i].offsetTop <= scrollPos) {
+							activeIndex = i
+						}
 					}
+					nav.setActive(activeIndex)
 				}
 
-				// Alert annotations plugin (Grafana-style)
-				function alertsPlugin(metricAlerts, panelEl) {
-					let tooltip = null
-					let alertRegions = [] // Store regions for hit detection
-
-					return {
-						hooks: {
-							draw: (u) => {
-								if (metricAlerts.length === 0) return
-
-								const ctx = u.ctx
-								const { left, top, width, height } = u.bbox
-								const bottomBarHeight = 6
-
-								alertRegions = [] // Reset regions
-
-								metricAlerts.forEach((alert) => {
-									const x1 = u.valToPos(alert.epoch_ms / 1000, 'x', true)
-									const x2 = u.valToPos((alert.epoch_ms + alert.duration_ms) / 1000, 'x', true)
-
-									if (x1 == null || x2 == null) return
-
-									const color = getAlertColor(alert.alertname, uniqueAlertNames)
-
-									// Store region for hit detection
-									alertRegions.push({ x1, x2, top, height, alert, color })
-
-									// Light semi-transparent fill for the whole region
-									ctx.fillStyle = color + '15'
-									ctx.fillRect(x1, top, x2 - x1, height)
-
-									// Bright bottom bar (Grafana-style)
-									ctx.fillStyle = color + '99'
-									ctx.fillRect(x1, top + height - bottomBarHeight, x2 - x1, bottomBarHeight)
-
-									// Solid vertical lines
-									ctx.strokeStyle = color
-									ctx.lineWidth = 1
-									ctx.setLineDash([])
-
-									// Start line
-									ctx.beginPath()
-									ctx.moveTo(x1, top)
-									ctx.lineTo(x1, top + height)
-									ctx.stroke()
-
-									// End line
-									ctx.beginPath()
-									ctx.moveTo(x2, top)
-									ctx.lineTo(x2, top + height)
-									ctx.stroke()
-								})
-							},
-							ready: (u) => {
-								const wrap = u.root.querySelector('.u-wrap')
-								if (!wrap) return
-
-								// Create tooltip element
-								tooltip = document.createElement('div')
-								tooltip.className = 'annotation-tooltip'
-								tooltip.style.display = 'none'
-								document.body.appendChild(tooltip)
-
-								wrap.addEventListener('mousemove', (e) => {
-									const rect = wrap.getBoundingClientRect()
-									const x = e.clientX - rect.left
-
-									// Find if cursor is over any alert region
-									let found = null
-									for (const region of alertRegions) {
-										if (x >= region.x1 && x <= region.x2) {
-											found = region
-											break
-										}
-									}
-
-									if (found) {
-										const alert = found.alert
-										const fault = alert.labels?.fault || alert.alertname
-										const node = alert.labels?.node || ''
-										const startTime = formatTime(alert.epoch_ms)
-										const endTime = formatTime(alert.epoch_ms + alert.duration_ms)
-										const duration = (alert.duration_ms / 1000).toFixed(1)
-
-										tooltip.innerHTML = `
-											<div class="annotation-tooltip-title" style="color: ${found.color}">${fault}${node ? ' on ' + node : ''}</div>
-											<div class="annotation-tooltip-time">${startTime} → ${endTime} (${duration}s)</div>
-										`
-										tooltip.style.display = 'block'
-										tooltip.style.left = e.clientX + 12 + 'px'
-										tooltip.style.top = e.clientY - 10 + 'px'
-									} else {
-										tooltip.style.display = 'none'
-									}
-								})
-
-								wrap.addEventListener('mouseleave', () => {
-									if (tooltip) tooltip.style.display = 'none'
-								})
-							},
-							destroy: (u) => {
-								if (tooltip && tooltip.parentNode) {
-									tooltip.parentNode.removeChild(tooltip)
-								}
-							},
-						},
-					}
+				if (nav.items && nav.items.length > 0) {
+					nav.setActive(0)
 				}
 
-				// Create uPlot chart
-				const opts = {
-					width: Math.min(panel.offsetWidth - 32, 1600),
-					height: 300,
-					scales: {
-						x: {
-							time: true,
-						},
-					},
-					axes: [
-						{
-							stroke: '#71717a',
-							grid: { stroke: '#2d2d30', width: 1 },
-							ticks: { stroke: '#2d2d30', width: 1 },
-							font: '11px Inter, sans-serif',
-							labelFont: '11px Inter, sans-serif',
-							labelSize: 20,
-							space: 50,
-							values: (u, vals) =>
-								vals.map((v) => {
-									const d = new Date(v * 1000)
-									const hh = String(d.getHours()).padStart(2, '0')
-									const mm = String(d.getMinutes()).padStart(2, '0')
-									const ss = String(d.getSeconds()).padStart(2, '0')
-									return `${hh}:${mm}:${ss}`
-								}),
-						},
-						{
-							stroke: '#71717a',
-							grid: { stroke: '#2d2d30', width: 1 },
-							ticks: { stroke: '#2d2d30', width: 1 },
-							font: '11px Inter, sans-serif',
-							labelFont: '11px Inter, sans-serif',
-							labelSize: 40,
-						},
-					],
-					series: series,
-					legend: {
-						show: false,
-					},
-					cursor: {
-						drag: {
-							x: false,
-							y: false,
-						},
-						points: {
-							size: 6,
-							fill: (u, i) => (i === 1 ? 'rgba(51, 181, 229, 1)' : 'rgba(184, 184, 184, 0.8)'),
-						},
-					},
-					plugins: [
-						alertsPlugin(metricAlerts, panel),
-						valuesTooltipPlugin(
-							data.meta.workload_current_ref,
-							data.meta.workload_baseline_ref,
-							!!baselineValues
-						),
-					],
-				}
-
-				const plot = new uPlot(opts, plotData, document.getElementById(`chart-${metricIndex}`))
-
-				// Handle window resize
-				const resizeObserver = new ResizeObserver(() => {
-					const newWidth = Math.min(panel.offsetWidth - 32, 1600)
-					plot.setSize({ width: newWidth, height: 300 })
+				window.addEventListener('scroll', () => {
+					updateActiveNav()
 				})
-				resizeObserver.observe(panel)
-			})
+
+				window.addEventListener('resize', () => {
+					updateActiveNav()
+				})
+
+				updateActiveNav()
+			}
+
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', initReport)
+			} else {
+				initReport()
+			}
 		</script>
 	</body>
 </html>
