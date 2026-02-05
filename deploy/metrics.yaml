@@ -1,68 +1,55 @@
-# This file is used to define custom metrics for monitoring YDB SDK operations.
-# These metrics will be collected and analyzed to evaluate the performance and reliability of the SDK.
-
 default:
-  step: 500ms # Global step interval for all metrics
-  timeout: 30s # Timeout for metric queries
-  neutral_change_percent: 5.0 # Neutral change threshold
+  step: 5s
+  timeout: 30s
+  neutral_change_percent: 5.0
 
 metrics:
-  # Supported fields: name, title, query, type, step, unit, round
-  # title is used for HTML display name (pretty header), unit for formatting (Grafana-like): ms, s, %, B, B/s, ops/s
-  # Read operations latency percentiles (milliseconds)
   - name: read_latency_p50_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="read"})
+    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p50_seconds{operation_type="read"}[15s]))
 
   - name: read_latency_p95_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="read"})
+    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p95_seconds{operation_type="read"}[15s]))
 
   - name: read_latency_p99_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="read"})
+    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p99_seconds{operation_type="read"}[15s]))
 
-  # Write operations latency percentiles (milliseconds)
   - name: write_latency_p50_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="write"})
+    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p50_seconds{operation_type="write"}[15s]))
 
   - name: write_latency_p95_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="write"})
+    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p95_seconds{operation_type="write"}[15s]))
 
   - name: write_latency_p99_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="write"})
+    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p99_seconds{operation_type="write"}[15s]))
 
-  # Read operations throughput
   - name: read_throughput
     unit: ops/s
-    query: sum by(ref) (rate(sdk_operations_total{operation_type="read"}[10s]) > 0)
+    query: sum by(ref) (rate(sdk_operations_total{operation_type="read"}[30s]))
 
-  # Write operations throughput
   - name: write_throughput
     unit: ops/s
-    query: sum by(ref) (rate(sdk_operations_total{operation_type="write"}[10s]) > 0)
+    query: sum by(ref) (rate(sdk_operations_total{operation_type="write"}[30s]))
 
-  # Read attempts throughput
   - name: read_attempts
     unit: ops/s
-    query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="read"}[10s]) > 0)
+    query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="read"}[30s]))
 
-  # Write attempts throughput
   - name: write_attempts
     unit: ops/s
-    query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="write"}[10s]) > 0)
+    query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="write"}[30s]))
 
-  # Read operations availability
   - name: read_availability
     unit: "%"
-    query: clamp_max(100 * sum by (ref) (rate(sdk_operations_success_total{operation_type="read"}[10s])) / sum by (ref) (rate(sdk_operations_total{operation_type="read"}[10s])), 100)
+    query: 100 * clamp_max(sum by (ref) (rate(sdk_operations_success_total{operation_type="read"}[30s])) / sum by (ref) (rate(sdk_operations_total{operation_type="read"}[30s])), 1)
     round: 0.01
 
-  # Write operations availability
   - name: write_availability
     unit: "%"
-    query: clamp_max(100 * sum by (ref) (rate(sdk_operations_success_total{operation_type="write"}[10s])) / sum by (ref) (rate(sdk_operations_total{operation_type="write"}[10s])), 100)
+    query: 100 * clamp_max(sum by (ref) (rate(sdk_operations_success_total{operation_type="write"}[30s])) / sum by (ref) (rate(sdk_operations_total{operation_type="write"}[30s])), 1)
     round: 0.01
