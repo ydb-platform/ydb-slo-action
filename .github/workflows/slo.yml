@@ -105,7 +105,7 @@ jobs:
           # Build baseline version
           if [ -f "$GITHUB_WORKSPACE/baseline/deploy/app/Dockerfile" ]; then
             echo "Building baseline app image..."
-            docker build -t ydb-workload-baseline $GITHUB_WORKSPACE/baseline/deploy/app
+            docker build -t ydb-workload-baseline $GITHUB_WORKSPACE/current/deploy/app
           else
             echo "No baseline app Dockerfile found"
           fi
@@ -119,8 +119,8 @@ jobs:
           workload_name: kv-workload
           workload_current_ref: ${{ github.head_ref || github.ref_name }}
           workload_current_image: ydb-workload-current
-          # workload_baseline_ref: ${{ steps.baseline.outputs.ref }}
-          # workload_baseline_image: ydb-workload-baseline
+          workload_baseline_ref: ${{ steps.baseline.outputs.ref }}
+          workload_baseline_image: ydb-workload-baseline
           disable_compose_profiles: workload-baseline
 
   ydb-slo-report:
