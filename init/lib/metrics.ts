@@ -25,7 +25,9 @@ export async function collectMetricsFromPrometheus(
 					metrics.push({
 						type: 'instant',
 						name: metric.name,
+						title: metric.title,
 						query: metric.query,
+						unit: metric.unit,
 						round: metric.round,
 						data: response.data.result,
 					})
@@ -44,7 +46,9 @@ export async function collectMetricsFromPrometheus(
 					metrics.push({
 						type: 'range',
 						name: metric.name,
+						title: metric.title,
 						query: metric.query,
+						unit: metric.unit,
 						round: metric.round,
 						data: response.data.result,
 					})
