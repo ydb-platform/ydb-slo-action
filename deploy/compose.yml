@@ -269,7 +269,7 @@ services:
       - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
       - WORKLOAD_REF=${WORKLOAD_CURRENT_REF:-current}
       - WORKLOAD_NAME=${WORKLOAD_NAME:-kv}
-      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-60}
+      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-600}
       - PROMETHEUS_URL=http://ydb-prometheus:9090
       - PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query
       - PROMETHEUS_REMOTE_WRITE_URL=http://ydb-prometheus:9090/api/v1/write
@@ -301,7 +301,7 @@ services:
       - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
       - WORKLOAD_REF=${WORKLOAD_BASELINE_REF:-baseline}
       - WORKLOAD_NAME=${WORKLOAD_NAME:-kv}
-      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-60}
+      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-600}
       - PROMETHEUS_URL=http://ydb-prometheus:9090
       - PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query
       - PROMETHEUS_REMOTE_WRITE_URL=http://ydb-prometheus:9090/api/v1/write
