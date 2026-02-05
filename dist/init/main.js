@@ -3,16 +3,17 @@ import {
   getContainerIp,
   getPullRequestNumber,
   waitForContainerCompletion
-} from "../main-sb5fmyn6.js";
+} from "../main-9qy8ydfs.js";
 import {
   debug,
+  error,
   exec,
   getInput,
   info,
   saveState,
   setFailed,
   setOutput
-} from "../main-st7zz2z8.js";
+} from "../main-qx9yp3g6.js";
 
 // init/main.ts
 import * as fs from "node:fs";
@@ -77,11 +78,11 @@ async function waitForWorkloads() {
         container: w.container,
         timeoutMs: workloadTimeoutMs
       }))), info("All workloads completed successfully");
-    } catch (error) {
-      throw setFailed(`Workload failed: ${error}`), error;
+    } catch (err) {
+      error(`Workload failed: ${err}`);
     }
   }
   let finish = /* @__PURE__ */ new Date;
-  saveState("finish", finish.toISOString()), info(`Workloads finished at ${finish}`);
+  saveState("finish", finish.toISOString()), info(`Workloads finished at ${finish}`), process.exit(0);
 }
 main();

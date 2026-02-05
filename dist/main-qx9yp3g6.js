@@ -69568,4 +69568,4 @@ If the error persists, please check whether Actions and API requests are operati
 // node_modules/@actions/artifact/lib/artifact.js
 var client2 = new DefaultArtifactClient;
 
-export { summary, exec, getInput, setOutput, setFailed, debug, warning, info, saveState, getState, context2 as context, getOctokit, DefaultArtifactClient };
+export { summary, exec, getInput, setOutput, setFailed, debug, error, warning, info, saveState, getState, context2 as context, getOctokit, DefaultArtifactClient };

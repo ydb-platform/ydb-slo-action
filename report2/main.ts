@@ -39,7 +39,7 @@ async function main() {
 	}
 
 	// Load thresholds config once for all workloads
-	let thresholdsConfig = await loadThresholdConfig(thresholdsYamlPath, thresholdsYaml)
+	let thresholdsConfig = await loadThresholdConfig(thresholdsYaml, thresholdsYamlPath)
 
 	// Process each workload
 	let reports: WorkloadReportSummary[] = []

@@ -3,13 +3,13 @@ import {
   getComposeProfiles,
   getContainerIp,
   uploadArtifacts
-} from "../main-sb5fmyn6.js";
+} from "../main-9qy8ydfs.js";
 import {
   compareWorkloadMetrics,
   formatChange,
   formatValue,
   loadMetricConfig
-} from "../main-bzx26vvv.js";
+} from "../main-7dys40tt.js";
 import {
   debug,
   exec,
@@ -17,7 +17,7 @@ import {
   getState,
   info,
   summary
-} from "../main-st7zz2z8.js";
+} from "../main-qx9yp3g6.js";
 
 // init/post.ts
 import * as fs from "node:fs/promises";
@@ -137,7 +137,9 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
           metrics.push({
             type: "instant",
             name: metric.name,
+            title: metric.title,
             query: metric.query,
+            unit: metric.unit,
             round: metric.round,
             data: response.data.result
           });
@@ -154,7 +156,9 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
           metrics.push({
             type: "range",
             name: metric.name,
+            title: metric.title,
             query: metric.query,
+            unit: metric.unit,
             round: metric.round,
             data: response.data.result
           });
@@ -231,6 +235,10 @@ async function collectMetadata() {
   return JSON.stringify({
     pull,
     commit,
+    repo_url: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}` : void 0,
+    repo_full_name: process.env.GITHUB_REPOSITORY,
+    run_id: process.env.GITHUB_RUN_ID,
+    run_url: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : void 0,
     workload,
     workload_current_ref,
     workload_baseline_ref,

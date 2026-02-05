@@ -187,29 +187,36 @@ export function evaluateThreshold(comparison: MetricComparison, config: Threshol
 	let threshold = findMatchingThreshold(comparison.name, config)
 	let severity: ThresholdSeverity = 'success'
 	let reason: string | undefined
+	let thresholdDirection = threshold?.direction ?? 'neutral'
+	let checkMin = thresholdDirection !== 'lower_is_better'
+	let checkMax = thresholdDirection !== 'higher_is_better'
 
 	// Check absolute value thresholds first
 	if (threshold) {
 		// Check critical_min
-		if (threshold.critical_min !== undefined && comparison.current.value < threshold.critical_min) {
+		if (checkMin && threshold.critical_min !== undefined && comparison.current.value < threshold.critical_min) {
 			debug(`${comparison.name}: below critical_min (${comparison.current.value} < ${threshold.critical_min})`)
 			severity = 'failure'
 			reason = `Value ${comparison.current.value.toFixed(2)} < critical min ${threshold.critical_min}`
 		}
 		// Check critical_max
-		else if (threshold.critical_max !== undefined && comparison.current.value > threshold.critical_max) {
+		else if (
+			checkMax &&
+			threshold.critical_max !== undefined &&
+			comparison.current.value > threshold.critical_max
+		) {
 			debug(`${comparison.name}: above critical_max (${comparison.current.value} > ${threshold.critical_max})`)
 			severity = 'failure'
 			reason = `Value ${comparison.current.value.toFixed(2)} > critical max ${threshold.critical_max}`
 		}
 		// Check warning_min
-		else if (threshold.warning_min !== undefined && comparison.current.value < threshold.warning_min) {
+		else if (checkMin && threshold.warning_min !== undefined && comparison.current.value < threshold.warning_min) {
 			debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`)
 			severity = 'warning'
 			reason = `Value ${comparison.current.value.toFixed(2)} < warning min ${threshold.warning_min}`
 		}
 		// Check warning_max
-		else if (threshold.warning_max !== undefined && comparison.current.value > threshold.warning_max) {
+		else if (checkMax && threshold.warning_max !== undefined && comparison.current.value > threshold.warning_max) {
 			debug(`${comparison.name}: above warning_max (${comparison.current.value} > ${threshold.warning_max})`)
 			severity = 'warning'
 			reason = `Value ${comparison.current.value.toFixed(2)} > warning max ${threshold.warning_max}`
@@ -223,16 +230,36 @@ export function evaluateThreshold(comparison: MetricComparison, config: Threshol
 		// Use metric-specific or default thresholds
 		let warningThreshold = threshold?.warning_change_percent ?? config.default.warning_change_percent
 		let criticalThreshold = threshold?.critical_change_percent ?? config.default.critical_change_percent
+		let directionHint = threshold?.direction ? ` (${threshold.direction.replace(/_/g, ' ')})` : ''
+
+		let effectiveDirection = comparison.change.direction
+
+		if (thresholdDirection !== 'neutral') {
+			let currentValue = comparison.current.value
+			let baselineValue = comparison.baseline.value
+
+			if (!isNaN(currentValue) && !isNaN(baselineValue)) {
+				let neutralThreshold = config.neutral_change_percent
+
+				if (changePercent < neutralThreshold) {
+					effectiveDirection = 'neutral'
+				} else if (thresholdDirection === 'lower_is_better') {
+					effectiveDirection = currentValue > baselineValue ? 'worse' : 'better'
+				} else if (thresholdDirection === 'higher_is_better') {
+					effectiveDirection = currentValue < baselineValue ? 'worse' : 'better'
+				}
+			}
+		}
 
 		// Only trigger if change is in "worse" direction
-		if (comparison.change.direction === 'worse') {
+		if (effectiveDirection === 'worse') {
 			if (severity !== 'failure') {
 				if (changePercent > criticalThreshold) {
 					severity = 'failure'
-					reason = `Regression ${changePercent.toFixed(2)}% > critical ${criticalThreshold}%`
+					reason = `Regression${directionHint} ${changePercent.toFixed(2)}% > critical ${criticalThreshold}%`
 				} else if (severity !== 'warning' && changePercent > warningThreshold) {
 					severity = 'warning'
-					reason = `Regression ${changePercent.toFixed(2)}% > warning ${warningThreshold}%`
+					reason = `Regression${directionHint} ${changePercent.toFixed(2)}% > warning ${warningThreshold}%`
 				}
 			}
 		}
