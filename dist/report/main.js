@@ -207,6 +207,7 @@ var dist_default = `<!doctype html>
 		<title>SLO Report</title>
 		<meta name="color-scheme" content="light dark" />
 
+		<script data-source></script>
 
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.min.css" />
 		<script type="importmap">
@@ -237,8 +238,8 @@ async function loadTemplate(customPath) {
   return dist_default;
 }
 function injectData(template, data) {
-  let dataScript = `export const data = ${JSON.stringify(data)};`;
-  return template.replace("/*DATA_INJECTION*/", dataScript);
+  let dataScript = `<script type="module">window.__REPORT_DATA__ = ${JSON.stringify(data)};</script>`;
+  return template.replace("<script data-source></script>", dataScript);
 }
 async function generateHTMLReport(meta, alerts, analysis, metrics, templatePath, config) {
   let template = await loadTemplate(templatePath);
