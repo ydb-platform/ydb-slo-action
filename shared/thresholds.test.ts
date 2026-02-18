@@ -2,10 +2,9 @@ import * as assert from 'node:assert/strict'
 
 import { test } from 'bun:test'
 
-import type { MetricComparison } from './analysis.js'
-import { evaluateThreshold, evaluateWorkloadThresholds, type ThresholdConfig } from './thresholds.js'
+import { evaluateAbsoluteThreshold, evaluateRelativeThreshold, type ThresholdConfig } from './thresholds.js'
 
-test('evaluateThreshold uses default change thresholds for regressions', () => {
+test('evaluateRelativeThreshold flags regression beyond warning threshold', () => {
 	let config: ThresholdConfig = {
 		neutral_change_percent: 5,
 		default: {
@@ -14,20 +13,12 @@ test('evaluateThreshold uses default change thresholds for regressions', () => {
 		},
 	}
 
-	let comparison: MetricComparison = {
-		name: 'some_metric',
-		type: 'instant',
-		current: { value: 120, available: true },
-		baseline: { value: 100, available: true },
-		change: { absolute: 20, percent: 20, direction: 'worse' },
-	}
-
-	let evaluated = evaluateThreshold(comparison, config)
-	assert.equal(evaluated.threshold_severity, 'warning')
-	assert.ok(evaluated.reason?.includes('Regression'))
+	let result = evaluateRelativeThreshold('some_latency_metric', 15, 0.8, 'lower_is_better', config)
+	assert.equal(result.severity, 'warning')
+	assert.ok(result.violations.length > 0)
 })
 
-test('evaluateThreshold does not trigger on improvements even if percent is high', () => {
+test('evaluateRelativeThreshold flags critical regression', () => {
 	let config: ThresholdConfig = {
 		neutral_change_percent: 5,
 		default: {
@@ -36,52 +27,97 @@ test('evaluateThreshold does not trigger on improvements even if percent is high
 		},
 	}
 
-	let comparison: MetricComparison = {
-		name: 'some_metric',
-		type: 'instant',
-		current: { value: 50, available: true },
-		baseline: { value: 100, available: true },
-		change: { absolute: -50, percent: -50, direction: 'better' },
-	}
-
-	let evaluated = evaluateThreshold(comparison, config)
-	assert.equal(evaluated.threshold_severity, 'success')
+	let result = evaluateRelativeThreshold('some_latency_metric', 25, 0.9, 'lower_is_better', config)
+	assert.equal(result.severity, 'failure')
 })
 
-test('evaluateWorkloadThresholds aggregates overall severity', () => {
+test('evaluateRelativeThreshold does not trigger on improvements', () => {
 	let config: ThresholdConfig = {
 		neutral_change_percent: 5,
 		default: {
 			warning_change_percent: 10,
 			critical_change_percent: 20,
+		},
+	}
+
+	// lower_is_better: negative change = improvement
+	let result = evaluateRelativeThreshold('some_latency_metric', -50, 0.1, 'lower_is_better', config)
+	assert.equal(result.severity, 'success')
+})
+
+test('evaluateRelativeThreshold treats small changes as neutral', () => {
+	let config: ThresholdConfig = {
+		neutral_change_percent: 5,
+		default: {
+			warning_change_percent: 10,
+			critical_change_percent: 20,
+		},
+	}
+
+	let result = evaluateRelativeThreshold('some_latency_metric', 3, 0.55, 'lower_is_better', config)
+	assert.equal(result.severity, 'success')
+})
+
+test('evaluateAbsoluteThreshold flags below critical_min', () => {
+	let config: ThresholdConfig = {
+		neutral_change_percent: 5,
+		default: {
+			warning_change_percent: 20,
+			critical_change_percent: 50,
 		},
 		metrics: [
 			{
-				name: 'abs_max_metric',
-				critical_max: 10,
+				pattern: '*_availability',
+				direction: 'higher_is_better',
+				critical_min: 95.0,
+				warning_min: 99.0,
 			},
 		],
 	}
 
-	let comparisons: MetricComparison[] = [
-		{
-			name: 'abs_max_metric',
-			type: 'instant',
-			current: { value: 11, available: true },
-			baseline: { value: 9, available: true },
-			change: { absolute: 2, percent: 22.22, direction: 'worse' },
-		},
-		{
-			name: 'ok_metric',
-			type: 'instant',
-			current: { value: 1, available: true },
-			baseline: { value: 1, available: true },
-			change: { absolute: 0, percent: 0, direction: 'neutral' },
-		},
-	]
+	let result = evaluateAbsoluteThreshold('read_availability', 90.0, 'higher_is_better', config)
+	assert.equal(result.severity, 'failure')
+	assert.ok(result.violations.length > 0)
+})
 
-	let result = evaluateWorkloadThresholds(comparisons, config)
-	assert.equal(result.overall, 'failure')
-	assert.equal(result.failures.length, 1)
-	assert.equal(result.failures[0].name, 'abs_max_metric')
+test('evaluateAbsoluteThreshold flags below warning_min', () => {
+	let config: ThresholdConfig = {
+		neutral_change_percent: 5,
+		default: {
+			warning_change_percent: 20,
+			critical_change_percent: 50,
+		},
+		metrics: [
+			{
+				pattern: '*_availability',
+				direction: 'higher_is_better',
+				critical_min: 95.0,
+				warning_min: 99.0,
+			},
+		],
+	}
+
+	let result = evaluateAbsoluteThreshold('read_availability', 97.0, 'higher_is_better', config)
+	assert.equal(result.severity, 'warning')
+})
+
+test('evaluateAbsoluteThreshold succeeds when above thresholds', () => {
+	let config: ThresholdConfig = {
+		neutral_change_percent: 5,
+		default: {
+			warning_change_percent: 20,
+			critical_change_percent: 50,
+		},
+		metrics: [
+			{
+				pattern: '*_availability',
+				direction: 'higher_is_better',
+				critical_min: 95.0,
+				warning_min: 99.0,
+			},
+		],
+	}
+
+	let result = evaluateAbsoluteThreshold('read_availability', 99.9, 'higher_is_better', config)
+	assert.equal(result.severity, 'success')
 })

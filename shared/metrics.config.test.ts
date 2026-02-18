@@ -25,7 +25,7 @@ test.if(hasYq())('loadMetricConfig merges inline yaml before defaults', async ()
 
 	assert.equal(config.default.step, '1s')
 	assert.equal(config.metrics[0]?.name, 'custom_metric')
-	assert.ok(config.metrics.some((m) => m.name === 'read_latency_ms'))
+	assert.ok(config.metrics.some((m) => m.name === 'read_latency_p50_ms'))
 })
 
 test.if(hasYq())('loadMetricConfig merges file after inline (higher priority)', async () => {
@@ -58,5 +58,5 @@ test.if(hasYq())('loadMetricConfig merges file after inline (higher priority)', 
 	assert.equal(config.default.timeout, '5s')
 	assert.equal(config.metrics[0]?.name, 'file_metric')
 	assert.ok(config.metrics.some((m) => m.name === 'inline_metric'))
-	assert.ok(config.metrics.some((m) => m.name === 'read_latency_ms'))
+	assert.ok(config.metrics.some((m) => m.name === 'read_latency_p50_ms'))
 })

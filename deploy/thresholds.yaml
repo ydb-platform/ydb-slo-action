@@ -56,6 +56,11 @@ metrics:
     warning_change_percent: 25.0
     critical_change_percent: 50.0
 
+  # Retry attempts (should stay at zero)
+  - pattern: "*_attempts"
+    direction: lower_is_better
+    warning_max: 0.0
+
   # Error/failure metrics (should stay at zero)
   - pattern: "*_error*"
     direction: lower_is_better

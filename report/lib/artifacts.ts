@@ -1,5 +1,5 @@
 /**
- * Artifacts download and parsing
+ * Artifacts download and parsing for report2
  */
 
 import * as fs from 'node:fs'
@@ -9,38 +9,37 @@ import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, warning } from '@actions/core'
 import { context } from '@actions/github'
 
-export interface WorkloadArtifacts {
-	name: string
-	logsPath: string
+export interface WorkloadArtifact {
+	workload: string
+	metaPath: string
 	alertsPath: string
 	metricsPath: string
-	metadataPath: string
 }
 
 /**
- * Download artifacts for a workflow run
+ * Download all artifacts from workflow run
  */
-export async function downloadRunArtifacts(destinationPath: string): Promise<Map<string, WorkloadArtifacts>> {
+export async function downloadRunArtifacts(destinationPath: string): Promise<Map<string, WorkloadArtifact>> {
 	let token = getInput('github_token')
 	let workflowRunId = parseInt(getInput('github_run_id') || String(context.runId))
 
 	if (!token || !workflowRunId) {
-		throw new Error('GitHub token and workflow run ID are required to download artifacts')
+		throw new Error('GitHub token and workflow run ID are required')
 	}
 
 	let artifactClient = new DefaultArtifactClient()
 	let { artifacts } = await artifactClient.listArtifacts({
 		findBy: {
-			token: token,
-			workflowRunId: workflowRunId,
+			token,
+			workflowRunId,
 			repositoryName: context.repo.repo,
 			repositoryOwner: context.repo.owner,
 		},
 	})
 
-	debug(`Found ${artifacts.length} artifacts in workflow run ${workflowRunId}`)
+	debug(`Found ${artifacts.length} artifacts in run ${workflowRunId}`)
 
-	// Download each artifact to its own subdirectory
+	// Download each artifact
 	let downloadedPaths = new Map<string, string>()
 
 	for (let artifact of artifacts) {
@@ -51,27 +50,20 @@ export async function downloadRunArtifacts(destinationPath: string): Promise<Map
 		let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
 			path: artifactDir,
 			findBy: {
-				token: token,
-				workflowRunId: workflowRunId,
+				token,
+				workflowRunId,
 				repositoryName: context.repo.repo,
 				repositoryOwner: context.repo.owner,
 			},
 		})
 
-		let artifactPath = downloadPath || artifactDir
-		downloadedPaths.set(artifact.name, artifactPath)
-
-		debug(`Downloaded artifact ${artifact.name} to ${artifactPath}`)
+		downloadedPaths.set(artifact.name, downloadPath || artifactDir)
 	}
 
-	// Group artifacts by workload
-	let runArtifacts = new Map<string, WorkloadArtifacts>()
+	// Group by workload
+	let workloadArtifacts = new Map<string, WorkloadArtifact>()
 
 	for (let [artifactName, artifactPath] of downloadedPaths) {
-		// Artifact name is the workload name, files inside have workload prefix
-		let workload = artifactName
-
-		// List files in artifact directory
 		if (!fs.existsSync(artifactPath)) {
 			warning(`Artifact path does not exist: ${artifactPath}`)
 			continue
@@ -86,25 +78,44 @@ export async function downloadRunArtifacts(destinationPath: string): Promise<Map
 			files = [artifactPath]
 		}
 
-		let group = runArtifacts.get(workload) || ({} as WorkloadArtifacts)
-		group.name = workload
+		let workload = artifactName
+		let artifact = workloadArtifacts.get(workload) || ({ workload } as WorkloadArtifact)
 
 		for (let file of files) {
 			let basename = path.basename(file)
 
-			if (basename.endsWith('-logs.txt')) {
-				group.logsPath = file
+			if (basename.endsWith('-metadata.json')) {
+				artifact.metaPath = file
 			} else if (basename.endsWith('-alerts.jsonl')) {
-				group.alertsPath = file
+				artifact.alertsPath = file
 			} else if (basename.endsWith('-metrics.jsonl')) {
-				group.metricsPath = file
-			} else if (basename.endsWith('-metadata.json')) {
-				group.metadataPath = file
+				artifact.metricsPath = file
 			}
 		}
 
-		runArtifacts.set(workload, group)
+		// Only add if has all required files
+		if (artifact.metaPath && artifact.metricsPath) {
+			workloadArtifacts.set(workload, artifact)
+		}
 	}
 
-	return runArtifacts
+	return workloadArtifacts
+}
+
+/**
+ * Upload HTML report as artifact
+ */
+export async function uploadReportArtifact(
+	workload: string,
+	htmlPath: string,
+	cwd: string,
+	retentionDays: number
+): Promise<string> {
+	let artifactClient = new DefaultArtifactClient()
+
+	let { id } = await artifactClient.uploadArtifact(`${workload}-html-report`, [htmlPath], cwd, {
+		retentionDays,
+	})
+
+	return `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts/${id}`
 }

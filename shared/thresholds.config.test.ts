@@ -12,7 +12,7 @@ let hasYq = () => {
 test.if(hasYq())('loadThresholdConfig merges custom thresholds before default', async () => {
 	process.env['GITHUB_ACTION_PATH'] = path.resolve(import.meta.dir, '..')
 
-	let { evaluateThreshold, loadThresholdConfig } = await import('./thresholds.js')
+	let { evaluateAbsoluteThreshold, loadThresholdConfig } = await import('./thresholds.js')
 
 	let customYaml = [
 		'metrics:',
@@ -25,16 +25,7 @@ test.if(hasYq())('loadThresholdConfig merges custom thresholds before default', 
 
 	assert.equal(config.metrics?.[0]?.pattern, '*custom_metric*')
 
-	let evaluated = evaluateThreshold(
-		{
-			name: 'custom_metric',
-			type: 'instant',
-			current: { value: 1, available: true },
-			baseline: { value: 0, available: true },
-			change: { absolute: 1, percent: NaN, direction: 'unknown' },
-		},
-		config
-	)
+	let evaluated = evaluateAbsoluteThreshold('custom_metric', 1, 'lower_is_better', config)
 
-	assert.equal(evaluated.threshold_severity, 'failure')
+	assert.equal(evaluated.severity, 'failure')
 })

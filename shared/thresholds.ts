@@ -1,8 +1,5 @@
 /**
  * Shared thresholds configuration and evaluation
- *
- * This module was copied from report/lib/thresholds.ts and adapted to live
- * under shared/lib so both `init` and `report` can import it.
  */
 
 import * as fs from 'node:fs'
@@ -11,7 +8,22 @@ import * as path from 'node:path'
 import { exec } from '@actions/exec'
 import { debug, warning } from '@actions/core'
 
-import type { MetricComparison } from './analysis.js'
+export type MetricDirection = 'lower_is_better' | 'higher_is_better' | 'neutral'
+export type Severity = 'success' | 'warning' | 'failure'
+
+export interface AbsoluteCheck {
+	severity: Severity
+	value: number
+	violations: string[]
+}
+
+export interface RelativeCheck {
+	severity: Severity
+	pairedRatio: number
+	changePercent: number
+	concordance: number
+	violations: string[]
+}
 
 export interface MetricThreshold {
 	name?: string // Exact metric name (higher priority than pattern)
@@ -34,19 +46,12 @@ export interface ThresholdConfig {
 	metrics?: MetricThreshold[]
 }
 
-export type ThresholdSeverity = 'success' | 'warning' | 'failure'
+export type ThresholdSeverity = Severity
 
-export type EvaluatedThreshold = {
-	metric_name: string
-	threshold_name?: string
-	threshold_pattern?: string
-	threshold_severity: ThresholdSeverity
-	reason?: string
-}
+// ---------------------------------------------------------------------------
+// YAML parsing and loading (unchanged)
+// ---------------------------------------------------------------------------
 
-/**
- * Parse YAML thresholds config using `yq`
- */
 async function parseThresholdsYaml(yamlContent: string): Promise<ThresholdConfig | null> {
 	if (!yamlContent || yamlContent.trim() === '') {
 		return null
@@ -73,9 +78,6 @@ async function parseThresholdsYaml(yamlContent: string): Promise<ThresholdConfig
 	}
 }
 
-/**
- * Merge two threshold configs (custom extends/overrides default)
- */
 function mergeThresholdConfigs(defaultConfig: ThresholdConfig, customConfig: ThresholdConfig): ThresholdConfig {
 	// prettier-ignore
 	return {
@@ -88,9 +90,6 @@ function mergeThresholdConfigs(defaultConfig: ThresholdConfig, customConfig: Thr
 	}
 }
 
-/**
- * Load default thresholds from deploy/thresholds.yaml
- */
 export async function loadDefaultThresholdConfig(): Promise<ThresholdConfig> {
 	debug('Loading default thresholds from GITHUB_ACTION_PATH/deploy/thresholds.yaml')
 	let actionRoot = path.resolve(process.env['GITHUB_ACTION_PATH']!)
@@ -102,7 +101,6 @@ export async function loadDefaultThresholdConfig(): Promise<ThresholdConfig> {
 		if (config) return config
 	}
 
-	// Fallback to hardcoded defaults
 	warning('Could not load default thresholds, using hardcoded defaults')
 	return {
 		neutral_change_percent: 5.0,
@@ -113,16 +111,9 @@ export async function loadDefaultThresholdConfig(): Promise<ThresholdConfig> {
 	}
 }
 
-/**
- * Load thresholds configuration with merging:
- * 1. Load default from deploy/thresholds.yaml
- * 2. Merge with custom YAML (inline) if provided
- * 3. Merge with custom file if provided
- */
 export async function loadThresholdConfig(customYaml?: string, customPath?: string): Promise<ThresholdConfig> {
 	let config = await loadDefaultThresholdConfig()
 
-	// Merge with custom YAML (inline)
 	if (customYaml) {
 		debug('Merging custom thresholds from inline YAML')
 		let customConfig = await parseThresholdsYaml(customYaml)
@@ -131,7 +122,6 @@ export async function loadThresholdConfig(customYaml?: string, customPath?: stri
 		}
 	}
 
-	// Merge with custom file
 	if (customPath && fs.existsSync(customPath)) {
 		debug(`Merging custom thresholds from file: ${customPath}`)
 		let content = fs.readFileSync(customPath, { encoding: 'utf-8' })
@@ -144,22 +134,19 @@ export async function loadThresholdConfig(customYaml?: string, customPath?: stri
 	return config
 }
 
-/**
- * Match metric name against pattern (supports wildcards)
- */
+// ---------------------------------------------------------------------------
+// Pattern matching (unchanged)
+// ---------------------------------------------------------------------------
+
 function matchPattern(metricName: string, pattern: string): boolean {
-	// Convert glob pattern to regex
 	let regexPattern = pattern
-		.replace(/\*/g, '.*') // * -> .*
-		.replace(/\?/g, '.') // ? -> .
+		.replace(/\*/g, '.*')
+		.replace(/\?/g, '.')
 
 	let regex = new RegExp(`^${regexPattern}$`, 'i')
 	return regex.test(metricName)
 }
 
-/**
- * Find matching threshold for metric (exact match first, then pattern)
- */
 function findMatchingThreshold(metricName: string, config: ThresholdConfig): MetricThreshold | null {
 	if (!config.metrics) return null
 
@@ -180,130 +167,94 @@ function findMatchingThreshold(metricName: string, config: ThresholdConfig): Met
 	return null
 }
 
-/**
- * Evaluate threshold for a metric comparison
- */
-export function evaluateThreshold(comparison: MetricComparison, config: ThresholdConfig): EvaluatedThreshold {
-	let threshold = findMatchingThreshold(comparison.name, config)
-	let severity: ThresholdSeverity = 'success'
-	let reason: string | undefined
-	let thresholdDirection = threshold?.direction ?? 'neutral'
-	let checkMin = thresholdDirection !== 'lower_is_better'
-	let checkMax = thresholdDirection !== 'higher_is_better'
+// ---------------------------------------------------------------------------
+// New evaluation functions
+// ---------------------------------------------------------------------------
 
-	// Check absolute value thresholds first
-	if (threshold) {
-		// Check critical_min
-		if (checkMin && threshold.critical_min !== undefined && comparison.current.value < threshold.critical_min) {
-			debug(`${comparison.name}: below critical_min (${comparison.current.value} < ${threshold.critical_min})`)
-			severity = 'failure'
-			reason = `Value ${comparison.current.value.toFixed(2)} < critical min ${threshold.critical_min}`
-		}
-		// Check critical_max
-		else if (
-			checkMax &&
-			threshold.critical_max !== undefined &&
-			comparison.current.value > threshold.critical_max
-		) {
-			debug(`${comparison.name}: above critical_max (${comparison.current.value} > ${threshold.critical_max})`)
-			severity = 'failure'
-			reason = `Value ${comparison.current.value.toFixed(2)} > critical max ${threshold.critical_max}`
-		}
-		// Check warning_min
-		else if (checkMin && threshold.warning_min !== undefined && comparison.current.value < threshold.warning_min) {
-			debug(`${comparison.name}: below warning_min (${comparison.current.value} < ${threshold.warning_min})`)
-			severity = 'warning'
-			reason = `Value ${comparison.current.value.toFixed(2)} < warning min ${threshold.warning_min}`
-		}
-		// Check warning_max
-		else if (checkMax && threshold.warning_max !== undefined && comparison.current.value > threshold.warning_max) {
-			debug(`${comparison.name}: above warning_max (${comparison.current.value} > ${threshold.warning_max})`)
-			severity = 'warning'
-			reason = `Value ${comparison.current.value.toFixed(2)} > warning max ${threshold.warning_max}`
-		}
+export function evaluateAbsoluteThreshold(
+	metricName: string,
+	currentValue: number,
+	direction: MetricDirection,
+	config: ThresholdConfig
+): AbsoluteCheck {
+	let violations: string[] = []
+	let threshold = findMatchingThreshold(metricName, config)
+
+	if (!threshold || isNaN(currentValue)) {
+		return { severity: 'success', value: currentValue, violations }
 	}
 
-	// Check change percent thresholds
-	if (!isNaN(comparison.change.percent)) {
-		let changePercent = Math.abs(comparison.change.percent)
+	let checkMin = direction !== 'lower_is_better'
+	let checkMax = direction !== 'higher_is_better'
 
-		// Use metric-specific or default thresholds
-		let warningThreshold = threshold?.warning_change_percent ?? config.default.warning_change_percent
-		let criticalThreshold = threshold?.critical_change_percent ?? config.default.critical_change_percent
-		let directionHint = threshold?.direction ? ` (${threshold.direction.replace(/_/g, ' ')})` : ''
+	// Critical min
+	if (checkMin && threshold.critical_min !== undefined && currentValue < threshold.critical_min) {
+		violations.push(`Value ${currentValue.toFixed(2)} < critical min ${threshold.critical_min}`)
+	}
+	// Critical max
+	if (checkMax && threshold.critical_max !== undefined && currentValue > threshold.critical_max) {
+		violations.push(`Value ${currentValue.toFixed(2)} > critical max ${threshold.critical_max}`)
+	}
+	// Warning min
+	if (checkMin && threshold.warning_min !== undefined && currentValue < threshold.warning_min) {
+		violations.push(`Value ${currentValue.toFixed(2)} < warning min ${threshold.warning_min}`)
+	}
+	// Warning max
+	if (checkMax && threshold.warning_max !== undefined && currentValue > threshold.warning_max) {
+		violations.push(`Value ${currentValue.toFixed(2)} > warning max ${threshold.warning_max}`)
+	}
 
-		let effectiveDirection = comparison.change.direction
+	let severity: Severity = 'success'
+	if (
+		(checkMin && threshold.critical_min !== undefined && currentValue < threshold.critical_min) ||
+		(checkMax && threshold.critical_max !== undefined && currentValue > threshold.critical_max)
+	) {
+		severity = 'failure'
+	} else if (violations.length > 0) {
+		severity = 'warning'
+	}
 
-		if (thresholdDirection !== 'neutral') {
-			let currentValue = comparison.current.value
-			let baselineValue = comparison.baseline.value
+	return { severity, value: currentValue, violations }
+}
 
-			if (!isNaN(currentValue) && !isNaN(baselineValue)) {
-				let neutralThreshold = config.neutral_change_percent
+export function evaluateRelativeThreshold(
+	metricName: string,
+	changePercent: number,
+	concordance: number,
+	direction: MetricDirection,
+	config: ThresholdConfig
+): RelativeCheck {
+	let violations: string[] = []
+	let threshold = findMatchingThreshold(metricName, config)
 
-				if (changePercent < neutralThreshold) {
-					effectiveDirection = 'neutral'
-				} else if (thresholdDirection === 'lower_is_better') {
-					effectiveDirection = currentValue > baselineValue ? 'worse' : 'better'
-				} else if (thresholdDirection === 'higher_is_better') {
-					effectiveDirection = currentValue < baselineValue ? 'worse' : 'better'
-				}
-			}
-		}
+	let warningThreshold = threshold?.warning_change_percent ?? config.default.warning_change_percent
+	let criticalThreshold = threshold?.critical_change_percent ?? config.default.critical_change_percent
+	let neutralThreshold = config.neutral_change_percent
 
-		// Only trigger if change is in "worse" direction
-		if (effectiveDirection === 'worse') {
-			if (severity !== 'failure') {
-				if (changePercent > criticalThreshold) {
-					severity = 'failure'
-					reason = `Regression${directionHint} ${changePercent.toFixed(2)}% > critical ${criticalThreshold}%`
-				} else if (severity !== 'warning' && changePercent > warningThreshold) {
-					severity = 'warning'
-					reason = `Regression${directionHint} ${changePercent.toFixed(2)}% > warning ${warningThreshold}%`
-				}
-			}
+	let absChange = Math.abs(changePercent)
+
+	// Determine if the change is in the "worse" direction
+	let isWorse = false
+	if (direction === 'lower_is_better' && changePercent > 0) isWorse = true
+	if (direction === 'higher_is_better' && changePercent < 0) isWorse = true
+
+	// Only flag regressions (worse direction) beyond neutral threshold
+	let severity: Severity = 'success'
+	if (isWorse && absChange > neutralThreshold) {
+		if (absChange > criticalThreshold) {
+			severity = 'failure'
+			violations.push(`Regression ${absChange.toFixed(1)}% > critical ${criticalThreshold}%`)
+		} else if (absChange > warningThreshold) {
+			severity = 'warning'
+			violations.push(`Regression ${absChange.toFixed(1)}% > warning ${warningThreshold}%`)
 		}
 	}
 
 	return {
-		metric_name: comparison.name,
-		threshold_name: threshold?.name,
-		threshold_pattern: threshold?.pattern,
-		threshold_severity: severity,
-		reason,
+		severity,
+		pairedRatio: 1 + changePercent / 100,
+		changePercent,
+		concordance,
+		violations,
 	}
-}
-
-/**
- * Evaluate all metrics and return overall severity
- */
-export function evaluateWorkloadThresholds(
-	comparisons: MetricComparison[],
-	config: ThresholdConfig
-): {
-	overall: ThresholdSeverity
-	failures: (MetricComparison & { reason?: string })[]
-	warnings: (MetricComparison & { reason?: string })[]
-} {
-	let failures: (MetricComparison & { reason?: string })[] = []
-	let warnings: (MetricComparison & { reason?: string })[] = []
-
-	for (let comparison of comparisons) {
-		let severity = evaluateThreshold(comparison, config)
-
-		if (severity.threshold_severity === 'failure') {
-			failures.push({ ...comparison, reason: severity.reason })
-		} else if (severity.threshold_severity === 'warning') {
-			warnings.push({ ...comparison, reason: severity.reason })
-		}
-	}
-
-	let overall: ThresholdSeverity = 'success'
-	if (failures.length > 0) {
-		overall = 'failure'
-	} else if (warnings.length > 0) {
-		overall = 'warning'
-	}
-
-	return { overall, failures, warnings }
 }
