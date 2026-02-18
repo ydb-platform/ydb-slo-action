@@ -5,24 +5,105 @@ import {
   uploadArtifacts
 } from "../main-9qy8ydfs.js";
 import {
-  compareWorkloadMetrics,
-  formatChange,
-  formatValue,
-  loadMetricConfig
-} from "../main-7dys40tt.js";
+  analyzeWorkload,
+  formatValue
+} from "../main-s0ma3evw.js";
 import {
   debug,
   exec,
   getInput,
   getState,
   info,
-  summary
+  summary,
+  warning
 } from "../main-qx9yp3g6.js";
 
 // init/post.ts
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
+import * as fs2 from "node:fs/promises";
+import * as path2 from "node:path";
 import { fileURLToPath } from "node:url";
+
+// shared/metrics.ts
+import * as fs from "node:fs";
+import * as path from "node:path";
+async function parseMetricsYaml(yamlContent) {
+  if (!yamlContent || yamlContent.trim() === "")
+    return null;
+  try {
+    let chunks = [];
+    await exec("yq", ["-o=json", "."], {
+      input: Buffer.from(yamlContent, "utf-8"),
+      silent: !0,
+      listeners: {
+        stdout: (data) => chunks.push(data.toString())
+      }
+    });
+    let json = chunks.join("");
+    return JSON.parse(json);
+  } catch (error) {
+    return warning(`Failed to parse metrics YAML: ${String(error)}`), null;
+  }
+}
+function mergeMetricConfigs(defaultConfig, customConfig) {
+  let mergedByName = /* @__PURE__ */ new Map;
+  for (let metric of defaultConfig.metrics || [])
+    mergedByName.set(metric.name, metric);
+  for (let metric of customConfig.metrics || []) {
+    let base = mergedByName.get(metric.name);
+    mergedByName.set(metric.name, base ? { ...base, ...metric } : metric);
+  }
+  let metrics = [], seen = /* @__PURE__ */ new Set;
+  for (let metric of customConfig.metrics || []) {
+    let merged = mergedByName.get(metric.name);
+    if (!merged)
+      continue;
+    metrics.push(merged), seen.add(metric.name);
+  }
+  for (let metric of defaultConfig.metrics || []) {
+    if (seen.has(metric.name))
+      continue;
+    metrics.push(metric);
+  }
+  return {
+    default: {
+      step: customConfig.default?.step ?? defaultConfig.default.step,
+      timeout: customConfig.default?.timeout ?? defaultConfig.default.timeout
+    },
+    metrics
+  };
+}
+async function loadDefaultMetricConfig() {
+  debug("Loading default metrics from GITHUB_ACTION_PATH/deploy/metrics.yaml");
+  let actionRoot = path.resolve(process.env.GITHUB_ACTION_PATH), defaultPath = path.join(actionRoot, "deploy", "metrics.yaml");
+  if (fs.existsSync(defaultPath)) {
+    let content = fs.readFileSync(defaultPath, { encoding: "utf-8" }), config = await parseMetricsYaml(content);
+    if (config)
+      return config;
+  }
+  return warning("Could not load default metrics, using hardcoded defaults"), {
+    default: {
+      step: "500ms",
+      timeout: "30s"
+    },
+    metrics: []
+  };
+}
+async function loadMetricConfig(customYaml, customPath) {
+  let config = await loadDefaultMetricConfig();
+  if (customYaml) {
+    debug("Merging custom metrics from inline YAML");
+    let customConfig = await parseMetricsYaml(customYaml);
+    if (customConfig)
+      config = mergeMetricConfigs(config, customConfig);
+  }
+  if (customPath && fs.existsSync(customPath)) {
+    debug(`Merging custom metrics from file: ${customPath}`);
+    let content = fs.readFileSync(customPath, { encoding: "utf-8" }), customConfig = await parseMetricsYaml(content);
+    if (customConfig)
+      config = mergeMetricConfigs(config, customConfig);
+  }
+  return config;
+}
 
 // init/lib/prometheus.ts
 async function queryInstant(params) {
@@ -170,21 +251,26 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
 }
 
 // init/lib/summary.ts
-async function writeJobSummary(comparison) {
-  let statusEmoji = comparison.summary.regressions > 0 ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
-  summary.addHeading(`${statusEmoji} ${comparison.workload}`, 3);
+function severityEmoji(severity) {
+  return severity === "failure" ? "\uD83D\uDD34" : severity === "warning" ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
+}
+async function writeJobSummary(analysis) {
+  let emoji = severityEmoji(analysis.severity);
+  summary.addHeading(`${emoji} ${analysis.workload}`, 3);
   let matrix = [
     [
       { data: "Metric", header: !0 },
       { data: "Current", header: !0 },
       { data: "Baseline", header: !0 },
-      { data: "Change", header: !0 }
+      { data: "Change", header: !0 },
+      { data: "Status", header: !0 }
     ],
-    ...comparison.metrics.map((m) => [
+    ...analysis.metrics.map((m) => [
       m.name,
-      formatValue(m.current.value, m.name),
-      m.baseline.available ? formatValue(m.baseline.value, m.name) : "N/A",
-      m.baseline.available ? formatChange(m.change.percent, m.change.direction) : "N/A"
+      formatValue(m.current.trimmedMean, m.name),
+      m.baseline.count > 0 ? formatValue(m.baseline.trimmedMean, m.name) : "N/A",
+      m.relativeCheck ? `${m.relativeCheck.changePercent >= 0 ? "+" : ""}${m.relativeCheck.changePercent.toFixed(1)}%` : "N/A",
+      severityEmoji(m.severity)
     ])
   ];
   summary.addTable(matrix), summary.addBreak(), await summary.write();
@@ -193,17 +279,17 @@ async function writeJobSummary(comparison) {
 // init/post.ts
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function post() {
-  let cwd = getState("cwd"), workload = getState("workload"), logsPath = path.join(cwd, `${workload}-logs.txt`), alertsPath = path.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path.join(cwd, `${workload}-metadata.json`), logsContent = await collectLogs();
-  await fs.writeFile(logsPath, logsContent, { encoding: "utf-8" });
+  let cwd = getState("cwd"), workload = getState("workload"), logsPath = path2.join(cwd, `${workload}-logs.txt`), alertsPath = path2.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path2.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path2.join(cwd, `${workload}-metadata.json`), logsContent = await collectLogs();
+  await fs2.writeFile(logsPath, logsContent, { encoding: "utf-8" });
   let alertsContent = await collectAlerts();
-  await fs.writeFile(alertsPath, alertsContent, { encoding: "utf-8" });
+  await fs2.writeFile(alertsPath, alertsContent, { encoding: "utf-8" });
   let metricsContent = await collectMetrics();
-  await fs.writeFile(metricsPath, metricsContent, { encoding: "utf-8" });
+  await fs2.writeFile(metricsPath, metricsContent, { encoding: "utf-8" });
   let metadataContent = await collectMetadata();
-  await fs.writeFile(metadataPath, metadataContent, { encoding: "utf-8" });
+  await fs2.writeFile(metadataPath, metadataContent, { encoding: "utf-8" });
   let profiles = await getComposeProfiles(cwd);
   await exec("docker", ["compose", "-f", "compose.yml", "down"], {
-    cwd: path.resolve(process.env.GITHUB_ACTION_PATH, "deploy"),
+    cwd: path2.resolve(process.env.GITHUB_ACTION_PATH, "deploy"),
     env: {
       ...process.env,
       COMPOSE_PROFILES: profiles.join(",")
@@ -252,7 +338,7 @@ async function collectMetadata() {
 async function writeWorkloadSummary(metricsContent) {
   info("Writing Job Summary...");
   let workload = getState("workload"), currentRef = getInput("workload_current_ref"), baselineRef = getInput("workload_baseline_ref"), metrics = metricsContent.split(`
-`).filter((line) => line.trim().length > 0).map((line) => JSON.parse(line)), comparison = compareWorkloadMetrics(workload, metrics, currentRef, baselineRef, "avg");
-  await writeJobSummary(comparison);
+`).filter((line) => line.trim().length > 0).map((line) => JSON.parse(line)), analysis = analyzeWorkload(workload, metrics, currentRef, baselineRef);
+  await writeJobSummary(analysis);
 }
 post();
