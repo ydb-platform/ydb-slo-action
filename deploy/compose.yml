@@ -9,9 +9,9 @@ x-ydb-node: &ydb-node
   restart: always
   <<: *runtime
   expose:
-    - "2135-2136"
-    - "8765-8766"
-    - "19001-19002"
+    - "2135"
+    - "8765"
+    - "19001"
   extra_hosts:
     - "ydb:172.28.0.10"
 
