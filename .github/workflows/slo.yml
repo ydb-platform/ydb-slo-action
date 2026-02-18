@@ -139,7 +139,7 @@ jobs:
           fetch-depth: 0
 
       - name: Publish YDB SLO Report
-        uses: ./report2
+        uses: ./report
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_run_id: ${{ github.run_id }}
