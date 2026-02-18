@@ -1,12 +1,8 @@
 import {
-  evaluateWorkloadThresholds,
+  analyzeWorkload,
+  formatValue,
   loadThresholdConfig
-} from "../main-jqcwfvvw.js";
-import {
-  compareWorkloadMetrics,
-  formatChange,
-  formatValue
-} from "../main-7dys40tt.js";
+} from "../main-s0ma3evw.js";
 import {
   DefaultArtifactClient,
   context,
@@ -19,42 +15,9 @@ import {
 } from "../main-qx9yp3g6.js";
 
 // report/main.ts
-import * as fs2 from "node:fs/promises";
+import * as fs4 from "node:fs/promises";
 import * as path2 from "node:path";
 import { fileURLToPath } from "node:url";
-
-// report/lib/alerts.ts
-function loadCollectedAlerts(content) {
-  let alerts = [], lines = content.trim().split(`
-`);
-  for (let line of lines) {
-    if (!line.trim())
-      continue;
-    try {
-      let alert = JSON.parse(line);
-      alerts.push(alert);
-    } catch {
-      continue;
-    }
-  }
-  return alerts;
-}
-function formatAlertsForVisualization(alerts) {
-  return alerts.map((alert) => ({
-    icon: alert.duration_ms > 0 ? "⏱️" : "\uD83D\uDCCD",
-    label: formatAlertLabel(alert),
-    timestamp: alert.epoch_ms,
-    duration_ms: alert.duration_ms
-  }));
-}
-function formatAlertLabel(alert) {
-  let parts = [alert.alertname], relevantLabels = Object.entries(alert.labels).filter(([key]) => !["alertstate", "job", "instance"].includes(key));
-  if (relevantLabels.length > 0) {
-    let labelStr = relevantLabels.map(([k, v]) => `${k}=${v}`).join(", ");
-    parts.push(`(${labelStr})`);
-  }
-  return parts.join(" ");
-}
 
 // report/lib/artifacts.ts
 import * as fs from "node:fs";
@@ -62,7 +25,7 @@ import * as path from "node:path";
 async function downloadRunArtifacts(destinationPath) {
   let token = getInput("github_token"), workflowRunId = parseInt(getInput("github_run_id") || String(context.runId));
   if (!token || !workflowRunId)
-    throw Error("GitHub token and workflow run ID are required to download artifacts");
+    throw Error("GitHub token and workflow run ID are required");
   let artifactClient = new DefaultArtifactClient, { artifacts } = await artifactClient.listArtifacts({
     findBy: {
       token,
@@ -71,7 +34,7 @@ async function downloadRunArtifacts(destinationPath) {
       repositoryOwner: context.repo.owner
     }
   });
-  debug(`Found ${artifacts.length} artifacts in workflow run ${workflowRunId}`);
+  debug(`Found ${artifacts.length} artifacts in run ${workflowRunId}`);
   let downloadedPaths = /* @__PURE__ */ new Map;
   for (let artifact of artifacts) {
     let artifactDir = path.join(destinationPath, artifact.name);
@@ -84,12 +47,11 @@ async function downloadRunArtifacts(destinationPath) {
         repositoryName: context.repo.repo,
         repositoryOwner: context.repo.owner
       }
-    }), artifactPath = downloadPath || artifactDir;
-    downloadedPaths.set(artifact.name, artifactPath), debug(`Downloaded artifact ${artifact.name} to ${artifactPath}`);
+    });
+    downloadedPaths.set(artifact.name, downloadPath || artifactDir);
   }
-  let runArtifacts = /* @__PURE__ */ new Map;
+  let workloadArtifacts = /* @__PURE__ */ new Map;
   for (let [artifactName, artifactPath] of downloadedPaths) {
-    let workload = artifactName;
     if (!fs.existsSync(artifactPath)) {
       warning(`Artifact path does not exist: ${artifactPath}`);
       continue;
@@ -99,100 +61,108 @@ async function downloadRunArtifacts(destinationPath) {
       files = fs.readdirSync(artifactPath).map((f) => path.join(artifactPath, f));
     else
       files = [artifactPath];
-    let group = runArtifacts.get(workload) || {};
-    group.name = workload;
+    let workload = artifactName, artifact = workloadArtifacts.get(workload) || { workload };
     for (let file of files) {
       let basename2 = path.basename(file);
-      if (basename2.endsWith("-logs.txt"))
-        group.logsPath = file;
+      if (basename2.endsWith("-metadata.json"))
+        artifact.metaPath = file;
       else if (basename2.endsWith("-alerts.jsonl"))
-        group.alertsPath = file;
+        artifact.alertsPath = file;
       else if (basename2.endsWith("-metrics.jsonl"))
-        group.metricsPath = file;
-      else if (basename2.endsWith("-metadata.json"))
-        group.metadataPath = file;
+        artifact.metricsPath = file;
     }
-    runArtifacts.set(workload, group);
+    if (artifact.metaPath && artifact.metricsPath)
+      workloadArtifacts.set(workload, artifact);
   }
-  return runArtifacts;
+  return workloadArtifacts;
 }
-
-// report/lib/checks.ts
-function generateCheckTitle(comparison, evaluation) {
-  if (evaluation.failures.length > 0)
-    return `${evaluation.failures.length} critical threshold(s) violated`;
-  if (evaluation.warnings.length > 0)
-    return `${evaluation.warnings.length} warning threshold(s) exceeded`;
-  if (comparison.summary.improvements > 0)
-    return `${comparison.summary.improvements} improvement(s) detected`;
-  return "All metrics within thresholds";
-}
-function generateCheckSummary(comparison, evaluation, reportURL) {
-  let lines = [
-    `**Metrics analyzed:** ${comparison.summary.total}`,
-    `- \uD83D\uDFE2 Stable: ${comparison.summary.stable}`,
-    `- \uD83D\uDD34 Critical: ${evaluation.failures.length}`,
-    `- \uD83D\uDFE1 Warnings: ${evaluation.warnings.length}`,
-    `- \uD83D\uDE80 Improvements: ${comparison.summary.improvements}`,
-    ""
-  ];
-  if (reportURL)
-    lines.push(`\uD83D\uDCCA [View detailed HTML report](${reportURL})`, "");
-  if (evaluation.failures.length > 0) {
-    lines.push("### ⛔ Critical Thresholds Violated", "");
-    for (let metric of evaluation.failures.slice(0, 5)) {
-      let reason = metric.reason ? ` — ${metric.reason}` : "";
-      lines.push(`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})${reason}`);
-    }
-    lines.push("");
-  }
-  if (evaluation.warnings.length > 0) {
-    lines.push("### ⚠️ Warning Thresholds Exceeded", "");
-    for (let metric of evaluation.warnings.slice(0, 5)) {
-      let reason = metric.reason ? ` — ${metric.reason}` : "";
-      lines.push(`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})${reason}`);
-    }
-    lines.push("");
-  }
-  let improvements = comparison.metrics.filter((m) => m.change.direction === "better").sort((a, b) => Math.abs(b.change.percent) - Math.abs(a.change.percent));
-  if (improvements.length > 0) {
-    lines.push("### \uD83D\uDE80 Top Improvements", "");
-    for (let metric of improvements.slice(0, 5))
-      lines.push(`- **${metric.name}**: ${formatValue(metric.current.value, metric.name)} (${formatChange(metric.change.percent, metric.change.direction)})`);
-  }
-  return lines.join(`
-`);
+async function uploadReportArtifact(workload, htmlPath, cwd, retentionDays) {
+  let artifactClient = new DefaultArtifactClient, { id } = await artifactClient.uploadArtifact(`${workload}-html-report`, [htmlPath], cwd, {
+    retentionDays
+  });
+  return `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts/${id}`;
 }
 
 // report/lib/comment.ts
+function renderAsciiBoxPlot(currentBox, baselineBox, currentLabel, baselineLabel) {
+  let allValues = [...currentBox, ...baselineBox].filter((v) => isFinite(v));
+  if (allValues.length === 0)
+    return "";
+  let min = Math.min(...allValues), max = Math.max(...allValues);
+  if (min === max)
+    return "";
+  let width = 40, scale = (v) => Math.round((v - min) / (max - min) * (width - 1));
+  function renderBox(box) {
+    let [bMin, q1, med, q3, bMax] = box.map(scale), line = Array(width).fill(" ");
+    for (let i = bMin;i <= bMax; i++)
+      line[i] = "-";
+    for (let i = q1;i <= q3; i++)
+      line[i] = "=";
+    return line[bMin] = "|", line[bMax] = "|", line[q1] = "[", line[q3] = "]", line[med] = "|", line.join("");
+  }
+  let padLen = Math.max(currentLabel.length, baselineLabel.length), cPad = currentLabel.padEnd(padLen), bPad = baselineLabel.padEnd(padLen);
+  return `${cPad}: ${renderBox(currentBox)}
+${bPad}: ${renderBox(baselineBox)}`;
+}
+function severityEmoji(severity) {
+  return severity === "failure" ? "\uD83D\uDD34" : severity === "warning" ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
+}
+function metricStatusEmoji(metric) {
+  if (metric.severity === "failure")
+    return "\uD83D\uDD34";
+  if (metric.severity === "warning")
+    return "\uD83D\uDFE1";
+  if (metric.relativeCheck) {
+    if (Math.abs(metric.relativeCheck.changePercent) < 5)
+      return "⚪";
+  }
+  return "✅";
+}
 function generateCommentBody(reports) {
-  let totalFailures = 0, totalWarnings = 0, rows = reports.map((report) => {
-    let evaluation = evaluateWorkloadThresholds(report.comparison.metrics, report.thresholds);
-    if (evaluation.overall === "failure")
-      totalFailures++;
-    if (evaluation.overall === "warning")
-      totalWarnings++;
-    let emoji = evaluation.overall === "failure" ? "\uD83D\uDD34" : evaluation.overall === "warning" ? "\uD83D\uDFE1" : report.comparison.summary.improvements > 0 ? "\uD83D\uDE80" : "\uD83D\uDFE2", checkLink = report.checkUrl || "#", reportLink = report.reportUrl || "#", comp = report.comparison;
-    return `| ${emoji} | ${comp.workload} | ${comp.summary.total} | ${comp.summary.regressions} | ${comp.summary.improvements} | [Report](${reportLink}) • [Check](${checkLink}) |`;
-  }), statusEmoji = totalFailures > 0 ? "\uD83D\uDD34" : totalWarnings > 0 ? "\uD83D\uDFE1" : "\uD83D\uDFE2", statusText = totalFailures > 0 ? `${totalFailures} workloads failed` : totalWarnings > 0 ? `${totalWarnings} workloads with warnings` : "All passed", header = [
+  let totalFailures = reports.filter((r) => r.analysis.severity === "failure").length, totalWarnings = reports.filter((r) => r.analysis.severity === "warning").length, statusEmoji = totalFailures > 0 ? "\uD83D\uDD34" : totalWarnings > 0 ? "\uD83D\uDFE1" : "\uD83D\uDFE2", statusText = totalFailures > 0 ? `${totalFailures} workload(s) failed` : totalWarnings > 0 ? `${totalWarnings} workload(s) with warnings` : "All passed", lines = [
     "## \uD83C\uDF0B SLO Test Results",
     "",
-    `**Status**: ${statusEmoji} ${reports.length} workloads tested • ${statusText}`,
+    `**Status:** ${statusEmoji} ${reports.length} workload(s) tested • ${statusText}`,
     ""
-  ].join(`
-`), content = [
-    "| | Workload | Metrics | Regressions | Improvements | Links |",
-    "|-|----------|---------|-------------|--------------|-------|",
-    ...rows
-  ].flat().join(`
-`), footer = `
----
-*Generated by [ydb-slo-action](https://github.com/ydb-platform/ydb-slo-action)*`;
-  return header + content + footer;
+  ];
+  for (let report of reports) {
+    let emoji = severityEmoji(report.analysis.severity), reportLink = report.reportUrl ? ` • [\uD83D\uDCC4 Report](${report.reportUrl})` : "";
+    if (lines.push(`### ${report.workload} ${emoji}${reportLink}`), lines.push(""), report.analysis.metrics.some((m) => m.relativeCheck)) {
+      lines.push("| Metric | Current | Baseline | Change | Conc. | Status |"), lines.push("|--------|---------|----------|--------|-------|--------|");
+      for (let m of report.analysis.metrics) {
+        let currentVal = formatValue(m.current.trimmedMean, m.name), baselineVal = formatValue(m.baseline.trimmedMean, m.name), change = m.relativeCheck ? `${m.relativeCheck.changePercent >= 0 ? "+" : ""}${m.relativeCheck.changePercent.toFixed(1)}%` : "N/A", conc = m.relativeCheck ? m.relativeCheck.concordance.toFixed(2) : "N/A", status = metricStatusEmoji(m);
+        lines.push(`| ${m.name} | ${currentVal} | ${baselineVal} | ${change} | ${conc} | ${status} |`);
+      }
+    } else {
+      lines.push("| Metric | Current | Status |"), lines.push("|--------|---------|--------|");
+      for (let m of report.analysis.metrics) {
+        let currentVal = formatValue(m.current.trimmedMean, m.name), status = metricStatusEmoji(m);
+        lines.push(`| ${m.name} | ${currentVal} | ${status} |`);
+      }
+    }
+    lines.push("");
+    let boxPlotMetrics = report.analysis.metrics.filter((m) => m.visualization);
+    if (boxPlotMetrics.length > 0) {
+      lines.push("<details>"), lines.push("<summary>Box plots</summary>"), lines.push(""), lines.push("```");
+      for (let m of boxPlotMetrics) {
+        let viz = m.visualization;
+        lines.push(m.name);
+        let plot = renderAsciiBoxPlot(viz.currentBox, viz.baselineBox, "current", "baseline");
+        if (plot)
+          lines.push(`  ${plot.split(`
+`).join(`
+  `)}`);
+        lines.push("");
+      }
+      lines.push("```"), lines.push("</details>"), lines.push("");
+    }
+  }
+  return lines.push("---"), lines.push("_Generated by [ydb-slo-action](https://github.com/ydb-platform/ydb-slo-action)_"), lines.join(`
+`);
 }
 async function findExistingComment(pull) {
   let token = getInput("github_token"), octokit = getOctokit(token);
-  info(`Searching for existing SLO comment in PR #${pull}...`);
+  debug(`Searching for existing SLO comment in PR #${pull}`);
   let { data: comments } = await octokit.rest.issues.listComments({
     issue_number: pull,
     owner: context.repo.owner,
@@ -200,1060 +170,188 @@ async function findExistingComment(pull) {
   });
   for (let comment of comments)
     if (comment.body?.includes("\uD83C\uDF0B SLO Test Results"))
-      return info(`Found existing comment: ${comment.id}`), comment.id;
+      return debug(`Found existing comment: ${comment.id}`), comment.id;
   return null;
 }
 async function createOrUpdateComment(pull, body) {
   let token = getInput("github_token"), octokit = getOctokit(token), existingId = await findExistingComment(pull);
   if (existingId) {
-    info(`Updating existing comment ${existingId}...`);
-    let { data } = await octokit.rest.issues.updateComment({
+    info(`Updating existing comment ${existingId}`);
+    let { data: data2 } = await octokit.rest.issues.updateComment({
       comment_id: existingId,
       owner: context.repo.owner,
       repo: context.repo.repo,
       body
     });
-    return debug(`Comment updated: ${data.html_url}`), { url: data.html_url, id: data.id };
-  } else {
-    info("Creating new comment...");
-    let { data } = await octokit.rest.issues.createComment({
-      issue_number: pull,
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      body
-    });
-    return debug(`Comment created: ${data.html_url}`), { url: data.html_url, id: data.id };
+    return { url: data2.html_url, id: data2.id };
   }
+  info("Creating new comment");
+  let { data } = await octokit.rest.issues.createComment({
+    issue_number: pull,
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    body
+  });
+  return { url: data.html_url, id: data.id };
 }
 
 // report/lib/html.ts
-function generateHTMLReport(data) {
-  return `<!DOCTYPE html>
+import * as fs2 from "node:fs/promises";
+
+// report/template/dist/index.html
+var dist_default = `<!doctype html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>SLO Report: ${escapeHtml(data.workload)}</title>
-	<style>${getStyles()}</style>
-</head>
-<body>
-	<header>
-		<h1>\uD83C\uDF0B SLO Report: ${escapeHtml(data.workload)}</h1>
-		<div class="commit-info">
-			<span class="commit current">
-				Current: ${escapeHtml(data.currentRef)}
-			</span>
-			<span class="vs">vs</span>
-			<span class="commit baseline">
-				Baseline: ${escapeHtml(data.baselineRef)}
-			</span>
-		</div>
-		<div class="meta">
-			<span>PR #${data.prNumber}</span>
-			<span>Duration: ${((data.testEndTime - data.testStartTime) / 1000).toFixed(0)}s</span>
-			<span>Generated: ${(/* @__PURE__ */ new Date()).toISOString()}</span>
-		</div>
-	</header>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>SLO Report</title>
+		<meta name="color-scheme" content="light dark" />
 
-	<section class="summary">
-		<h2>\uD83D\uDCCA Metrics Overview</h2>
-		<div class="stats">
-			<div class="stat-card">
-				<div class="stat-value">${data.comparison.summary.total}</div>
-				<div class="stat-label">Total Metrics</div>
-			</div>
-			<div class="stat-card improvements">
-				<div class="stat-value">${data.comparison.summary.improvements}</div>
-				<div class="stat-label">Improvements</div>
-			</div>
-			<div class="stat-card regressions">
-				<div class="stat-value">${data.comparison.summary.regressions}</div>
-				<div class="stat-label">Regressions</div>
-			</div>
-			<div class="stat-card stable">
-				<div class="stat-value">${data.comparison.summary.stable}</div>
-				<div class="stat-label">Stable</div>
-			</div>
-		</div>
-		${generateComparisonTable(data.comparison)}
-	</section>
 
-	<section class="charts">
-		<h2>\uD83D\uDCC8 Time Series</h2>
-		${generateCharts(data, data.testStartTime, data.testEndTime)}
-	</section>
-
-	<footer>
-		<p>Generated by <a href="https://github.com/ydb-platform/ydb-slo-action" target="_blank">ydb-slo-action</a></p>
-	</footer>
-
-	<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation/dist/chartjs-plugin-annotation.min.js"></script>
-	<script>
-		${generateChartScripts(data, data.testStartTime, data.testEndTime)}
-	</script>
-</body>
-</html>`;
-}
-function escapeHtml(text) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-}
-function getRelevantAggregates(metricName) {
-  let lowerName = metricName.toLowerCase();
-  if (lowerName.includes("availability") || lowerName.includes("uptime") || lowerName.includes("success_rate"))
-    return ["avg", "p50"];
-  if (lowerName.includes("latency") || lowerName.includes("duration") || lowerName.includes("time") || lowerName.endsWith("_ms") || lowerName.includes("delay"))
-    return ["p50", "p90", "p95"];
-  return ["avg", "p50", "p90", "p95"];
-}
-function formatAggregateName(agg) {
-  return agg;
-}
-function generateComparisonTable(comparison) {
-  return `
-		<table class="comparison-table">
-			<thead>
-				<tr>
-					<th>Metric</th>
-					<th>Current</th>
-					<th>Baseline</th>
-					<th>Change</th>
-				</tr>
-			</thead>
-			<tbody>
-				${comparison.metrics.map((m) => {
-    return `
-		<tr class="${m.change.direction}">
-			<td>
-				<a href="#metric-${sanitizeId(m.name)}" class="metric-link">
-					${escapeHtml(m.name)}
-				</a>
-			</td>
-			<td>${formatValue(m.current.value, m.name)}</td>
-			<td>${m.baseline.available ? formatValue(m.baseline.value, m.name) : "N/A"}</td>
-			<td class="change-cell">${m.baseline.available ? formatChange(m.change.percent, m.change.direction) : "N/A"}</td>
-		</tr>
-	`;
-  }).join("")}
-			</tbody>
-		</table>
-	`;
-}
-function generateCharts(data, globalStartTime, globalEndTime) {
-  return data.comparison.metrics.filter((m) => m.type === "range").map((comparison) => {
-    let metric = data.metrics.find((m) => m.name === comparison.name);
-    if (!metric)
-      return "";
-    if (!metric.data || metric.data.length === 0)
-      return "";
-    if (!metric.data.some((s) => s.values && s.values.length > 0))
-      return "";
-    let relevantEvents = data.events.filter((e) => e.timestamp >= globalStartTime && e.timestamp <= globalEndTime), eventsTimeline = relevantEvents.length > 0 ? generateChartEventsTimeline(relevantEvents) : "", metaSummary = "";
-    if (comparison.current.aggregates && comparison.baseline.aggregates) {
-      let currentAgg = comparison.current.aggregates, baseAgg = comparison.baseline.aggregates, relevantAggs = getRelevantAggregates(comparison.name), headerCells = relevantAggs.map((agg) => `<th>${formatAggregateName(agg)}</th>`).join(""), currentCells = relevantAggs.map((agg) => `<td>${formatValue(currentAgg[agg], comparison.name)}</td>`).join(""), baseCells = relevantAggs.map((agg) => `<td>${formatValue(baseAgg[agg], comparison.name)}</td>`).join("");
-      metaSummary = `
-					<table class="aggregates-table">
-						<thead>
-							<tr>
-								<th></th>
-								${headerCells}
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td class="row-label">Current</td>
-								${currentCells}
-							</tr>
-							<tr>
-								<td class="row-label">Baseline</td>
-								${baseCells}
-							</tr>
-						</tbody>
-					</table>
-				`;
-    } else
-      metaSummary = `
-					Current: ${formatValue(comparison.current.value, comparison.name)}
-					${comparison.baseline.available ? ` • Baseline: ${formatValue(comparison.baseline.value, comparison.name)}` : ""}
-				`;
-    return `
-		<div class="chart-card" id="metric-${sanitizeId(comparison.name)}">
-			<div class="chart-header">
-				<div class="chart-title-section">
-					<h3>
-						${escapeHtml(comparison.name)}
-						<span class="indicator ${comparison.change.direction}">${formatChange(comparison.change.percent, comparison.change.direction)}</span>
-					</h3>
-				</div>
-				<div class="chart-meta">
-					${metaSummary}
-				</div>
-			</div>
-			<div class="chart-container">
-				<canvas id="chart-${sanitizeId(comparison.name)}"></canvas>
-			</div>
-			${eventsTimeline}
-		</div>
-	`;
-  }).join("");
-}
-function generateChartEventsTimeline(events) {
-  if (events.length === 0)
-    return "";
-  return `
-		<div class="chart-events-timeline">
-			<div class="timeline-title">Events:</div>
-			<div class="timeline-events">
-				${events.map((e, idx) => `
-		<div class="timeline-event" data-event-id="${idx}" title="${escapeHtml(e.label)}">
-			<span class="event-icon">${e.icon}</span>
-			<span class="event-time">${formatTimestamp(e.timestamp)}</span>
-			<span class="event-label">${escapeHtml(e.label)}</span>
-		</div>
-	`).join("")}
-			</div>
-		</div>
-	`;
-}
-function generateChartScripts(data, globalStartTime, globalEndTime) {
-  return data.comparison.metrics.filter((m) => m.type === "range").map((comparison) => {
-    let metric = data.metrics.find((m) => m.name === comparison.name);
-    if (!metric)
-      return "";
-    if (!metric.data || metric.data.length === 0)
-      return "";
-    if (!metric.data.some((s) => s.values && s.values.length > 0))
-      return "";
-    return generateSingleChartScript(comparison.name, metric, data.events, globalStartTime, globalEndTime, data.currentRef, data.baselineRef);
-  }).join(`
-`);
-}
-function filterOutliers(values) {
-  if (values.length === 0)
-    return values;
-  let nums = values.map(([, v]) => parseFloat(v)).filter((n) => !isNaN(n));
-  if (nums.length === 0)
-    return values;
-  nums.sort((a, b) => a - b);
-  let p1Index = Math.floor(nums.length * 0.01), p99Index = Math.floor(nums.length * 0.99), p1 = nums[p1Index], p99 = nums[p99Index];
-  return values.filter(([, v]) => {
-    let num = parseFloat(v);
-    return !isNaN(num) && num >= p1 && num <= p99;
-  });
-}
-function generateSingleChartScript(metricName, metric, events, globalStartTime, globalEndTime, currentRef, baselineRef) {
-  let currentSeries = metric.data.find((s) => s.metric.ref === currentRef), baselineSeries = metric.data.find((s) => s.metric.ref === baselineRef), filteredCurrentValues = currentSeries ? filterOutliers(currentSeries.values) : [], filteredBaselineValues = baselineSeries ? filterOutliers(baselineSeries.values) : [], currentData = filteredCurrentValues.length > 0 ? JSON.stringify(filteredCurrentValues.map(([t, v]) => ({ x: t * 1000, y: parseFloat(v) }))) : "[]", baselineData = filteredBaselineValues.length > 0 ? JSON.stringify(filteredBaselineValues.map(([t, v]) => ({ x: t * 1000, y: parseFloat(v) }))) : "[]", boundaryAnnotations = [
-    `{
-			type: 'line',
-			xMin: ${globalStartTime},
-			xMax: ${globalStartTime},
-			borderColor: '#10b981',
-			borderWidth: 2,
-			borderDash: [5, 5]
-		}`,
-    `{
-			type: 'line',
-			xMin: ${globalEndTime},
-			xMax: ${globalEndTime},
-			borderColor: '#ef4444',
-			borderWidth: 2,
-			borderDash: [5, 5]
-		}`
-  ], boxAnnotations = [], lineAnnotations = [];
-  for (let i = 0;i < events.length; i++) {
-    let e = events[i];
-    if (e.duration_ms) {
-      let xMax = e.timestamp + e.duration_ms;
-      boxAnnotations.push(`{
-			id: 'event-bg-${i}',
-			type: 'box',
-			drawTime: 'beforeDatasetsDraw',
-			xMin: ${e.timestamp},
-			xMax: ${xMax},
-			backgroundColor: 'rgba(251, 146, 60, 0.08)',
-			borderColor: 'transparent',
-			borderWidth: 0
-		}`), boxAnnotations.push(`{
-			id: 'event-bar-${i}',
-			type: 'box',
-			drawTime: 'beforeDatasetsDraw',
-			xMin: ${e.timestamp},
-			xMax: ${xMax},
-			yMin: (ctx) => ctx.chart.scales.y.min,
-			yMax: (ctx) => ctx.chart.scales.y.min + (ctx.chart.scales.y.max - ctx.chart.scales.y.min) * 0.02,
-			backgroundColor: '#f97316',
-			borderColor: 'transparent',
-			borderWidth: 0
-		}`);
-    } else
-      lineAnnotations.push(`{
-			id: 'event-line-${i}',
-			type: 'line',
-			drawTime: 'afterDatasetsDraw',
-			xMin: ${e.timestamp},
-			xMax: ${e.timestamp},
-			borderColor: '#f97316',
-			borderWidth: 2
-		}`);
-  }
-  let allAnnotations = [...boxAnnotations, ...boundaryAnnotations, ...lineAnnotations].join(`,
-`);
-  return `
-(function() {
-	const ctx = document.getElementById('chart-${sanitizeId(metricName)}');
-	if (!ctx) return;
-
-	const chart = new Chart(ctx, {
-		type: 'line',
-		data: {
-		datasets: [
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.min.css" />
+		<script type="importmap">
 			{
-				label: '${escapeHtml(currentRef)}',
-				data: ${currentData},
-				borderColor: '#3b82f6',
-				backgroundColor: '#3b82f620',
-				borderWidth: 2,
-				pointRadius: 2,
-				pointHoverRadius: 4,
-				tension: 0.1,
-				fill: true
-			},
-			${baselineSeries ? `{
-				label: '${escapeHtml(baselineRef)}',
-				data: ${baselineData},
-					borderColor: '#94a3b8',
-					backgroundColor: '#94a3b820',
-					borderWidth: 2,
-					borderDash: [5, 5],
-					pointRadius: 2,
-					pointHoverRadius: 4,
-					tension: 0.1,
-					fill: true
-				}` : ""}
-			]
-		},
-		options: {
-			responsive: true,
-			maintainAspectRatio: false,
-			interaction: {
-				mode: 'index',
-				intersect: false
-			},
-		scales: {
-			x: {
-				type: 'time',
-				min: ${globalStartTime},
-				max: ${globalEndTime},
-				time: {
-					unit: 'minute',
-					displayFormats: {
-						minute: 'HH:mm'
-					}
-				},
-				title: {
-					display: true,
-					text: 'Time'
-				}
-			},
-				y: {
-					beginAtZero: false,
-					grace: '10%',
-					title: {
-						display: true,
-						text: '${escapeJs(metricName)}'
-					}
-				}
-			},
-			plugins: {
-				legend: {
-					display: true,
-					position: 'top'
-				},
-				tooltip: {
-					mode: 'index',
-					intersect: false
-				},
-				annotation: {
-					annotations: [${allAnnotations}]
+				"imports": {
+					"vue": "https://cdn.jsdelivr.net/npm/vue@3.5.27/dist/vue.esm-browser.js",
+					"uplot": "https://cdn.jsdelivr.net/npm/uplot@1.6.32/+esm"
 				}
 			}
-		}
-	});
-
-	// Store chart reference for interaction
-	ctx.chartInstance = chart;
-
-	// Add hover handlers for timeline events
-	const chartCard = ctx.closest('.chart-card');
-	if (chartCard) {
-		const timelineEvents = chartCard.querySelectorAll('.timeline-event');
-		timelineEvents.forEach((eventEl) => {
-			const eventId = parseInt(eventEl.getAttribute('data-event-id'));
-
-			eventEl.addEventListener('mouseenter', () => {
-				// Access annotations array
-				const annotations = chart.config.options.plugins.annotation.annotations;
-
-				// Find and update annotations for this event
-				for (let i = 0; i < annotations.length; i++) {
-					const ann = annotations[i];
-					if (ann.id === 'event-bg-' + eventId) {
-						ann.backgroundColor = 'rgba(251, 146, 60, 0.35)';
-					} else if (ann.id === 'event-bar-' + eventId) {
-						ann.backgroundColor = '#fb923c';
-					} else if (ann.id === 'event-line-' + eventId) {
-						ann.borderColor = '#fb923c';
-						ann.borderWidth = 4;
-					}
-				}
-
-				chart.update('none');
-			});
-
-			eventEl.addEventListener('mouseleave', () => {
-				// Access annotations array
-				const annotations = chart.config.options.plugins.annotation.annotations;
-
-				// Restore annotations for this event
-				for (let i = 0; i < annotations.length; i++) {
-					const ann = annotations[i];
-					if (ann.id === 'event-bg-' + eventId) {
-						ann.backgroundColor = 'rgba(251, 146, 60, 0.08)';
-					} else if (ann.id === 'event-bar-' + eventId) {
-						ann.backgroundColor = '#f97316';
-					} else if (ann.id === 'event-line-' + eventId) {
-						ann.borderColor = '#f97316';
-						ann.borderWidth = 2;
-					}
-				}
-
-				chart.update('none');
-			});
-		});
-	}
-})();
+		</script>
+		<script type="module" crossorigin>import{Fragment as e,computed as t,createApp as n,createBlock as r,createCommentVNode as i,createElementBlock as a,createElementVNode as o,createTextVNode as s,createVNode as c,defineCustomElement as l,nextTick as u,normalizeClass as d,normalizeStyle as f,onBeforeUnmount as p,onMounted as m,openBlock as h,ref as g,renderList as _,toDisplayString as v,unref as y,vShow as b,watch as x,withDirectives as S,withModifiers as C}from"vue";import w from"uplot";(function(){let e=document.createElement(\`link\`).relList;if(e&&e.supports&&e.supports(\`modulepreload\`))return;for(let e of document.querySelectorAll(\`link[rel="modulepreload"]\`))n(e);new MutationObserver(e=>{for(let t of e)if(t.type===\`childList\`)for(let e of t.addedNodes)e.tagName===\`LINK\`&&e.rel===\`modulepreload\`&&n(e)}).observe(document,{childList:!0,subtree:!0});function t(e){let t={};return e.integrity&&(t.integrity=e.integrity),e.referrerPolicy&&(t.referrerPolicy=e.referrerPolicy),e.crossOrigin===\`use-credentials\`?t.credentials=\`include\`:e.crossOrigin===\`anonymous\`?t.credentials=\`omit\`:t.credentials=\`same-origin\`,t}function n(e){if(e.ep)return;e.ep=!0;let n=t(e);fetch(e.href,n)}})();var T=Math.min,E=Math.max,D=Math.round,O=e=>({x:e,y:e}),ee={left:\`right\`,right:\`left\`,bottom:\`top\`,top:\`bottom\`},k={start:\`end\`,end:\`start\`};function A(e,t,n){return E(e,T(t,n))}function j(e,t){return typeof e==\`function\`?e(t):e}function M(e){return e.split(\`-\`)[0]}function N(e){return e.split(\`-\`)[1]}function te(e){return e===\`x\`?\`y\`:\`x\`}function P(e){return e===\`y\`?\`height\`:\`width\`}var ne=new Set([\`top\`,\`bottom\`]);function F(e){return ne.has(M(e))?\`y\`:\`x\`}function re(e){return te(F(e))}function ie(e,t,n){n===void 0&&(n=!1);let r=N(e),i=re(e),a=P(i),o=i===\`x\`?r===(n?\`end\`:\`start\`)?\`right\`:\`left\`:r===\`start\`?\`bottom\`:\`top\`;return t.reference[a]>t.floating[a]&&(o=I(o)),[o,I(o)]}function ae(e){let t=I(e);return[oe(e),t,oe(t)]}function oe(e){return e.replace(/start|end/g,e=>k[e])}var se=[\`left\`,\`right\`],ce=[\`right\`,\`left\`],le=[\`top\`,\`bottom\`],ue=[\`bottom\`,\`top\`];function de(e,t,n){switch(e){case\`top\`:case\`bottom\`:return n?t?ce:se:t?se:ce;case\`left\`:case\`right\`:return t?le:ue;default:return[]}}function fe(e,t,n,r){let i=N(e),a=de(M(e),n===\`start\`,r);return i&&(a=a.map(e=>e+\`-\`+i),t&&(a=a.concat(a.map(oe)))),a}function I(e){return e.replace(/left|right|bottom|top/g,e=>ee[e])}function pe(e){return{top:0,right:0,bottom:0,left:0,...e}}function me(e){return typeof e==\`number\`?{top:e,right:e,bottom:e,left:e}:pe(e)}function L(e){let{x:t,y:n,width:r,height:i}=e;return{width:r,height:i,top:n,left:t,right:t+r,bottom:n+i,x:t,y:n}}function he(e,t,n){let{reference:r,floating:i}=e,a=F(t),o=re(t),s=P(o),c=M(t),l=a===\`y\`,u=r.x+r.width/2-i.width/2,d=r.y+r.height/2-i.height/2,f=r[s]/2-i[s]/2,p;switch(c){case\`top\`:p={x:u,y:r.y-i.height};break;case\`bottom\`:p={x:u,y:r.y+r.height};break;case\`right\`:p={x:r.x+r.width,y:d};break;case\`left\`:p={x:r.x-i.width,y:d};break;default:p={x:r.x,y:r.y}}switch(N(t)){case\`start\`:p[o]-=f*(n&&l?-1:1);break;case\`end\`:p[o]+=f*(n&&l?-1:1);break}return p}async function ge(e,t){t===void 0&&(t={});let{x:n,y:r,platform:i,rects:a,elements:o,strategy:s}=e,{boundary:c=\`clippingAncestors\`,rootBoundary:l=\`viewport\`,elementContext:u=\`floating\`,altBoundary:d=!1,padding:f=0}=j(t,e),p=me(f),m=o[d?u===\`floating\`?\`reference\`:\`floating\`:u],h=L(await i.getClippingRect({element:await(i.isElement==null?void 0:i.isElement(m))??!0?m:m.contextElement||await(i.getDocumentElement==null?void 0:i.getDocumentElement(o.floating)),boundary:c,rootBoundary:l,strategy:s})),g=u===\`floating\`?{x:n,y:r,width:a.floating.width,height:a.floating.height}:a.reference,_=await(i.getOffsetParent==null?void 0:i.getOffsetParent(o.floating)),v=await(i.isElement==null?void 0:i.isElement(_))&&await(i.getScale==null?void 0:i.getScale(_))||{x:1,y:1},y=L(i.convertOffsetParentRelativeRectToViewportRelativeRect?await i.convertOffsetParentRelativeRectToViewportRelativeRect({elements:o,rect:g,offsetParent:_,strategy:s}):g);return{top:(h.top-y.top+p.top)/v.y,bottom:(y.bottom-h.bottom+p.bottom)/v.y,left:(h.left-y.left+p.left)/v.x,right:(y.right-h.right+p.right)/v.x}}var _e=async(e,t,n)=>{let{placement:r=\`bottom\`,strategy:i=\`absolute\`,middleware:a=[],platform:o}=n,s=a.filter(Boolean),c=await(o.isRTL==null?void 0:o.isRTL(t)),l=await o.getElementRects({reference:e,floating:t,strategy:i}),{x:u,y:d}=he(l,r,c),f=r,p={},m=0;for(let n=0;n<s.length;n++){let{name:a,fn:h}=s[n],{x:g,y:_,data:v,reset:y}=await h({x:u,y:d,initialPlacement:r,placement:f,strategy:i,middlewareData:p,rects:l,platform:{...o,detectOverflow:o.detectOverflow??ge},elements:{reference:e,floating:t}});u=g??u,d=_??d,p={...p,[a]:{...p[a],...v}},y&&m<=50&&(m++,typeof y==\`object\`&&(y.placement&&(f=y.placement),y.rects&&(l=y.rects===!0?await o.getElementRects({reference:e,floating:t,strategy:i}):y.rects),{x:u,y:d}=he(l,f,c)),n=-1)}return{x:u,y:d,placement:f,strategy:i,middlewareData:p}},ve=function(e){return e===void 0&&(e={}),{name:\`flip\`,options:e,async fn(t){var n;let{placement:r,middlewareData:i,rects:a,initialPlacement:o,platform:s,elements:c}=t,{mainAxis:l=!0,crossAxis:u=!0,fallbackPlacements:d,fallbackStrategy:f=\`bestFit\`,fallbackAxisSideDirection:p=\`none\`,flipAlignment:m=!0,...h}=j(e,t);if((n=i.arrow)!=null&&n.alignmentOffset)return{};let g=M(r),_=F(o),v=M(o)===o,y=await(s.isRTL==null?void 0:s.isRTL(c.floating)),b=d||(v||!m?[I(o)]:ae(o)),x=p!==\`none\`;!d&&x&&b.push(...fe(o,m,p,y));let S=[o,...b],C=await s.detectOverflow(t,h),w=[],T=i.flip?.overflows||[];if(l&&w.push(C[g]),u){let e=ie(r,a,y);w.push(C[e[0]],C[e[1]])}if(T=[...T,{placement:r,overflows:w}],!w.every(e=>e<=0)){let e=(i.flip?.index||0)+1,t=S[e];if(t&&(!(u===\`alignment\`&&_!==F(t))||T.every(e=>F(e.placement)===_?e.overflows[0]>0:!0)))return{data:{index:e,overflows:T},reset:{placement:t}};let n=T.filter(e=>e.overflows[0]<=0).sort((e,t)=>e.overflows[1]-t.overflows[1])[0]?.placement;if(!n)switch(f){case\`bestFit\`:{let e=T.filter(e=>{if(x){let t=F(e.placement);return t===_||t===\`y\`}return!0}).map(e=>[e.placement,e.overflows.filter(e=>e>0).reduce((e,t)=>e+t,0)]).sort((e,t)=>e[1]-t[1])[0]?.[0];e&&(n=e);break}case\`initialPlacement\`:n=o;break}if(r!==n)return{reset:{placement:n}}}return{}}}},ye=new Set([\`left\`,\`top\`]);async function be(e,t){let{placement:n,platform:r,elements:i}=e,a=await(r.isRTL==null?void 0:r.isRTL(i.floating)),o=M(n),s=N(n),c=F(n)===\`y\`,l=ye.has(o)?-1:1,u=a&&c?-1:1,d=j(t,e),{mainAxis:f,crossAxis:p,alignmentAxis:m}=typeof d==\`number\`?{mainAxis:d,crossAxis:0,alignmentAxis:null}:{mainAxis:d.mainAxis||0,crossAxis:d.crossAxis||0,alignmentAxis:d.alignmentAxis};return s&&typeof m==\`number\`&&(p=s===\`end\`?m*-1:m),c?{x:p*u,y:f*l}:{x:f*l,y:p*u}}var xe=function(e){return e===void 0&&(e=0),{name:\`offset\`,options:e,async fn(t){var n;let{x:r,y:i,placement:a,middlewareData:o}=t,s=await be(t,e);return a===o.offset?.placement&&(n=o.arrow)!=null&&n.alignmentOffset?{}:{x:r+s.x,y:i+s.y,data:{...s,placement:a}}}}},Se=function(e){return e===void 0&&(e={}),{name:\`shift\`,options:e,async fn(t){let{x:n,y:r,placement:i,platform:a}=t,{mainAxis:o=!0,crossAxis:s=!1,limiter:c={fn:e=>{let{x:t,y:n}=e;return{x:t,y:n}}},...l}=j(e,t),u={x:n,y:r},d=await a.detectOverflow(t,l),f=F(M(i)),p=te(f),m=u[p],h=u[f];if(o){let e=p===\`y\`?\`top\`:\`left\`,t=p===\`y\`?\`bottom\`:\`right\`,n=m+d[e],r=m-d[t];m=A(n,m,r)}if(s){let e=f===\`y\`?\`top\`:\`left\`,t=f===\`y\`?\`bottom\`:\`right\`,n=h+d[e],r=h-d[t];h=A(n,h,r)}let g=c.fn({...t,[p]:m,[f]:h});return{...g,data:{x:g.x-n,y:g.y-r,enabled:{[p]:o,[f]:s}}}}}};function R(){return typeof window<\`u\`}function z(e){return Ce(e)?(e.nodeName||\`\`).toLowerCase():\`#document\`}function B(e){var t;return(e==null||(t=e.ownerDocument)==null?void 0:t.defaultView)||window}function V(e){return((Ce(e)?e.ownerDocument:e.document)||window.document)?.documentElement}function Ce(e){return R()?e instanceof Node||e instanceof B(e).Node:!1}function H(e){return R()?e instanceof Element||e instanceof B(e).Element:!1}function U(e){return R()?e instanceof HTMLElement||e instanceof B(e).HTMLElement:!1}function we(e){return!R()||typeof ShadowRoot>\`u\`?!1:e instanceof ShadowRoot||e instanceof B(e).ShadowRoot}var Te=new Set([\`inline\`,\`contents\`]);function W(e){let{overflow:t,overflowX:n,overflowY:r,display:i}=J(e);return/auto|scroll|overlay|hidden|clip/.test(t+r+n)&&!Te.has(i)}var Ee=new Set([\`table\`,\`td\`,\`th\`]);function De(e){return Ee.has(z(e))}var Oe=[\`:popover-open\`,\`:modal\`];function G(e){return Oe.some(t=>{try{return e.matches(t)}catch{return!1}})}var ke=[\`transform\`,\`translate\`,\`scale\`,\`rotate\`,\`perspective\`],Ae=[\`transform\`,\`translate\`,\`scale\`,\`rotate\`,\`perspective\`,\`filter\`],je=[\`paint\`,\`layout\`,\`strict\`,\`content\`];function Me(e){let t=K(),n=H(e)?J(e):e;return ke.some(e=>n[e]?n[e]!==\`none\`:!1)||(n.containerType?n.containerType!==\`normal\`:!1)||!t&&(n.backdropFilter?n.backdropFilter!==\`none\`:!1)||!t&&(n.filter?n.filter!==\`none\`:!1)||Ae.some(e=>(n.willChange||\`\`).includes(e))||je.some(e=>(n.contain||\`\`).includes(e))}function Ne(e){let t=X(e);for(;U(t)&&!q(t);){if(Me(t))return t;if(G(t))return null;t=X(t)}return null}function K(){return typeof CSS>\`u\`||!CSS.supports?!1:CSS.supports(\`-webkit-backdrop-filter\`,\`none\`)}var Pe=new Set([\`html\`,\`body\`,\`#document\`]);function q(e){return Pe.has(z(e))}function J(e){return B(e).getComputedStyle(e)}function Y(e){return H(e)?{scrollLeft:e.scrollLeft,scrollTop:e.scrollTop}:{scrollLeft:e.scrollX,scrollTop:e.scrollY}}function X(e){if(z(e)===\`html\`)return e;let t=e.assignedSlot||e.parentNode||we(e)&&e.host||V(e);return we(t)?t.host:t}function Fe(e){let t=X(e);return q(t)?e.ownerDocument?e.ownerDocument.body:e.body:U(t)&&W(t)?t:Fe(t)}function Ie(e,t,n){t===void 0&&(t=[]),n===void 0&&(n=!0);let r=Fe(e),i=r===e.ownerDocument?.body,a=B(r);if(i){let e=Le(a);return t.concat(a,a.visualViewport||[],W(r)?r:[],e&&n?Ie(e):[])}return t.concat(r,Ie(r,[],n))}function Le(e){return e.parent&&Object.getPrototypeOf(e.parent)?e.frameElement:null}function Re(e){let t=J(e),n=parseFloat(t.width)||0,r=parseFloat(t.height)||0,i=U(e),a=i?e.offsetWidth:n,o=i?e.offsetHeight:r,s=D(n)!==a||D(r)!==o;return s&&(n=a,r=o),{width:n,height:r,$:s}}function ze(e){return H(e)?e:e.contextElement}function Z(e){let t=ze(e);if(!U(t))return O(1);let n=t.getBoundingClientRect(),{width:r,height:i,$:a}=Re(t),o=(a?D(n.width):n.width)/r,s=(a?D(n.height):n.height)/i;return(!o||!Number.isFinite(o))&&(o=1),(!s||!Number.isFinite(s))&&(s=1),{x:o,y:s}}var Be=O(0);function Ve(e){let t=B(e);return!K()||!t.visualViewport?Be:{x:t.visualViewport.offsetLeft,y:t.visualViewport.offsetTop}}function He(e,t,n){return t===void 0&&(t=!1),!n||t&&n!==B(e)?!1:t}function Q(e,t,n,r){t===void 0&&(t=!1),n===void 0&&(n=!1);let i=e.getBoundingClientRect(),a=ze(e),o=O(1);t&&(r?H(r)&&(o=Z(r)):o=Z(e));let s=He(a,n,r)?Ve(a):O(0),c=(i.left+s.x)/o.x,l=(i.top+s.y)/o.y,u=i.width/o.x,d=i.height/o.y;if(a){let e=B(a),t=r&&H(r)?B(r):r,n=e,i=Le(n);for(;i&&r&&t!==n;){let e=Z(i),t=i.getBoundingClientRect(),r=J(i),a=t.left+(i.clientLeft+parseFloat(r.paddingLeft))*e.x,o=t.top+(i.clientTop+parseFloat(r.paddingTop))*e.y;c*=e.x,l*=e.y,u*=e.x,d*=e.y,c+=a,l+=o,n=B(i),i=Le(n)}}return L({width:u,height:d,x:c,y:l})}function $(e,t){let n=Y(e).scrollLeft;return t?t.left+n:Q(V(e)).left+n}function Ue(e,t){let n=e.getBoundingClientRect();return{x:n.left+t.scrollLeft-$(e,n),y:n.top+t.scrollTop}}function We(e){let{elements:t,rect:n,offsetParent:r,strategy:i}=e,a=i===\`fixed\`,o=V(r),s=t?G(t.floating):!1;if(r===o||s&&a)return n;let c={scrollLeft:0,scrollTop:0},l=O(1),u=O(0),d=U(r);if((d||!d&&!a)&&((z(r)!==\`body\`||W(o))&&(c=Y(r)),U(r))){let e=Q(r);l=Z(r),u.x=e.x+r.clientLeft,u.y=e.y+r.clientTop}let f=o&&!d&&!a?Ue(o,c):O(0);return{width:n.width*l.x,height:n.height*l.y,x:n.x*l.x-c.scrollLeft*l.x+u.x+f.x,y:n.y*l.y-c.scrollTop*l.y+u.y+f.y}}function Ge(e){return Array.from(e.getClientRects())}function Ke(e){let t=V(e),n=Y(e),r=e.ownerDocument.body,i=E(t.scrollWidth,t.clientWidth,r.scrollWidth,r.clientWidth),a=E(t.scrollHeight,t.clientHeight,r.scrollHeight,r.clientHeight),o=-n.scrollLeft+$(e),s=-n.scrollTop;return J(r).direction===\`rtl\`&&(o+=E(t.clientWidth,r.clientWidth)-i),{width:i,height:a,x:o,y:s}}var qe=25;function Je(e,t){let n=B(e),r=V(e),i=n.visualViewport,a=r.clientWidth,o=r.clientHeight,s=0,c=0;if(i){a=i.width,o=i.height;let e=K();(!e||e&&t===\`fixed\`)&&(s=i.offsetLeft,c=i.offsetTop)}let l=$(r);if(l<=0){let e=r.ownerDocument,t=e.body,n=getComputedStyle(t),i=e.compatMode===\`CSS1Compat\`&&parseFloat(n.marginLeft)+parseFloat(n.marginRight)||0,o=Math.abs(r.clientWidth-t.clientWidth-i);o<=qe&&(a-=o)}else l<=qe&&(a+=l);return{width:a,height:o,x:s,y:c}}var Ye=new Set([\`absolute\`,\`fixed\`]);function Xe(e,t){let n=Q(e,!0,t===\`fixed\`),r=n.top+e.clientTop,i=n.left+e.clientLeft,a=U(e)?Z(e):O(1);return{width:e.clientWidth*a.x,height:e.clientHeight*a.y,x:i*a.x,y:r*a.y}}function Ze(e,t,n){let r;if(t===\`viewport\`)r=Je(e,n);else if(t===\`document\`)r=Ke(V(e));else if(H(t))r=Xe(t,n);else{let n=Ve(e);r={x:t.x-n.x,y:t.y-n.y,width:t.width,height:t.height}}return L(r)}function Qe(e,t){let n=X(e);return n===t||!H(n)||q(n)?!1:J(n).position===\`fixed\`||Qe(n,t)}function $e(e,t){let n=t.get(e);if(n)return n;let r=Ie(e,[],!1).filter(e=>H(e)&&z(e)!==\`body\`),i=null,a=J(e).position===\`fixed\`,o=a?X(e):e;for(;H(o)&&!q(o);){let t=J(o),n=Me(o);!n&&t.position===\`fixed\`&&(i=null),(a?!n&&!i:!n&&t.position===\`static\`&&i&&Ye.has(i.position)||W(o)&&!n&&Qe(e,o))?r=r.filter(e=>e!==o):i=t,o=X(o)}return t.set(e,r),r}function et(e){let{element:t,boundary:n,rootBoundary:r,strategy:i}=e,a=[...n===\`clippingAncestors\`?G(t)?[]:$e(t,this._c):[].concat(n),r],o=a[0],s=a.reduce((e,n)=>{let r=Ze(t,n,i);return e.top=E(r.top,e.top),e.right=T(r.right,e.right),e.bottom=T(r.bottom,e.bottom),e.left=E(r.left,e.left),e},Ze(t,o,i));return{width:s.right-s.left,height:s.bottom-s.top,x:s.left,y:s.top}}function tt(e){let{width:t,height:n}=Re(e);return{width:t,height:n}}function nt(e,t,n){let r=U(t),i=V(t),a=n===\`fixed\`,o=Q(e,!0,a,t),s={scrollLeft:0,scrollTop:0},c=O(0);function l(){c.x=$(i)}if(r||!r&&!a)if((z(t)!==\`body\`||W(i))&&(s=Y(t)),r){let e=Q(t,!0,a,t);c.x=e.x+t.clientLeft,c.y=e.y+t.clientTop}else i&&l();a&&!r&&i&&l();let u=i&&!r&&!a?Ue(i,s):O(0);return{x:o.left+s.scrollLeft-c.x-u.x,y:o.top+s.scrollTop-c.y-u.y,width:o.width,height:o.height}}function rt(e){return J(e).position===\`static\`}function it(e,t){if(!U(e)||J(e).position===\`fixed\`)return null;if(t)return t(e);let n=e.offsetParent;return V(e)===n&&(n=n.ownerDocument.body),n}function at(e,t){let n=B(e);if(G(e))return n;if(!U(e)){let t=X(e);for(;t&&!q(t);){if(H(t)&&!rt(t))return t;t=X(t)}return n}let r=it(e,t);for(;r&&De(r)&&rt(r);)r=it(r,t);return r&&q(r)&&rt(r)&&!Me(r)?n:r||Ne(e)||n}var ot=async function(e){let t=this.getOffsetParent||at,n=this.getDimensions,r=await n(e.floating);return{reference:nt(e.reference,await t(e.floating),e.strategy),floating:{x:0,y:0,width:r.width,height:r.height}}};function st(e){return J(e).direction===\`rtl\`}var ct={convertOffsetParentRelativeRectToViewportRelativeRect:We,getDocumentElement:V,getClippingRect:et,getOffsetParent:at,getElementRects:ot,getClientRects:Ge,getDimensions:tt,getScale:Z,isElement:H,isRTL:st},lt=xe,ut=Se,dt=ve,ft=(e,t,n)=>{let r=new Map,i={platform:ct,...n},a={...i.platform,_c:r};return _e(e,t,{...i,platform:a})};function pt(e){if(!Number.isFinite(e))return\`N/A\`;let t=Math.abs(e),n=e<0?\`-\`:\`\`;if(t===0)return\`0\`;let r=[\`\`,\`k\`,\`M\`,\`G\`,\`T\`,\`P\`,\`E\`],i=0;for(;t>=1e3&&i<r.length-1;)t/=1e3,i+=1;let a=t>=100?0:t>=10?1:2;return\`\${n}\${t.toFixed(a)}\${r[i]}\`}function mt(e){if(!Number.isFinite(e))return\`N/A\`;let t=Math.abs(e),n=e<0?\`-\`:\`\`,r=[\`B\`,\`KiB\`,\`MiB\`,\`GiB\`,\`TiB\`,\`PiB\`],i=0;for(;t>=1024&&i<r.length-1;)t/=1024,i+=1;let a=t>=100?0:t>=10?1:2;return\`\${n}\${t.toFixed(a)}\${r[i]}\`}function ht(e){if(!Number.isFinite(e))return\`N/A\`;let t=Math.abs(e);return t>=3600?\`\${(e/3600).toFixed(2)}h\`:t>=60?\`\${(e/60).toFixed(2)}m\`:\`\${e.toFixed(2)}s\`}function gt(e,t){if(e==null||Number.isNaN(e))return\`N/A\`;if(!t)return pt(e);let n=t.toLowerCase();return n===\`%\`||n===\`percent\`?\`\${e.toFixed(2)}%\`:n===\`ms\`||n===\`millisecond\`||n===\`milliseconds\`?Math.abs(e)>=1e3?\`\${(e/1e3).toFixed(2)}s\`:\`\${e.toFixed(2)}ms\`:n===\`s\`||n===\`sec\`||n===\`second\`||n===\`seconds\`?ht(e):n===\`b\`||n===\`byte\`||n===\`bytes\`?mt(e):n===\`b/s\`||n===\`bytes/s\`||n===\`byte/s\`?\`\${mt(e)}/s\`:\`\${pt(e)} \${t}\`.trim()}var _t={class:\`card\`},vt={__name:\`Chart\`,props:{unit:{type:String,default:\`\`},timestamps:{type:Array,default:()=>[]},current:{type:Array,default:()=>[]},currentLabel:{type:String,default:\`current\`},baseline:{type:Array,default:null},baselineLabel:{type:String,default:\`baseline\`},alerts:{type:Array,default:()=>[]},threshold:{type:Object,default:null}},setup(e){let n=e,r=g(null),i=g(null),s=null,c=null,l=g(n.alerts),u=t(()=>n.baseline&&n.baseline.length>0);function d(){return u.value?[n.timestamps,n.baseline,n.current]:[n.timestamps,n.current]}function f(e){let t=new Date(e*1e3);return\`\${String(t.getHours()).padStart(2,\`0\`)}:\${String(t.getMinutes()).padStart(2,\`0\`)}:\${String(t.getSeconds()).padStart(2,\`0\`)}\`}function _(){return{hooks:{draw:e=>{let t=l.value||[];if(!t.length)return;let n=e.ctx,{top:r,height:i}=e.bbox;n.save(),t.forEach(t=>{let a=e.valToPos(t.epoch_ms/1e3,\`x\`,!0),o=e.valToPos((t.epoch_ms+t.duration_ms)/1e3,\`x\`,!0);a==null||o==null||(n.fillStyle=getComputedStyle(document.documentElement).getPropertyValue(\`--color-alert\`).trim(),n.fillRect(a,r+i-4,o-a,8))}),n.restore()}}}}function v(){return{hooks:{draw:t=>{if(!u.value)return;let r=t.data[2],i=t.data[1];if(!r||!i)return;let a=n.threshold;if(!a)return;let o=a.critical_change_percent??50;a.warning_change_percent;let s=a.neutral_change_percent??5,c=a.direction??\`neutral\`;function l(e,t,n){if(!e||t<0||t>=e.length)return null;let r=Math.max(0,t-n+1),i=0,a=0;for(let n=r;n<=t;n++){let t=e[n];t!=null&&isFinite(t)&&(i+=t,a++)}return a>0?i/a:null}let d=t.ctx;d.save();let f=!1,p=0,m=null;for(let n=0;n<r.length;n++){let a=l(i,n,5),u=l(r,n,5);if(a==null||u==null||a===0){f&&(n-p>=5&&m&&e(d,t,Math.max(0,p-2),n-1-2,m),f=!1,m=null);continue}let h=(u-a)/a*100,g=!1;if(g=c===\`lower_is_better\`?u>a:c===\`higher_is_better\`?u<a:Math.abs(h)>s,!g){f&&(n-p>=5&&m&&e(d,t,Math.max(0,p-2),n-1-2,m),f=!1,m=null);continue}let _=Math.abs(h)>o?\`critical\`:\`warning\`;if(f?_===\`critical\`&&(m=\`critical\`):(f=!0,p=n,m=_),n>0){let a=l(i,n-1,5),o=l(r,n-1,5),u=0;a&&o&&a!==0&&(u=(o-a)/a*100);let h=!1;h=c===\`lower_is_better\`?o&&a&&o>a:c===\`higher_is_better\`?o&&a&&o<a:Math.abs(u)>s,h||(n-p>=5&&m&&e(d,t,Math.max(0,p-2),n-1-2,m),f=!1,m=null)}}f&&r.length-p>=5&&m&&e(d,t,Math.max(0,p-2),r.length-1-2,m),d.restore()}}};function e(e,t,n,r,i){let a=t.data[0],o=t.data[2],s=t.data[1],c=i===\`critical\`?\`rgba(220, 38, 38, 0.2)\`:\`rgba(251, 191, 36, 0.25)\`;e.beginPath();for(let i=n;i<=r;i++){let r=t.valToPos(a[i],\`x\`,!0),s=t.valToPos(o[i],\`y\`,!0);r==null||s==null||(i===n?e.moveTo(r,s):e.lineTo(r,s))}for(let i=r;i>=n;i--){let n=t.valToPos(a[i],\`x\`,!0),r=t.valToPos(s[i],\`y\`,!0);n==null||r==null||e.lineTo(n,r)}e.closePath(),e.fillStyle=c,e.fill()}}function y(e,t){return{hooks:{setCursor:r=>{let a=r.cursor.idx,o=i.value;if(!o||a==null||a<0){o?.hide?.();return}let s=r.data[0][a],c=u.value?r.data[1]?.[a]:null,d=u.value?r.data[2]?.[a]:r.data[1]?.[a],p=null,m=null,h=null;function g(e,t,n){if(!e||t<0||t>=e.length)return null;let r=Math.max(0,t-n+1),i=0,a=0;for(let n=r;n<=t;n++){let t=e[n];t!=null&&isFinite(t)&&(i+=t,a++)}return a>0?i/a:null}if(u.value&&c!=null&&d!=null&&c!==0){let e=r.data[1],t=r.data[2],i=g(e,a,2),o=g(t,a,2),s=i??c,l=o??d;if(s!==0){let e=(l-s)/s*100,t=n.threshold,r=t?.critical_change_percent??50;t?.warning_change_percent;let i=t?.neutral_change_percent??5,a=t?.direction??\`neutral\`;p=e;let o=!1;o=a===\`lower_is_better\`?l>s:a===\`higher_is_better\`?l<s:Math.abs(e)>i&&e>0;let c=!1;c=a===\`lower_is_better\`?l<s:a===\`higher_is_better\`?l>s:Math.abs(e)>i&&e<0,o?(m=\`worse\`,h=Math.abs(e)>r?\`critical\`:\`warning\`):c?(m=\`better\`,h=\`success\`):(m=\`neutral\`,h=\`neutral\`)}}let _=s*1e3,v=(l.value||[]).filter(e=>{let t=e.epoch_ms,n=e.epoch_ms+e.duration_ms;return _>=t&&_<=n}).map(e=>{let t=e.labels?.fault||e.alertname||\`alert\`,n=e.labels?.node,r=n?\`\${t} on \${n}\`:t;return{id:\`\${e.alertname}-\${e.epoch_ms}\`,label:r,duration:\`\${(e.duration_ms/1e3).toFixed(1)}s\`}});o.setData?.({time:f(s),currentLabel:n.currentLabel,currentValue:gt(d,n.unit),baselineLabel:n.baselineLabel,baselineValue:gt(c,n.unit),showBaseline:u.value,alerts:v,currentColor:e,baselineColor:t,diff:p,diffDirection:m,diffSeverity:h});let y=r.over.getBoundingClientRect(),b=y.left+r.cursor.left,x=y.top+r.cursor.top,S={getBoundingClientRect(){return{x:b,y:x,left:b,top:x,right:b,bottom:x,width:0,height:0}},contextElement:r.over};o.show?.(),ft(S,o.getElement?.()??o,{placement:\`right-start\`,strategy:\`fixed\`,middleware:[lt({mainAxis:10,crossAxis:10}),dt(),ut({padding:8})]}).then(({x:e,y:t})=>{o.setPosition?.({x:e,y:t,strategy:\`fixed\`})})}}}}function b(){if(!r.value)return;let e=getComputedStyle(document.documentElement),t=e.getPropertyValue(\`--color-axis\`).trim()||\`#7b8087\`,i=e.getPropertyValue(\`--color-grid\`).trim()||\`#e5e7eb\`,a=\`11px \${e.getPropertyValue(\`--font-sans\`).trim()||\`Inter, sans-serif\`}\`,o=e.getPropertyValue(\`--color-series-current\`).trim(),l=e.getPropertyValue(\`--color-series-baseline\`).trim(),p=[{},{label:u.value?n.baselineLabel:n.currentLabel,stroke:u.value?l:o,width:u.value?1:1.5,points:{show:!1}}];u.value&&p.push({label:n.currentLabel,stroke:o,width:1.5,points:{show:!1}}),s=new w({width:r.value.clientWidth,height:300,scales:{x:{time:!0}},axes:[{stroke:t,font:a,grid:{show:!1},ticks:{stroke:t,width:1},size:32,values:(e,t)=>t.map(e=>f(e))},{stroke:t,font:a,grid:{stroke:i,width:1},ticks:{stroke:t,width:1},values:(e,t)=>t.map(e=>pt(e))}],series:p,legend:{show:!1},cursor:{x:!0,y:!0,drag:{x:!1,y:!1},points:{show:!1,size:0}},plugins:[_(),v(),y(o,l)]},d(),r.value),c=new ResizeObserver(e=>{let t=e[0];if(!t||!s)return;let n=Math.floor(t.contentRect.width);s.setSize({width:n,height:300})}),c.observe(r.value)}return m(()=>{b(),i.value&&i.value.parentNode!==document.body&&document.body.appendChild(i.value)}),p(()=>{c&&c.disconnect(),s&&s.destroy(),i.value&&i.value.parentNode===document.body&&i.value.parentNode.removeChild(i.value)}),x(()=>n.alerts,e=>{l.value=e,s?.redraw()},{deep:!0}),x(()=>[n.timestamps,n.current,n.baseline],()=>{s&&(s.setData(d()),s.redraw())},{deep:!0}),(e,t)=>(h(),a(\`div\`,_t,[o(\`div\`,{ref_key:\`chartEl\`,ref:r},null,512),o(\`slo-tooltip\`,{ref_key:\`tooltipEl\`,ref:i},null,512)]))}},yt={key:0,d:\`M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM231 231C240.4 221.6 255.6 221.6 264.9 231L319.9 286L374.9 231C384.3 221.6 399.5 221.6 408.8 231C418.1 240.4 418.2 255.6 408.8 264.9L353.8 319.9L408.8 374.9C418.2 384.3 418.2 399.5 408.8 408.8C399.4 418.1 384.2 418.2 374.9 408.8L319.9 353.8L264.9 408.8C255.5 418.2 240.3 418.2 231 408.8C221.7 399.4 221.6 384.2 231 374.9L286 319.9L231 264.9C221.6 255.5 221.6 240.3 231 231z\`},bt={key:1,d:\`M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM320 384C302.3 384 288 398.3 288 416C288 433.7 302.3 448 320 448C337.7 448 352 433.7 352 416C352 398.3 337.7 384 320 384zM320 192C301.8 192 287.3 207.5 288.6 225.7L296 329.7C296.9 342.3 307.4 352 319.9 352C332.5 352 342.9 342.3 343.8 329.7L351.2 225.7C352.5 207.5 338.1 192 319.8 192z\`},xt={key:2,d:\`M320 576C178.6 576 64 461.4 64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576zM438 209.7C427.3 201.9 412.3 204.3 404.5 215L285.1 379.2L233 327.1C223.6 317.7 208.4 317.7 199.1 327.1C189.8 336.5 189.7 351.7 199.1 361L271.1 433C276.1 438 282.9 440.5 289.9 440C296.9 439.5 303.3 435.9 307.4 430.2L443.3 243.2C451.1 232.5 448.7 217.5 438 209.7z\`},St={__name:\`StatusIcon\`,props:{status:{type:String,default:\`\`}},setup(e){let n=e,r=t(()=>{switch(n.status){case\`failure\`:return\`var(--color-fg-danger)\`;case\`warning\`:return\`var(--color-fg-warning)\`;default:return\`var(--color-fg-success)\`}});return(t,n)=>(h(),a(\`svg\`,{viewBox:\`0 0 640 640\`,width:\`20\`,height:\`20\`,fill:\`currentColor\`,class:\`shrink-0\`,style:f({color:r.value})},[e.status===\`failure\`?(h(),a(\`path\`,yt)):e.status===\`warning\`?(h(),a(\`path\`,bt)):(h(),a(\`path\`,xt))],4))}},Ct=[\`id\`],wt={class:\`flex justify-between items-center mb-3 font-mono uppercase\`},Tt={class:\`flex items-center gap-1\`},Et={class:\`text-sm leading-none\`},Dt=[\`href\`],Ot={class:\`text-sm text-text-secondary\`},kt={__name:\`MetricSection\`,props:{metric:{type:Object,required:!0},status:{type:String,default:null},alerts:{type:Array,default:()=>[]},threshold:{type:Object,default:null}},setup(e){let n=e,r=t(()=>n.metric.data?.[0]?.values?.map(([e])=>e)??[]),i=t(()=>n.metric.data?.[0]?.values?.map(([,e])=>Number(e))??[]),s=t(()=>n.metric.data?.[1]?.values?.map(([,e])=>Number(e))??null),l=t(()=>{let e=i.value;if(!e.length)return\`-\`;let t=e.reduce((e,t)=>e+t,0)/e.length,r;return r=t>=1e6?(t/1e6).toFixed(1)+\`M\`:t>=1e3?(t/1e3).toFixed(1)+\`K\`:t.toFixed(1),n.metric.unit?\`\${r} \${n.metric.unit}\`:r});function u(){let e=\`\${window.location.origin}\${window.location.pathname}#metric-\${n.metric.name}\`;navigator.clipboard.writeText(e);let t=document.getElementById(\`metric-\${n.metric.name}\`);t&&(t.scrollIntoView({behavior:\`smooth\`,block:\`start\`}),history.replaceState(null,\`\`,\`#metric-\${n.metric.name}\`))}return(t,n)=>(h(),a(\`div\`,{id:\`metric-\${e.metric.name}\`,class:\`scroll-mt-4\`},[o(\`div\`,wt,[o(\`div\`,Tt,[c(St,{status:e.status},null,8,[\`status\`]),o(\`h2\`,Et,v(e.metric.title||e.metric.name),1),o(\`a\`,{href:\`#metric-\${e.metric.name}\`,class:\`ml-1 hover:text-text-primary text-text-secondary\`,title:\`Link to this chart\`,onClick:C(u,[\`prevent\`])},[...n[0]||=[o(\`svg\`,{xmlns:\`http://www.w3.org/2000/svg\`,viewBox:\`0 0 640 640\`,class:\`w-4 h-4\`,fill:\`currentColor\`},[o(\`path\`,{d:\`M451.5 160C434.9 160 418.8 164.5 404.7 172.7C388.9 156.7 370.5 143.3 350.2 133.2C378.4 109.2 414.3 96 451.5 96C537.9 96 608 166 608 252.5C608 294 591.5 333.8 562.2 363.1L491.1 434.2C461.8 463.5 422 480 380.5 480C294.1 480 224 410 224 323.5C224 322 224 320.5 224.1 319C224.6 301.3 239.3 287.4 257 287.9C274.7 288.4 288.6 303.1 288.1 320.8C288.1 321.7 288.1 322.6 288.1 323.4C288.1 374.5 329.5 415.9 380.6 415.9C405.1 415.9 428.6 406.2 446 388.8L517.1 317.7C534.4 300.4 544.2 276.8 544.2 252.3C544.2 201.2 502.8 159.8 451.7 159.8zM307.2 237.3C305.3 236.5 303.4 235.4 301.7 234.2C289.1 227.7 274.7 224 259.6 224C235.1 224 211.6 233.7 194.2 251.1L123.1 322.2C105.8 339.5 96 363.1 96 387.6C96 438.7 137.4 480.1 188.5 480.1C205 480.1 221.1 475.7 235.2 467.5C251 483.5 269.4 496.9 289.8 507C261.6 530.9 225.8 544.2 188.5 544.2C102.1 544.2 32 474.2 32 387.7C32 346.2 48.5 306.4 77.8 277.1L148.9 206C178.2 176.7 218 160.2 259.5 160.2C346.1 160.2 416 230.8 416 317.1C416 318.4 416 319.7 416 321C415.6 338.7 400.9 352.6 383.2 352.2C365.5 351.8 351.6 337.1 352 319.4C352 318.6 352 317.9 352 317.1C352 283.4 334 253.8 307.2 237.5z\`})],-1)]],8,Dt)]),o(\`span\`,Ot,v(y(l)),1)]),c(vt,{timestamps:y(r),current:y(i),baseline:y(s),unit:e.metric.unit,"current-label":\`current\`,"baseline-label":\`baseline\`,alerts:e.alerts,threshold:e.threshold},null,8,[\`timestamps\`,\`current\`,\`baseline\`,\`unit\`,\`alerts\`,\`threshold\`])],8,Ct))}},At={key:0,class:\`w-64 shrink-0 border-r border-border p-1 sticky top-0 h-screen overflow-y-auto\`},jt=[\`href\`,\`onClick\`],Mt={class:\`truncate leading-none\`},Nt={__name:\`Sidebar\`,props:{metrics:{type:Array,default:()=>[]},thresholdStatus:{type:Object,default:()=>({})}},emits:[\`select\`],setup(t){return(n,r)=>t.metrics.length?(h(),a(\`aside\`,At,[r[0]||=o(\`div\`,{class:\`text-xs font-medium uppercase tracking-wide text-text-muted px-2 py-2\`},\`Metrics\`,-1),o(\`nav\`,null,[(h(!0),a(e,null,_(t.metrics,e=>(h(),a(\`a\`,{key:e.name,href:\`#metric-\${e.name}\`,onClick:C(t=>n.$emit(\`select\`,e.name),[\`prevent\`]),class:\`block w-full text-left px-1.5 py-1.5 rounded text-sm font-mono uppercase hover:bg-panel transition-colors flex items-center gap-1\`},[c(St,{status:t.thresholdStatus[e.name]},null,8,[\`status\`]),o(\`span\`,Mt,v(e.title||e.name),1)],8,jt))),128))])])):i(\`\`,!0)}},Pt={class:\`flex min-h-screen\`},Ft={class:\`flex-1 p-6\`},It={key:0,class:\`mb-8\`},Lt={class:\`text-xl font-semibold\`},Rt={key:0,class:\`mt-1 text-sm text-text-secondary\`},zt={key:0},Bt={key:1,class:\`text-sm text-text-secondary\`},Vt={key:2,class:\`text-sm text-text-secondary\`},Ht={key:3,class:\`space-y-6\`},Ut={__name:\`App\`,setup(n){let c=g(null),l=g(!1),d=t(()=>{let e={},t=c.value?.evaluation;if(!t)return e;for(let n of t.failures||[])e[n.name]=\`failure\`;for(let n of t.warnings||[])e[n.name]||(e[n.name]=\`warning\`);return e}),f=t(()=>c.value?.thresholds??null);function p(e,t){if(!t)return!1;let n=t.replace(/\\*/g,\`.*\`).replace(/\\?/g,\`.\`);return RegExp(\`^\${n}$\`,\`i\`).test(e)}function b(e){let t=f.value;if(!t||!t.metrics)return null;for(let n of t.metrics)if(n.name&&n.name===e)return n;for(let n of t.metrics)if(n.pattern&&p(e,n.pattern))return n;return null}function x(e){let t=f.value;if(!t)return null;let n=b(e);return{warning_change_percent:n?.warning_change_percent??t.default?.warning_change_percent,critical_change_percent:n?.critical_change_percent??t.default?.critical_change_percent,neutral_change_percent:t.neutral_change_percent,direction:n?.direction??\`neutral\`}}function S(e){let t=document.getElementById(\`metric-\${e}\`);t&&(t.scrollIntoView({behavior:\`smooth\`,block:\`start\`}),history.replaceState(null,\`\`,\`#metric-\${e}\`))}function C(){c.value=window.__REPORT_DATA__??window.reportData??null}return m(async()=>{let e=window.location.hash;await C(),e&&(await u(),S(e.replace(\`#metric-\`,\`\`)))}),(t,n)=>(h(),a(\`div\`,Pt,[y(c)?(h(),r(Nt,{key:0,metrics:y(c).metrics,"threshold-status":y(d),onSelect:S},null,8,[\`metrics\`,\`threshold-status\`])):i(\`\`,!0),o(\`main\`,Ft,[y(c)?(h(),a(\`header\`,It,[o(\`h1\`,Lt,v(y(c).meta.workload||\`SLO Report\`),1),y(c).meta.repo_full_name?(h(),a(\`p\`,Rt,[s(v(y(c).meta.repo_full_name)+\` \`,1),y(c).meta.pull?(h(),a(\`span\`,zt,\` • PR #\`+v(y(c).meta.pull),1)):i(\`\`,!0)])):i(\`\`,!0)])):i(\`\`,!0),y(l)?(h(),a(\`div\`,Bt,\`Loading demo data…\`)):y(c)?(h(),a(\`div\`,Ht,[(h(!0),a(e,null,_(y(c).metrics,e=>(h(),r(kt,{key:e.name,metric:e,status:y(d)[e.name],alerts:y(c).alerts,threshold:x(e.name)},null,8,[\`metric\`,\`status\`,\`alerts\`,\`threshold\`]))),128))])):(h(),a(\`div\`,Vt,\`NO DATA\`))])]))}},Wt=\`/*! tailwindcss v4.1.18 | MIT License | https://tailwindcss.com */
+@layer properties{@supports (((-webkit-hyphens:none)) and (not (margin-trim:inline))) or ((-moz-orient:inline) and (not (color:rgb(from red r g b)))){[data-v-a77bb9b8],[data-v-a77bb9b8]:before,[data-v-a77bb9b8]:after,[data-v-a77bb9b8]::backdrop{--tw-border-style:solid;--tw-gradient-position:initial;--tw-gradient-from:#0000;--tw-gradient-via:#0000;--tw-gradient-to:#0000;--tw-gradient-stops:initial;--tw-gradient-via-stops:initial;--tw-gradient-from-position:0%;--tw-gradient-via-position:50%;--tw-gradient-to-position:100%;--tw-shadow:0 0 #0000;--tw-shadow-color:initial;--tw-shadow-alpha:100%;--tw-inset-shadow:0 0 #0000;--tw-inset-shadow-color:initial;--tw-inset-shadow-alpha:100%;--tw-ring-color:initial;--tw-ring-shadow:0 0 #0000;--tw-inset-ring-color:initial;--tw-inset-ring-shadow:0 0 #0000;--tw-ring-inset:initial;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-offset-shadow:0 0 #0000;--tw-backdrop-blur:initial;--tw-backdrop-brightness:initial;--tw-backdrop-contrast:initial;--tw-backdrop-grayscale:initial;--tw-backdrop-hue-rotate:initial;--tw-backdrop-invert:initial;--tw-backdrop-opacity:initial;--tw-backdrop-saturate:initial;--tw-backdrop-sepia:initial;--tw-font-weight:initial;--tw-tracking:initial;--tw-leading:initial}}}.tooltip[data-v-a77bb9b8]{pointer-events:none;z-index:50;max-width:calc(var(--spacing,.25rem)*80);min-width:calc(var(--spacing,.25rem)*48);border-radius:var(--radius-lg,.5rem);border-style:var(--tw-border-style);border-width:1px;border-color:var(--color-border,var(--theme-foreground-faintest));--tw-gradient-position:to bottom}@supports (background-image:linear-gradient(in lab, red, red)){.tooltip[data-v-a77bb9b8]{--tw-gradient-position:to bottom in oklab}}.tooltip[data-v-a77bb9b8]{background-image:linear-gradient(var(--tw-gradient-stops));--tw-gradient-from:color-mix(in oklab,var(--color-panel-elevated,color-mix(in srgb,var(--theme-background)92%,var(--theme-foreground)8%))95%,transparent);--tw-gradient-to:color-mix(in oklab,var(--color-panel-elevated,color-mix(in srgb,var(--theme-background)92%,var(--theme-foreground)8%))90%,transparent);--tw-gradient-stops:var(--tw-gradient-via-stops,var(--tw-gradient-position),var(--tw-gradient-from)var(--tw-gradient-from-position),var(--tw-gradient-to)var(--tw-gradient-to-position));padding-inline:calc(var(--spacing,.25rem)*2);padding-block:calc(var(--spacing,.25rem)*1.5);font-size:var(--text-xs,.75rem);line-height:var(--tw-leading,var(--text-xs--line-height,calc(1/.75)));--tw-shadow:var(--shadow-tooltip);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow);--tw-backdrop-blur:blur(var(--blur-md,12px));-webkit-backdrop-filter:var(--tw-backdrop-blur,)var(--tw-backdrop-brightness,)var(--tw-backdrop-contrast,)var(--tw-backdrop-grayscale,)var(--tw-backdrop-hue-rotate,)var(--tw-backdrop-invert,)var(--tw-backdrop-opacity,)var(--tw-backdrop-saturate,)var(--tw-backdrop-sepia,);backdrop-filter:var(--tw-backdrop-blur,)var(--tw-backdrop-brightness,)var(--tw-backdrop-contrast,)var(--tw-backdrop-grayscale,)var(--tw-backdrop-hue-rotate,)var(--tw-backdrop-invert,)var(--tw-backdrop-opacity,)var(--tw-backdrop-saturate,)var(--tw-backdrop-sepia,)}.tooltip-header[data-v-a77bb9b8]{font-size:var(--text-xs,.75rem);line-height:var(--tw-leading,var(--text-xs--line-height,calc(1/.75)));--tw-font-weight:var(--font-weight-semibold,600);font-weight:var(--font-weight-semibold,600);--tw-tracking:var(--tracking-wide,.025em);letter-spacing:var(--tracking-wide,.025em);color:var(--color-text-primary,var(--theme-foreground));justify-content:space-between;align-items:center;display:flex}.tooltip-diff[data-v-a77bb9b8]{align-items:center;gap:calc(var(--spacing,.25rem)*.5);font-family:var(--font-mono,var(--monospace));display:flex}.tooltip-diff-arrow[data-v-a77bb9b8]{font-size:var(--text-sm,.875rem);line-height:var(--tw-leading,var(--text-sm--line-height,calc(1.25/.875)));--tw-leading:1;line-height:1}.diff-neutral[data-v-a77bb9b8]{color:var(--color-text-secondary,var(--theme-foreground-faint))}.diff-success[data-v-a77bb9b8]{color:var(--color-green-500,oklch(72.3% .219 149.579))}.diff-warning[data-v-a77bb9b8]{color:var(--color-yellow-500,oklch(79.5% .184 86.047))}.diff-critical[data-v-a77bb9b8]{color:var(--color-red-500,oklch(63.7% .237 25.331))}.tooltip-series[data-v-a77bb9b8]{margin-top:calc(var(--spacing,.25rem)*1);gap:calc(var(--spacing,.25rem)*.5);border-top-style:var(--tw-border-style);border-top-width:1px;border-color:var(--color-border,var(--theme-foreground-faintest));padding-top:calc(var(--spacing,.25rem)*1);display:grid}.tooltip-row[data-v-a77bb9b8]{justify-content:space-between;align-items:center;gap:calc(var(--spacing,.25rem)*3);padding-block:calc(var(--spacing,.25rem)*.5);display:flex}.tooltip-row-left[data-v-a77bb9b8]{align-items:center;gap:calc(var(--spacing,.25rem)*1.5);display:flex}.tooltip-indicator[data-v-a77bb9b8]{margin-bottom:calc(var(--spacing,.25rem)*.5);height:calc(var(--spacing,.25rem)*1);width:calc(var(--spacing,.25rem)*2.5);border-radius:var(--radius-sm,.25rem);flex-shrink:0;display:inline-block}.tooltip-label[data-v-a77bb9b8]{font-family:var(--font-mono,var(--monospace));font-size:var(--text-xs,.75rem);line-height:var(--tw-leading,var(--text-xs--line-height,calc(1/.75)));--tw-tracking:var(--tracking-wider,.05em);letter-spacing:var(--tracking-wider,.05em);color:var(--color-text-secondary,var(--theme-foreground-faint));text-transform:uppercase}.tooltip-value[data-v-a77bb9b8]{font-family:var(--font-mono,var(--monospace));color:var(--color-text-primary,var(--theme-foreground))}.tooltip-value--alert[data-v-a77bb9b8]{color:var(--color-alert,var(--theme-alert))}.tooltip-alerts[data-v-a77bb9b8]{margin-top:calc(var(--spacing,.25rem)*1);align-items:center;column-gap:calc(var(--spacing,.25rem)*3);row-gap:calc(var(--spacing,.25rem)*.5);border-top-style:var(--tw-border-style);border-top-width:1px;border-color:var(--color-border,var(--theme-foreground-faintest));padding-top:calc(var(--spacing,.25rem)*1);flex-wrap:wrap;display:flex}.tooltip-alert-item[data-v-a77bb9b8]{align-items:center;gap:calc(var(--spacing,.25rem)*1);display:flex}.tooltip-alert-label[data-v-a77bb9b8]{font-family:var(--font-mono,var(--monospace));font-size:var(--text-xs,.75rem);line-height:var(--tw-leading,var(--text-xs--line-height,calc(1/.75)));--tw-tracking:var(--tracking-wide,.025em);letter-spacing:var(--tracking-wide,.025em);color:var(--color-alert,var(--theme-alert));text-transform:uppercase}@property --tw-border-style{syntax:"*";inherits:false;initial-value:solid}@property --tw-gradient-position{syntax:"*";inherits:false}@property --tw-gradient-from{syntax:"<color>";inherits:false;initial-value:#0000}@property --tw-gradient-via{syntax:"<color>";inherits:false;initial-value:#0000}@property --tw-gradient-to{syntax:"<color>";inherits:false;initial-value:#0000}@property --tw-gradient-stops{syntax:"*";inherits:false}@property --tw-gradient-via-stops{syntax:"*";inherits:false}@property --tw-gradient-from-position{syntax:"<length-percentage>";inherits:false;initial-value:0%}@property --tw-gradient-via-position{syntax:"<length-percentage>";inherits:false;initial-value:50%}@property --tw-gradient-to-position{syntax:"<length-percentage>";inherits:false;initial-value:100%}@property --tw-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-shadow-color{syntax:"*";inherits:false}@property --tw-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-inset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-shadow-color{syntax:"*";inherits:false}@property --tw-inset-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-ring-color{syntax:"*";inherits:false}@property --tw-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-ring-color{syntax:"*";inherits:false}@property --tw-inset-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-ring-inset{syntax:"*";inherits:false}@property --tw-ring-offset-width{syntax:"<length>";inherits:false;initial-value:0}@property --tw-ring-offset-color{syntax:"*";inherits:false;initial-value:#fff}@property --tw-ring-offset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-backdrop-blur{syntax:"*";inherits:false}@property --tw-backdrop-brightness{syntax:"*";inherits:false}@property --tw-backdrop-contrast{syntax:"*";inherits:false}@property --tw-backdrop-grayscale{syntax:"*";inherits:false}@property --tw-backdrop-hue-rotate{syntax:"*";inherits:false}@property --tw-backdrop-invert{syntax:"*";inherits:false}@property --tw-backdrop-opacity{syntax:"*";inherits:false}@property --tw-backdrop-saturate{syntax:"*";inherits:false}@property --tw-backdrop-sepia{syntax:"*";inherits:false}@property --tw-font-weight{syntax:"*";inherits:false}@property --tw-tracking{syntax:"*";inherits:false}@property --tw-leading{syntax:"*";inherits:false}\`,Gt=(e,t)=>{let n=e.__vccOpts||e;for(let[e,r]of t)n[e]=r;return n},Kt={class:\`tooltip-header\`},qt={class:\`tooltip-series\`},Jt={class:\`tooltip-row\`},Yt={class:\`tooltip-row-left\`},Xt={class:\`tooltip-label\`},Zt={class:\`tooltip-value\`},Qt={key:0,class:\`tooltip-row\`},$t={class:\`tooltip-row-left\`},en={class:\`tooltip-label\`},tn={class:\`tooltip-value\`},nn={key:0,class:\`tooltip-alerts\`},rn={class:\`tooltip-alert-label\`},an=Gt({__name:\`Tooltip.ce\`,setup(n,{expose:r}){let s=g(0),c=g(0),l=g(null),u=g(!1),p=g(\`fixed\`),m=g(\`\`),x=g([]),C=g(!1),w=g(\`current\`),T=g(\`—\`),E=g(\`\`),D=g(\`baseline\`),O=g(\`—\`),ee=g(\`\`),k=g(null),A=g(null),j=g(null),M=t(()=>x.value.length>0),N=t(()=>k.value!=null&&C.value),te=t(()=>k.value==null?\`\`:\`\${k.value>=0?\`+\`:\`\`}\${k.value.toFixed(1)}%\`),P=t(()=>{let e=j.value;return e===\`critical\`?\`diff-critical\`:e===\`warning\`?\`diff-warning\`:e===\`success\`?\`diff-success\`:\`diff-neutral\`});function ne(e){!e||e.x==null||e.y==null||(s.value=e.x,c.value=e.y,e.strategy&&(p.value=e.strategy))}function F(e){e&&(m.value=e.time??\`\`,w.value=e.currentLabel??\`current\`,T.value=e.currentValue??\`—\`,D.value=e.baselineLabel??\`baseline\`,O.value=e.baselineValue??\`—\`,C.value=!!e.showBaseline,x.value=Array.isArray(e.alerts)?e.alerts:[],E.value=e.currentColor??\`\`,ee.value=e.baselineColor??\`\`,k.value=e.diff??null,A.value=e.diffDirection??null,j.value=e.diffSeverity??null)}function re(){u.value=!0}function ie(){u.value=!1}function ae(){return l.value}return r({setPosition:ne,setData:F,show:re,hide:ie,getElement:ae}),(t,n)=>S((h(),a(\`div\`,{ref_key:\`tooltip\`,ref:l,class:\`tooltip\`,style:f({position:y(p),left:\`\${y(s)}px\`,top:\`\${y(c)}px\`})},[o(\`div\`,Kt,[o(\`span\`,null,v(y(m)),1),y(N)?(h(),a(\`span\`,{key:0,class:d([\`tooltip-diff\`,y(P)])},[o(\`span\`,null,v(y(te)),1)],2)):i(\`\`,!0)]),o(\`div\`,qt,[o(\`div\`,Jt,[o(\`span\`,Yt,[o(\`span\`,{class:\`tooltip-indicator\`,style:f({background:y(E)})},null,4),o(\`span\`,Xt,v(y(w)),1)]),o(\`span\`,Zt,v(y(T)),1)]),y(C)?(h(),a(\`div\`,Qt,[o(\`span\`,$t,[o(\`span\`,{class:\`tooltip-indicator\`,style:f({background:y(ee)})},null,4),o(\`span\`,en,v(y(D)),1)]),o(\`span\`,tn,v(y(O)),1)])):i(\`\`,!0)]),y(M)?(h(),a(\`div\`,nn,[(h(!0),a(e,null,_(y(x),(e,t)=>(h(),a(\`span\`,{key:e.id,class:\`tooltip-alert-item\`},[o(\`span\`,rn,v(e.label),1)]))),128))])):i(\`\`,!0)],4)),[[b,y(u)]])}},[[\`styles\`,[Wt]],[\`__scopeId\`,\`data-v-a77bb9b8\`]]);customElements.define(\`slo-tooltip\`,l(an)),n(Ut).mount(\`#app\`);</script>
+		<style rel="stylesheet" crossorigin>/*! tailwindcss v4.1.18 | MIT License | https://tailwindcss.com */
+@layer properties{@supports (((-webkit-hyphens:none)) and (not (margin-trim:inline))) or ((-moz-orient:inline) and (not (color:rgb(from red r g b)))){*,:before,:after,::backdrop{--tw-space-y-reverse:0;--tw-border-style:solid;--tw-gradient-position:initial;--tw-gradient-from:#0000;--tw-gradient-via:#0000;--tw-gradient-to:#0000;--tw-gradient-stops:initial;--tw-gradient-via-stops:initial;--tw-gradient-from-position:0%;--tw-gradient-via-position:50%;--tw-gradient-to-position:100%;--tw-leading:initial;--tw-font-weight:initial;--tw-tracking:initial;--tw-shadow:0 0 #0000;--tw-shadow-color:initial;--tw-shadow-alpha:100%;--tw-inset-shadow:0 0 #0000;--tw-inset-shadow-color:initial;--tw-inset-shadow-alpha:100%;--tw-ring-color:initial;--tw-ring-shadow:0 0 #0000;--tw-inset-ring-color:initial;--tw-inset-ring-shadow:0 0 #0000;--tw-ring-inset:initial;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-offset-shadow:0 0 #0000}}}@layer theme{:root,:host{--font-sans:var(--sans-serif);--font-mono:var(--monospace);--spacing:.25rem;--text-xs:.75rem;--text-xs--line-height:calc(1/.75);--text-sm:.875rem;--text-sm--line-height:calc(1.25/.875);--text-xl:1.25rem;--text-xl--line-height:calc(1.75/1.25);--font-weight-medium:500;--font-weight-semibold:600;--tracking-wide:.025em;--tracking-wider:.05em;--radius-sm:.25rem;--radius-lg:.5rem;--default-transition-duration:.15s;--default-transition-timing-function:cubic-bezier(.4,0,.2,1);--default-font-family:var(--font-sans);--default-mono-font-family:var(--font-mono);--color-canvas:var(--theme-background);--color-panel:var(--theme-background-alt);--color-panel-elevated:var(--theme-background)}@supports (color:color-mix(in lab, red, red)){:root,:host{--color-panel-elevated:color-mix(in srgb,var(--theme-background)92%,var(--theme-foreground)8%)}}:root,:host{--color-text-primary:var(--theme-foreground);--color-text-secondary:var(--theme-foreground-faint);--color-text-muted:var(--theme-foreground-fainter);--color-border:var(--theme-foreground-faintest);--color-grid:var(--theme-foreground-faintest);--color-axis:var(--theme-foreground-muted);--color-cursor:var(--theme-foreground-fainter);--color-series-current:var(--theme-foreground-focus);--color-series-baseline:var(--theme-foreground-faint);--color-alert:var(--theme-alert);--color-alert-fill:var(--color-alert)}@supports (color:color-mix(in lab, red, red)){:root,:host{--color-alert-fill:color-mix(in srgb,var(--color-alert)18%,transparent)}}:root,:host{--color-fg-success:#1a7f37;--color-fg-warning:#9a6700;--color-fg-danger:#d1242f;--shadow-tooltip:var(--shadow-tooltip)}}@layer base{*,:after,:before,::backdrop{box-sizing:border-box;border:0 solid;margin:0;padding:0}::file-selector-button{box-sizing:border-box;border:0 solid;margin:0;padding:0}html,:host{-webkit-text-size-adjust:100%;tab-size:4;line-height:1.5;font-family:var(--default-font-family,ui-sans-serif,system-ui,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji");font-feature-settings:var(--default-font-feature-settings,normal);font-variation-settings:var(--default-font-variation-settings,normal);-webkit-tap-highlight-color:transparent}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,samp,pre{font-family:var(--default-mono-font-family,ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace);font-feature-settings:var(--default-mono-font-feature-settings,normal);font-variation-settings:var(--default-mono-font-variation-settings,normal);font-size:1em}small{font-size:80%}sub,sup{vertical-align:baseline;font-size:75%;line-height:0;position:relative}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}:-moz-focusring{outline:auto}progress{vertical-align:baseline}summary{display:list-item}ol,ul,menu{list-style:none}img,svg,video,canvas,audio,iframe,embed,object{vertical-align:middle;display:block}img,video{max-width:100%;height:auto}button,input,select,optgroup,textarea{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;opacity:1;background-color:#0000;border-radius:0}::file-selector-button{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;opacity:1;background-color:#0000;border-radius:0}:where(select:is([multiple],[size])) optgroup{font-weight:bolder}:where(select:is([multiple],[size])) optgroup option{padding-inline-start:20px}::file-selector-button{margin-inline-end:4px}::placeholder{opacity:1}@supports (not ((-webkit-appearance:-apple-pay-button))) or (contain-intrinsic-size:1px){::placeholder{color:currentColor}@supports (color:color-mix(in lab, red, red)){::placeholder{color:color-mix(in oklab,currentcolor 50%,transparent)}}}textarea{resize:vertical}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-date-and-time-value{min-height:1lh;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-datetime-edit{padding-block:0}::-webkit-datetime-edit-year-field{padding-block:0}::-webkit-datetime-edit-month-field{padding-block:0}::-webkit-datetime-edit-day-field{padding-block:0}::-webkit-datetime-edit-hour-field{padding-block:0}::-webkit-datetime-edit-minute-field{padding-block:0}::-webkit-datetime-edit-second-field{padding-block:0}::-webkit-datetime-edit-millisecond-field{padding-block:0}::-webkit-datetime-edit-meridiem-field{padding-block:0}::-webkit-calendar-picker-indicator{line-height:1}:-moz-ui-invalid{box-shadow:none}button,input:where([type=button],[type=reset],[type=submit]){appearance:button}::file-selector-button{appearance:button}::-webkit-inner-spin-button{height:auto}::-webkit-outer-spin-button{height:auto}[hidden]:where(:not([hidden=until-found])){display:none!important}body{font:16px/1.5 var(--sans-serif);background:var(--color-canvas);color:var(--color-text-primary)}}@layer components{.card{border-radius:var(--radius-lg);border-style:var(--tw-border-style);border-width:1px;border-color:var(--color-border);background-color:var(--color-panel);padding:calc(var(--spacing)*6);color:var(--color-text-primary)}}@layer utilities{.pointer-events-none{pointer-events:none}.visible{visibility:visible}.fixed{position:fixed}.sticky{position:sticky}.top-0{top:calc(var(--spacing)*0)}.z-50{z-index:50}.mt-1{margin-top:calc(var(--spacing)*1)}.mb-3{margin-bottom:calc(var(--spacing)*3)}.mb-8{margin-bottom:calc(var(--spacing)*8)}.ml-1{margin-left:calc(var(--spacing)*1)}.block{display:block}.flex{display:flex}.grid{display:grid}.inline-block{display:inline-block}.h-1{height:calc(var(--spacing)*1)}.h-4{height:calc(var(--spacing)*4)}.h-screen{height:100vh}.min-h-screen{min-height:100vh}.w-2\\.5{width:calc(var(--spacing)*2.5)}.w-4{width:calc(var(--spacing)*4)}.w-64{width:calc(var(--spacing)*64)}.w-full{width:100%}.max-w-80{max-width:calc(var(--spacing)*80)}.min-w-48{min-width:calc(var(--spacing)*48)}.flex-1{flex:1}.shrink-0{flex-shrink:0}.scroll-mt-4{scroll-margin-top:calc(var(--spacing)*4)}.flex-wrap{flex-wrap:wrap}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-0\\.5{gap:calc(var(--spacing)*.5)}.gap-1{gap:calc(var(--spacing)*1)}.gap-3{gap:calc(var(--spacing)*3)}:where(.space-y-6>:not(:last-child)){--tw-space-y-reverse:0;margin-block-start:calc(calc(var(--spacing)*6)*var(--tw-space-y-reverse));margin-block-end:calc(calc(var(--spacing)*6)*calc(1 - var(--tw-space-y-reverse)))}.gap-x-3{column-gap:calc(var(--spacing)*3)}.gap-y-0\\.5{row-gap:calc(var(--spacing)*.5)}.truncate{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.overflow-y-auto{overflow-y:auto}.rounded{border-radius:.25rem}.rounded-lg{border-radius:var(--radius-lg)}.rounded-sm{border-radius:var(--radius-sm)}.border{border-style:var(--tw-border-style);border-width:1px}.border-t{border-top-style:var(--tw-border-style);border-top-width:1px}.border-r{border-right-style:var(--tw-border-style);border-right-width:1px}.border-border{border-color:var(--color-border)}.bg-linear-to-b{--tw-gradient-position:to bottom}@supports (background-image:linear-gradient(in lab, red, red)){.bg-linear-to-b{--tw-gradient-position:to bottom in oklab}}.bg-linear-to-b{background-image:linear-gradient(var(--tw-gradient-stops))}.from-panel-elevated\\/95{--tw-gradient-from:color-mix(in srgb,color-mix(in srgb,var(--theme-background)92%,var(--theme-foreground)8%)95%,transparent)}@supports (color:color-mix(in lab, red, red)){.from-panel-elevated\\/95{--tw-gradient-from:color-mix(in oklab,var(--color-panel-elevated)95%,transparent)}}.from-panel-elevated\\/95{--tw-gradient-stops:var(--tw-gradient-via-stops,var(--tw-gradient-position),var(--tw-gradient-from)var(--tw-gradient-from-position),var(--tw-gradient-to)var(--tw-gradient-to-position))}.to-panel-elevated\\/90{--tw-gradient-to:color-mix(in srgb,color-mix(in srgb,var(--theme-background)92%,var(--theme-foreground)8%)90%,transparent)}@supports (color:color-mix(in lab, red, red)){.to-panel-elevated\\/90{--tw-gradient-to:color-mix(in oklab,var(--color-panel-elevated)90%,transparent)}}.to-panel-elevated\\/90{--tw-gradient-stops:var(--tw-gradient-via-stops,var(--tw-gradient-position),var(--tw-gradient-from)var(--tw-gradient-from-position),var(--tw-gradient-to)var(--tw-gradient-to-position))}.p-1{padding:calc(var(--spacing)*1)}.p-6{padding:calc(var(--spacing)*6)}.px-1\\.5{padding-inline:calc(var(--spacing)*1.5)}.px-2{padding-inline:calc(var(--spacing)*2)}.py-1\\.5{padding-block:calc(var(--spacing)*1.5)}.py-2{padding-block:calc(var(--spacing)*2)}.text-left{text-align:left}.font-mono{font-family:var(--font-mono)}.text-sm{font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height))}.text-xl{font-size:var(--text-xl);line-height:var(--tw-leading,var(--text-xl--line-height))}.text-xs{font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height))}.leading-none{--tw-leading:1;line-height:1}.font-medium{--tw-font-weight:var(--font-weight-medium);font-weight:var(--font-weight-medium)}.font-semibold{--tw-font-weight:var(--font-weight-semibold);font-weight:var(--font-weight-semibold)}.tracking-wide{--tw-tracking:var(--tracking-wide);letter-spacing:var(--tracking-wide)}.tracking-wider{--tw-tracking:var(--tracking-wider);letter-spacing:var(--tracking-wider)}.text-text-muted{color:var(--color-text-muted)}.text-text-secondary{color:var(--color-text-secondary)}.uppercase{text-transform:uppercase}.shadow-tooltip{--tw-shadow:var(--shadow-tooltip);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow)}.transition-colors{transition-property:color,background-color,border-color,outline-color,text-decoration-color,fill,stroke,--tw-gradient-from,--tw-gradient-via,--tw-gradient-to;transition-timing-function:var(--tw-ease,var(--default-transition-timing-function));transition-duration:var(--tw-duration,var(--default-transition-duration))}@media (hover:hover){.hover\\:bg-panel:hover{background-color:var(--color-panel)}.hover\\:text-text-primary:hover{color:var(--color-text-primary)}}.uplot{color:var(--color-text-primary)}.uplot .u-title,.uplot .u-legend{color:var(--color-text-secondary)}.uplot .u-axis text{fill:var(--color-axis)}.uplot .u-cursor-x,.uplot .u-cursor-y{border-color:var(--color-cursor);border-style:solid}.uplot .u-select{background:var(--color-alert-fill)}}:root{--sans-serif:-apple-system,BlinkMacSystemFont,"avenir next",avenir,helvetica,"helvetica neue",ubuntu,roboto,noto,"segoe ui",arial,sans-serif;--monospace:Menlo,Consolas,monospace;--theme-foreground:#1b1e23;--theme-foreground-focus:#3b5fc0;--theme-background-a:#fff;--theme-background-b:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-background-b:color-mix(in srgb,var(--theme-foreground)4%,var(--theme-background-a))}}:root{--theme-background:var(--theme-background-a);--theme-background-alt:var(--theme-background-b);--theme-foreground-alt:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-alt:color-mix(in srgb,var(--theme-foreground)90%,var(--theme-background-a))}}:root{--theme-foreground-muted:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-muted:color-mix(in srgb,var(--theme-foreground)60%,var(--theme-background-a))}}:root{--theme-foreground-faint:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-faint:color-mix(in srgb,var(--theme-foreground)50%,var(--theme-background-a))}}:root{--theme-foreground-fainter:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-fainter:color-mix(in srgb,var(--theme-foreground)30%,var(--theme-background-a))}}:root{--theme-foreground-faintest:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-faintest:color-mix(in srgb,var(--theme-foreground)14%,var(--theme-background-a))}}:root{--lightningcss-light:initial;--lightningcss-dark: ;color-scheme:light;--theme-alert:#dc2626;--shadow-card:0 1px 3px var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--shadow-card:0 1px 3px color-mix(in srgb,var(--theme-foreground)8%,transparent)}}:root{--shadow-tooltip:0 4px 12px var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--shadow-tooltip:0 4px 12px color-mix(in srgb,var(--theme-foreground)10%,transparent)}}@media (prefers-color-scheme:dark){:root{--theme-foreground:#d7d7d2;--theme-foreground-focus:#7aa2ff;--theme-background-b:#1f1f1f;--theme-background-a:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-background-a:color-mix(in srgb,var(--theme-foreground)4%,var(--theme-background-b))}}:root{--theme-background:var(--theme-background-a);--theme-background-alt:var(--theme-background-b);--theme-foreground-alt:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-alt:color-mix(in srgb,var(--theme-foreground)90%,var(--theme-background-b))}}:root{--theme-foreground-muted:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-muted:color-mix(in srgb,var(--theme-foreground)60%,var(--theme-background-b))}}:root{--theme-foreground-faint:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-faint:color-mix(in srgb,var(--theme-foreground)50%,var(--theme-background-b))}}:root{--theme-foreground-fainter:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-fainter:color-mix(in srgb,var(--theme-foreground)30%,var(--theme-background-b))}}:root{--theme-foreground-faintest:var(--theme-foreground)}@supports (color:color-mix(in lab, red, red)){:root{--theme-foreground-faintest:color-mix(in srgb,var(--theme-foreground)14%,var(--theme-background-b))}}:root{--lightningcss-light: ;--lightningcss-dark:initial;color-scheme:dark;--theme-alert:#efb118;--color-fg-success:#3fb950;--color-fg-warning:#d29922;--color-fg-danger:#f85149;--shadow-card:0 1px 3px #0006,0 4px 12px #0000004d;--shadow-tooltip:0 8px 24px #0006,0 2px 6px #0003}}@property --tw-space-y-reverse{syntax:"*";inherits:false;initial-value:0}@property --tw-border-style{syntax:"*";inherits:false;initial-value:solid}@property --tw-gradient-position{syntax:"*";inherits:false}@property --tw-gradient-from{syntax:"<color>";inherits:false;initial-value:#0000}@property --tw-gradient-via{syntax:"<color>";inherits:false;initial-value:#0000}@property --tw-gradient-to{syntax:"<color>";inherits:false;initial-value:#0000}@property --tw-gradient-stops{syntax:"*";inherits:false}@property --tw-gradient-via-stops{syntax:"*";inherits:false}@property --tw-gradient-from-position{syntax:"<length-percentage>";inherits:false;initial-value:0%}@property --tw-gradient-via-position{syntax:"<length-percentage>";inherits:false;initial-value:50%}@property --tw-gradient-to-position{syntax:"<length-percentage>";inherits:false;initial-value:100%}@property --tw-leading{syntax:"*";inherits:false}@property --tw-font-weight{syntax:"*";inherits:false}@property --tw-tracking{syntax:"*";inherits:false}@property --tw-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-shadow-color{syntax:"*";inherits:false}@property --tw-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-inset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-shadow-color{syntax:"*";inherits:false}@property --tw-inset-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}@property --tw-ring-color{syntax:"*";inherits:false}@property --tw-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-inset-ring-color{syntax:"*";inherits:false}@property --tw-inset-ring-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}@property --tw-ring-inset{syntax:"*";inherits:false}@property --tw-ring-offset-width{syntax:"<length>";inherits:false;initial-value:0}@property --tw-ring-offset-color{syntax:"*";inherits:false;initial-value:#fff}@property --tw-ring-offset-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}
+/*$vite$:1*/</style>
+	</head>
+	<body>
+		<div id="app"></div>
+		<noscript>JavaScript is required to view this report.</noscript>
+	</body>
+</html>
 `;
-}
-function sanitizeId(str) {
-  return str.replace(/[^a-zA-Z0-9]/g, "-");
-}
-function escapeJs(str) {
-  return str.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "\\\"").replace(/\n/g, "\\n");
-}
-function formatTimestamp(timestamp) {
-  let date = new Date(timestamp), hours = date.getHours().toString().padStart(2, "0"), minutes = date.getMinutes().toString().padStart(2, "0"), seconds = date.getSeconds().toString().padStart(2, "0");
-  return `${hours}:${minutes}:${seconds}`;
-}
-function getStyles() {
-  return `
-* {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
-}
-
-html {
-	scroll-behavior: smooth;
-}
-
-body {
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-	line-height: 1.6;
-	color: #24292f;
-	background: #ffffff;
-	padding: 20px;
-}
-
-@media (prefers-color-scheme: dark) {
-	body {
-		background: #0d1117;
-		color: #c9d1d9;
-	}
-}
-
-header {
-	max-width: 1200px;
-	margin: 0 auto 40px;
-	padding: 30px;
-	background: #f6f8fa;
-	border-radius: 8px;
-	border: 1px solid #d0d7de;
-}
-
-@media (prefers-color-scheme: dark) {
-	header {
-		background: #161b22;
-		border-color: #30363d;
-	}
-}
-
-header h1 {
-	font-size: 32px;
-	margin-bottom: 15px;
-}
-
-.commit-info {
-	font-size: 16px;
-	margin-bottom: 10px;
-	display: flex;
-	align-items: center;
-	gap: 15px;
-	flex-wrap: wrap;
-}
-
-.commit {
-	padding: 4px 8px;
-	border-radius: 4px;
-	font-family: 'Courier New', monospace;
-	font-size: 14px;
-}
-
-.commit.current {
-	background: #dff6dd;
-	color: #1a7f37;
-}
-
-.commit.baseline {
-	background: #ddf4ff;
-	color: #0969da;
-}
-
-@media (prefers-color-scheme: dark) {
-	.commit.current {
-		background: #033a16;
-		color: #3fb950;
-	}
-	.commit.baseline {
-		background: #0c2d6b;
-		color: #58a6ff;
-	}
-}
-
-.commit a {
-	color: inherit;
-	text-decoration: none;
-	font-weight: 600;
-}
-
-.commit a:hover {
-	text-decoration: underline;
-}
-
-.vs {
-	color: #6e7781;
-	font-weight: 600;
-}
-
-.meta {
-	font-size: 14px;
-	color: #6e7781;
-	display: flex;
-	gap: 15px;
-	flex-wrap: wrap;
-}
-
-section {
-	max-width: 1200px;
-	margin: 0 auto 40px;
-}
-
-section h2 {
-	font-size: 24px;
-	margin-bottom: 20px;
-	border-bottom: 1px solid #d0d7de;
-	padding-bottom: 10px;
-}
-
-@media (prefers-color-scheme: dark) {
-	section h2 {
-		border-color: #30363d;
-	}
-}
-
-.stats {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: 15px;
-	margin-bottom: 30px;
-}
-
-.stat-card {
-	padding: 20px;
-	background: #f6f8fa;
-	border-radius: 8px;
-	border: 2px solid #d0d7de;
-	text-align: center;
-}
-
-.stat-card.improvements {
-	border-color: #1a7f37;
-}
-
-.stat-card.regressions {
-	border-color: #cf222e;
-}
-
-.stat-card.stable {
-	border-color: #6e7781;
-}
-
-@media (prefers-color-scheme: dark) {
-	.stat-card {
-		background: #161b22;
-		border-color: #30363d;
-	}
-	.stat-card.improvements {
-		border-color: #3fb950;
-	}
-	.stat-card.regressions {
-		border-color: #f85149;
-	}
-	.stat-card.stable {
-		border-color: #8b949e;
-	}
-}
-
-.stat-value {
-	font-size: 36px;
-	font-weight: 700;
-	margin-bottom: 5px;
-}
-
-.stat-label {
-	font-size: 14px;
-	color: #6e7781;
-	font-weight: 500;
-}
-
-.comparison-table {
-	width: 100%;
-	border-collapse: collapse;
-	background: #ffffff;
-	border: 1px solid #d0d7de;
-	border-radius: 8px;
-	overflow: hidden;
-}
-
-@media (prefers-color-scheme: dark) {
-	.comparison-table {
-		background: #0d1117;
-		border-color: #30363d;
-	}
-}
-
-.comparison-table th,
-.comparison-table td {
-	padding: 12px 16px;
-	text-align: left;
-	border-bottom: 1px solid #d0d7de;
-}
-
-@media (prefers-color-scheme: dark) {
-	.comparison-table th,
-	.comparison-table td {
-		border-color: #30363d;
-	}
-}
-
-.comparison-table th {
-	background: #f6f8fa;
-	font-weight: 600;
-	font-size: 14px;
-}
-
-@media (prefers-color-scheme: dark) {
-	.comparison-table th {
-		background: #161b22;
-	}
-}
-
-.comparison-table tr:last-child td {
-	border-bottom: none;
-}
-
-.comparison-table tr.better {
-	background: #dff6dd20;
-}
-
-.comparison-table tr.worse {
-	background: #ffebe920;
-}
-
-@media (prefers-color-scheme: dark) {
-	.comparison-table tr.better {
-		background: #033a1620;
-	}
-	.comparison-table tr.worse {
-		background: #86181d20;
-	}
-}
-
-.change-cell {
-	font-weight: 600;
-}
-
-.metric-link {
-	color: #0969da;
-	text-decoration: none;
-}
-
-.metric-link:hover {
-	text-decoration: underline;
-}
-
-@media (prefers-color-scheme: dark) {
-	.metric-link {
-		color: #58a6ff;
-	}
-}
-
-.chart-card {
-	margin-bottom: 40px;
-	background: #ffffff;
-	border: 1px solid #d0d7de;
-	border-radius: 8px;
-	padding: 20px;
-	scroll-margin-top: 20px;
-}
-
-@media (prefers-color-scheme: dark) {
-	.chart-card {
-		background: #0d1117;
-		border-color: #30363d;
-	}
-}
-
-.chart-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
-	gap: 24px;
-	margin-bottom: 15px;
-}
-
-.chart-title-section h3 {
-	font-size: 18px;
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	flex-wrap: wrap;
-	margin: 0;
-}
-
-.indicator {
-	font-size: 14px;
-	padding: 4px 8px;
-	border-radius: 4px;
-	font-weight: 600;
-}
-
-.indicator.better {
-	background: #dff6dd;
-	color: #1a7f37;
-}
-
-.indicator.worse {
-	background: #ffebe9;
-	color: #cf222e;
-}
-
-.indicator.neutral {
-	background: #f6f8fa;
-	color: #6e7781;
-}
-
-@media (prefers-color-scheme: dark) {
-	.indicator.better {
-		background: #033a16;
-		color: #3fb950;
-	}
-	.indicator.worse {
-		background: #86181d;
-		color: #ff7b72;
-	}
-	.indicator.neutral {
-		background: #161b22;
-		color: #8b949e;
-	}
-}
-
-.chart-meta {
-	font-size: 14px;
-	color: #6e7781;
-	flex-shrink: 0;
-}
-
-.aggregates-table {
-	width: auto;
-	border-collapse: collapse;
-	font-size: 13px;
-}
-
-.aggregates-table th {
-	font-weight: 600;
-	padding: 4px 12px;
-	text-align: center;
-	color: #656d76;
-	font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
-}
-
-.aggregates-table td {
-	padding: 4px 12px;
-	text-align: center;
-	font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
-}
-
-.aggregates-table .row-label {
-	font-weight: 600;
-	text-align: right;
-	color: #1f2328;
-	padding-right: 16px;
-}
-
-@media (prefers-color-scheme: dark) {
-	.aggregates-table .row-label {
-		color: #e6edf3;
-	}
-}
-
-.chart-container {
-	position: relative;
-	height: 400px;
-}
-
-.chart-events-timeline {
-	margin-top: 15px;
-	padding-top: 15px;
-	border-top: 1px solid #e5e7eb;
-}
-
-@media (prefers-color-scheme: dark) {
-	.chart-events-timeline {
-		border-top-color: #30363d;
-	}
-}
-
-.timeline-title {
-	font-size: 13px;
-	font-weight: 600;
-	color: #656d76;
-	margin-bottom: 10px;
-}
-
-.timeline-events {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.timeline-event {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 8px 12px;
-	background: #f6f8fa;
-	border-radius: 6px;
-	font-size: 13px;
-	transition: all 0.2s;
-	cursor: pointer;
-	border: 2px solid transparent;
-}
-
-.timeline-event:hover {
-	background: #fff5ed;
-	border-color: #fb923c;
-	box-shadow: 0 2px 8px rgba(251, 146, 60, 0.2);
-	transform: translateX(4px);
-}
-
-@media (prefers-color-scheme: dark) {
-	.timeline-event {
-		background: #161b22;
-		border-color: transparent;
-	}
-
-	.timeline-event:hover {
-		background: #2d1810;
-		border-color: #fb923c;
-		box-shadow: 0 2px 8px rgba(251, 146, 60, 0.3);
-	}
-}
-
-.event-icon {
-	font-size: 16px;
-	flex-shrink: 0;
-}
-
-.event-time {
-	font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
-	font-size: 12px;
-	color: #656d76;
-	flex-shrink: 0;
-}
-
-.event-label {
-	color: #1f2328;
-	flex-grow: 1;
-}
-
-@media (prefers-color-scheme: dark) {
-	.event-label {
-		color: #e6edf3;
-	}
-}
-
-footer {
-	max-width: 1200px;
-	margin: 60px auto 20px;
-	text-align: center;
-	color: #6e7781;
-	font-size: 14px;
-	padding-top: 20px;
-	border-top: 1px solid #d0d7de;
-}
-
-@media (prefers-color-scheme: dark) {
-	footer {
-		border-color: #30363d;
-	}
-}
-
-footer a {
-	color: #0969da;
-	text-decoration: none;
-}
-
-footer a:hover {
-	text-decoration: underline;
-}
-
-@media (prefers-color-scheme: dark) {
-	footer a {
-		color: #58a6ff;
-	}
-}
-
-@media (max-width: 768px) {
-	body {
-		padding: 10px;
-	}
-
-	header h1 {
-		font-size: 24px;
-	}
-
-	.chart-container {
-		height: 300px;
-	}
-
-	.stats {
-		grid-template-columns: repeat(2, 1fr);
-	}
-}
-`;
-}
 
-// report/lib/metrics.ts
-function loadCollectedMetrics(content) {
-  let metrics = [], lines = content.trim().split(`
-`);
-  for (let line of lines) {
+// report/lib/html.ts
+async function loadTemplate(customPath) {
+  if (customPath)
+    return info(`Loading custom template: ${customPath}`), await fs2.readFile(customPath, "utf-8");
+  return dist_default;
+}
+function injectData(template, data) {
+  let dataScript = `export const data = ${JSON.stringify(data)};`;
+  return template.replace("/*DATA_INJECTION*/", dataScript);
+}
+async function generateHTMLReport(meta, alerts, analysis, metrics, templatePath, config) {
+  let template = await loadTemplate(templatePath);
+  return injectData(template, {
+    meta,
+    alerts,
+    analysis,
+    rawMetrics: metrics,
+    config: config ?? { emaAlpha: 0.15, trimPercent: 0.1 }
+  });
+}
+
+// report/lib/loaders.ts
+import * as fs3 from "node:fs/promises";
+async function loadMetrics(filePath) {
+  let content = await fs3.readFile(filePath, "utf-8"), metrics = [];
+  for (let line of content.trim().split(`
+`)) {
     if (!line.trim())
       continue;
     try {
-      let metric = JSON.parse(line);
-      metrics.push(metric);
+      metrics.push(JSON.parse(line));
     } catch {
       continue;
     }
   }
   return metrics;
 }
+async function loadAlerts(filePath) {
+  let content = await fs3.readFile(filePath, "utf-8"), alerts = [];
+  for (let line of content.trim().split(`
+`)) {
+    if (!line.trim())
+      continue;
+    try {
+      alerts.push(JSON.parse(line));
+    } catch {
+      continue;
+    }
+  }
+  return alerts;
+}
+async function loadMetadata(filePath) {
+  let content = await fs3.readFile(filePath, "utf-8");
+  return JSON.parse(content);
+}
 
 // report/main.ts
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function main() {
   let cwd = path2.join(process.cwd(), ".slo-reports");
-  await fs2.mkdir(cwd, { recursive: !0 });
+  await fs4.mkdir(cwd, { recursive: !0 });
+  let githubIssue = getInput("github_issue", { required: !1 }), templatePath = getInput("template_path", { required: !1 }) || void 0, postComment = getInput("post_comment", { required: !1 }) !== "false", thresholdsYaml = getInput("thresholds_yaml", { required: !1 }) || void 0, thresholdsYamlPath = getInput("thresholds_yaml_path", { required: !1 }) || void 0, failOnThreshold = getInput("fail_on_threshold", { required: !1 }) === "true", artifactRetentionDays = parseInt(getInput("artifact_retention_days", { required: !1 }) || "30");
+  info("\uD83D\uDCCA YDB SLO Report v2");
   let runArtifacts = await downloadRunArtifacts(cwd);
-  if (info(`Found ${runArtifacts.size} artifacts: ${[...runArtifacts.keys()].join(", ")}`), runArtifacts.size === 0) {
+  if (info(`Found ${runArtifacts.size} workload(s): ${[...runArtifacts.keys()].join(", ")}`), runArtifacts.size === 0) {
     setFailed("No workload artifacts found in current run");
     return;
   }
-  let pull = context.issue.number, reports = [], thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path"));
-  for (let [, artifact] of runArtifacts) {
-    if (!artifact.metadataPath || !artifact.metricsPath || !artifact.alertsPath) {
-      info(`Skipping artifact ${artifact.name}: missing required files`);
-      continue;
-    }
-    let alerts = loadCollectedAlerts(await fs2.readFile(artifact.alertsPath, "utf-8")), metrics = loadCollectedMetrics(await fs2.readFile(artifact.metricsPath, "utf-8")), metadata = JSON.parse(await fs2.readFile(artifact.metadataPath, "utf-8"));
-    if (metadata.pull && metadata.pull !== pull)
-      pull = metadata.pull;
-    let comparison = compareWorkloadMetrics(metadata.workload, metrics, metadata.workload_current_ref || "current", metadata.workload_baseline_ref || "baseline", "p95", thresholds.neutral_change_percent), report = {
-      workload: metadata.workload,
-      alerts,
-      metrics,
-      metadata,
-      thresholds,
-      comparison
-    }, check = await createWorkloadCheck(`SLO: ${metadata.workload}`, metadata.commit, comparison, thresholds);
-    report.checkUrl = check.url, reports.push(report);
+  let thresholdsConfig = await loadThresholdConfig(thresholdsYaml, thresholdsYamlPath), reports = [], prNumber = githubIssue ? parseInt(githubIssue) : void 0;
+  for (let [workload, artifact] of runArtifacts) {
+    info(`
+\uD83D\uDCE6 Processing workload: ${workload}`);
+    let meta = await loadMetadata(artifact.metaPath), alerts = await loadAlerts(artifact.alertsPath), metrics = await loadMetrics(artifact.metricsPath);
+    if (!prNumber && meta.pull)
+      prNumber = meta.pull;
+    info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`);
+    let analysis = analyzeWorkload(meta.workload, metrics, meta.workload_current_ref || "current", meta.workload_baseline_ref || "baseline", {
+      trimPercent: 0.1,
+      emaAlpha: 0.15,
+      thresholdConfig: thresholdsConfig
+    });
+    if (analysis.summary.failures > 0)
+      info(`  ❌ ${analysis.summary.failures} critical threshold violation(s)`);
+    else if (analysis.summary.warnings > 0)
+      info(`  ⚠️ ${analysis.summary.warnings} warning(s)`);
+    let html = await generateHTMLReport(meta, alerts, analysis, metrics, templatePath), htmlPath = path2.join(cwd, `${workload}-report.html`);
+    await fs4.writeFile(htmlPath, html, "utf-8");
+    let reportUrl = await uploadReportArtifact(workload, htmlPath, cwd, artifactRetentionDays);
+    info(`  \uD83D\uDCCE Report: ${reportUrl}`), reports.push({
+      workload,
+      currentRef: meta.workload_current_ref || "current",
+      baselineRef: meta.workload_baseline_ref || "baseline",
+      reportUrl,
+      analysis
+    });
   }
-  if (await createWorkloadHTMLReport(cwd, reports), pull)
-    await createPullRequestComment(pull, reports);
-}
-async function createWorkloadCheck(name, commit, comparison, thresholds, reportURL) {
-  let token = getInput("github_token"), octokit = getOctokit(token), evaluation = evaluateWorkloadThresholds(comparison.metrics, thresholds), conclusion = "success";
-  if (evaluation.overall === "failure")
-    conclusion = "failure";
-  if (evaluation.overall === "warning")
-    conclusion = "neutral";
-  let title = generateCheckTitle(comparison, evaluation), summary = generateCheckSummary(comparison, evaluation, reportURL), { data } = await octokit.rest.checks.create({
-    name,
-    repo: context.repo.repo,
-    owner: context.repo.owner,
-    head_sha: commit,
-    status: "completed",
-    conclusion,
-    output: {
-      title,
-      summary
-    }
-  });
-  return debug(`Created check "${name}" with conclusion: ${conclusion}, url: ${data.html_url}`), { id: data.id, url: data.html_url };
-}
-async function createWorkloadHTMLReport(cwd, reports) {
-  info("\uD83D\uDCDD Generating HTML reports...");
-  let artifactClient = new DefaultArtifactClient, htmlFiles = [];
-  for (let report of reports) {
-    let htmlData = {
-      workload: report.workload,
-      comparison: report.comparison,
-      metrics: report.metrics,
-      events: formatAlertsForVisualization(report.alerts),
-      currentRef: report.metadata.workload_current_ref || "current",
-      baselineRef: report.metadata.workload_baseline_ref || "baseline",
-      prNumber: report.metadata.pull,
-      testStartTime: report.metadata?.start_epoch_ms || Date.now() - 600000,
-      testEndTime: report.metadata?.finish_epoch_ms || Date.now()
-    }, html = generateHTMLReport(htmlData), htmlPath = path2.join(cwd, `${report.workload}-report.html`);
-    await fs2.writeFile(htmlPath, html, { encoding: "utf-8" }), htmlFiles.push({ workload: report.workload, path: htmlPath });
-    let { id } = await artifactClient.uploadArtifact(report.workload + "-html-report", [htmlPath], cwd, {
-      retentionDays: 30
-    }), runId = context.runId.toString();
-    report.reportUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${id}`;
+  if (postComment && prNumber) {
+    info(`
+\uD83D\uDCAC Posting PR comment...`);
+    let body = generateCommentBody(reports);
+    await createOrUpdateComment(prNumber, body);
   }
+  if (failOnThreshold) {
+    let failedWorkloads = reports.filter((r) => r.analysis.severity === "failure");
+    if (failedWorkloads.length > 0) {
+      let summary = failedWorkloads.map((r) => {
+        let failures = r.analysis.metrics.filter((m) => m.severity === "failure").map((m) => `    • ${m.name}: ${[...m.absoluteCheck.violations, ...m.relativeCheck?.violations ?? []].join(", ")}`).join(`
+`);
+        return `  ${r.workload}:
+${failures}`;
+      }).join(`
+
+`);
+      setFailed(`❌ ${failedWorkloads.length} workload(s) exceeded critical thresholds:
+
+${summary}`);
+      return;
+    }
+  }
+  info(`
+\uD83C\uDF89 Done!`);
 }
-async function createPullRequestComment(issue, reports) {
-  info("\uD83D\uDCAC Creating/updating PR comment...");
-  let body = generateCommentBody(reports.map((r) => ({
-    workload: r.workload,
-    comparison: r.comparison,
-    thresholds: r.thresholds,
-    checkUrl: r.checkUrl,
-    reportUrl: r.reportUrl
-  })));
-  await createOrUpdateComment(issue, body);
-}
-main();
+main().catch((error) => {
+  setFailed(`Report generation failed: ${error}`);
+});
