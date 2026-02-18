@@ -49,4 +49,4 @@ inputs:
 
 runs:
   using: "node24"
-  main: "../dist/report2/main.js"
+  main: "../dist/report/main.js"
