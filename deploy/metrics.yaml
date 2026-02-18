@@ -1,32 +1,31 @@
 default:
   step: 5s
   timeout: 30s
-  neutral_change_percent: 5.0
 
 metrics:
   - name: read_latency_p50_ms
     unit: ms
-    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p50_seconds{operation_type="read"}[15s]))
+    query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="read"})
 
   - name: read_latency_p95_ms
     unit: ms
-    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p95_seconds{operation_type="read"}[15s]))
+    query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="read"})
 
   - name: read_latency_p99_ms
     unit: ms
-    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p99_seconds{operation_type="read"}[15s]))
+    query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="read"})
 
   - name: write_latency_p50_ms
     unit: ms
-    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p50_seconds{operation_type="write"}[15s]))
+    query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="write"})
 
   - name: write_latency_p95_ms
     unit: ms
-    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p95_seconds{operation_type="write"}[15s]))
+    query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="write"})
 
   - name: write_latency_p99_ms
     unit: ms
-    query: 1000 * sum by(ref) (avg_over_time(sdk_operation_latency_p99_seconds{operation_type="write"}[15s]))
+    query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="write"})
 
   - name: read_throughput
     unit: ops/s

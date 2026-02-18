@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { debug, getInput, getState, info } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import { compareWorkloadMetrics } from '../shared/analysis.js'
+import { analyzeWorkload } from '../shared/analysis.js'
 import { loadMetricConfig, type CollectedMetric } from '../shared/metrics.js'
 import { collectAlertsFromPrometheus } from './lib/alerts.js'
 import { collectComposeLogs, getComposeProfiles, getContainerIp } from './lib/docker.js'
@@ -141,9 +141,9 @@ async function writeWorkloadSummary(metricsContent: string) {
 		.filter((line) => line.trim().length > 0)
 		.map((line) => JSON.parse(line)) as CollectedMetric[]
 
-	let comparison = compareWorkloadMetrics(workload, metrics, currentRef, baselineRef, 'avg')
+	let analysis = analyzeWorkload(workload, metrics, currentRef, baselineRef)
 
-	await writeJobSummary(comparison)
+	await writeJobSummary(analysis)
 }
 
 post()

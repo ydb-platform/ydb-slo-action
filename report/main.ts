@@ -2,181 +2,122 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { DefaultArtifactClient } from '@actions/artifact'
-import { debug, getInput, info, setFailed } from '@actions/core'
-import { context, getOctokit } from '@actions/github'
+import { getInput, info, setFailed } from '@actions/core'
 
-import { compareWorkloadMetrics, type WorkloadComparison } from '../shared/analysis.js'
-import type { CollectedAlert } from '../shared/alerts.js'
-import type { FormattedEvent } from '../shared/events.js'
-import type { TestMetadata } from '../shared/metadata.js'
-import type { CollectedMetric } from '../shared/metrics.js'
-import { evaluateWorkloadThresholds, loadThresholdConfig, type ThresholdConfig } from '../shared/thresholds.js'
-import { formatAlertsForVisualization, loadCollectedAlerts } from './lib/alerts.js'
-import { downloadRunArtifacts } from './lib/artifacts.js'
-import { generateCheckSummary, generateCheckTitle } from './lib/checks.js'
-import { createOrUpdateComment, generateCommentBody } from './lib/comment.js'
-import { generateHTMLReport, type HTMLReportData } from './lib/html.js'
-import { loadCollectedMetrics } from './lib/metrics.js'
+import { analyzeWorkload } from '../shared/analysis.js'
+import { loadThresholdConfig } from '../shared/thresholds.js'
+
+import { downloadRunArtifacts, uploadReportArtifact } from './lib/artifacts.js'
+import { createOrUpdateComment, generateCommentBody, type WorkloadReportSummary } from './lib/comment.js'
+import { generateHTMLReport } from './lib/html.js'
+import { loadAlerts, loadMetadata, loadMetrics } from './lib/loaders.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
-
-type WorkloadReport = {
-	workload: string
-	alerts: CollectedAlert[]
-	metrics: CollectedMetric[]
-	metadata: TestMetadata
-	thresholds: ThresholdConfig
-	comparison: WorkloadComparison
-
-	checkUrl?: string
-	reportUrl?: string
-}
 
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo-reports')
 	await fs.mkdir(cwd, { recursive: true })
 
+	// Inputs
+	let githubIssue = getInput('github_issue', { required: false })
+	let templatePath = getInput('template_path', { required: false }) || undefined
+	let postComment = getInput('post_comment', { required: false }) !== 'false'
+	let thresholdsYaml = getInput('thresholds_yaml', { required: false }) || undefined
+	let thresholdsYamlPath = getInput('thresholds_yaml_path', { required: false }) || undefined
+	let failOnThreshold = getInput('fail_on_threshold', { required: false }) === 'true'
+	let artifactRetentionDays = parseInt(getInput('artifact_retention_days', { required: false }) || '30')
+
+	info('📊 YDB SLO Report v2')
+
+	// Download all artifacts from current run
 	let runArtifacts = await downloadRunArtifacts(cwd)
-	info(`Found ${runArtifacts.size} artifacts: ${[...runArtifacts.keys()].join(', ')}`)
+	info(`Found ${runArtifacts.size} workload(s): ${[...runArtifacts.keys()].join(', ')}`)
 
 	if (runArtifacts.size === 0) {
 		setFailed('No workload artifacts found in current run')
 		return
 	}
 
-	let pull = context.issue.number
-	let reports: WorkloadReport[] = []
-	let thresholds = await loadThresholdConfig(getInput('thresholds_yaml'), getInput('thresholds_yaml_path'))
+	// Load thresholds config once for all workloads
+	let thresholdsConfig = await loadThresholdConfig(thresholdsYaml, thresholdsYamlPath)
 
-	for (let [, artifact] of runArtifacts) {
-		if (!artifact.metadataPath || !artifact.metricsPath || !artifact.alertsPath) {
-			info(`Skipping artifact ${artifact.name}: missing required files`)
-			continue
+	// Process each workload
+	let reports: WorkloadReportSummary[] = []
+	let prNumber: number | undefined = githubIssue ? parseInt(githubIssue) : undefined
+
+	for (let [workload, artifact] of runArtifacts) {
+		info(`\n📦 Processing workload: ${workload}`)
+
+		let meta = await loadMetadata(artifact.metaPath)
+		let alerts = await loadAlerts(artifact.alertsPath)
+		let metrics = await loadMetrics(artifact.metricsPath)
+
+		// Use PR number from metadata if not provided via input
+		if (!prNumber && meta.pull) {
+			prNumber = meta.pull
 		}
 
-		let alerts: CollectedAlert[] = loadCollectedAlerts(await fs.readFile(artifact.alertsPath, 'utf-8'))
-		let metrics: CollectedMetric[] = loadCollectedMetrics(await fs.readFile(artifact.metricsPath, 'utf-8'))
-		let metadata = JSON.parse(await fs.readFile(artifact.metadataPath, 'utf-8')) as TestMetadata
+		info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`)
 
-		if (metadata.pull && metadata.pull !== pull) {
-			pull = metadata.pull
-		}
-
-		let comparison = compareWorkloadMetrics(
-			metadata.workload,
-			metrics,
-			metadata.workload_current_ref || 'current',
-			metadata.workload_baseline_ref || 'baseline',
-			'p95',
-			thresholds.neutral_change_percent
-		)
-
-		let report: WorkloadReport = {
-			workload: metadata.workload,
-			alerts,
-			metrics,
-			metadata,
-			thresholds,
-			comparison,
-		}
-
-		let check = await createWorkloadCheck(`SLO: ${metadata.workload}`, metadata.commit!, comparison, thresholds)
-		report.checkUrl = check.url
-
-		reports.push(report)
-	}
-
-	await createWorkloadHTMLReport(cwd, reports)
-
-	if (pull) {
-		await createPullRequestComment(pull, reports)
-	}
-}
-
-async function createWorkloadCheck(
-	name: string,
-	commit: string,
-	comparison: WorkloadComparison,
-	thresholds: ThresholdConfig,
-	reportURL?: string
-) {
-	let token = getInput('github_token')
-	let octokit = getOctokit(token)
-
-	let evaluation = evaluateWorkloadThresholds(comparison.metrics, thresholds)
-	let conclusion: 'success' | 'neutral' | 'failure' = 'success'
-	if (evaluation.overall === 'failure') conclusion = 'failure'
-	if (evaluation.overall === 'warning') conclusion = 'neutral'
-
-	let title = generateCheckTitle(comparison, evaluation)
-	let summary = generateCheckSummary(comparison, evaluation, reportURL)
-
-	let { data } = await octokit.rest.checks.create({
-		name,
-		repo: context.repo.repo,
-		owner: context.repo.owner,
-		head_sha: commit!,
-		status: 'completed',
-		conclusion,
-		output: {
-			title,
-			summary,
-		},
-	})
-
-	debug(`Created check "${name}" with conclusion: ${conclusion}, url: ${data.html_url}`)
-
-	return { id: data.id, url: data.html_url! }
-}
-
-async function createWorkloadHTMLReport(cwd: string, reports: WorkloadReport[]) {
-	info('📝 Generating HTML reports...')
-
-	let artifactClient = new DefaultArtifactClient()
-	let htmlFiles: Array<{ workload: string; path: string }> = []
-
-	for (let report of reports) {
-		let htmlData: HTMLReportData = {
-			workload: report.workload,
-			comparison: report.comparison,
-			metrics: report.metrics,
-			events: formatAlertsForVisualization(report.alerts),
-			currentRef: report.metadata.workload_current_ref || 'current',
-			baselineRef: report.metadata.workload_baseline_ref || 'baseline',
-			prNumber: report.metadata.pull!,
-			testStartTime: report.metadata?.start_epoch_ms || Date.now() - 10 * 60 * 1000,
-			testEndTime: report.metadata?.finish_epoch_ms || Date.now(),
-		}
-
-		let html = generateHTMLReport(htmlData)
-		let htmlPath = path.join(cwd, `${report.workload}-report.html`)
-
-		await fs.writeFile(htmlPath, html, { encoding: 'utf-8' })
-		htmlFiles.push({ workload: report.workload, path: htmlPath })
-
-		let { id } = await artifactClient.uploadArtifact(report.workload + '-html-report', [htmlPath], cwd, {
-			retentionDays: 30,
+		// Analyze workload with paired-comparison model
+		let analysis = analyzeWorkload(meta.workload, metrics, meta.workload_current_ref || 'current', meta.workload_baseline_ref || 'baseline', {
+			trimPercent: 0.1,
+			emaAlpha: 0.15,
+			thresholdConfig: thresholdsConfig,
 		})
 
-		let runId = context.runId.toString()
-		report.reportUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}/artifacts/${id}`
+		if (analysis.summary.failures > 0) {
+			info(`  ❌ ${analysis.summary.failures} critical threshold violation(s)`)
+		} else if (analysis.summary.warnings > 0) {
+			info(`  ⚠️ ${analysis.summary.warnings} warning(s)`)
+		}
+
+		// Generate HTML report
+		let html = await generateHTMLReport(meta, alerts, analysis, metrics, templatePath)
+		let htmlPath = path.join(cwd, `${workload}-report.html`)
+		await fs.writeFile(htmlPath, html, 'utf-8')
+
+		// Upload as artifact
+		let reportUrl = await uploadReportArtifact(workload, htmlPath, cwd, artifactRetentionDays)
+		info(`  📎 Report: ${reportUrl}`)
+
+		reports.push({
+			workload,
+			currentRef: meta.workload_current_ref || 'current',
+			baselineRef: meta.workload_baseline_ref || 'baseline',
+			reportUrl,
+			analysis,
+		})
 	}
+
+	// Post single PR comment for all workloads
+	if (postComment && prNumber) {
+		info('\n💬 Posting PR comment...')
+		let body = generateCommentBody(reports)
+		await createOrUpdateComment(prNumber, body)
+	}
+
+	// Fail if any critical thresholds exceeded
+	if (failOnThreshold) {
+		let failedWorkloads = reports.filter((r) => r.analysis.severity === 'failure')
+		if (failedWorkloads.length > 0) {
+			let summary = failedWorkloads
+				.map((r) => {
+					let failures = r.analysis.metrics
+						.filter((m) => m.severity === 'failure')
+						.map((m) => `    • ${m.name}: ${[...m.absoluteCheck.violations, ...(m.relativeCheck?.violations ?? [])].join(', ')}`)
+						.join('\n')
+					return `  ${r.workload}:\n${failures}`
+				})
+				.join('\n\n')
+			setFailed(`❌ ${failedWorkloads.length} workload(s) exceeded critical thresholds:\n\n${summary}`)
+			return
+		}
+	}
+
+	info('\n🎉 Done!')
 }
 
-async function createPullRequestComment(issue: number, reports: WorkloadReport[]) {
-	info('💬 Creating/updating PR comment...')
-
-	let body = generateCommentBody(
-		reports.map((r) => ({
-			workload: r.workload,
-			comparison: r.comparison,
-			thresholds: r.thresholds,
-			checkUrl: r.checkUrl,
-			reportUrl: r.reportUrl,
-		}))
-	)
-	await createOrUpdateComment(issue, body)
-}
-
-main()
+main().catch((error) => {
+	setFailed(`Report generation failed: ${error}`)
+})

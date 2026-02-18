@@ -4,7 +4,7 @@
 	"packageManager": "bun@1.3.3",
 	"scripts": {
 		"prebundle": "rm -rf dist",
-		"bundle": "bun build init/main.ts init/post.ts report/main.ts report2/main.ts --target=node --format=esm --splitting --minify-syntax --sourcemap=none --outdir dist",
+		"bundle": "bun build init/main.ts init/post.ts report/main.ts --target=node --format=esm --splitting --minify-syntax --sourcemap=none --outdir dist",
 		"test": "bun test",
 		"test:watch": "bun test --watch",
 		"test:coverage": "bun test --coverage",
