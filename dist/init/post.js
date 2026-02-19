@@ -7,7 +7,7 @@ import {
 import {
   analyzeWorkload,
   formatValue
-} from "../main-s0ma3evw.js";
+} from "../main-z4xa3s3e.js";
 import {
   debug,
   exec,

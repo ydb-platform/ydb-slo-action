@@ -110,10 +110,10 @@ function evaluateRelativeThreshold(metricName, changePercent, concordance, direc
     isWorse = !0;
   let severity = "success";
   if (isWorse && absChange > neutralThreshold) {
-    if (absChange > criticalThreshold)
-      severity = "failure", violations.push(`Regression ${absChange.toFixed(1)}% > critical ${criticalThreshold}%`);
-    else if (absChange > warningThreshold)
-      severity = "warning", violations.push(`Regression ${absChange.toFixed(1)}% > warning ${warningThreshold}%`);
+    if (absChange >= criticalThreshold)
+      severity = "failure", violations.push(`Regression ${absChange.toFixed(1)}% >= critical ${criticalThreshold}%`);
+    else if (absChange >= warningThreshold)
+      severity = "warning", violations.push(`Regression ${absChange.toFixed(1)}% >= warning ${warningThreshold}%`);
   }
   return {
     severity,
@@ -259,10 +259,33 @@ function extractValues(metric, ref) {
   }
   return series.values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n));
 }
+function resolveRelativeThresholds(metricName, config) {
+  let matched = findMatchingThreshold(metricName, config);
+  return {
+    warningChangePercent: matched?.warning_change_percent ?? config.default.warning_change_percent,
+    criticalChangePercent: matched?.critical_change_percent ?? config.default.critical_change_percent,
+    neutralChangePercent: config.neutral_change_percent
+  };
+}
 function analyzeMetric(metric, currentRef, baselineRef, options = {}) {
-  let { trimPercent = 0.1, emaAlpha = 0.15, thresholdConfig } = options, direction = inferDirection(metric.name), currentVals = extractValues(metric, currentRef), baselineVals = extractValues(metric, baselineRef), current = buildRefSummary(currentVals, trimPercent), baseline = buildRefSummary(baselineVals, trimPercent), absoluteCheck = { severity: "success", value: current.trimmedMean, violations: [] };
-  if (thresholdConfig)
+  let { trimPercent = 0.1, emaAlpha = 0.15, thresholdConfig } = options, direction = inferDirection(metric.name), currentVals = extractValues(metric, currentRef), baselineVals = extractValues(metric, baselineRef), current = buildRefSummary(currentVals, trimPercent), baseline = buildRefSummary(baselineVals, trimPercent), absoluteCheck = { severity: "success", value: current.trimmedMean, violations: [] }, absoluteThresholds;
+  if (thresholdConfig) {
     absoluteCheck = evaluateAbsoluteThreshold(metric.name, current.trimmedMean, direction, thresholdConfig);
+    let matched = findMatchingThreshold(metric.name, thresholdConfig);
+    if (matched) {
+      let t = {};
+      if (matched.warning_min != null)
+        t.warningMin = matched.warning_min;
+      if (matched.critical_min != null)
+        t.criticalMin = matched.critical_min;
+      if (matched.warning_max != null)
+        t.warningMax = matched.warning_max;
+      if (matched.critical_max != null)
+        t.criticalMax = matched.critical_max;
+      if (Object.keys(t).length > 0)
+        absoluteThresholds = t;
+    }
+  }
   let relativeCheck, visualization, forestEntry;
   if (metric.type === "range" && currentVals.length > 0 && baselineVals.length > 0) {
     let currentSeries = metric.data.find((s) => s.metric.ref === currentRef), baselineSeries = metric.data.find((s) => s.metric.ref === baselineRef);
@@ -298,7 +321,9 @@ function analyzeMetric(metric, currentRef, baselineRef, options = {}) {
     current,
     baseline,
     absoluteCheck,
+    absoluteThresholds,
     relativeCheck,
+    relativeThresholds: thresholdConfig ? resolveRelativeThresholds(metric.name, thresholdConfig) : void 0,
     severity,
     visualization,
     _forestEntry: forestEntry
