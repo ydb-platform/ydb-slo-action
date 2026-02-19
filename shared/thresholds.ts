@@ -147,7 +147,7 @@ function matchPattern(metricName: string, pattern: string): boolean {
 	return regex.test(metricName)
 }
 
-function findMatchingThreshold(metricName: string, config: ThresholdConfig): MetricThreshold | null {
+export function findMatchingThreshold(metricName: string, config: ThresholdConfig): MetricThreshold | null {
 	if (!config.metrics) return null
 
 	// First pass: exact match (highest priority)
@@ -241,12 +241,12 @@ export function evaluateRelativeThreshold(
 	// Only flag regressions (worse direction) beyond neutral threshold
 	let severity: Severity = 'success'
 	if (isWorse && absChange > neutralThreshold) {
-		if (absChange > criticalThreshold) {
+		if (absChange >= criticalThreshold) {
 			severity = 'failure'
-			violations.push(`Regression ${absChange.toFixed(1)}% > critical ${criticalThreshold}%`)
-		} else if (absChange > warningThreshold) {
+			violations.push(`Regression ${absChange.toFixed(1)}% >= critical ${criticalThreshold}%`)
+		} else if (absChange >= warningThreshold) {
 			severity = 'warning'
-			violations.push(`Regression ${absChange.toFixed(1)}% > warning ${warningThreshold}%`)
+			violations.push(`Regression ${absChange.toFixed(1)}% >= warning ${warningThreshold}%`)
 		}
 	}
 
