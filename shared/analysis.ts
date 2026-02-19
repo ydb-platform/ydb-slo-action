@@ -17,6 +17,7 @@ import {
 	type Severity,
 	type AbsoluteCheck,
 	type RelativeCheck,
+	findMatchingThreshold,
 } from './thresholds.js'
 
 export type { MetricDirection, Severity, AbsoluteCheck, RelativeCheck }
@@ -60,6 +61,19 @@ export interface VisualizationData {
 	baselineBox: [number, number, number, number, number]
 }
 
+export interface AbsoluteThresholds {
+	warningMin?: number
+	criticalMin?: number
+	warningMax?: number
+	criticalMax?: number
+}
+
+export interface RelativeThresholds {
+	warningChangePercent: number
+	criticalChangePercent: number
+	neutralChangePercent: number
+}
+
 export interface MetricAnalysis {
 	name: string
 	title?: string
@@ -69,7 +83,9 @@ export interface MetricAnalysis {
 	current: RefSummary
 	baseline: RefSummary
 	absoluteCheck: AbsoluteCheck
-	relativeCheck?: RelativeCheck // only when baseline exists
+	absoluteThresholds?: AbsoluteThresholds
+	relativeCheck?: RelativeCheck
+	relativeThresholds?: RelativeThresholds
 	retriesCheck?: RetriesCheck // only for *_attempts metrics
 	severity: Severity // worst(absolute, relative, retries)
 	visualization?: VisualizationData // only for range metrics
@@ -210,12 +226,14 @@ export function buildVisualization(
 	baselineVals: number[],
 	emaAlpha: number = 0.15
 ): VisualizationData {
+	let histMin = Math.min(Math.min(...currentVals), Math.min(...baselineVals))
+	let histMax = Math.max(Math.max(...currentVals), Math.max(...baselineVals))
 	return {
 		aligned,
 		emaCurrent: ema(currentVals, emaAlpha),
 		emaBaseline: ema(baselineVals, emaAlpha),
-		currentHistogram: histogram(currentVals),
-		baselineHistogram: histogram(baselineVals),
+		currentHistogram: histogram(currentVals, 20, histMin, histMax),
+		baselineHistogram: histogram(baselineVals, 20, histMin, histMax),
 		currentBox: fiveNumberSummary(currentVals),
 		baselineBox: fiveNumberSummary(baselineVals),
 	}
@@ -247,6 +265,15 @@ function extractValues(metric: CollectedMetric, ref: string): number[] {
 	return (series as RangeSeries).values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
 }
 
+function resolveRelativeThresholds(metricName: string, config: ThresholdConfig): RelativeThresholds {
+	let matched = findMatchingThreshold(metricName, config)
+	return {
+		warningChangePercent: matched?.warning_change_percent ?? config.default.warning_change_percent,
+		criticalChangePercent: matched?.critical_change_percent ?? config.default.critical_change_percent,
+		neutralChangePercent: config.neutral_change_percent,
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Core: analyze one metric
 // ---------------------------------------------------------------------------
@@ -268,8 +295,18 @@ export function analyzeMetric(
 
 	// Absolute threshold check
 	let absoluteCheck: AbsoluteCheck = { severity: 'success', value: current.trimmedMean, violations: [] }
+	let absoluteThresholds: AbsoluteThresholds | undefined
 	if (thresholdConfig) {
 		absoluteCheck = evaluateAbsoluteThreshold(metric.name, current.trimmedMean, direction, thresholdConfig)
+		let matched = findMatchingThreshold(metric.name, thresholdConfig)
+		if (matched) {
+			let t: AbsoluteThresholds = {}
+			if (matched.warning_min != null) t.warningMin = matched.warning_min
+			if (matched.critical_min != null) t.criticalMin = matched.critical_min
+			if (matched.warning_max != null) t.warningMax = matched.warning_max
+			if (matched.critical_max != null) t.criticalMax = matched.critical_max
+			if (Object.keys(t).length > 0) absoluteThresholds = t
+		}
 	}
 
 	// Relative (paired) check — only for range metrics with both refs present
@@ -333,7 +370,9 @@ export function analyzeMetric(
 		current,
 		baseline,
 		absoluteCheck,
+		absoluteThresholds,
 		relativeCheck,
+		relativeThresholds: thresholdConfig ? resolveRelativeThresholds(metric.name, thresholdConfig) : undefined,
 		severity,
 		visualization,
 		_forestEntry: forestEntry,

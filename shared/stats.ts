@@ -36,12 +36,14 @@ export function ema(values: number[], alpha: number = 0.15): number[] {
 
 export function histogram(
 	values: number[],
-	targetBuckets: number = 20
+	targetBuckets: number = 20,
+	forceMin?: number,
+	forceMax?: number
 ): { edges: number[]; counts: number[] } {
 	if (values.length === 0) return { edges: [], counts: [] }
 
-	let min = Math.min(...values)
-	let max = Math.max(...values)
+	let min = forceMin ?? Math.min(...values)
+	let max = forceMax ?? Math.max(...values)
 
 	if (min === max) {
 		return { edges: [min, min + 1], counts: [values.length] }
