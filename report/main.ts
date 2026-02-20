@@ -87,6 +87,10 @@ async function main() {
 			baselineRef: meta.workload_baseline_ref || 'baseline',
 			reportUrl,
 			analysis,
+			commit: meta.commit,
+			repoUrl: meta.repo_url,
+			runUrl: meta.run_url,
+			durationMs: meta.duration_ms,
 		})
 	}
 
