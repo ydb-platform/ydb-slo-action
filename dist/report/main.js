@@ -1,8 +1,7 @@
 import {
   analyzeWorkload,
-  formatValue,
   loadThresholdConfig
-} from "../main-z4xa3s3e.js";
+} from "../main-y69nhd1x.js";
 import {
   DefaultArtifactClient,
   context,
@@ -84,80 +83,63 @@ async function uploadReportArtifact(workload, htmlPath, cwd, retentionDays) {
 }
 
 // report/lib/comment.ts
-function renderAsciiBoxPlot(currentBox, baselineBox, currentLabel, baselineLabel) {
-  let allValues = [...currentBox, ...baselineBox].filter((v) => isFinite(v));
-  if (allValues.length === 0)
-    return "";
-  let min = Math.min(...allValues), max = Math.max(...allValues);
-  if (min === max)
-    return "";
-  let width = 40, scale = (v) => Math.round((v - min) / (max - min) * (width - 1));
-  function renderBox(box) {
-    let [bMin, q1, med, q3, bMax] = box.map(scale), line = Array(width).fill(" ");
-    for (let i = bMin;i <= bMax; i++)
-      line[i] = "-";
-    for (let i = q1;i <= q3; i++)
-      line[i] = "=";
-    return line[bMin] = "|", line[bMax] = "|", line[q1] = "[", line[q3] = "]", line[med] = "|", line.join("");
-  }
-  let padLen = Math.max(currentLabel.length, baselineLabel.length), cPad = currentLabel.padEnd(padLen), bPad = baselineLabel.padEnd(padLen);
-  return `${cPad}: ${renderBox(currentBox)}
-${bPad}: ${renderBox(baselineBox)}`;
-}
 function severityEmoji(severity) {
   return severity === "failure" ? "\uD83D\uDD34" : severity === "warning" ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
 }
-function metricStatusEmoji(metric) {
-  if (metric.severity === "failure")
-    return "\uD83D\uDD34";
-  if (metric.severity === "warning")
-    return "\uD83D\uDFE1";
-  if (metric.relativeCheck) {
-    if (Math.abs(metric.relativeCheck.changePercent) < 5)
-      return "⚪";
+function collectViolations(analysis) {
+  let result = [];
+  for (let m of analysis.metrics) {
+    for (let v of m.absoluteCheck.violations)
+      result.push({ metric: m.name, reason: v });
+    for (let v of m.relativeCheck?.violations ?? [])
+      result.push({ metric: m.name, reason: v });
+    if (m.retriesCheck?.reason && m.retriesCheck.severity !== "success")
+      result.push({ metric: m.name, reason: m.retriesCheck.reason });
   }
-  return "✅";
+  return result;
+}
+function formatDuration(ms) {
+  let totalSeconds = Math.round(ms / 1000), minutes = Math.floor(totalSeconds / 60), seconds = totalSeconds % 60;
+  if (minutes === 0)
+    return `${seconds}s`;
+  if (seconds === 0)
+    return `${minutes}m`;
+  return `${minutes}m ${seconds}s`;
 }
 function generateCommentBody(reports) {
-  let totalFailures = reports.filter((r) => r.analysis.severity === "failure").length, totalWarnings = reports.filter((r) => r.analysis.severity === "warning").length, statusEmoji = totalFailures > 0 ? "\uD83D\uDD34" : totalWarnings > 0 ? "\uD83D\uDFE1" : "\uD83D\uDFE2", statusText = totalFailures > 0 ? `${totalFailures} workload(s) failed` : totalWarnings > 0 ? `${totalWarnings} workload(s) with warnings` : "All passed", lines = [
+  let totalFailures = reports.filter((r) => r.analysis.severity === "failure").length, totalWarnings = reports.filter((r) => r.analysis.severity === "warning").length, overallEmoji = totalFailures > 0 ? "\uD83D\uDD34" : totalWarnings > 0 ? "\uD83D\uDFE1" : "\uD83D\uDFE2", overallText = totalFailures > 0 ? `${totalFailures} workload(s) exceeded failure thresholds` : totalWarnings > 0 ? `${totalWarnings} workload(s) exceeded warning thresholds` : "All thresholds passed", first = reports[0], metaParts = [];
+  if (first?.commit && first?.repoUrl) {
+    let short = first.commit.slice(0, 7);
+    metaParts.push(`**Commit:** [\`${short}\`](${first.repoUrl}/commit/${first.commit})`);
+  } else if (first?.commit)
+    metaParts.push(`**Commit:** \`${first.commit.slice(0, 7)}\``);
+  if (first?.runUrl)
+    metaParts.push(`[View run](${first.runUrl})`);
+  let lines = [
     "## \uD83C\uDF0B SLO Test Results",
     "",
-    `**Status:** ${statusEmoji} ${reports.length} workload(s) tested • ${statusText}`,
-    ""
+    `${overallEmoji} ${reports.length} workload(s) tested — ${overallText}`
   ];
+  if (metaParts.length > 0)
+    lines.push(""), lines.push(metaParts.join(" · "));
+  lines.push(""), lines.push("| Workload | Thresholds | Duration | Report |"), lines.push("|----------|:----------:|:--------:|--------|");
   for (let report of reports) {
-    let emoji = severityEmoji(report.analysis.severity), reportLink = report.reportUrl ? ` • [\uD83D\uDCC4 Report](${report.reportUrl})` : "";
-    if (lines.push(`### ${report.workload} ${emoji}${reportLink}`), lines.push(""), report.analysis.metrics.some((m) => m.relativeCheck)) {
-      lines.push("| Metric | Current | Baseline | Change | Conc. | Status |"), lines.push("|--------|---------|----------|--------|-------|--------|");
-      for (let m of report.analysis.metrics) {
-        let currentVal = formatValue(m.current.trimmedMean, m.name), baselineVal = formatValue(m.baseline.trimmedMean, m.name), change = m.relativeCheck ? `${m.relativeCheck.changePercent >= 0 ? "+" : ""}${m.relativeCheck.changePercent.toFixed(1)}%` : "N/A", conc = m.relativeCheck ? m.relativeCheck.concordance.toFixed(2) : "N/A", status = metricStatusEmoji(m);
-        lines.push(`| ${m.name} | ${currentVal} | ${baselineVal} | ${change} | ${conc} | ${status} |`);
-      }
-    } else {
-      lines.push("| Metric | Current | Status |"), lines.push("|--------|---------|--------|");
-      for (let m of report.analysis.metrics) {
-        let currentVal = formatValue(m.current.trimmedMean, m.name), status = metricStatusEmoji(m);
-        lines.push(`| ${m.name} | ${currentVal} | ${status} |`);
-      }
-    }
-    lines.push("");
-    let boxPlotMetrics = report.analysis.metrics.filter((m) => m.visualization);
-    if (boxPlotMetrics.length > 0) {
-      lines.push("<details>"), lines.push("<summary>Box plots</summary>"), lines.push(""), lines.push("```");
-      for (let m of boxPlotMetrics) {
-        let viz = m.visualization;
-        lines.push(m.name);
-        let plot = renderAsciiBoxPlot(viz.currentBox, viz.baselineBox, "current", "baseline");
-        if (plot)
-          lines.push(`  ${plot.split(`
-`).join(`
-  `)}`);
-        lines.push("");
-      }
-      lines.push("```"), lines.push("</details>"), lines.push("");
+    let emoji = severityEmoji(report.analysis.severity), thresholdLabel = report.analysis.severity === "failure" ? `${emoji} Failure` : report.analysis.severity === "warning" ? `${emoji} Warning` : `${emoji} OK`, durationCell = report.durationMs != null ? formatDuration(report.durationMs) : "—", reportCell = report.reportUrl ? `[\uD83D\uDCC4 Report](${report.reportUrl})` : "—";
+    lines.push(`| ${report.workload} | ${thresholdLabel} | ${durationCell} | ${reportCell} |`);
+  }
+  let violatingReports = reports.filter((r) => r.analysis.severity !== "success");
+  if (violatingReports.length > 0) {
+    lines.push(""), lines.push("**Threshold violations:**");
+    for (let report of violatingReports) {
+      let violations = collectViolations(report.analysis);
+      if (violations.length === 0)
+        continue;
+      lines.push(""), lines.push(`**${report.workload}:**`);
+      for (let { metric, reason } of violations)
+        lines.push(`- \`${metric}\`: ${reason}`);
     }
   }
-  return lines.push("---"), lines.push("_Generated by [ydb-slo-action](https://github.com/ydb-platform/ydb-slo-action)_"), lines.join(`
+  return lines.push(""), lines.push("---"), lines.push("_Generated by [ydb-slo-action](https://github.com/ydb-platform/ydb-slo-action)_"), lines.join(`
 `);
 }
 async function findExistingComment(pull) {
@@ -175,16 +157,12 @@ async function findExistingComment(pull) {
 }
 async function createOrUpdateComment(pull, body) {
   let token = getInput("github_token"), octokit = getOctokit(token), existingId = await findExistingComment(pull);
-  if (existingId) {
-    info(`Updating existing comment ${existingId}`);
-    let { data: data2 } = await octokit.rest.issues.updateComment({
+  if (existingId)
+    info(`Deleting existing comment ${existingId} and re-creating to keep it at the bottom`), await octokit.rest.issues.deleteComment({
       comment_id: existingId,
       owner: context.repo.owner,
-      repo: context.repo.repo,
-      body
+      repo: context.repo.repo
     });
-    return { url: data2.html_url, id: data2.id };
-  }
   info("Creating new comment");
   let { data } = await octokit.rest.issues.createComment({
     issue_number: pull,
@@ -324,7 +302,11 @@ async function main() {
       currentRef: meta.workload_current_ref || "current",
       baselineRef: meta.workload_baseline_ref || "baseline",
       reportUrl,
-      analysis
+      analysis,
+      commit: meta.commit,
+      repoUrl: meta.repo_url,
+      runUrl: meta.run_url,
+      durationMs: meta.duration_ms
     });
   }
   if (postComment && prNumber) {

@@ -148,10 +148,10 @@ function ema(values, alpha = 0.15) {
     result.push(alpha * values[i] + (1 - alpha) * result[i - 1]);
   return result;
 }
-function histogram(values, targetBuckets = 20) {
+function histogram(values, targetBuckets = 20, forceMin, forceMax) {
   if (values.length === 0)
     return { edges: [], counts: [] };
-  let min = Math.min(...values), max = Math.max(...values);
+  let min = forceMin ?? Math.min(...values), max = forceMax ?? Math.max(...values);
   if (min === max)
     return { edges: [min, min + 1], counts: [values.length] };
   let bucketWidth = (max - min) / targetBuckets, edges = [];
@@ -232,12 +232,13 @@ function buildRefSummary(values, trimFraction) {
   };
 }
 function buildVisualization(aligned, currentVals, baselineVals, emaAlpha = 0.15) {
+  let histMin = Math.min(Math.min(...currentVals), Math.min(...baselineVals)), histMax = Math.max(Math.max(...currentVals), Math.max(...baselineVals));
   return {
     aligned,
     emaCurrent: ema(currentVals, emaAlpha),
     emaBaseline: ema(baselineVals, emaAlpha),
-    currentHistogram: histogram(currentVals),
-    baselineHistogram: histogram(baselineVals),
+    currentHistogram: histogram(currentVals, 20, histMin, histMax),
+    baselineHistogram: histogram(baselineVals, 20, histMin, histMax),
     currentBox: fiveNumberSummary(currentVals),
     baselineBox: fiveNumberSummary(baselineVals)
   };
