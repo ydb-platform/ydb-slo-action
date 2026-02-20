@@ -6,8 +6,6 @@ import { debug, getInput, info } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
 
 import {
-	formatValue,
-	type MetricAnalysis,
 	type Severity,
 	type WorkloadAnalysis,
 } from '../../shared/analysis.js'
@@ -20,68 +18,31 @@ export interface WorkloadReportSummary {
 }
 
 /**
- * Render a 40-char wide ASCII box plot for two distributions
- */
-function renderAsciiBoxPlot(
-	currentBox: [number, number, number, number, number],
-	baselineBox: [number, number, number, number, number],
-	currentLabel: string,
-	baselineLabel: string
-): string {
-	let allValues = [...currentBox, ...baselineBox].filter((v) => isFinite(v))
-	if (allValues.length === 0) return ''
-
-	let min = Math.min(...allValues)
-	let max = Math.max(...allValues)
-	if (min === max) return ''
-
-	let width = 40
-	let scale = (v: number) => Math.round(((v - min) / (max - min)) * (width - 1))
-
-	function renderBox(box: [number, number, number, number, number]): string {
-		let [bMin, q1, med, q3, bMax] = box.map(scale)
-		let line = new Array(width).fill(' ')
-
-		// Whiskers
-		for (let i = bMin; i <= bMax; i++) line[i] = '-'
-		// Box
-		for (let i = q1; i <= q3; i++) line[i] = '='
-		// Fences
-		line[bMin] = '|'
-		line[bMax] = '|'
-		line[q1] = '['
-		line[q3] = ']'
-		// Median
-		line[med] = '|'
-
-		return line.join('')
-	}
-
-	let padLen = Math.max(currentLabel.length, baselineLabel.length)
-	let cPad = currentLabel.padEnd(padLen)
-	let bPad = baselineLabel.padEnd(padLen)
-
-	return `${cPad}: ${renderBox(currentBox)}\n${bPad}: ${renderBox(baselineBox)}`
-}
-
-/**
- * Status emoji for severity
+ * Threshold status emoji for severity
  */
 function severityEmoji(severity: Severity): string {
 	return severity === 'failure' ? '🔴' : severity === 'warning' ? '🟡' : '🟢'
 }
 
 /**
- * Metric status emoji (more granular for the table)
+ * Collect all threshold violation reasons from a workload analysis
  */
-function metricStatusEmoji(metric: MetricAnalysis): string {
-	if (metric.severity === 'failure') return '🔴'
-	if (metric.severity === 'warning') return '🟡'
-	if (metric.relativeCheck) {
-		let abs = Math.abs(metric.relativeCheck.changePercent)
-		if (abs < 5) return '⚪'
+function collectViolations(analysis: WorkloadAnalysis): Array<{ metric: string; reason: string }> {
+	let result: Array<{ metric: string; reason: string }> = []
+
+	for (let m of analysis.metrics) {
+		for (let v of m.absoluteCheck.violations) {
+			result.push({ metric: m.name, reason: v })
+		}
+		for (let v of m.relativeCheck?.violations ?? []) {
+			result.push({ metric: m.name, reason: v })
+		}
+		if (m.retriesCheck?.reason && m.retriesCheck.severity !== 'success') {
+			result.push({ metric: m.name, reason: m.retriesCheck.reason })
+		}
 	}
-	return '✅'
+
+	return result
 }
 
 /**
@@ -91,85 +52,54 @@ export function generateCommentBody(reports: WorkloadReportSummary[]): string {
 	let totalFailures = reports.filter((r) => r.analysis.severity === 'failure').length
 	let totalWarnings = reports.filter((r) => r.analysis.severity === 'warning').length
 
-	let statusEmoji = totalFailures > 0 ? '🔴' : totalWarnings > 0 ? '🟡' : '🟢'
-	let statusText =
+	let overallEmoji = totalFailures > 0 ? '🔴' : totalWarnings > 0 ? '🟡' : '🟢'
+	let overallText =
 		totalFailures > 0
-			? `${totalFailures} workload(s) failed`
+			? `${totalFailures} workload(s) exceeded failure thresholds`
 			: totalWarnings > 0
-				? `${totalWarnings} workload(s) with warnings`
-				: 'All passed'
+				? `${totalWarnings} workload(s) exceeded warning thresholds`
+				: 'All thresholds passed'
 
 	let lines: string[] = [
 		`## 🌋 SLO Test Results`,
 		``,
-		`**Status:** ${statusEmoji} ${reports.length} workload(s) tested • ${statusText}`,
+		`${overallEmoji} ${reports.length} workload(s) tested — ${overallText}`,
 		``,
+		`| Workload | Thresholds | Report |`,
+		`|----------|:----------:|--------|`,
 	]
 
 	for (let report of reports) {
 		let emoji = severityEmoji(report.analysis.severity)
-		let reportLink = report.reportUrl ? ` • [📄 Report](${report.reportUrl})` : ''
-		lines.push(`### ${report.workload} ${emoji}${reportLink}`)
+		let thresholdLabel =
+			report.analysis.severity === 'failure'
+				? `${emoji} Failure`
+				: report.analysis.severity === 'warning'
+					? `${emoji} Warning`
+					: `${emoji} OK`
+		let reportCell = report.reportUrl ? `[📄 Report](${report.reportUrl})` : '—'
+		lines.push(`| ${report.workload} | ${thresholdLabel} | ${reportCell} |`)
+	}
+
+	// Threshold violations section
+	let violatingReports = reports.filter((r) => r.analysis.severity !== 'success')
+	if (violatingReports.length > 0) {
 		lines.push(``)
+		lines.push(`**Threshold violations:**`)
 
-		// Metrics table
-		let hasBaseline = report.analysis.metrics.some((m) => m.relativeCheck)
+		for (let report of violatingReports) {
+			let violations = collectViolations(report.analysis)
+			if (violations.length === 0) continue
 
-		if (hasBaseline) {
-			lines.push(`| Metric | Current | Baseline | Change | Conc. | Status |`)
-			lines.push(`|--------|---------|----------|--------|-------|--------|`)
-
-			for (let m of report.analysis.metrics) {
-				let currentVal = formatValue(m.current.trimmedMean, m.name)
-				let baselineVal = formatValue(m.baseline.trimmedMean, m.name)
-				let change = m.relativeCheck ? `${m.relativeCheck.changePercent >= 0 ? '+' : ''}${m.relativeCheck.changePercent.toFixed(1)}%` : 'N/A'
-				let conc = m.relativeCheck ? m.relativeCheck.concordance.toFixed(2) : 'N/A'
-				let status = metricStatusEmoji(m)
-
-				lines.push(`| ${m.name} | ${currentVal} | ${baselineVal} | ${change} | ${conc} | ${status} |`)
-			}
-		} else {
-			lines.push(`| Metric | Current | Status |`)
-			lines.push(`|--------|---------|--------|`)
-
-			for (let m of report.analysis.metrics) {
-				let currentVal = formatValue(m.current.trimmedMean, m.name)
-				let status = metricStatusEmoji(m)
-				lines.push(`| ${m.name} | ${currentVal} | ${status} |`)
-			}
-		}
-
-		lines.push(``)
-
-		// Box plots in details section
-		let boxPlotMetrics = report.analysis.metrics.filter((m) => m.visualization)
-		if (boxPlotMetrics.length > 0) {
-			lines.push(`<details>`)
-			lines.push(`<summary>Box plots</summary>`)
 			lines.push(``)
-			lines.push('```')
-
-			for (let m of boxPlotMetrics) {
-				let viz = m.visualization!
-				lines.push(m.name)
-				let plot = renderAsciiBoxPlot(
-					viz.currentBox,
-					viz.baselineBox,
-					'current',
-					'baseline'
-				)
-				if (plot) {
-					lines.push(`  ${plot.split('\n').join('\n  ')}`)
-				}
-				lines.push(``)
+			lines.push(`**${report.workload}:**`)
+			for (let { metric, reason } of violations) {
+				lines.push(`- \`${metric}\`: ${reason}`)
 			}
-
-			lines.push('```')
-			lines.push(`</details>`)
-			lines.push(``)
 		}
 	}
 
+	lines.push(``)
 	lines.push(`---`)
 	lines.push(`_Generated by [ydb-slo-action](https://github.com/ydb-platform/ydb-slo-action)_`)
 
