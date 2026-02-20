@@ -7,7 +7,7 @@ import {
 import {
   analyzeWorkload,
   formatValue
-} from "../main-z4xa3s3e.js";
+} from "../main-y69nhd1x.js";
 import {
   debug,
   exec,
@@ -254,26 +254,55 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
 function severityEmoji(severity) {
   return severity === "failure" ? "\uD83D\uDD34" : severity === "warning" ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
 }
+function metricStatusEmoji(metric) {
+  if (metric.severity === "failure")
+    return "\uD83D\uDD34";
+  if (metric.severity === "warning")
+    return "\uD83D\uDFE1";
+  if (metric.relativeCheck) {
+    if (Math.abs(metric.relativeCheck.changePercent) < 5)
+      return "⚪";
+  }
+  return "✅";
+}
 async function writeJobSummary(analysis) {
   let emoji = severityEmoji(analysis.severity);
-  summary.addHeading(`${emoji} ${analysis.workload}`, 3);
-  let matrix = [
-    [
-      { data: "Metric", header: !0 },
-      { data: "Current", header: !0 },
-      { data: "Baseline", header: !0 },
-      { data: "Change", header: !0 },
-      { data: "Status", header: !0 }
-    ],
-    ...analysis.metrics.map((m) => [
-      m.name,
-      formatValue(m.current.trimmedMean, m.name),
-      m.baseline.count > 0 ? formatValue(m.baseline.trimmedMean, m.name) : "N/A",
-      m.relativeCheck ? `${m.relativeCheck.changePercent >= 0 ? "+" : ""}${m.relativeCheck.changePercent.toFixed(1)}%` : "N/A",
-      severityEmoji(m.severity)
-    ])
-  ];
-  summary.addTable(matrix), summary.addBreak(), await summary.write();
+  if (summary.addHeading(`${emoji} ${analysis.workload}`, 3), analysis.metrics.some((m) => m.relativeCheck)) {
+    let matrix = [
+      [
+        { data: "Metric", header: !0 },
+        { data: "Current", header: !0 },
+        { data: "Baseline", header: !0 },
+        { data: "Change", header: !0 },
+        { data: "Concordance", header: !0 },
+        { data: "Status", header: !0 }
+      ],
+      ...analysis.metrics.map((m) => [
+        m.name,
+        formatValue(m.current.trimmedMean, m.name),
+        m.baseline.count > 0 ? formatValue(m.baseline.trimmedMean, m.name) : "N/A",
+        m.relativeCheck ? `${m.relativeCheck.changePercent >= 0 ? "+" : ""}${m.relativeCheck.changePercent.toFixed(1)}%` : "N/A",
+        m.relativeCheck ? m.relativeCheck.concordance.toFixed(2) : "N/A",
+        metricStatusEmoji(m)
+      ])
+    ];
+    summary.addTable(matrix);
+  } else {
+    let matrix = [
+      [
+        { data: "Metric", header: !0 },
+        { data: "Current", header: !0 },
+        { data: "Status", header: !0 }
+      ],
+      ...analysis.metrics.map((m) => [
+        m.name,
+        formatValue(m.current.trimmedMean, m.name),
+        metricStatusEmoji(m)
+      ])
+    ];
+    summary.addTable(matrix);
+  }
+  summary.addBreak(), await summary.write();
 }
 
 // init/post.ts
