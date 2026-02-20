@@ -15,6 +15,10 @@ export interface WorkloadReportSummary {
 	baselineRef: string
 	reportUrl?: string
 	analysis: WorkloadAnalysis
+	commit?: string
+	repoUrl?: string
+	runUrl?: string
+	durationMs?: number
 }
 
 /**
@@ -46,6 +50,18 @@ function collectViolations(analysis: WorkloadAnalysis): Array<{ metric: string; 
 }
 
 /**
+ * Format milliseconds as human-readable duration (e.g. "5m 30s")
+ */
+function formatDuration(ms: number): string {
+	let totalSeconds = Math.round(ms / 1000)
+	let minutes = Math.floor(totalSeconds / 60)
+	let seconds = totalSeconds % 60
+	if (minutes === 0) return `${seconds}s`
+	if (seconds === 0) return `${minutes}m`
+	return `${minutes}m ${seconds}s`
+}
+
+/**
  * Generate PR comment body for all workloads
  */
 export function generateCommentBody(reports: WorkloadReportSummary[]): string {
@@ -60,14 +76,33 @@ export function generateCommentBody(reports: WorkloadReportSummary[]): string {
 				? `${totalWarnings} workload(s) exceeded warning thresholds`
 				: 'All thresholds passed'
 
+	// Build commit/run info line from first report that has the data
+	let first = reports[0]
+	let metaParts: string[] = []
+	if (first?.commit && first?.repoUrl) {
+		let short = first.commit.slice(0, 7)
+		metaParts.push(`**Commit:** [\`${short}\`](${first.repoUrl}/commit/${first.commit})`)
+	} else if (first?.commit) {
+		metaParts.push(`**Commit:** \`${first.commit.slice(0, 7)}\``)
+	}
+	if (first?.runUrl) {
+		metaParts.push(`[View run](${first.runUrl})`)
+	}
+
 	let lines: string[] = [
 		`## 🌋 SLO Test Results`,
 		``,
 		`${overallEmoji} ${reports.length} workload(s) tested — ${overallText}`,
-		``,
-		`| Workload | Thresholds | Report |`,
-		`|----------|:----------:|--------|`,
 	]
+
+	if (metaParts.length > 0) {
+		lines.push(``)
+		lines.push(metaParts.join(' · '))
+	}
+
+	lines.push(``)
+	lines.push(`| Workload | Thresholds | Duration | Report |`)
+	lines.push(`|----------|:----------:|:--------:|--------|`)
 
 	for (let report of reports) {
 		let emoji = severityEmoji(report.analysis.severity)
@@ -77,8 +112,9 @@ export function generateCommentBody(reports: WorkloadReportSummary[]): string {
 				: report.analysis.severity === 'warning'
 					? `${emoji} Warning`
 					: `${emoji} OK`
+		let durationCell = report.durationMs != null ? formatDuration(report.durationMs) : '—'
 		let reportCell = report.reportUrl ? `[📄 Report](${report.reportUrl})` : '—'
-		lines.push(`| ${report.workload} | ${thresholdLabel} | ${reportCell} |`)
+		lines.push(`| ${report.workload} | ${thresholdLabel} | ${durationCell} | ${reportCell} |`)
 	}
 
 	// Threshold violations section
@@ -141,16 +177,13 @@ export async function createOrUpdateComment(pull: number, body: string): Promise
 	let existingId = await findExistingComment(pull)
 
 	if (existingId) {
-		info(`Updating existing comment ${existingId}`)
+		info(`Deleting existing comment ${existingId} and re-creating to keep it at the bottom`)
 
-		let { data } = await octokit.rest.issues.updateComment({
+		await octokit.rest.issues.deleteComment({
 			comment_id: existingId,
 			owner: context.repo.owner,
 			repo: context.repo.repo,
-			body,
 		})
-
-		return { url: data.html_url!, id: data.id }
 	}
 
 	info(`Creating new comment`)
