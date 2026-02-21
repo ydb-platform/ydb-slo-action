@@ -1,5 +1,5 @@
 import type { CollectedMetric, MetricConfig } from '../../shared/metrics.js'
-import { queryInstant, queryRange } from './prometheus.js'
+import { parseStepToSeconds, queryInstant, queryRange, safeStep } from './prometheus.js'
 
 export async function collectMetricsFromPrometheus(
 	url: string,
@@ -33,9 +33,11 @@ export async function collectMetricsFromPrometheus(
 					})
 				}
 			} else {
+				let configuredStep = metric.step || config.default.step || '1s'
+				let step = safeStep(start, finish, parseStepToSeconds(configuredStep))
 				let response = await queryRange({
 					url: url,
-					step: metric.step || config.default.step,
+					step,
 					query: metric.query,
 					start: start.getTime() / 1000,
 					end: finish.getTime() / 1000,

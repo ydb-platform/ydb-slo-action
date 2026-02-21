@@ -44,6 +44,40 @@ export interface PrometheusRangeQueryParams extends PrometheusQueryOptions {
 	queryTimeout?: string
 }
 
+const MAX_PROMETHEUS_POINTS = 11000
+
+/**
+ * Calculate a safe step string that won't exceed Prometheus's point limit.
+ * Returns the larger of preferredSeconds and ceil(duration / MAX_PROMETHEUS_POINTS).
+ */
+/**
+ * Parse a Prometheus step string (e.g. "15s", "1m", "2h") to seconds.
+ */
+export function parseStepToSeconds(step: string): number {
+	let match = step.match(/^(\d+)([smhd])$/)
+	if (!match) return 15
+	let value = parseInt(match[1], 10)
+	switch (match[2]) {
+		case 's':
+			return value
+		case 'm':
+			return value * 60
+		case 'h':
+			return value * 3600
+		case 'd':
+			return value * 86400
+		default:
+			return 15
+	}
+}
+
+export function safeStep(start: Date, end: Date, preferredSeconds: number = 1): string {
+	let durationSeconds = (end.getTime() - start.getTime()) / 1000
+	let minStep = Math.ceil(durationSeconds / MAX_PROMETHEUS_POINTS)
+	let step = Math.max(preferredSeconds, minStep)
+	return `${step}s`
+}
+
 /**
  * Executes instant PromQL query at a specific point in time
  */

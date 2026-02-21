@@ -1,6 +1,6 @@
 import { debug } from '@actions/core'
 import type { CollectedAlert } from '../../shared/alerts.js'
-import { queryRange, type PrometheusRangeValue } from './prometheus.js'
+import { queryRange, safeStep, type PrometheusRangeValue } from './prometheus.js'
 
 /**
  * Collect alerts from Prometheus ALERTS metric.
@@ -12,11 +12,12 @@ export async function collectAlertsFromPrometheus(
 	url: string,
 	start: Date,
 	end: Date,
-	step: string = '15s'
+	preferredStepSeconds: number = 15
 ): Promise<CollectedAlert[]> {
 	const query = 'ALERTS{alertstate="firing"}'
+	const step = safeStep(start, end, preferredStepSeconds)
 
-	debug(`Querying alerts: ${query}`)
+	debug(`Querying alerts: ${query} (step=${step})`)
 
 	const response = await queryRange({
 		url,
