@@ -27,7 +27,7 @@ networks:
 
 services:
   blackhole:
-    image: alpine/socat
+    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/socat
     container_name: ydb-blackhole
     restart: unless-stopped
     networks:
@@ -193,7 +193,7 @@ services:
         condition: service_completed_successfully
 
   grafana:
-    image: grafana/grafana:latest
+    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/grafana
     <<: *runtime
     container_name: ydb-grafana
     restart: unless-stopped
@@ -212,7 +212,7 @@ services:
       - telemetry
 
   prometheus:
-    image: prom/prometheus:latest
+    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/prometheus
     restart: unless-stopped
     <<: *runtime
     container_name: ydb-prometheus
@@ -220,6 +220,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --web.enable-remote-write-receiver
       - --web.enable-otlp-receiver
+      - --web.enable-admin-api
     volumes:
       - ./alertrules.yml:/etc/prometheus/alertrules.yml
       - ./prometheus.yml:/etc/prometheus/prometheus.yml

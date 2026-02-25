@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 debian:bookworm-slim
+FROM --platform=linux/amd64 cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/bookworm-slim
 ARG APP_VERSION=stable-25-3
 
 ENV APP_NAME="ydb" \
@@ -18,8 +18,8 @@ RUN apt-get update && \
 	rm -rf /var/lib/apt/lists/*
 
 COPY rootfs /
-COPY --from=ghcr.io/ydb-platform/local-ydb:stable-25-3 /ydb /opt/ydb.tech/ydb/bin/ydb
-COPY --from=ghcr.io/ydb-platform/local-ydb:stable-25-3 /ydbd /opt/ydb.tech/ydbd/bin/ydbd
+COPY --from=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3 /ydb /opt/ydb.tech/ydb/bin/ydb
+COPY --from=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3 /ydbd /opt/ydb.tech/ydbd/bin/ydbd
 
 RUN groupadd -r ydb && useradd -r -g ydb -u 1001 -d /home/ydb -m ydb && \
 	chmod +x /opt/ydb.tech/scripts/ydbd/entrypoint.sh && \
