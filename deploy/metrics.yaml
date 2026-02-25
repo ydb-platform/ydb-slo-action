@@ -5,50 +5,112 @@ default:
 metrics:
   - name: read_latency_p50_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="read",operation_status="success"})
+    query: |
+      1000 * max by(ref) (
+        sdk_operation_latency_p50_seconds{operation_type="read",operation_status="success"}
+      )
 
   - name: read_latency_p95_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="read",operation_status="success"})
+    query: |
+      1000 * max by(ref) (
+        sdk_operation_latency_p95_seconds{operation_type="read",operation_status="success"}
+      )
 
   - name: read_latency_p99_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="read",operation_status="success"})
+    query: |
+      1000 * max by(ref) (
+        sdk_operation_latency_p99_seconds{operation_type="read",operation_status="success"}
+      )
 
   - name: write_latency_p50_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p50_seconds{operation_type="write",operation_status="success"})
+    query: |
+      1000 * max by(ref) (
+        sdk_operation_latency_p50_seconds{operation_type="write",operation_status="success"}
+      )
 
   - name: write_latency_p95_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p95_seconds{operation_type="write",operation_status="success"})
+    query: |
+      1000 * max by(ref) (
+        sdk_operation_latency_p95_seconds{operation_type="write",operation_status="success"}
+      )
 
   - name: write_latency_p99_ms
     unit: ms
-    query: 1000 * sum by(ref) (sdk_operation_latency_p99_seconds{operation_type="write",operation_status="success"})
+    query: |
+      1000 * max by(ref) (
+        sdk_operation_latency_p99_seconds{operation_type="write",operation_status="success"}
+      )
 
   - name: read_throughput
     unit: ops/s
-    query: sum by(ref) (rate(sdk_operations_total{operation_type="read", operation_status="success"}[30s]))
+    query: |
+      sum by(ref) (
+        rate(sdk_operations_total{operation_type="read", operation_status="success"}[5s])
+      )
 
   - name: write_throughput
     unit: ops/s
-    query: sum by(ref) (rate(sdk_operations_total{operation_type="write", operation_status="success"}[30s]))
+    query: |
+      sum by(ref) (
+        rate(sdk_operations_total{operation_type="write", operation_status="success"}[5s])
+      )
 
-  - name: read_attempts
-    unit: ops/s
-    query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="read", operation_status="success"}[30s]) / rate(sdk_retry_attempts_total{operation_type="read", operation_status="success"}[30s]))
+  # sdk_operations_total = количество логических бизнес-запросов (всегда 1 на операцию).
+  # sdk_retry_attempts_total = общее количество технических попыток (включая первую).
+  - name: read_retry_attempts
+    unit: attempts
+    query: |
+      clamp_min(
+        round(
+          sum by(ref) (increase(sdk_retry_attempts_total{operation_type="write"}[5s]))
+          -
+          sum by(ref) (increase(sdk_operations_total{operation_type="write"}[5s]))
+        ),
+        0
+      )
+    round: 1
 
-  - name: write_attempts
-    unit: ops/s
-    query: sum by(ref) (rate(sdk_retry_attempts_total{operation_type="write", operation_status="success"}[30s]) / rate(sdk_retry_attempts_total{operation_type="write", operation_status="success"}[30s]))
+  # sdk_operations_total = количество логических бизнес-запросов (всегда 1 на операцию).
+  # sdk_retry_attempts_total = общее количество технических попыток (включая первую).
+  - name: write_retry_attempts
+    unit: attempts
+    query: |
+      clamp_min(
+        round(
+          sum by(ref) (increase(sdk_retry_attempts_total{operation_type="write"}[5s]))
+          -
+          sum by(ref) (increase(sdk_operations_total{operation_type="write"}[5s]))
+        ),
+        0
+      )
+    round: 1
 
   - name: read_availability
     unit: "%"
-    query: 100 * clamp_max(sum by (ref) (rate(sdk_operations_total{operation_type="read", operation_status="success"}[30s])) / sum by (ref) (rate(sdk_operations_total{operation_type="read", operation_status="failure"}[30s])), 1)
+    query: |
+      clamp_max(
+        100 * (
+          sum by (ref) (rate(sdk_operations_total{operation_type="read", operation_status="success"}[5s]))
+          /
+          sum by (ref) (rate(sdk_operations_total{operation_type="read"}[5s]))
+        ),
+        100
+      )
     round: 0.01
 
   - name: write_availability
     unit: "%"
-    query: 100 * clamp_max(sum by (ref) (rate(sdk_operations_total{operation_type="write", operation_status="success"}[30s])) / sum by (ref) (rate(sdk_operations_total{operation_type="write", operation_status="failure"}[30s])), 1)
+    query: |
+      clamp_max(
+        100 * (
+          sum by (ref) (rate(sdk_operations_total{operation_type="write", operation_status="success"}[5s]))
+          /
+          sum by (ref) (rate(sdk_operations_total{operation_type="write"}[5s]))
+        ),
+        100
+      )
     round: 0.01
