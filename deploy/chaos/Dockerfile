@@ -1,4 +1,4 @@
-FROM cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/docker-cli
+FROM cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/docker:cli
 
 # Install Python and pip
 RUN apk add --no-cache \

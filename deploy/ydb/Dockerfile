@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/bookworm-slim
+FROM --platform=linux/amd64 cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/debian:bookworm-slim
 ARG APP_VERSION=stable-25-3
 
 ENV APP_NAME="ydb" \
