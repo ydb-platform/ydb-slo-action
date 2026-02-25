@@ -8,6 +8,7 @@ rule_files:
 scrape_configs:
   - job_name: ydb
     scrape_interval: 5s
+    honor_labels: true
     metrics_path: /counters/counters=ydb/name_label=name/prometheus
     static_configs:
       - targets:
@@ -19,6 +20,7 @@ scrape_configs:
 
   - job_name: interconnect
     scrape_interval: 5s
+    honor_labels: true
     metrics_path: /counters/counters=interconnect/prometheus
     static_configs:
       - targets:
