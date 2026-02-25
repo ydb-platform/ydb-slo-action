@@ -265,6 +265,7 @@ services:
       - "ydb:172.28.0.15"
       - "ydb:172.28.0.99"
     environment:
+      - GOMAXPROCS=2
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_DATABASE=/Root/testdb
       - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
@@ -282,6 +283,14 @@ services:
       - workload-current
     labels:
       - ydb.node.type=workload
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 4G
+        reservations:
+          cpus: "1.00"
+          memory: 2G
 
   workload-baseline:
     <<: *runtime
@@ -297,6 +306,7 @@ services:
       - "ydb:172.28.0.15"
       - "ydb:172.28.0.99"
     environment:
+      - GOMAXPROCS=2
       - YDB_ENDPOINT=grpc://ydb:2136
       - YDB_DATABASE=/Root/testdb
       - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
@@ -314,3 +324,11 @@ services:
       - workload-baseline
     labels:
       - ydb.node.type=workload
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 4G
+        reservations:
+          cpus: "1.00"
+          memory: 2G
