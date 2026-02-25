@@ -106,6 +106,28 @@ async function loadMetricConfig(customYaml, customPath) {
 }
 
 // init/lib/prometheus.ts
+function parseStepToSeconds(step) {
+  let match = step.match(/^(\d+)([smhd])$/);
+  if (!match)
+    return 15;
+  let value = parseInt(match[1], 10);
+  switch (match[2]) {
+    case "s":
+      return value;
+    case "m":
+      return value * 60;
+    case "h":
+      return value * 3600;
+    case "d":
+      return value * 86400;
+    default:
+      return 15;
+  }
+}
+function safeStep(start, end, preferredSeconds = 1) {
+  let durationSeconds = (end.getTime() - start.getTime()) / 1000, minStep = Math.ceil(durationSeconds / 11000);
+  return `${Math.max(preferredSeconds, minStep)}s`;
+}
 async function queryInstant(params) {
   let baseUrl = params.url || "http://localhost:9090", timeout = params.timeout || 30000, url = new URL("/api/v1/query", baseUrl);
   if (url.searchParams.set("query", params.query), params.time !== void 0)
@@ -134,8 +156,9 @@ async function queryRange(params) {
 }
 
 // init/lib/alerts.ts
-async function collectAlertsFromPrometheus(url, start, end, step = "15s") {
-  debug('Querying alerts: ALERTS{alertstate="firing"}');
+async function collectAlertsFromPrometheus(url, start, end, preferredStepSeconds = 15) {
+  let step = safeStep(start, end, preferredStepSeconds);
+  debug(`Querying alerts: ALERTS{alertstate="firing"} (step=${step})`);
   let response = await queryRange({
     url,
     query: 'ALERTS{alertstate="firing"}',
@@ -225,9 +248,9 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
             data: response.data.result
           });
       } else {
-        let response = await queryRange({
+        let configuredStep = metric.step || config.default.step || "1s", step = safeStep(start, finish, parseStepToSeconds(configuredStep)), response = await queryRange({
           url,
-          step: metric.step || config.default.step,
+          step,
           query: metric.query,
           start: start.getTime() / 1000,
           end: finish.getTime() / 1000,
