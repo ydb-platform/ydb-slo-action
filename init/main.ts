@@ -98,6 +98,7 @@ async function deployInfra(cwd: string, workload: string): Promise<void> {
 		}
 
 		started = true
+		break
 	}
 
 	if (!started) {

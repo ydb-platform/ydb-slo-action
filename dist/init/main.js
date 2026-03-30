@@ -75,6 +75,7 @@ async function deployInfra(cwd, workload) {
       continue;
     }
     started = !0;
+    break;
   }
   if (!started)
     throw Error("Failed to start YDB cluster.");

@@ -63,7 +63,7 @@ check_node_responds() {
         # Check DDL operations
         if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "CREATE TABLE IF NOT EXISTS rd_check_${node_ip_str} (ip Utf8, primary key (ip));" 2>&1 >/dev/null; then
             attempt=$((attempt + 1))
-            log "Node at $endpoint not responding to SQL (attempt $attempt/$max_attempts)"
+            log "Node at $endpoint not responding to DDL (attempt $attempt/$max_attempts)"
             sleep 2
             continue
         fi
