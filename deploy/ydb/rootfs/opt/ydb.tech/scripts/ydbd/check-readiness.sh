@@ -51,15 +51,17 @@ check_node_responds() {
 
     while [[ $attempt -lt $max_attempts ]]; do
         # Check SQL operations
-        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "SELECT 1"; then
+        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "SELECT 1" 2>&1 >/dev/null; then
             attempt=$((attempt + 1))
             log "Node at $endpoint not responding to SQL (attempt $attempt/$max_attempts)"
             sleep 2
             continue
         fi
 
+        local node_ip_str="${node_ip//./_}"
+
         # Check DDL operations
-        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "CREATE TABLE IF NOT EXISTS `readiness_check` (id Utf8, primary key (`id`));"; then
+        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "CREATE TABLE IF NOT EXISTS rd_check_${node_ip_str} (ip Utf8, primary key (ip));" 2>&1 >/dev/null; then
             attempt=$((attempt + 1))
             log "Node at $endpoint not responding to SQL (attempt $attempt/$max_attempts)"
             sleep 2
