@@ -8,15 +8,15 @@
  */
 
 import type { CollectedMetric, RangeSeries } from './metrics.js'
-import { trimmedMean, ema, histogram, percentile, fiveNumberSummary } from './stats.js'
+import { ema, fiveNumberSummary, histogram, percentile, trimmedMean } from './stats.js'
 import {
+	type AbsoluteCheck,
+	type MetricDirection,
+	type RelativeCheck,
+	type Severity,
+	type ThresholdConfig,
 	evaluateAbsoluteThreshold,
 	evaluateRelativeThreshold,
-	type ThresholdConfig,
-	type MetricDirection,
-	type Severity,
-	type AbsoluteCheck,
-	type RelativeCheck,
 	findMatchingThreshold,
 } from './thresholds.js'
 
@@ -265,11 +265,16 @@ function extractValues(metric: CollectedMetric, ref: string): number[] {
 	return (series as RangeSeries).values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
 }
 
-function resolveRelativeThresholds(metricName: string, config: ThresholdConfig): RelativeThresholds {
+function resolveRelativeThresholds(
+	metricName: string,
+	config: ThresholdConfig
+): RelativeThresholds {
 	let matched = findMatchingThreshold(metricName, config)
 	return {
-		warningChangePercent: matched?.warning_change_percent ?? config.default.warning_change_percent,
-		criticalChangePercent: matched?.critical_change_percent ?? config.default.critical_change_percent,
+		warningChangePercent:
+			matched?.warning_change_percent ?? config.default.warning_change_percent,
+		criticalChangePercent:
+			matched?.critical_change_percent ?? config.default.critical_change_percent,
 		neutralChangePercent: config.neutral_change_percent,
 	}
 }
@@ -294,10 +299,19 @@ export function analyzeMetric(
 	let baseline = buildRefSummary(baselineVals, trimPercent)
 
 	// Absolute threshold check
-	let absoluteCheck: AbsoluteCheck = { severity: 'success', value: current.trimmedMean, violations: [] }
+	let absoluteCheck: AbsoluteCheck = {
+		severity: 'success',
+		value: current.trimmedMean,
+		violations: [],
+	}
 	let absoluteThresholds: AbsoluteThresholds | undefined
 	if (thresholdConfig) {
-		absoluteCheck = evaluateAbsoluteThreshold(metric.name, current.trimmedMean, direction, thresholdConfig)
+		absoluteCheck = evaluateAbsoluteThreshold(
+			metric.name,
+			current.trimmedMean,
+			direction,
+			thresholdConfig
+		)
 		let matched = findMatchingThreshold(metric.name, thresholdConfig)
 		if (matched) {
 			let t: AbsoluteThresholds = {}
@@ -315,8 +329,12 @@ export function analyzeMetric(
 	let forestEntry: ForestPlotEntry | undefined
 
 	if (metric.type === 'range' && currentVals.length > 0 && baselineVals.length > 0) {
-		let currentSeries = metric.data.find((s) => s.metric.ref === currentRef) as RangeSeries | undefined
-		let baselineSeries = metric.data.find((s) => s.metric.ref === baselineRef) as RangeSeries | undefined
+		let currentSeries = metric.data.find((s) => s.metric.ref === currentRef) as
+			| RangeSeries
+			| undefined
+		let baselineSeries = metric.data.find((s) => s.metric.ref === baselineRef) as
+			| RangeSeries
+			| undefined
 
 		if (currentSeries && baselineSeries) {
 			let aligned = alignSeries(currentSeries, baselineSeries)
@@ -340,7 +358,13 @@ export function analyzeMetric(
 					violations = check.violations
 				}
 
-				relativeCheck = { severity: relSeverity, pairedRatio, changePercent, concordance, violations }
+				relativeCheck = {
+					severity: relSeverity,
+					pairedRatio,
+					changePercent,
+					concordance,
+					violations,
+				}
 
 				// Build forest plot entry
 				let ratios = aligned.map((p) => p.ratio).filter((r) => isFinite(r))
@@ -372,7 +396,9 @@ export function analyzeMetric(
 		absoluteCheck,
 		absoluteThresholds,
 		relativeCheck,
-		relativeThresholds: thresholdConfig ? resolveRelativeThresholds(metric.name, thresholdConfig) : undefined,
+		relativeThresholds: thresholdConfig
+			? resolveRelativeThresholds(metric.name, thresholdConfig)
+			: undefined,
 		severity,
 		visualization,
 		_forestEntry: forestEntry,
@@ -475,7 +501,11 @@ export function formatValue(value: number, metricName: string): string {
 
 	let lowerName = metricName.toLowerCase()
 
-	if (lowerName.includes('latency') || lowerName.includes('duration') || lowerName.endsWith('_ms')) {
+	if (
+		lowerName.includes('latency') ||
+		lowerName.includes('duration') ||
+		lowerName.endsWith('_ms')
+	) {
 		return `${value.toFixed(2)}ms`
 	}
 
@@ -483,7 +513,11 @@ export function formatValue(value: number, metricName: string): string {
 		return `${value.toFixed(2)}s`
 	}
 
-	if (lowerName.includes('availability') || lowerName.includes('percent') || lowerName.includes('rate')) {
+	if (
+		lowerName.includes('availability') ||
+		lowerName.includes('percent') ||
+		lowerName.includes('rate')
+	) {
 		return `${value.toFixed(2)}%`
 	}
 

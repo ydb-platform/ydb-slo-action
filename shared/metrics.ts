@@ -162,7 +162,10 @@ export async function loadDefaultMetricConfig(): Promise<MetricConfig> {
  * 2. Merge with custom YAML (inline) if provided
  * 3. Merge with custom file if provided
  */
-export async function loadMetricConfig(customYaml?: string, customPath?: string): Promise<MetricConfig> {
+export async function loadMetricConfig(
+	customYaml?: string,
+	customPath?: string
+): Promise<MetricConfig> {
 	let config = await loadDefaultMetricConfig()
 
 	// Merge with custom YAML (inline)
@@ -243,7 +246,11 @@ function roundNumberToStep(value: number, step: number): number {
 	return Object.is(rounded, -0) ? 0 : rounded
 }
 
-export function aggregateValues(values: [number, string][], fn: AggregateFunction, roundStep?: number): number {
+export function aggregateValues(
+	values: [number, string][],
+	fn: AggregateFunction,
+	roundStep?: number
+): number {
 	if (values.length === 0) return NaN
 
 	let nums = values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
@@ -295,7 +302,11 @@ export function aggregateValues(values: [number, string][], fn: AggregateFunctio
 /**
  * Get single value from metric (instant or aggregated range)
  */
-export function getMetricValue(metric: CollectedMetric, ref: string, aggregate: AggregateFunction = 'avg'): number {
+export function getMetricValue(
+	metric: CollectedMetric,
+	ref: string,
+	aggregate: AggregateFunction = 'avg'
+): number {
 	let series = metric.data.find((s) => s.metric.ref === ref) || null
 
 	if (!series) return NaN
@@ -311,7 +322,11 @@ export function getMetricValue(metric: CollectedMetric, ref: string, aggregate: 
 /**
  * Separate series by ref label (current vs baseline)
  */
-export function separateByRef(metric: CollectedMetric, currentRef: string, baselineRef: string): SeparatedSeries {
+export function separateByRef(
+	metric: CollectedMetric,
+	currentRef: string,
+	baselineRef: string
+): SeparatedSeries {
 	let current: RangeSeries | InstantSeries | null = null
 	let baseline: RangeSeries | InstantSeries | null = null
 

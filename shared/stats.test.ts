@@ -2,7 +2,7 @@ import * as assert from 'node:assert/strict'
 
 import { test } from 'bun:test'
 
-import { trimmedMean, ema, histogram, percentile, iqr, fiveNumberSummary } from './stats.js'
+import { ema, fiveNumberSummary, histogram, iqr, percentile, trimmedMean } from './stats.js'
 
 test('trimmedMean trims 10% from each side by default', () => {
 	// 10 values, trim 1 from each side
@@ -37,7 +37,10 @@ test('histogram creates buckets', () => {
 	let h = histogram(values, 5)
 	assert.equal(h.edges.length, 6) // 5 buckets = 6 edges
 	assert.equal(h.counts.length, 5)
-	assert.equal(h.counts.reduce((a, b) => a + b, 0), 10) // all values accounted for
+	assert.equal(
+		h.counts.reduce((a, b) => a + b, 0),
+		10
+	) // all values accounted for
 })
 
 test('histogram handles single value', () => {
@@ -69,7 +72,7 @@ test('iqr returns NaN for fewer than 4 values', () => {
 
 test('fiveNumberSummary returns [min, q1, median, q3, max]', () => {
 	let values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-	let [min, q1, median, q3, max] = fiveNumberSummary(values)
+	let [min, _q1, median, _q3, max] = fiveNumberSummary(values)
 	assert.equal(min, 1)
 	assert.equal(max, 10)
 	assert.equal(median, 5)

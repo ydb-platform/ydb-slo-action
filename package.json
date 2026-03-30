@@ -1,59 +1,34 @@
 {
 	"name": "@ydb-platform/ydb-slo-action",
 	"type": "module",
-	"packageManager": "bun@1.3.3",
 	"scripts": {
 		"prebundle": "rm -rf dist",
 		"bundle": "bun build init/main.ts init/post.ts report/main.ts --target=node --format=esm --splitting --minify-syntax --sourcemap=none --outdir dist",
 		"test": "bun test",
 		"test:watch": "bun test --watch",
 		"test:coverage": "bun test --coverage",
-		"format": "bunx --bun prettier **/*.ts --write",
-		"lint": "bunx --bun oxlint **/*.ts --fix --node-plugin --import-plugin"
+		"format": "bunx --bun oxfmt **/*.ts --write",
+		"lint": "bunx --bun oxlint **/*.ts --fix"
 	},
 	"dependencies": {
-		"@actions/artifact": "^6.1.0",
+		"@actions/artifact": "^6.2.1",
 		"@actions/core": "^3.0.0",
 		"@actions/exec": "^3.0.0",
 		"@actions/github": "^9.0.0"
 	},
 	"devDependencies": {
 		"husky": "^9.1.7",
-		"oxlint": "^1.43.0",
-		"prettier": "^3.8.1"
+		"oxfmt": "0.42.0",
+		"oxlint": "^1.57.0"
 	},
 	"peerDependencies": {
 		"typescript": "^5.9.3"
 	},
-	"prettier": {
-		"printWidth": 120,
-		"tabWidth": 4,
-		"useTabs": true,
-		"semi": false,
-		"singleQuote": true,
-		"trailingComma": "es5",
-		"bracketSpacing": true,
-		"bracketSameLine": false,
-		"arrowParens": "always",
-		"endOfLine": "lf",
-		"overrides": [
-			{
-				"files": [
-					"*.yml",
-					"*.yaml"
-				],
-				"options": {
-					"tabWidth": 2,
-					"useTabs": false,
-					"singleQuote": false
-				}
-			}
-		]
-	},
 	"lint-staged": {
 		"**/*.{ts,json,md}": [
-			"bun run --bun oxlint --fix --node-plugin --import-plugin",
-			"bun run --bun prettier --write"
+			"bun run --bun oxlint --fix",
+			"bun run --bun oxfmt --write"
 		]
-	}
+	},
+	"packageManager": "bun@1.3.3"
 }

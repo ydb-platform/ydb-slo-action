@@ -8,7 +8,11 @@ import { analyzeWorkload } from '../shared/analysis.js'
 import { loadThresholdConfig } from '../shared/thresholds.js'
 
 import { downloadRunArtifacts, uploadReportArtifact } from './lib/artifacts.js'
-import { createOrUpdateComment, generateCommentBody, type WorkloadReportSummary } from './lib/comment.js'
+import {
+	type WorkloadReportSummary,
+	createOrUpdateComment,
+	generateCommentBody,
+} from './lib/comment.js'
 import { generateHTMLReport } from './lib/html.js'
 import { loadAlerts, loadMetadata, loadMetrics } from './lib/loaders.js'
 
@@ -25,7 +29,9 @@ async function main() {
 	let thresholdsYaml = getInput('thresholds_yaml', { required: false }) || undefined
 	let thresholdsYamlPath = getInput('thresholds_yaml_path', { required: false }) || undefined
 	let failOnThreshold = getInput('fail_on_threshold', { required: false }) === 'true'
-	let artifactRetentionDays = parseInt(getInput('artifact_retention_days', { required: false }) || '30')
+	let artifactRetentionDays = parseInt(
+		getInput('artifact_retention_days', { required: false }) || '30'
+	)
 
 	info('📊 YDB SLO Report v2')
 
@@ -60,11 +66,17 @@ async function main() {
 		info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`)
 
 		// Analyze workload with paired-comparison model
-		let analysis = analyzeWorkload(meta.workload, metrics, meta.workload_current_ref || 'current', meta.workload_baseline_ref || 'baseline', {
-			trimPercent: 0.1,
-			emaAlpha: 0.15,
-			thresholdConfig: thresholdsConfig,
-		})
+		let analysis = analyzeWorkload(
+			meta.workload,
+			metrics,
+			meta.workload_current_ref || 'current',
+			meta.workload_baseline_ref || 'baseline',
+			{
+				trimPercent: 0.1,
+				emaAlpha: 0.15,
+				thresholdConfig: thresholdsConfig,
+			}
+		)
 
 		if (analysis.summary.failures > 0) {
 			info(`  ❌ ${analysis.summary.failures} critical threshold violation(s)`)
@@ -78,7 +90,7 @@ async function main() {
 		await fs.writeFile(htmlPath, html, 'utf-8')
 
 		// Upload as artifact
-		let reportUrl = await uploadReportArtifact(workload, htmlPath, cwd, artifactRetentionDays)
+		let reportUrl = await uploadReportArtifact(cwd, workload, htmlPath, artifactRetentionDays)
 		info(`  📎 Report: ${reportUrl}`)
 
 		reports.push({
@@ -109,12 +121,17 @@ async function main() {
 				.map((r) => {
 					let failures = r.analysis.metrics
 						.filter((m) => m.severity === 'failure')
-						.map((m) => `    • ${m.name}: ${[...m.absoluteCheck.violations, ...(m.relativeCheck?.violations ?? [])].join(', ')}`)
+						.map(
+							(m) =>
+								`    • ${m.name}: ${[...m.absoluteCheck.violations, ...(m.relativeCheck?.violations ?? [])].join(', ')}`
+						)
 						.join('\n')
 					return `  ${r.workload}:\n${failures}`
 				})
 				.join('\n\n')
-			setFailed(`❌ ${failedWorkloads.length} workload(s) exceeded critical thresholds:\n\n${summary}`)
+			setFailed(
+				`❌ ${failedWorkloads.length} workload(s) exceeded critical thresholds:\n\n${summary}`
+			)
 			return
 		}
 	}

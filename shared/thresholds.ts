@@ -78,7 +78,10 @@ async function parseThresholdsYaml(yamlContent: string): Promise<ThresholdConfig
 	}
 }
 
-function mergeThresholdConfigs(defaultConfig: ThresholdConfig, customConfig: ThresholdConfig): ThresholdConfig {
+function mergeThresholdConfigs(
+	defaultConfig: ThresholdConfig,
+	customConfig: ThresholdConfig
+): ThresholdConfig {
 	// prettier-ignore
 	return {
 		neutral_change_percent: customConfig.neutral_change_percent ?? defaultConfig.neutral_change_percent,
@@ -111,7 +114,10 @@ export async function loadDefaultThresholdConfig(): Promise<ThresholdConfig> {
 	}
 }
 
-export async function loadThresholdConfig(customYaml?: string, customPath?: string): Promise<ThresholdConfig> {
+export async function loadThresholdConfig(
+	customYaml?: string,
+	customPath?: string
+): Promise<ThresholdConfig> {
 	let config = await loadDefaultThresholdConfig()
 
 	if (customYaml) {
@@ -139,15 +145,16 @@ export async function loadThresholdConfig(customYaml?: string, customPath?: stri
 // ---------------------------------------------------------------------------
 
 function matchPattern(metricName: string, pattern: string): boolean {
-	let regexPattern = pattern
-		.replace(/\*/g, '.*')
-		.replace(/\?/g, '.')
+	let regexPattern = pattern.replace(/\*/g, '.*').replace(/\?/g, '.')
 
 	let regex = new RegExp(`^${regexPattern}$`, 'i')
 	return regex.test(metricName)
 }
 
-export function findMatchingThreshold(metricName: string, config: ThresholdConfig): MetricThreshold | null {
+export function findMatchingThreshold(
+	metricName: string,
+	config: ThresholdConfig
+): MetricThreshold | null {
 	if (!config.metrics) return null
 
 	// First pass: exact match (highest priority)
@@ -206,7 +213,9 @@ export function evaluateAbsoluteThreshold(
 
 	let severity: Severity = 'success'
 	if (
-		(checkMin && threshold.critical_min !== undefined && currentValue < threshold.critical_min) ||
+		(checkMin &&
+			threshold.critical_min !== undefined &&
+			currentValue < threshold.critical_min) ||
 		(checkMax && threshold.critical_max !== undefined && currentValue > threshold.critical_max)
 	) {
 		severity = 'failure'
@@ -227,8 +236,10 @@ export function evaluateRelativeThreshold(
 	let violations: string[] = []
 	let threshold = findMatchingThreshold(metricName, config)
 
-	let warningThreshold = threshold?.warning_change_percent ?? config.default.warning_change_percent
-	let criticalThreshold = threshold?.critical_change_percent ?? config.default.critical_change_percent
+	let warningThreshold =
+		threshold?.warning_change_percent ?? config.default.warning_change_percent
+	let criticalThreshold =
+		threshold?.critical_change_percent ?? config.default.critical_change_percent
 	let neutralThreshold = config.neutral_change_percent
 
 	let absChange = Math.abs(changePercent)

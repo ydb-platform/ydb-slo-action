@@ -2,7 +2,11 @@ import * as assert from 'node:assert/strict'
 
 import { test } from 'bun:test'
 
-import { evaluateAbsoluteThreshold, evaluateRelativeThreshold, type ThresholdConfig } from './thresholds.js'
+import {
+	type ThresholdConfig,
+	evaluateAbsoluteThreshold,
+	evaluateRelativeThreshold,
+} from './thresholds.js'
 
 test('evaluateRelativeThreshold flags regression beyond warning threshold', () => {
 	let config: ThresholdConfig = {
@@ -13,7 +17,13 @@ test('evaluateRelativeThreshold flags regression beyond warning threshold', () =
 		},
 	}
 
-	let result = evaluateRelativeThreshold('some_latency_metric', 15, 0.8, 'lower_is_better', config)
+	let result = evaluateRelativeThreshold(
+		'some_latency_metric',
+		15,
+		0.8,
+		'lower_is_better',
+		config
+	)
 	assert.equal(result.severity, 'warning')
 	assert.ok(result.violations.length > 0)
 })
@@ -27,7 +37,13 @@ test('evaluateRelativeThreshold flags critical regression', () => {
 		},
 	}
 
-	let result = evaluateRelativeThreshold('some_latency_metric', 25, 0.9, 'lower_is_better', config)
+	let result = evaluateRelativeThreshold(
+		'some_latency_metric',
+		25,
+		0.9,
+		'lower_is_better',
+		config
+	)
 	assert.equal(result.severity, 'failure')
 })
 
@@ -41,7 +57,13 @@ test('evaluateRelativeThreshold does not trigger on improvements', () => {
 	}
 
 	// lower_is_better: negative change = improvement
-	let result = evaluateRelativeThreshold('some_latency_metric', -50, 0.1, 'lower_is_better', config)
+	let result = evaluateRelativeThreshold(
+		'some_latency_metric',
+		-50,
+		0.1,
+		'lower_is_better',
+		config
+	)
 	assert.equal(result.severity, 'success')
 })
 
@@ -54,7 +76,13 @@ test('evaluateRelativeThreshold treats small changes as neutral', () => {
 		},
 	}
 
-	let result = evaluateRelativeThreshold('some_latency_metric', 3, 0.55, 'lower_is_better', config)
+	let result = evaluateRelativeThreshold(
+		'some_latency_metric',
+		3,
+		0.55,
+		'lower_is_better',
+		config
+	)
 	assert.equal(result.severity, 'success')
 })
 

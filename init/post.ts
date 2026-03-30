@@ -6,7 +6,7 @@ import { debug, getInput, getState, info } from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { analyzeWorkload } from '../shared/analysis.js'
-import { loadMetricConfig, type CollectedMetric } from '../shared/metrics.js'
+import { type CollectedMetric, loadMetricConfig } from '../shared/metrics.js'
 import { collectAlertsFromPrometheus } from './lib/alerts.js'
 import { collectComposeLogs, getComposeProfiles, getContainerIp } from './lib/docker.js'
 import { uploadArtifacts } from './lib/github.js'
@@ -113,7 +113,9 @@ async function collectMetadata(): Promise<string> {
 		repo_full_name: process.env.GITHUB_REPOSITORY,
 		run_id: process.env.GITHUB_RUN_ID,
 		run_url:
-			process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+			process.env.GITHUB_SERVER_URL &&
+			process.env.GITHUB_REPOSITORY &&
+			process.env.GITHUB_RUN_ID
 				? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
 				: undefined,
 		workload,
