@@ -9,11 +9,12 @@ x-ydb-node: &ydb-node
   restart: always
   <<: *runtime
   expose:
-    - "2135"
-    - "8765"
-    - "19001"
+    - '2135'
+    - '8765'
+    - '19001'
   extra_hosts:
-    - "ydb:172.28.0.10"
+    - 'ydb:172.28.0.10'
+    - 'ydb-storage-1:172.28.0.10'
 
 name: ydb
 
@@ -43,19 +44,19 @@ services:
     <<: *ydb-node
     hostname: ydb-storage-1
     container_name: ydb-storage-1
-    command: ["--grpc-public-address-v4", "172.28.0.10"]
+    command: ['--grpc-public-address-v4', '172.28.0.10']
     networks:
       slo:
         ipv4_address: 172.28.0.10
     ports:
-      - "8765"
+      - '8765'
     labels:
       - ydb.node.type=storage
 
   database-1:
     <<: *ydb-node
     container_name: ydb-database-1
-    command: ["--grpc-public-address-v4", "172.28.0.11"]
+    command: ['--grpc-public-address-v4', '172.28.0.11']
     environment:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
@@ -75,7 +76,7 @@ services:
   database-2:
     <<: *ydb-node
     container_name: ydb-database-2
-    command: ["--grpc-public-address-v4", "172.28.0.12"]
+    command: ['--grpc-public-address-v4', '172.28.0.12']
     environment:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
@@ -95,7 +96,7 @@ services:
   database-3:
     <<: *ydb-node
     container_name: ydb-database-3
-    command: ["--grpc-public-address-v4", "172.28.0.13"]
+    command: ['--grpc-public-address-v4', '172.28.0.13']
     environment:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
@@ -115,7 +116,7 @@ services:
   database-4:
     <<: *ydb-node
     container_name: ydb-database-4
-    command: ["--grpc-public-address-v4", "172.28.0.14"]
+    command: ['--grpc-public-address-v4', '172.28.0.14']
     environment:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
@@ -135,7 +136,7 @@ services:
   database-5:
     <<: *ydb-node
     container_name: ydb-database-5
-    command: ["--grpc-public-address-v4", "172.28.0.15"]
+    command: ['--grpc-public-address-v4', '172.28.0.15']
     environment:
       - YDB_TENANT=/Root/testdb
       - YDB_ENDPOINT=grpc://ydb:2136
@@ -198,7 +199,7 @@ services:
     container_name: ydb-grafana
     restart: unless-stopped
     ports:
-      - "3000"
+      - '3000'
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/etc/grafana/dashboards
@@ -225,7 +226,7 @@ services:
       - ./alertrules.yml:/etc/prometheus/alertrules.yml
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "9090"
+      - '9090'
     profiles:
       - telemetry
 
@@ -258,12 +259,12 @@ services:
     restart: no
     command: ${WORKLOAD_CURRENT_COMMAND:-}
     extra_hosts:
-      - "ydb:172.28.0.11"
-      - "ydb:172.28.0.12"
-      - "ydb:172.28.0.13"
-      - "ydb:172.28.0.14"
-      - "ydb:172.28.0.15"
-      - "ydb:172.28.0.99"
+      - 'ydb:172.28.0.11'
+      - 'ydb:172.28.0.12'
+      - 'ydb:172.28.0.13'
+      - 'ydb:172.28.0.14'
+      - 'ydb:172.28.0.15'
+      - 'ydb:172.28.0.99'
     environment:
       - GOMAXPROCS=2
       - YDB_ENDPOINT=grpc://ydb:2136
@@ -286,10 +287,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.00"
+          cpus: '2.00'
           memory: 4G
         reservations:
-          cpus: "1.00"
+          cpus: '1.00'
           memory: 2G
 
   workload-baseline:
@@ -299,12 +300,12 @@ services:
     restart: no
     command: ${WORKLOAD_BASELINE_COMMAND:-}
     extra_hosts:
-      - "ydb:172.28.0.11"
-      - "ydb:172.28.0.12"
-      - "ydb:172.28.0.13"
-      - "ydb:172.28.0.14"
-      - "ydb:172.28.0.15"
-      - "ydb:172.28.0.99"
+      - 'ydb:172.28.0.11'
+      - 'ydb:172.28.0.12'
+      - 'ydb:172.28.0.13'
+      - 'ydb:172.28.0.14'
+      - 'ydb:172.28.0.15'
+      - 'ydb:172.28.0.99'
     environment:
       - GOMAXPROCS=2
       - YDB_ENDPOINT=grpc://ydb:2136
@@ -327,8 +328,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.00"
+          cpus: '2.00'
           memory: 4G
         reservations:
-          cpus: "1.00"
+          cpus: '1.00'
           memory: 2G

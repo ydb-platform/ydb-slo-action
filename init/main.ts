@@ -2,16 +2,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import {
-	debug,
-	error,
-	getInput,
-	info,
-	saveState,
-	setFailed,
-	setOutput,
-	warning,
-} from '@actions/core'
+import { debug, error, getInput, info, saveState, setFailed, setOutput } from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
@@ -34,14 +25,16 @@ async function main() {
 
 	try {
 		await deployInfra(cwd, workload)
-	} catch {
+	} catch (err) {
 		saveState('failed', 'cluster')
+		setFailed(err as Error)
 	}
 
 	try {
 		await waitForWorkloads()
-	} catch {
+	} catch (err) {
 		saveState('failed', 'workload')
+		setFailed(err as Error)
 	}
 }
 
@@ -100,7 +93,7 @@ async function deployInfra(cwd: string, workload: string): Promise<void> {
 				},
 			})
 		} catch (err) {
-			warning(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`)
+			info(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`)
 			continue
 		}
 

@@ -12,8 +12,7 @@ import {
   info,
   saveState,
   setFailed,
-  setOutput,
-  warning
+  setOutput
 } from "../main-w8t1tja0.js";
 
 // init/main.ts
@@ -26,13 +25,13 @@ async function main() {
   saveState("cwd", cwd), saveState("pull", await getPullRequestNumber()), saveState("commit", process.env.GITHUB_SHA), saveState("workload", workload), fs.mkdirSync(cwd, { recursive: !0 }), await copyAssets(cwd);
   try {
     await deployInfra(cwd, workload);
-  } catch {
-    saveState("failed", "cluster");
+  } catch (err) {
+    saveState("failed", "cluster"), setFailed(err);
   }
   try {
     await waitForWorkloads();
-  } catch {
-    saveState("failed", "workload");
+  } catch (err) {
+    saveState("failed", "workload"), setFailed(err);
   }
 }
 async function copyAssets(cwd) {
@@ -72,7 +71,7 @@ async function deployInfra(cwd, workload) {
         }
       });
     } catch (err) {
-      warning(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`);
+      info(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`);
       continue;
     }
     started = !0;
