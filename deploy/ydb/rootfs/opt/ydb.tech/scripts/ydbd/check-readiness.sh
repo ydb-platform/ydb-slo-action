@@ -58,10 +58,10 @@ check_node_responds() {
             continue
         fi
 
-        # Check scheme operations
-        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery scheme ls "${YDB_DATABASE}" >/dev/null; then
+        # Check DDL operations
+        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "CREATE TABLE IF NOT EXISTS `readiness_check` (id Utf8, primary key (`id`));" >/dev/null; then
             attempt=$((attempt + 1))
-            log "Node at $endpoint not responding to scheme operations (attempt $attempt/$max_attempts)"
+            log "Node at $endpoint not responding to SQL (attempt $attempt/$max_attempts)"
             sleep 2
             continue
         fi
