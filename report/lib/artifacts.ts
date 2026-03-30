@@ -19,7 +19,9 @@ export interface WorkloadArtifact {
 /**
  * Download all artifacts from workflow run
  */
-export async function downloadRunArtifacts(destinationPath: string): Promise<Map<string, WorkloadArtifact>> {
+export async function downloadRunArtifacts(
+	destinationPath: string
+): Promise<Map<string, WorkloadArtifact>> {
 	let token = getInput('github_token')
 	let workflowRunId = parseInt(getInput('github_run_id') || String(context.runId))
 
@@ -106,15 +108,16 @@ export async function downloadRunArtifacts(destinationPath: string): Promise<Map
  * Upload HTML report as artifact
  */
 export async function uploadReportArtifact(
+	cwd: string,
 	workload: string,
 	htmlPath: string,
-	cwd: string,
-	retentionDays: number
+	retentionDays: number = 30
 ): Promise<string> {
 	let artifactClient = new DefaultArtifactClient()
 
 	let { id } = await artifactClient.uploadArtifact(`${workload}-html-report`, [htmlPath], cwd, {
 		retentionDays,
+		skipArchive: true,
 	})
 
 	return `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts/${id}`
