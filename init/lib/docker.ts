@@ -56,10 +56,37 @@ export async function getContainerIp(containerName: string): Promise<string | nu
 		)
 
 		let ip = chunks.join('').trim()
-		return ip || null
+
+		return ip
 	} catch (error) {
 		warning(`Failed to get container IP for ${containerName}: ${String(error)}`)
+
 		return null
+	}
+}
+
+export async function getContainerLogs(containerName: string): Promise<string> {
+	try {
+		let chunks: string[] = []
+
+		//prettier-ignore
+		await exec('docker', ['logs', '-t',  containerName],
+			{
+				silent: true,
+				listeners: {
+					stdout: (data) => chunks.push(data.toString()),
+					stderr: (data) => chunks.push(data.toString()),
+				},
+			}
+		)
+
+		let logs = chunks.join('').trim()
+
+		return logs
+	} catch (error) {
+		warning(`Failed to get container logs for ${containerName}: ${String(error)}`)
+
+		return ''
 	}
 }
 
@@ -100,7 +127,10 @@ export async function collectComposeLogs(cwd: string, profiles: string[]): Promi
 /**
  * Gets all profiles defined in a Docker Compose file
  */
-export async function getComposeProfiles(cwd: string, disableProfiles: string[] = []): Promise<string[]> {
+export async function getComposeProfiles(
+	cwd: string,
+	disableProfiles: string[] = []
+): Promise<string[]> {
 	try {
 		let chunks: string[] = []
 
@@ -197,7 +227,7 @@ export async function waitForContainerCompletion(options: WaitForCompletionOptio
 			}, timeoutMs)
 		})
 
-		let waitPromise = exec('docker', ['wait', container], {
+		let waitPromise: Promise<void> = exec('docker', ['wait', container], {
 			silent: true,
 			listeners: {
 				stdout: (data) => chunks.push(data.toString()),
@@ -205,6 +235,8 @@ export async function waitForContainerCompletion(options: WaitForCompletionOptio
 		}).then(() => {
 			completed = true
 			if (timeoutHandle) clearTimeout(timeoutHandle)
+
+			return
 		})
 
 		await Promise.race([waitPromise, timeoutPromise])
@@ -216,24 +248,34 @@ export async function waitForContainerCompletion(options: WaitForCompletionOptio
 		let exitCode = parseInt(chunks.join('').trim(), 10)
 
 		if (exitCode !== 0) {
-			throw new Error(`Container ${container} exited with code ${exitCode}`)
+			throw new Error(`Container ${container} exited with code ${exitCode}.`)
 		}
 	} catch (error) {
 		// Get container status for debugging
 		let statusInfo = ''
 		try {
 			let statusChunks: string[] = []
-			await exec('docker', ['inspect', '-f', '{{.State.Status}} ({{.State.ExitCode}})', container], {
-				silent: true,
-				listeners: {
-					stdout: (data) => statusChunks.push(data.toString()),
-				},
-			})
+			await exec(
+				'docker',
+				['inspect', '-f', '{{.State.Status}} ({{.State.ExitCode}})', container],
+				{
+					silent: true,
+					listeners: {
+						stdout: (data) => statusChunks.push(data.toString()),
+					},
+				}
+			)
 			statusInfo = ` [Status: ${statusChunks.join('').trim()}]`
 		} catch {
 			// Ignore errors getting status
 		}
 
-		throw new Error(`Failed to wait for container ${container}${statusInfo}: ${String(error)}`)
+		try {
+			warning(await getContainerLogs(container))
+		} catch {}
+
+		throw new Error(`Failed to wait for container ${container}${statusInfo}.`, {
+			cause: error,
+		})
 	}
 }
