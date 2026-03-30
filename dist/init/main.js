@@ -26,12 +26,12 @@ async function main() {
   try {
     await deployInfra(cwd, workload);
   } catch (err) {
-    saveState("failed", "cluster"), setFailed(err);
+    saveState("failed", "cluster"), error(err), process.exit(1);
   }
   try {
     await waitForWorkloads();
   } catch (err) {
-    saveState("failed", "workload"), setFailed(err);
+    saveState("failed", "workload"), error(err), process.exit(1);
   }
 }
 async function copyAssets(cwd) {

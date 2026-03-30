@@ -27,14 +27,16 @@ async function main() {
 		await deployInfra(cwd, workload)
 	} catch (err) {
 		saveState('failed', 'cluster')
-		setFailed(err as Error)
+		error(err as Error)
+		process.exit(1)
 	}
 
 	try {
 		await waitForWorkloads()
 	} catch (err) {
 		saveState('failed', 'workload')
-		setFailed(err as Error)
+		error(err as Error)
+		process.exit(1)
 	}
 }
 
