@@ -21,7 +21,7 @@ YDB_STORAGE_ENDPOINT="grpc://172.28.0.10:2136"
 check_cluster_health() {
     log "Checking cluster health via $YDB_STORAGE_ENDPOINT"
 
-    local max_attempts=10
+    local max_attempts=30
     local attempt=0
 
     while [[ $attempt -lt $max_attempts ]]; do
@@ -46,7 +46,7 @@ check_node_responds() {
 
     log "Checking if node at $endpoint responds"
 
-    local max_attempts=10
+    local max_attempts=30
     local attempt=0
 
     while [[ $attempt -lt $max_attempts ]]; do
