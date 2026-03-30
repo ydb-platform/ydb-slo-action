@@ -2,25 +2,40 @@ import { createRequire } from "node:module";
 var __create = Object.create;
 var { getPrototypeOf: __getProtoOf, defineProperty: __defProp, getOwnPropertyNames: __getOwnPropNames } = Object;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __toESM = (mod, isNodeMode, target) => {
+function __accessProp(key) {
+  return this[key];
+}
+var __toESMCache_node, __toESMCache_esm, __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= /* @__PURE__ */ new WeakMap : __toESMCache_esm ??= /* @__PURE__ */ new WeakMap, cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   let to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: !0 }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: !0
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: !0,
       configurable: !0,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 var __require = /* @__PURE__ */ createRequire(import.meta.url);
@@ -17107,7 +17122,7 @@ var require_commonjs2 = __commonJS((exports) => {
 var require_package = __commonJS((exports, module) => {
   module.exports = {
     name: "@actions/artifact",
-    version: "6.1.0",
+    version: "6.2.1",
     preview: !0,
     description: "Actions artifact lib",
     keywords: [
@@ -24364,7 +24379,7 @@ var require_errors2 = __commonJS((exports, module) => {
     return innerError || outerError;
   }
 
-  class AbortError3 extends Error {
+  class AbortError4 extends Error {
     constructor(message = "The operation was aborted", options = void 0) {
       if (options !== void 0 && typeof options !== "object")
         throw new codes.ERR_INVALID_ARG_TYPE("options", "Object", options);
@@ -24522,7 +24537,7 @@ var require_errors2 = __commonJS((exports, module) => {
   E("ERR_STREAM_WRITE_AFTER_END", "write after end", Error);
   E("ERR_UNKNOWN_ENCODING", "Unknown encoding: %s", TypeError);
   module.exports = {
-    AbortError: AbortError3,
+    AbortError: AbortError4,
     aggregateTwoErrors: hideStackFrames(aggregateTwoErrors),
     hideStackFrames,
     codes
@@ -24950,7 +24965,7 @@ var require_utils2 = __commonJS((exports, module) => {
 
 // node_modules/readable-stream/lib/internal/streams/end-of-stream.js
 var require_end_of_stream = __commonJS((exports, module) => {
-  var process4 = require_process(), { AbortError: AbortError3, codes } = require_errors2(), { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_STREAM_PREMATURE_CLOSE } = codes, { kEmptyObject, once } = require_util10(), { validateAbortSignal, validateFunction, validateObject, validateBoolean } = require_validators(), { Promise: Promise2, PromisePrototypeThen, SymbolDispose } = require_primordials(), {
+  var process4 = require_process(), { AbortError: AbortError4, codes } = require_errors2(), { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_STREAM_PREMATURE_CLOSE } = codes, { kEmptyObject, once } = require_util10(), { validateAbortSignal, validateFunction, validateObject, validateBoolean } = require_validators(), { Promise: Promise2, PromisePrototypeThen, SymbolDispose } = require_primordials(), {
     isClosed,
     isReadable,
     isReadableNodeStream,
@@ -25056,7 +25071,7 @@ var require_end_of_stream = __commonJS((exports, module) => {
     if (options.signal && !closed) {
       let abort = () => {
         let endCallback = callback;
-        cleanup(), endCallback.call(stream2, new AbortError3(void 0, {
+        cleanup(), endCallback.call(stream2, new AbortError4(void 0, {
           cause: options.signal.reason
         }));
       };
@@ -25076,7 +25091,7 @@ var require_end_of_stream = __commonJS((exports, module) => {
     let isAborted = !1, abort = nop;
     if (options.signal)
       if (abort = () => {
-        isAborted = !0, callback.call(stream2, new AbortError3(void 0, {
+        isAborted = !0, callback.call(stream2, new AbortError4(void 0, {
           cause: options.signal.reason
         }));
       }, options.signal.aborted)
@@ -25121,7 +25136,7 @@ var require_destroy2 = __commonJS((exports, module) => {
   var process4 = require_process(), {
     aggregateTwoErrors,
     codes: { ERR_MULTIPLE_CALLBACK },
-    AbortError: AbortError3
+    AbortError: AbortError4
   } = require_errors2(), { Symbol: Symbol2 } = require_primordials(), { kIsDestroyed, isDestroyed, isFinished, isServerRequest } = require_utils2(), kDestroy = Symbol2("kDestroy"), kConstruct = Symbol2("kConstruct");
   function checkError(err, w, r) {
     if (err) {
@@ -25276,7 +25291,7 @@ var require_destroy2 = __commonJS((exports, module) => {
     if (!stream2 || isDestroyed(stream2))
       return;
     if (!err && !isFinished(stream2))
-      err = new AbortError3;
+      err = new AbortError4;
     if (isServerRequest(stream2))
       stream2.socket = null, stream2.destroy(err);
     else if (isRequest(stream2))
@@ -25364,7 +25379,7 @@ var require_legacy = __commonJS((exports, module) => {
 
 // node_modules/readable-stream/lib/internal/streams/add-abort-signal.js
 var require_add_abort_signal = __commonJS((exports, module) => {
-  var { SymbolDispose } = require_primordials(), { AbortError: AbortError3, codes } = require_errors2(), { isNodeStream, isWebStream, kControllerErrorFunction } = require_utils2(), eos = require_end_of_stream(), { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2 } = codes, addAbortListener, validateAbortSignal = (signal, name) => {
+  var { SymbolDispose } = require_primordials(), { AbortError: AbortError4, codes } = require_errors2(), { isNodeStream, isWebStream, kControllerErrorFunction } = require_utils2(), eos = require_end_of_stream(), { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2 } = codes, addAbortListener, validateAbortSignal = (signal, name) => {
     if (typeof signal !== "object" || !("aborted" in signal))
       throw new ERR_INVALID_ARG_TYPE2(name, "AbortSignal", signal);
   };
@@ -25377,11 +25392,11 @@ var require_add_abort_signal = __commonJS((exports, module) => {
     if (typeof signal !== "object" || !("aborted" in signal))
       return stream2;
     let onAbort = isNodeStream(stream2) ? () => {
-      stream2.destroy(new AbortError3(void 0, {
+      stream2.destroy(new AbortError4(void 0, {
         cause: signal.reason
       }));
     } : () => {
-      stream2[kControllerErrorFunction](new AbortError3(void 0, {
+      stream2[kControllerErrorFunction](new AbortError4(void 0, {
         cause: signal.reason
       }));
     };
@@ -25650,7 +25665,7 @@ var require_readable3 = __commonJS((exports, module) => {
       ERR_STREAM_PUSH_AFTER_EOF,
       ERR_STREAM_UNSHIFT_AFTER_END_EVENT
     },
-    AbortError: AbortError3
+    AbortError: AbortError4
   } = require_errors2(), { validateObject } = require_validators(), kPaused = Symbol2("kPaused"), { StringDecoder } = __require("string_decoder"), from = require_from();
   ObjectSetPrototypeOf(Readable5.prototype, Stream.prototype);
   ObjectSetPrototypeOf(Readable5, Stream);
@@ -25734,7 +25749,7 @@ var require_readable3 = __commonJS((exports, module) => {
   Readable5.prototype[SymbolAsyncDispose] = function() {
     let error2;
     if (!this.destroyed)
-      error2 = this.readableEnded ? null : new AbortError3, this.destroy(error2);
+      error2 = this.readableEnded ? null : new AbortError4, this.destroy(error2);
     return new Promise2((resolve3, reject) => eos(this, (err) => err && err !== error2 ? reject(err) : resolve3(null)));
   };
   Readable5.prototype.push = function(chunk, encoding) {
@@ -26874,7 +26889,7 @@ var require_duplexify = __commonJS((exports, module) => {
     isReadableStream: isReadableStream2,
     isWritableStream
   } = require_utils2(), eos = require_end_of_stream(), {
-    AbortError: AbortError3,
+    AbortError: AbortError4,
     codes: { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_INVALID_RETURN_VALUE }
   } = require_errors2(), { destroyer } = require_destroy2(), Duplex = require_duplex(), Readable5 = require_readable3(), Writable = require_writable(), { createDeferredPromise } = require_util10(), from = require_from(), Blob2 = globalThis.Blob || bufferModule.Blob, isBlob2 = typeof Blob2 < "u" ? function(b) {
     return b instanceof Blob2;
@@ -27004,7 +27019,7 @@ var require_duplexify = __commonJS((exports, module) => {
           if (process4.nextTick(cb), done)
             return;
           if (signal.aborted)
-            throw new AbortError3(void 0, {
+            throw new AbortError4(void 0, {
               cause: signal.reason
             });
           ({ promise, resolve: resolve3 } = createDeferredPromise()), yield chunk;
@@ -27094,7 +27109,7 @@ var require_duplexify = __commonJS((exports, module) => {
       };
     return d._destroy = function(err, callback) {
       if (!err && onclose !== null)
-        err = new AbortError3;
+        err = new AbortError4;
       if (onreadable = null, ondrain = null, onfinish = null, onclose === null)
         callback(err);
       else
@@ -27308,7 +27323,7 @@ var require_pipeline = __commonJS((exports, module) => {
       ERR_STREAM_DESTROYED,
       ERR_STREAM_PREMATURE_CLOSE
     },
-    AbortError: AbortError3
+    AbortError: AbortError4
   } = require_errors2(), { validateFunction, validateAbortSignal } = require_validators(), {
     isIterable,
     isReadable,
@@ -27421,7 +27436,7 @@ var require_pipeline = __commonJS((exports, module) => {
     let ac = new AbortController2, signal = ac.signal, outerSignal = opts === null || opts === void 0 ? void 0 : opts.signal, lastStreamCleanup = [];
     validateAbortSignal(outerSignal, "options.signal");
     function abort() {
-      finishImpl(new AbortError3);
+      finishImpl(new AbortError4);
     }
     addAbortListener = addAbortListener || require_util10().addAbortListener;
     let disposable;
@@ -27610,7 +27625,7 @@ var require_compose = __commonJS((exports, module) => {
     isWritableStream,
     isReadableStream: isReadableStream2
   } = require_utils2(), {
-    AbortError: AbortError3,
+    AbortError: AbortError4,
     codes: { ERR_INVALID_ARG_VALUE, ERR_MISSING_ARGS }
   } = require_errors2(), eos = require_end_of_stream();
   module.exports = function(...streams) {
@@ -27728,7 +27743,7 @@ var require_compose = __commonJS((exports, module) => {
     }
     return d._destroy = function(err, callback) {
       if (!err && onclose !== null)
-        err = new AbortError3;
+        err = new AbortError4;
       if (onreadable = null, ondrain = null, onfinish = null, onclose === null)
         callback(err);
       else if (onclose = callback, isNodeStream(tail))
@@ -27741,7 +27756,7 @@ var require_compose = __commonJS((exports, module) => {
 var require_operators = __commonJS((exports, module) => {
   var AbortController2 = globalThis.AbortController || require_abort_controller().AbortController, {
     codes: { ERR_INVALID_ARG_VALUE, ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_MISSING_ARGS, ERR_OUT_OF_RANGE },
-    AbortError: AbortError3
+    AbortError: AbortError4
   } = require_errors2(), { validateAbortSignal, validateInteger, validateObject } = require_validators(), kWeakHandler = require_primordials().Symbol("kWeak"), kResistStopPropagation = require_primordials().Symbol("kResistStopPropagation"), { finished } = require_end_of_stream(), staticCompose = require_compose(), { addAbortSignalNoValidate } = require_add_abort_signal(), { isWritable, isNodeStream } = require_utils2(), { deprecate } = require_util10(), {
     ArrayPrototypePush,
     Boolean: Boolean2,
@@ -27799,7 +27814,7 @@ var require_operators = __commonJS((exports, module) => {
             if (done)
               return;
             if (signal.aborted)
-              throw new AbortError3;
+              throw new AbortError4;
             try {
               if (val = fn(val, signalOpt), val === kEmpty)
                 continue;
@@ -27831,7 +27846,7 @@ var require_operators = __commonJS((exports, module) => {
             if (val === kEof)
               return;
             if (signal.aborted)
-              throw new AbortError3;
+              throw new AbortError4;
             if (val !== kEmpty)
               yield val;
             queue.shift(), maybeResume();
@@ -27856,7 +27871,7 @@ var require_operators = __commonJS((exports, module) => {
       for await (let val of this) {
         var _options$signal;
         if (options !== null && options !== void 0 && (_options$signal = options.signal) !== null && _options$signal !== void 0 && _options$signal.aborted)
-          throw new AbortError3({
+          throw new AbortError4({
             cause: options.signal.reason
           });
         yield [index++, val];
@@ -27916,7 +27931,7 @@ var require_operators = __commonJS((exports, module) => {
       validateAbortSignal(options.signal, "options.signal");
     let hasInitialValue = arguments.length > 1;
     if (options !== null && options !== void 0 && (_options$signal2 = options.signal) !== null && _options$signal2 !== void 0 && _options$signal2.aborted) {
-      let err = new AbortError3(void 0, {
+      let err = new AbortError4(void 0, {
         cause: options.signal.reason
       });
       throw this.once("error", () => {}), await finished(this.destroy(err)), err;
@@ -27935,7 +27950,7 @@ var require_operators = __commonJS((exports, module) => {
       for await (let value of this) {
         var _options$signal3;
         if (gotAnyItemFromStream = !0, options !== null && options !== void 0 && (_options$signal3 = options.signal) !== null && _options$signal3 !== void 0 && _options$signal3.aborted)
-          throw new AbortError3;
+          throw new AbortError4;
         if (!hasInitialValue)
           initialValue = value, hasInitialValue = !0;
         else
@@ -27959,7 +27974,7 @@ var require_operators = __commonJS((exports, module) => {
     for await (let val of this) {
       var _options$signal4;
       if (options !== null && options !== void 0 && (_options$signal4 = options.signal) !== null && _options$signal4 !== void 0 && _options$signal4.aborted)
-        throw new AbortError3(void 0, {
+        throw new AbortError4(void 0, {
           cause: options.signal.reason
         });
       ArrayPrototypePush(result, val);
@@ -27988,11 +28003,11 @@ var require_operators = __commonJS((exports, module) => {
     return number = toIntegerOrInfinity(number), async function* () {
       var _options$signal5;
       if (options !== null && options !== void 0 && (_options$signal5 = options.signal) !== null && _options$signal5 !== void 0 && _options$signal5.aborted)
-        throw new AbortError3;
+        throw new AbortError4;
       for await (let val of this) {
         var _options$signal6;
         if (options !== null && options !== void 0 && (_options$signal6 = options.signal) !== null && _options$signal6 !== void 0 && _options$signal6.aborted)
-          throw new AbortError3;
+          throw new AbortError4;
         if (number-- <= 0)
           yield val;
       }
@@ -28006,11 +28021,11 @@ var require_operators = __commonJS((exports, module) => {
     return number = toIntegerOrInfinity(number), async function* () {
       var _options$signal7;
       if (options !== null && options !== void 0 && (_options$signal7 = options.signal) !== null && _options$signal7 !== void 0 && _options$signal7.aborted)
-        throw new AbortError3;
+        throw new AbortError4;
       for await (let val of this) {
         var _options$signal8;
         if (options !== null && options !== void 0 && (_options$signal8 = options.signal) !== null && _options$signal8 !== void 0 && _options$signal8.aborted)
-          throw new AbortError3;
+          throw new AbortError4;
         if (number-- > 0)
           yield val;
         if (number <= 0)
@@ -36876,16 +36891,16 @@ var require_traverse = __commonJS((exports, module) => {
     }(this.value);
   };
   function walk(root, cb, immutable) {
-    var path4 = [], parents = [], alive = !0;
+    var path6 = [], parents = [], alive = !0;
     return function walker(node_) {
       var node = immutable ? copy(node_) : node_, modifiers = {}, state4 = {
         node,
         node_,
-        path: [].concat(path4),
+        path: [].concat(path6),
         parent: parents.slice(-1)[0],
-        key: path4.slice(-1)[0],
-        isRoot: path4.length === 0,
-        level: path4.length,
+        key: path6.slice(-1)[0],
+        isRoot: path6.length === 0,
+        level: path6.length,
         circular: null,
         update: function(x) {
           if (!state4.isRoot)
@@ -36938,14 +36953,14 @@ var require_traverse = __commonJS((exports, module) => {
         parents.push(state4);
         var keys = Object.keys(state4.node);
         keys.forEach(function(key, i2) {
-          if (path4.push(key), modifiers.pre)
+          if (path6.push(key), modifiers.pre)
             modifiers.pre.call(state4, state4.node[key], key);
           var child2 = walker(state4.node[key]);
           if (immutable && Object.hasOwnProperty.call(state4.node, key))
             state4.node[key] = child2.node;
           if (child2.isLast = i2 == keys.length - 1, child2.isFirst = i2 == 0, modifiers.post)
             modifiers.post.call(state4, child2);
-          path4.pop();
+          path6.pop();
         }), parents.pop();
       }
       if (modifiers.after)
@@ -37725,9 +37740,9 @@ var require_unzip_stream = __commonJS((exports, module) => {
       case states.CENTRAL_DIRECTORY_FILE_HEADER:
         return this.parsedEntity = this._readCentralDirectoryEntry(chunk), this.state = states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX, requiredLength;
       case states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX:
-        var isUtf8 = (this.parsedEntity.flags & 2048) !== 0, path4 = this._decodeString(chunk.slice(0, this.parsedEntity.fileNameLength), isUtf8), extraDataBuffer = chunk.slice(this.parsedEntity.fileNameLength, this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength), extra = this._readExtraFields(extraDataBuffer);
+        var isUtf8 = (this.parsedEntity.flags & 2048) !== 0, path6 = this._decodeString(chunk.slice(0, this.parsedEntity.fileNameLength), isUtf8), extraDataBuffer = chunk.slice(this.parsedEntity.fileNameLength, this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength), extra = this._readExtraFields(extraDataBuffer);
         if (extra && extra.parsed && extra.parsed.path && !isUtf8)
-          path4 = extra.parsed.path;
+          path6 = extra.parsed.path;
         this.parsedEntity.extra = extra.parsed;
         var isUnix = (this.parsedEntity.versionMadeBy & 65280) >> 8 === 3, unixAttrs, isSymlink;
         if (isUnix) {
@@ -37737,7 +37752,7 @@ var require_unzip_stream = __commonJS((exports, module) => {
         }
         if (this.options.debug) {
           let debugObj2 = Object.assign({}, this.parsedEntity, {
-            path: path4,
+            path: path6,
             flags: "0x" + this.parsedEntity.flags.toString(16),
             unixAttrs: unixAttrs && "0" + unixAttrs.toString(8),
             isSymlink,
@@ -38082,27 +38097,27 @@ var require_parser_stream = __commonJS((exports, module) => {
 
 // node_modules/mkdirp/index.js
 var require_mkdirp = __commonJS((exports, module) => {
-  var path4 = __require("path"), fs5 = __require("fs"), _0777 = parseInt("0777", 8);
+  var path6 = __require("path"), fs7 = __require("fs"), _0777 = parseInt("0777", 8);
   module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
   function mkdirP(p, opts, f, made) {
     if (typeof opts === "function")
       f = opts, opts = {};
     else if (!opts || typeof opts !== "object")
       opts = { mode: opts };
-    var mode = opts.mode, xfs = opts.fs || fs5;
+    var mode = opts.mode, xfs = opts.fs || fs7;
     if (mode === void 0)
       mode = _0777;
     if (!made)
       made = null;
     var cb = f || function() {};
-    p = path4.resolve(p), xfs.mkdir(p, mode, function(er) {
+    p = path6.resolve(p), xfs.mkdir(p, mode, function(er) {
       if (!er)
         return made = made || p, cb(null, made);
       switch (er.code) {
         case "ENOENT":
-          if (path4.dirname(p) === p)
+          if (path6.dirname(p) === p)
             return cb(er);
-          mkdirP(path4.dirname(p), opts, function(er2, made2) {
+          mkdirP(path6.dirname(p), opts, function(er2, made2) {
             if (er2)
               cb(er2, made2);
             else
@@ -38123,18 +38138,18 @@ var require_mkdirp = __commonJS((exports, module) => {
   mkdirP.sync = function sync(p, opts, made) {
     if (!opts || typeof opts !== "object")
       opts = { mode: opts };
-    var mode = opts.mode, xfs = opts.fs || fs5;
+    var mode = opts.mode, xfs = opts.fs || fs7;
     if (mode === void 0)
       mode = _0777;
     if (!made)
       made = null;
-    p = path4.resolve(p);
+    p = path6.resolve(p);
     try {
       xfs.mkdirSync(p, mode), made = made || p;
     } catch (err0) {
       switch (err0.code) {
         case "ENOENT":
-          made = sync(path4.dirname(p), opts, made), sync(p, opts, made);
+          made = sync(path6.dirname(p), opts, made), sync(p, opts, made);
           break;
         default:
           var stat2;
@@ -38154,7 +38169,7 @@ var require_mkdirp = __commonJS((exports, module) => {
 
 // node_modules/unzip-stream/lib/extract.js
 var require_extract2 = __commonJS((exports, module) => {
-  var fs5 = __require("fs"), path4 = __require("path"), util3 = __require("util"), mkdirp = require_mkdirp(), Transform3 = __require("stream").Transform, UnzipStream = require_unzip_stream();
+  var fs7 = __require("fs"), path6 = __require("path"), util3 = __require("util"), mkdirp = require_mkdirp(), Transform3 = __require("stream").Transform, UnzipStream = require_unzip_stream();
   function Extract(opts) {
     if (!(this instanceof Extract))
       return new Extract(opts);
@@ -38181,10 +38196,10 @@ var require_extract2 = __commonJS((exports, module) => {
     });
   };
   Extract.prototype._processEntry = function(entry) {
-    var self2 = this, destPath = path4.join(this.opts.path, entry.path), directory = entry.isDirectory ? destPath : path4.dirname(destPath);
+    var self2 = this, destPath = path6.join(this.opts.path, entry.path), directory = entry.isDirectory ? destPath : path6.dirname(destPath);
     this.unfinishedEntries++;
     var writeFileFn = function() {
-      var pipedStream = fs5.createWriteStream(destPath);
+      var pipedStream = fs7.createWriteStream(destPath);
       pipedStream.on("close", function() {
         self2.unfinishedEntries--, self2._notifyAwaiter();
       }), pipedStream.on("error", function(error2) {
@@ -38328,7 +38343,7 @@ var require_light = __commonJS((exports, module) => {
           return 0;
       }
       async trigger(name, ...args) {
-        var e, promises3;
+        var e, promises4;
         try {
           if (name !== "debug")
             this.trigger("debug", `Event triggered: ${name}`, args);
@@ -38336,7 +38351,7 @@ var require_light = __commonJS((exports, module) => {
             return;
           return this._events[name] = this._events[name].filter(function(listener) {
             return listener.status !== "none";
-          }), promises3 = this._events[name].map(async (listener) => {
+          }), promises4 = this._events[name].map(async (listener) => {
             var e2, returned;
             if (listener.status === "none")
               return;
@@ -38350,7 +38365,7 @@ var require_light = __commonJS((exports, module) => {
             } catch (error2) {
               return e2 = error2, this.trigger("error", e2), null;
             }
-          }), (await Promise.all(promises3)).find(function(x) {
+          }), (await Promise.all(promises4)).find(function(x) {
             return x != null;
           });
         } catch (error2) {
@@ -43885,6 +43900,10 @@ function getMaxArtifactListCount() {
   return maxCount;
 }
 
+// node_modules/@actions/artifact/lib/internal/upload/upload-artifact.js
+import * as fs6 from "fs";
+import * as path5 from "path";
+
 // node_modules/@actions/artifact/lib/generated/google/protobuf/timestamp.js
 var import_runtime = __toESM(require_commonjs(), 1), import_runtime2 = __toESM(require_commonjs(), 1), import_runtime3 = __toESM(require_commonjs(), 1), import_runtime4 = __toESM(require_commonjs(), 1), import_runtime5 = __toESM(require_commonjs(), 1), import_runtime6 = __toESM(require_commonjs(), 1), import_runtime7 = __toESM(require_commonjs(), 1);
 
@@ -44435,210 +44454,6 @@ class BytesValue$Type extends import_runtime14.MessageType {
 var BytesValue = new BytesValue$Type;
 // node_modules/@actions/artifact/lib/generated/results/api/v1/artifact.js
 var import_runtime_rpc = __toESM(require_commonjs2(), 1), import_runtime15 = __toESM(require_commonjs(), 1), import_runtime16 = __toESM(require_commonjs(), 1), import_runtime17 = __toESM(require_commonjs(), 1), import_runtime18 = __toESM(require_commonjs(), 1), import_runtime19 = __toESM(require_commonjs(), 1);
-class MigrateArtifactRequest$Type extends import_runtime19.MessageType {
-  constructor() {
-    super("github.actions.results.api.v1.MigrateArtifactRequest", [
-      { no: 1, name: "workflow_run_backend_id", kind: "scalar", T: 9 },
-      { no: 2, name: "name", kind: "scalar", T: 9 },
-      { no: 3, name: "expires_at", kind: "message", T: () => Timestamp }
-    ]);
-  }
-  create(value) {
-    let message = { workflowRunBackendId: "", name: "" };
-    if (globalThis.Object.defineProperty(message, import_runtime18.MESSAGE_TYPE, { enumerable: !1, value: this }), value !== void 0)
-      import_runtime17.reflectionMergePartial(this, message, value);
-    return message;
-  }
-  internalBinaryRead(reader, length, options, target) {
-    let message = target !== null && target !== void 0 ? target : this.create(), end = reader.pos + length;
-    while (reader.pos < end) {
-      let [fieldNo, wireType] = reader.tag();
-      switch (fieldNo) {
-        case 1:
-          message.workflowRunBackendId = reader.string();
-          break;
-        case 2:
-          message.name = reader.string();
-          break;
-        case 3:
-          message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
-          break;
-        default:
-          let u = options.readUnknownField;
-          if (u === "throw")
-            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-          let d = reader.skip(wireType);
-          if (u !== !1)
-            (u === !0 ? import_runtime16.UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-      }
-    }
-    return message;
-  }
-  internalBinaryWrite(message, writer, options) {
-    if (message.workflowRunBackendId !== "")
-      writer.tag(1, import_runtime15.WireType.LengthDelimited).string(message.workflowRunBackendId);
-    if (message.name !== "")
-      writer.tag(2, import_runtime15.WireType.LengthDelimited).string(message.name);
-    if (message.expiresAt)
-      Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(3, import_runtime15.WireType.LengthDelimited).fork(), options).join();
-    let u = options.writeUnknownFields;
-    if (u !== !1)
-      (u == !0 ? import_runtime16.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-    return writer;
-  }
-}
-var MigrateArtifactRequest = new MigrateArtifactRequest$Type;
-
-class MigrateArtifactResponse$Type extends import_runtime19.MessageType {
-  constructor() {
-    super("github.actions.results.api.v1.MigrateArtifactResponse", [
-      { no: 1, name: "ok", kind: "scalar", T: 8 },
-      { no: 2, name: "signed_upload_url", kind: "scalar", T: 9 }
-    ]);
-  }
-  create(value) {
-    let message = { ok: !1, signedUploadUrl: "" };
-    if (globalThis.Object.defineProperty(message, import_runtime18.MESSAGE_TYPE, { enumerable: !1, value: this }), value !== void 0)
-      import_runtime17.reflectionMergePartial(this, message, value);
-    return message;
-  }
-  internalBinaryRead(reader, length, options, target) {
-    let message = target !== null && target !== void 0 ? target : this.create(), end = reader.pos + length;
-    while (reader.pos < end) {
-      let [fieldNo, wireType] = reader.tag();
-      switch (fieldNo) {
-        case 1:
-          message.ok = reader.bool();
-          break;
-        case 2:
-          message.signedUploadUrl = reader.string();
-          break;
-        default:
-          let u = options.readUnknownField;
-          if (u === "throw")
-            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-          let d = reader.skip(wireType);
-          if (u !== !1)
-            (u === !0 ? import_runtime16.UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-      }
-    }
-    return message;
-  }
-  internalBinaryWrite(message, writer, options) {
-    if (message.ok !== !1)
-      writer.tag(1, import_runtime15.WireType.Varint).bool(message.ok);
-    if (message.signedUploadUrl !== "")
-      writer.tag(2, import_runtime15.WireType.LengthDelimited).string(message.signedUploadUrl);
-    let u = options.writeUnknownFields;
-    if (u !== !1)
-      (u == !0 ? import_runtime16.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-    return writer;
-  }
-}
-var MigrateArtifactResponse = new MigrateArtifactResponse$Type;
-
-class FinalizeMigratedArtifactRequest$Type extends import_runtime19.MessageType {
-  constructor() {
-    super("github.actions.results.api.v1.FinalizeMigratedArtifactRequest", [
-      { no: 1, name: "workflow_run_backend_id", kind: "scalar", T: 9 },
-      { no: 2, name: "name", kind: "scalar", T: 9 },
-      { no: 3, name: "size", kind: "scalar", T: 3 }
-    ]);
-  }
-  create(value) {
-    let message = { workflowRunBackendId: "", name: "", size: "0" };
-    if (globalThis.Object.defineProperty(message, import_runtime18.MESSAGE_TYPE, { enumerable: !1, value: this }), value !== void 0)
-      import_runtime17.reflectionMergePartial(this, message, value);
-    return message;
-  }
-  internalBinaryRead(reader, length, options, target) {
-    let message = target !== null && target !== void 0 ? target : this.create(), end = reader.pos + length;
-    while (reader.pos < end) {
-      let [fieldNo, wireType] = reader.tag();
-      switch (fieldNo) {
-        case 1:
-          message.workflowRunBackendId = reader.string();
-          break;
-        case 2:
-          message.name = reader.string();
-          break;
-        case 3:
-          message.size = reader.int64().toString();
-          break;
-        default:
-          let u = options.readUnknownField;
-          if (u === "throw")
-            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-          let d = reader.skip(wireType);
-          if (u !== !1)
-            (u === !0 ? import_runtime16.UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-      }
-    }
-    return message;
-  }
-  internalBinaryWrite(message, writer, options) {
-    if (message.workflowRunBackendId !== "")
-      writer.tag(1, import_runtime15.WireType.LengthDelimited).string(message.workflowRunBackendId);
-    if (message.name !== "")
-      writer.tag(2, import_runtime15.WireType.LengthDelimited).string(message.name);
-    if (message.size !== "0")
-      writer.tag(3, import_runtime15.WireType.Varint).int64(message.size);
-    let u = options.writeUnknownFields;
-    if (u !== !1)
-      (u == !0 ? import_runtime16.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-    return writer;
-  }
-}
-var FinalizeMigratedArtifactRequest = new FinalizeMigratedArtifactRequest$Type;
-
-class FinalizeMigratedArtifactResponse$Type extends import_runtime19.MessageType {
-  constructor() {
-    super("github.actions.results.api.v1.FinalizeMigratedArtifactResponse", [
-      { no: 1, name: "ok", kind: "scalar", T: 8 },
-      { no: 2, name: "artifact_id", kind: "scalar", T: 3 }
-    ]);
-  }
-  create(value) {
-    let message = { ok: !1, artifactId: "0" };
-    if (globalThis.Object.defineProperty(message, import_runtime18.MESSAGE_TYPE, { enumerable: !1, value: this }), value !== void 0)
-      import_runtime17.reflectionMergePartial(this, message, value);
-    return message;
-  }
-  internalBinaryRead(reader, length, options, target) {
-    let message = target !== null && target !== void 0 ? target : this.create(), end = reader.pos + length;
-    while (reader.pos < end) {
-      let [fieldNo, wireType] = reader.tag();
-      switch (fieldNo) {
-        case 1:
-          message.ok = reader.bool();
-          break;
-        case 2:
-          message.artifactId = reader.int64().toString();
-          break;
-        default:
-          let u = options.readUnknownField;
-          if (u === "throw")
-            throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-          let d = reader.skip(wireType);
-          if (u !== !1)
-            (u === !0 ? import_runtime16.UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-      }
-    }
-    return message;
-  }
-  internalBinaryWrite(message, writer, options) {
-    if (message.ok !== !1)
-      writer.tag(1, import_runtime15.WireType.Varint).bool(message.ok);
-    if (message.artifactId !== "0")
-      writer.tag(2, import_runtime15.WireType.Varint).int64(message.artifactId);
-    let u = options.writeUnknownFields;
-    if (u !== !1)
-      (u == !0 ? import_runtime16.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-    return writer;
-  }
-}
-var FinalizeMigratedArtifactResponse = new FinalizeMigratedArtifactResponse$Type;
-
 class CreateArtifactRequest$Type extends import_runtime19.MessageType {
   constructor() {
     super("github.actions.results.api.v1.CreateArtifactRequest", [
@@ -44646,7 +44461,8 @@ class CreateArtifactRequest$Type extends import_runtime19.MessageType {
       { no: 2, name: "workflow_job_run_backend_id", kind: "scalar", T: 9 },
       { no: 3, name: "name", kind: "scalar", T: 9 },
       { no: 4, name: "expires_at", kind: "message", T: () => Timestamp },
-      { no: 5, name: "version", kind: "scalar", T: 5 }
+      { no: 5, name: "version", kind: "scalar", T: 5 },
+      { no: 6, name: "mime_type", kind: "message", T: () => StringValue }
     ]);
   }
   create(value) {
@@ -44675,6 +44491,9 @@ class CreateArtifactRequest$Type extends import_runtime19.MessageType {
         case 5:
           message.version = reader.int32();
           break;
+        case 6:
+          message.mimeType = StringValue.internalBinaryRead(reader, reader.uint32(), options, message.mimeType);
+          break;
         default:
           let u = options.readUnknownField;
           if (u === "throw")
@@ -44697,6 +44516,8 @@ class CreateArtifactRequest$Type extends import_runtime19.MessageType {
       Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(4, import_runtime15.WireType.LengthDelimited).fork(), options).join();
     if (message.version !== 0)
       writer.tag(5, import_runtime15.WireType.Varint).int32(message.version);
+    if (message.mimeType)
+      StringValue.internalBinaryWrite(message.mimeType, writer.tag(6, import_runtime15.WireType.LengthDelimited).fork(), options).join();
     let u = options.writeUnknownFields;
     if (u !== !1)
       (u == !0 ? import_runtime16.UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -44930,7 +44751,7 @@ var ListArtifactsRequest = new ListArtifactsRequest$Type;
 class ListArtifactsResponse$Type extends import_runtime19.MessageType {
   constructor() {
     super("github.actions.results.api.v1.ListArtifactsResponse", [
-      { no: 1, name: "artifacts", kind: "message", repeat: 1, T: () => ListArtifactsResponse_MonolithArtifact }
+      { no: 1, name: "artifacts", kind: "message", repeat: 2, T: () => ListArtifactsResponse_MonolithArtifact }
     ]);
   }
   create(value) {
@@ -45248,9 +45069,7 @@ var DeleteArtifactResponse = new DeleteArtifactResponse$Type, ArtifactService = 
   { name: "FinalizeArtifact", options: {}, I: FinalizeArtifactRequest, O: FinalizeArtifactResponse },
   { name: "ListArtifacts", options: {}, I: ListArtifactsRequest, O: ListArtifactsResponse },
   { name: "GetSignedArtifactURL", options: {}, I: GetSignedArtifactURLRequest, O: GetSignedArtifactURLResponse },
-  { name: "DeleteArtifact", options: {}, I: DeleteArtifactRequest, O: DeleteArtifactResponse },
-  { name: "MigrateArtifact", options: {}, I: MigrateArtifactRequest, O: MigrateArtifactResponse },
-  { name: "FinalizeMigratedArtifact", options: {}, I: FinalizeMigratedArtifactRequest, O: FinalizeMigratedArtifactResponse }
+  { name: "DeleteArtifact", options: {}, I: DeleteArtifactRequest, O: DeleteArtifactResponse }
 ]);
 // node_modules/@actions/artifact/lib/generated/results/api/v1/artifact.twirp-client.js
 class ArtifactServiceClientJSON {
@@ -45423,7 +45242,7 @@ NetworkError.isNetworkErrorCode = (code) => {
 
 class UsageError extends Error {
   constructor() {
-    super(`Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.
+    super(`Artifact storage quota has been hit. Unable to upload any new artifacts.
 More info on storage limits: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#calculating-minute-and-storage-spending`);
     this.name = "UsageError";
   }
@@ -45698,203 +45517,11 @@ function getUploadZipSpecification(filesToZip, rootDirectory) {
   }
   return specification;
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/abort-controller/AbortError.js
-class AbortError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "AbortError";
-  }
+// node_modules/@azure/core-auth/dist/esm/tokenCredential.js
+function isTokenCredential(credential) {
+  let castCredential = credential;
+  return castCredential && typeof castCredential.getToken === "function" && (castCredential.signRequest === void 0 || castCredential.getToken.length > 0);
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/logger/log.js
-import { EOL as EOL7 } from "node:os";
-import util from "node:util";
-import process2 from "node:process";
-function log(message, ...args) {
-  process2.stderr.write(`${util.format(message, ...args)}${EOL7}`);
-}
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/logger/debug.js
-var debugEnvVariable = typeof process < "u" && process.env && process.env.DEBUG || void 0, enabledString, enabledNamespaces = [], skippedNamespaces = [], debuggers = [];
-if (debugEnvVariable)
-  enable(debugEnvVariable);
-var debugObj = Object.assign((namespace) => {
-  return createDebugger(namespace);
-}, {
-  enable,
-  enabled,
-  disable,
-  log
-});
-function enable(namespaces) {
-  enabledString = namespaces, enabledNamespaces = [], skippedNamespaces = [];
-  let namespaceList = namespaces.split(",").map((ns) => ns.trim());
-  for (let ns of namespaceList)
-    if (ns.startsWith("-"))
-      skippedNamespaces.push(ns.substring(1));
-    else
-      enabledNamespaces.push(ns);
-  for (let instance of debuggers)
-    instance.enabled = enabled(instance.namespace);
-}
-function enabled(namespace) {
-  if (namespace.endsWith("*"))
-    return !0;
-  for (let skipped of skippedNamespaces)
-    if (namespaceMatches(namespace, skipped))
-      return !1;
-  for (let enabledNamespace of enabledNamespaces)
-    if (namespaceMatches(namespace, enabledNamespace))
-      return !0;
-  return !1;
-}
-function namespaceMatches(namespace, patternToMatch) {
-  if (patternToMatch.indexOf("*") === -1)
-    return namespace === patternToMatch;
-  let pattern = patternToMatch;
-  if (patternToMatch.indexOf("**") !== -1) {
-    let patternParts = [], lastCharacter = "";
-    for (let character of patternToMatch)
-      if (character === "*" && lastCharacter === "*")
-        continue;
-      else
-        lastCharacter = character, patternParts.push(character);
-    pattern = patternParts.join("");
-  }
-  let namespaceIndex = 0, patternIndex = 0, patternLength = pattern.length, namespaceLength = namespace.length, lastWildcard = -1, lastWildcardNamespace = -1;
-  while (namespaceIndex < namespaceLength && patternIndex < patternLength)
-    if (pattern[patternIndex] === "*") {
-      if (lastWildcard = patternIndex, patternIndex++, patternIndex === patternLength)
-        return !0;
-      while (namespace[namespaceIndex] !== pattern[patternIndex])
-        if (namespaceIndex++, namespaceIndex === namespaceLength)
-          return !1;
-      lastWildcardNamespace = namespaceIndex, namespaceIndex++, patternIndex++;
-      continue;
-    } else if (pattern[patternIndex] === namespace[namespaceIndex])
-      patternIndex++, namespaceIndex++;
-    else if (lastWildcard >= 0) {
-      if (patternIndex = lastWildcard + 1, namespaceIndex = lastWildcardNamespace + 1, namespaceIndex === namespaceLength)
-        return !1;
-      while (namespace[namespaceIndex] !== pattern[patternIndex])
-        if (namespaceIndex++, namespaceIndex === namespaceLength)
-          return !1;
-      lastWildcardNamespace = namespaceIndex, namespaceIndex++, patternIndex++;
-      continue;
-    } else
-      return !1;
-  let namespaceDone = namespaceIndex === namespace.length, patternDone = patternIndex === pattern.length, trailingWildCard = patternIndex === pattern.length - 1 && pattern[patternIndex] === "*";
-  return namespaceDone && (patternDone || trailingWildCard);
-}
-function disable() {
-  let result = enabledString || "";
-  return enable(""), result;
-}
-function createDebugger(namespace) {
-  let newDebugger = Object.assign(debug2, {
-    enabled: enabled(namespace),
-    destroy,
-    log: debugObj.log,
-    namespace,
-    extend
-  });
-  function debug2(...args) {
-    if (!newDebugger.enabled)
-      return;
-    if (args.length > 0)
-      args[0] = `${namespace} ${args[0]}`;
-    newDebugger.log(...args);
-  }
-  return debuggers.push(newDebugger), newDebugger;
-}
-function destroy() {
-  let index = debuggers.indexOf(this);
-  if (index >= 0)
-    return debuggers.splice(index, 1), !0;
-  return !1;
-}
-function extend(namespace) {
-  let newDebugger = createDebugger(`${this.namespace}:${namespace}`);
-  return newDebugger.log = this.log, newDebugger;
-}
-var debug_default = debugObj;
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/logger/logger.js
-var TYPESPEC_RUNTIME_LOG_LEVELS = ["verbose", "info", "warning", "error"], levelMap = {
-  verbose: 400,
-  info: 300,
-  warning: 200,
-  error: 100
-};
-function patchLogMethod(parent, child2) {
-  child2.log = (...args) => {
-    parent.log(...args);
-  };
-}
-function isTypeSpecRuntimeLogLevel(level) {
-  return TYPESPEC_RUNTIME_LOG_LEVELS.includes(level);
-}
-function createLoggerContext(options) {
-  let registeredLoggers = /* @__PURE__ */ new Set, logLevelFromEnv = typeof process < "u" && process.env && process.env[options.logLevelEnvVarName] || void 0, logLevel, clientLogger = debug_default(options.namespace);
-  clientLogger.log = (...args) => {
-    debug_default.log(...args);
-  };
-  function contextSetLogLevel(level) {
-    if (level && !isTypeSpecRuntimeLogLevel(level))
-      throw Error(`Unknown log level '${level}'. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(",")}`);
-    logLevel = level;
-    let enabledNamespaces2 = [];
-    for (let logger of registeredLoggers)
-      if (shouldEnable(logger))
-        enabledNamespaces2.push(logger.namespace);
-    debug_default.enable(enabledNamespaces2.join(","));
-  }
-  if (logLevelFromEnv)
-    if (isTypeSpecRuntimeLogLevel(logLevelFromEnv))
-      contextSetLogLevel(logLevelFromEnv);
-    else
-      console.error(`${options.logLevelEnvVarName} set to unknown log level '${logLevelFromEnv}'; logging is not enabled. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(", ")}.`);
-  function shouldEnable(logger) {
-    return Boolean(logLevel && levelMap[logger.level] <= levelMap[logLevel]);
-  }
-  function createLogger2(parent, level) {
-    let logger = Object.assign(parent.extend(level), {
-      level
-    });
-    if (patchLogMethod(parent, logger), shouldEnable(logger)) {
-      let enabledNamespaces2 = debug_default.disable();
-      debug_default.enable(enabledNamespaces2 + "," + logger.namespace);
-    }
-    return registeredLoggers.add(logger), logger;
-  }
-  function contextGetLogLevel() {
-    return logLevel;
-  }
-  function contextCreateClientLogger(namespace) {
-    let clientRootLogger = clientLogger.extend(namespace);
-    return patchLogMethod(clientLogger, clientRootLogger), {
-      error: createLogger2(clientRootLogger, "error"),
-      warning: createLogger2(clientRootLogger, "warning"),
-      info: createLogger2(clientRootLogger, "info"),
-      verbose: createLogger2(clientRootLogger, "verbose")
-    };
-  }
-  return {
-    setLogLevel: contextSetLogLevel,
-    getLogLevel: contextGetLogLevel,
-    createClientLogger: contextCreateClientLogger,
-    logger: clientLogger
-  };
-}
-var context3 = createLoggerContext({
-  logLevelEnvVarName: "TYPESPEC_RUNTIME_LOG_LEVEL",
-  namespace: "typeSpecRuntime"
-}), TypeSpecRuntimeLogger = context3.logger;
-function createClientLogger(namespace) {
-  return context3.createClientLogger(namespace);
-}
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/httpHeaders.js
 function normalizeName(name) {
   return name.toLowerCase();
@@ -46279,16 +45906,207 @@ function isRestError(e) {
     return !0;
   return isError(e) && e.name === "RestError";
 }
-// node_modules/@typespec/ts-http-runtime/dist/esm/util/bytesEncoding.js
-function stringToUint8Array(value, format) {
-  return Buffer.from(value, format);
-}
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/nodeHttpClient.js
 import http2 from "node:http";
 import https2 from "node:https";
 import zlib from "node:zlib";
 import { Transform } from "node:stream";
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/abort-controller/AbortError.js
+class AbortError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "AbortError";
+  }
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/logger/log.js
+import { EOL as EOL7 } from "node:os";
+import util from "node:util";
+import process2 from "node:process";
+function log(message, ...args) {
+  process2.stderr.write(`${util.format(message, ...args)}${EOL7}`);
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/logger/debug.js
+var debugEnvVariable = typeof process < "u" && process.env && process.env.DEBUG || void 0, enabledString, enabledNamespaces = [], skippedNamespaces = [], debuggers = [];
+if (debugEnvVariable)
+  enable(debugEnvVariable);
+var debugObj = Object.assign((namespace) => {
+  return createDebugger(namespace);
+}, {
+  enable,
+  enabled,
+  disable,
+  log
+});
+function enable(namespaces) {
+  enabledString = namespaces, enabledNamespaces = [], skippedNamespaces = [];
+  let namespaceList = namespaces.split(",").map((ns) => ns.trim());
+  for (let ns of namespaceList)
+    if (ns.startsWith("-"))
+      skippedNamespaces.push(ns.substring(1));
+    else
+      enabledNamespaces.push(ns);
+  for (let instance of debuggers)
+    instance.enabled = enabled(instance.namespace);
+}
+function enabled(namespace) {
+  if (namespace.endsWith("*"))
+    return !0;
+  for (let skipped of skippedNamespaces)
+    if (namespaceMatches(namespace, skipped))
+      return !1;
+  for (let enabledNamespace of enabledNamespaces)
+    if (namespaceMatches(namespace, enabledNamespace))
+      return !0;
+  return !1;
+}
+function namespaceMatches(namespace, patternToMatch) {
+  if (patternToMatch.indexOf("*") === -1)
+    return namespace === patternToMatch;
+  let pattern = patternToMatch;
+  if (patternToMatch.indexOf("**") !== -1) {
+    let patternParts = [], lastCharacter = "";
+    for (let character of patternToMatch)
+      if (character === "*" && lastCharacter === "*")
+        continue;
+      else
+        lastCharacter = character, patternParts.push(character);
+    pattern = patternParts.join("");
+  }
+  let namespaceIndex = 0, patternIndex = 0, patternLength = pattern.length, namespaceLength = namespace.length, lastWildcard = -1, lastWildcardNamespace = -1;
+  while (namespaceIndex < namespaceLength && patternIndex < patternLength)
+    if (pattern[patternIndex] === "*") {
+      if (lastWildcard = patternIndex, patternIndex++, patternIndex === patternLength)
+        return !0;
+      while (namespace[namespaceIndex] !== pattern[patternIndex])
+        if (namespaceIndex++, namespaceIndex === namespaceLength)
+          return !1;
+      lastWildcardNamespace = namespaceIndex, namespaceIndex++, patternIndex++;
+      continue;
+    } else if (pattern[patternIndex] === namespace[namespaceIndex])
+      patternIndex++, namespaceIndex++;
+    else if (lastWildcard >= 0) {
+      if (patternIndex = lastWildcard + 1, namespaceIndex = lastWildcardNamespace + 1, namespaceIndex === namespaceLength)
+        return !1;
+      while (namespace[namespaceIndex] !== pattern[patternIndex])
+        if (namespaceIndex++, namespaceIndex === namespaceLength)
+          return !1;
+      lastWildcardNamespace = namespaceIndex, namespaceIndex++, patternIndex++;
+      continue;
+    } else
+      return !1;
+  let namespaceDone = namespaceIndex === namespace.length, patternDone = patternIndex === pattern.length, trailingWildCard = patternIndex === pattern.length - 1 && pattern[patternIndex] === "*";
+  return namespaceDone && (patternDone || trailingWildCard);
+}
+function disable() {
+  let result = enabledString || "";
+  return enable(""), result;
+}
+function createDebugger(namespace) {
+  let newDebugger = Object.assign(debug2, {
+    enabled: enabled(namespace),
+    destroy,
+    log: debugObj.log,
+    namespace,
+    extend
+  });
+  function debug2(...args) {
+    if (!newDebugger.enabled)
+      return;
+    if (args.length > 0)
+      args[0] = `${namespace} ${args[0]}`;
+    newDebugger.log(...args);
+  }
+  return debuggers.push(newDebugger), newDebugger;
+}
+function destroy() {
+  let index = debuggers.indexOf(this);
+  if (index >= 0)
+    return debuggers.splice(index, 1), !0;
+  return !1;
+}
+function extend(namespace) {
+  let newDebugger = createDebugger(`${this.namespace}:${namespace}`);
+  return newDebugger.log = this.log, newDebugger;
+}
+var debug_default = debugObj;
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/logger/logger.js
+var TYPESPEC_RUNTIME_LOG_LEVELS = ["verbose", "info", "warning", "error"], levelMap = {
+  verbose: 400,
+  info: 300,
+  warning: 200,
+  error: 100
+};
+function patchLogMethod(parent, child2) {
+  child2.log = (...args) => {
+    parent.log(...args);
+  };
+}
+function isTypeSpecRuntimeLogLevel(level) {
+  return TYPESPEC_RUNTIME_LOG_LEVELS.includes(level);
+}
+function createLoggerContext(options) {
+  let registeredLoggers = /* @__PURE__ */ new Set, logLevelFromEnv = typeof process < "u" && process.env && process.env[options.logLevelEnvVarName] || void 0, logLevel, clientLogger = debug_default(options.namespace);
+  clientLogger.log = (...args) => {
+    debug_default.log(...args);
+  };
+  function contextSetLogLevel(level) {
+    if (level && !isTypeSpecRuntimeLogLevel(level))
+      throw Error(`Unknown log level '${level}'. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(",")}`);
+    logLevel = level;
+    let enabledNamespaces2 = [];
+    for (let logger of registeredLoggers)
+      if (shouldEnable(logger))
+        enabledNamespaces2.push(logger.namespace);
+    debug_default.enable(enabledNamespaces2.join(","));
+  }
+  if (logLevelFromEnv)
+    if (isTypeSpecRuntimeLogLevel(logLevelFromEnv))
+      contextSetLogLevel(logLevelFromEnv);
+    else
+      console.error(`${options.logLevelEnvVarName} set to unknown log level '${logLevelFromEnv}'; logging is not enabled. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(", ")}.`);
+  function shouldEnable(logger) {
+    return Boolean(logLevel && levelMap[logger.level] <= levelMap[logLevel]);
+  }
+  function createLogger2(parent, level) {
+    let logger = Object.assign(parent.extend(level), {
+      level
+    });
+    if (patchLogMethod(parent, logger), shouldEnable(logger)) {
+      let enabledNamespaces2 = debug_default.disable();
+      debug_default.enable(enabledNamespaces2 + "," + logger.namespace);
+    }
+    return registeredLoggers.add(logger), logger;
+  }
+  function contextGetLogLevel() {
+    return logLevel;
+  }
+  function contextCreateClientLogger(namespace) {
+    let clientRootLogger = clientLogger.extend(namespace);
+    return patchLogMethod(clientLogger, clientRootLogger), {
+      error: createLogger2(clientRootLogger, "error"),
+      warning: createLogger2(clientRootLogger, "warning"),
+      info: createLogger2(clientRootLogger, "info"),
+      verbose: createLogger2(clientRootLogger, "verbose")
+    };
+  }
+  return {
+    setLogLevel: contextSetLogLevel,
+    getLogLevel: contextGetLogLevel,
+    createClientLogger: contextCreateClientLogger,
+    logger: clientLogger
+  };
+}
+var context3 = createLoggerContext({
+  logLevelEnvVarName: "TYPESPEC_RUNTIME_LOG_LEVEL",
+  namespace: "typeSpecRuntime"
+}), TypeSpecRuntimeLogger = context3.logger;
+function createClientLogger(namespace) {
+  return context3.createClientLogger(namespace);
+}
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/log.js
 var logger = createClientLogger("ts-http-runtime");
@@ -46525,53 +46343,33 @@ function createNodeHttpClient() {
 function createDefaultHttpClient() {
   return createNodeHttpClient();
 }
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/logPolicy.js
-var logPolicyName = "logPolicy";
-function logPolicy(options = {}) {
-  let logger2 = options.logger ?? logger.info, sanitizer = new Sanitizer({
-    additionalAllowedHeaderNames: options.additionalAllowedHeaderNames,
-    additionalAllowedQueryParameters: options.additionalAllowedQueryParameters
-  });
+// node_modules/@azure/core-rest-pipeline/dist/esm/pipeline.js
+function createEmptyPipeline2() {
+  return createEmptyPipeline();
+}
+// node_modules/@azure/core-rest-pipeline/node_modules/@azure/logger/dist/esm/index.js
+var context4 = createLoggerContext({
+  logLevelEnvVarName: "AZURE_LOG_LEVEL",
+  namespace: "azure"
+}), AzureLogger = context4.logger;
+function createClientLogger3(namespace) {
+  return context4.createClientLogger(namespace);
+}
+
+// node_modules/@azure/core-rest-pipeline/dist/esm/log.js
+var logger2 = createClientLogger3("core-rest-pipeline");
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/agentPolicy.js
+function agentPolicy(agent) {
   return {
-    name: logPolicyName,
-    async sendRequest(request2, next) {
-      if (!logger2.enabled)
-        return next(request2);
-      logger2(`Request: ${sanitizer.sanitize(request2)}`);
-      let response = await next(request2);
-      return logger2(`Response status code: ${response.status}`), logger2(`Headers: ${sanitizer.sanitize(response.headers)}`), response;
+    name: "agentPolicy",
+    sendRequest: async (req, next) => {
+      if (!req.agent)
+        req.agent = agent;
+      return next(req);
     }
   };
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/redirectPolicy.js
-var redirectPolicyName = "redirectPolicy", allowedRedirect = ["GET", "HEAD"];
-function redirectPolicy(options = {}) {
-  let { maxRetries = 20 } = options;
-  return {
-    name: "redirectPolicy",
-    async sendRequest(request2, next) {
-      let response = await next(request2);
-      return handleRedirect(next, response, maxRetries);
-    }
-  };
-}
-async function handleRedirect(next, response, maxRetries, currentRetries = 0) {
-  let { request: request2, status, headers } = response, locationHeader = headers.get("location");
-  if (locationHeader && (status === 300 || status === 301 && allowedRedirect.includes(request2.method) || status === 302 && allowedRedirect.includes(request2.method) || status === 303 && request2.method === "POST" || status === 307) && currentRetries < maxRetries) {
-    let url = new URL(locationHeader, request2.url);
-    if (request2.url = url.toString(), status === 303)
-      request2.method = "GET", request2.headers.delete("Content-Length"), delete request2.body;
-    request2.headers.delete("Authorization");
-    let res = await next(request2);
-    return handleRedirect(next, res, maxRetries, currentRetries + 1);
-  }
-  return response;
-}
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/constants.js
-var DEFAULT_RETRY_POLICY_COUNT = 3;
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/decompressResponsePolicy.js
 var decompressResponsePolicyName = "decompressResponsePolicy";
 function decompressResponsePolicy() {
@@ -46584,7 +46382,6 @@ function decompressResponsePolicy() {
     }
   };
 }
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/random.js
 function getRandomIntegerInclusive(min, max) {
   return min = Math.ceil(min), max = Math.floor(max), Math.floor(Math.random() * (max - min + 1)) + min;
@@ -46693,10 +46490,13 @@ function isSystemError(err) {
   return err.code === "ETIMEDOUT" || err.code === "ESOCKETTIMEDOUT" || err.code === "ECONNREFUSED" || err.code === "ECONNRESET" || err.code === "ENOENT" || err.code === "ENOTFOUND";
 }
 
+// node_modules/@typespec/ts-http-runtime/dist/esm/constants.js
+var DEFAULT_RETRY_POLICY_COUNT = 3;
+
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/retryPolicy.js
 var retryPolicyLogger = createClientLogger("ts-http-runtime retryPolicy"), retryPolicyName = "retryPolicy";
 function retryPolicy(strategies, options = { maxRetries: DEFAULT_RETRY_POLICY_COUNT }) {
-  let logger2 = options.logger || retryPolicyLogger;
+  let logger3 = options.logger || retryPolicyLogger;
   return {
     name: retryPolicyName,
     async sendRequest(request2, next) {
@@ -46705,25 +46505,25 @@ function retryPolicy(strategies, options = { maxRetries: DEFAULT_RETRY_POLICY_CO
         while (!0) {
           retryCount += 1, response = void 0, responseError = void 0;
           try {
-            logger2.info(`Retry ${retryCount}: Attempting to send request`, request2.requestId), response = await next(request2), logger2.info(`Retry ${retryCount}: Received a response from request`, request2.requestId);
+            logger3.info(`Retry ${retryCount}: Attempting to send request`, request2.requestId), response = await next(request2), logger3.info(`Retry ${retryCount}: Received a response from request`, request2.requestId);
           } catch (e) {
-            if (logger2.error(`Retry ${retryCount}: Received an error from request`, request2.requestId), responseError = e, !e || responseError.name !== "RestError")
+            if (logger3.error(`Retry ${retryCount}: Received an error from request`, request2.requestId), responseError = e, !e || responseError.name !== "RestError")
               throw e;
             response = responseError.response;
           }
           if (request2.abortSignal?.aborted)
-            throw logger2.error(`Retry ${retryCount}: Request aborted.`), new AbortError;
+            throw logger3.error(`Retry ${retryCount}: Request aborted.`), new AbortError;
           if (retryCount >= (options.maxRetries ?? DEFAULT_RETRY_POLICY_COUNT))
-            if (logger2.info(`Retry ${retryCount}: Maximum retries reached. Returning the last received response, or throwing the last received error.`), responseError)
+            if (logger3.info(`Retry ${retryCount}: Maximum retries reached. Returning the last received response, or throwing the last received error.`), responseError)
               throw responseError;
             else if (response)
               return response;
             else
               throw Error("Maximum retries reached with no response or error to throw");
-          logger2.info(`Retry ${retryCount}: Processing ${strategies.length} retry strategies.`);
+          logger3.info(`Retry ${retryCount}: Processing ${strategies.length} retry strategies.`);
           strategiesLoop:
             for (let strategy of strategies) {
-              let strategyLogger = strategy.logger || logger2;
+              let strategyLogger = strategy.logger || logger3;
               strategyLogger.info(`Retry ${retryCount}: Processing retry strategy ${strategy.name}.`);
               let modifiers = strategy.retry({
                 retryCount,
@@ -46747,9 +46547,9 @@ function retryPolicy(strategies, options = { maxRetries: DEFAULT_RETRY_POLICY_CO
               }
             }
           if (responseError)
-            throw logger2.info("None of the retry strategies could work with the received error. Throwing it."), responseError;
+            throw logger3.info("None of the retry strategies could work with the received error. Throwing it."), responseError;
           if (response)
-            return logger2.info("None of the retry strategies could work with the received response. Returning it."), response;
+            return logger3.info("None of the retry strategies could work with the received response. Returning it."), response;
         }
     }
   };
@@ -46764,6 +46564,10 @@ function defaultRetryPolicy(options = {}) {
       maxRetries: options.maxRetries ?? DEFAULT_RETRY_POLICY_COUNT
     }).sendRequest
   };
+}
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/bytesEncoding.js
+function stringToUint8Array2(value, format) {
+  return Buffer.from(value, format);
 }
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/checkEnvironment.js
@@ -46819,7 +46623,7 @@ async function prepareFormData(formData, request2) {
           headers: createHttpHeaders({
             "Content-Disposition": `form-data; name="${fieldName}"`
           }),
-          body: stringToUint8Array(value, "utf-8")
+          body: stringToUint8Array2(value, "utf-8")
         });
       else if (value === void 0 || value === null || typeof value !== "object")
         throw Error(`Unexpected value for key ${fieldName}: ${value}. Value should be serialized to string first.`);
@@ -46832,7 +46636,155 @@ async function prepareFormData(formData, request2) {
       }
   request2.multipartBody = { parts };
 }
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/logPolicy.js
+var logPolicyName = "logPolicy";
+function logPolicy(options = {}) {
+  let logger3 = options.logger ?? logger.info, sanitizer = new Sanitizer({
+    additionalAllowedHeaderNames: options.additionalAllowedHeaderNames,
+    additionalAllowedQueryParameters: options.additionalAllowedQueryParameters
+  });
+  return {
+    name: logPolicyName,
+    async sendRequest(request2, next) {
+      if (!logger3.enabled)
+        return next(request2);
+      logger3(`Request: ${sanitizer.sanitize(request2)}`);
+      let response = await next(request2);
+      return logger3(`Response status code: ${response.status}`), logger3(`Headers: ${sanitizer.sanitize(response.headers)}`), response;
+    }
+  };
+}
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/typeGuards.js
+function isBlob(x) {
+  return typeof x.stream === "function";
+}
 
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/concat.js
+import { Readable } from "stream";
+async function* streamAsyncIterator() {
+  let reader = this.getReader();
+  try {
+    while (!0) {
+      let { done, value } = await reader.read();
+      if (done)
+        return;
+      yield value;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+function makeAsyncIterable(webStream) {
+  if (!webStream[Symbol.asyncIterator])
+    webStream[Symbol.asyncIterator] = streamAsyncIterator.bind(webStream);
+  if (!webStream.values)
+    webStream.values = streamAsyncIterator.bind(webStream);
+}
+function ensureNodeStream(stream) {
+  if (stream instanceof ReadableStream)
+    return makeAsyncIterable(stream), Readable.fromWeb(stream);
+  else
+    return stream;
+}
+function toStream(source) {
+  if (source instanceof Uint8Array)
+    return Readable.from(Buffer.from(source));
+  else if (isBlob(source))
+    return ensureNodeStream(source.stream());
+  else
+    return ensureNodeStream(source);
+}
+async function concat(sources) {
+  return function() {
+    let streams = sources.map((x) => typeof x === "function" ? x() : x).map(toStream);
+    return Readable.from(async function* () {
+      for (let stream of streams)
+        for await (let chunk of stream)
+          yield chunk;
+    }());
+  };
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/multipartPolicy.js
+function generateBoundary() {
+  return `----AzSDKFormBoundary${randomUUID2()}`;
+}
+function encodeHeaders(headers) {
+  let result = "";
+  for (let [key, value] of headers)
+    result += `${key}: ${value}\r
+`;
+  return result;
+}
+function getLength(source) {
+  if (source instanceof Uint8Array)
+    return source.byteLength;
+  else if (isBlob(source))
+    return source.size === -1 ? void 0 : source.size;
+  else
+    return;
+}
+function getTotalLength(sources) {
+  let total = 0;
+  for (let source of sources) {
+    let partLength = getLength(source);
+    if (partLength === void 0)
+      return;
+    else
+      total += partLength;
+  }
+  return total;
+}
+async function buildRequestBody(request2, parts, boundary) {
+  let sources = [
+    stringToUint8Array2(`--${boundary}`, "utf-8"),
+    ...parts.flatMap((part) => [
+      stringToUint8Array2(`\r
+`, "utf-8"),
+      stringToUint8Array2(encodeHeaders(part.headers), "utf-8"),
+      stringToUint8Array2(`\r
+`, "utf-8"),
+      part.body,
+      stringToUint8Array2(`\r
+--${boundary}`, "utf-8")
+    ]),
+    stringToUint8Array2(`--\r
+\r
+`, "utf-8")
+  ], contentLength = getTotalLength(sources);
+  if (contentLength)
+    request2.headers.set("Content-Length", contentLength);
+  request2.body = await concat(sources);
+}
+var multipartPolicyName = "multipartPolicy", maxBoundaryLength = 70, validBoundaryCharacters = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'()+,-./:=?");
+function assertValidBoundary(boundary) {
+  if (boundary.length > maxBoundaryLength)
+    throw Error(`Multipart boundary "${boundary}" exceeds maximum length of 70 characters`);
+  if (Array.from(boundary).some((x) => !validBoundaryCharacters.has(x)))
+    throw Error(`Multipart boundary "${boundary}" contains invalid characters`);
+}
+function multipartPolicy() {
+  return {
+    name: multipartPolicyName,
+    async sendRequest(request2, next) {
+      if (!request2.multipartBody)
+        return next(request2);
+      if (request2.body)
+        throw Error("multipartBody and regular body cannot be set at the same time");
+      let boundary = request2.multipartBody.boundary, contentTypeHeader = request2.headers.get("Content-Type") ?? "multipart/mixed", parsedHeader = contentTypeHeader.match(/^(multipart\/[^ ;]+)(?:; *boundary=(.+))?$/);
+      if (!parsedHeader)
+        throw Error(`Got multipart request body, but content-type header was not multipart: ${contentTypeHeader}`);
+      let [, contentType, parsedBoundary] = parsedHeader;
+      if (parsedBoundary && boundary && parsedBoundary !== boundary)
+        throw Error(`Multipart boundary was specified as ${parsedBoundary} in the header, but got ${boundary} in the request body`);
+      if (boundary ??= parsedBoundary, boundary)
+        assertValidBoundary(boundary);
+      else
+        boundary = generateBoundary();
+      return request2.headers.set("Content-Type", `${contentType}; boundary=${boundary}`), await buildRequestBody(request2, request2.multipartBody.parts, boundary), request2.multipartBody = void 0, next(request2);
+    }
+  };
+}
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/proxyPolicy.js
 var import_https_proxy_agent = __toESM(require_dist2(), 1), import_http_proxy_agent = __toESM(require_dist3(), 1);
 var HTTPS_PROXY = "HTTPS_PROXY", HTTP_PROXY = "HTTP_PROXY", ALL_PROXY = "ALL_PROXY", NO_PROXY = "NO_PROXY", proxyPolicyName = "proxyPolicy", globalNoProxyList = [], noProxyListLoaded = !1, globalBypassedMap = /* @__PURE__ */ new Map;
@@ -46934,19 +46886,30 @@ function proxyPolicy(proxySettings, options) {
     }
   };
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/agentPolicy.js
-function agentPolicy(agent) {
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/redirectPolicy.js
+var redirectPolicyName = "redirectPolicy", allowedRedirect = ["GET", "HEAD"];
+function redirectPolicy(options = {}) {
+  let { maxRetries = 20 } = options;
   return {
-    name: "agentPolicy",
-    sendRequest: async (req, next) => {
-      if (!req.agent)
-        req.agent = agent;
-      return next(req);
+    name: "redirectPolicy",
+    async sendRequest(request2, next) {
+      let response = await next(request2);
+      return handleRedirect(next, response, maxRetries);
     }
   };
 }
-
+async function handleRedirect(next, response, maxRetries, currentRetries = 0) {
+  let { request: request2, status, headers } = response, locationHeader = headers.get("location");
+  if (locationHeader && (status === 300 || status === 301 && allowedRedirect.includes(request2.method) || status === 302 && allowedRedirect.includes(request2.method) || status === 303 && request2.method === "POST" || status === 307) && currentRetries < maxRetries) {
+    let url = new URL(locationHeader, request2.url);
+    if (request2.url = url.toString(), status === 303)
+      request2.method = "GET", request2.headers.delete("Content-Length"), delete request2.body;
+    request2.headers.delete("Authorization");
+    let res = await next(request2);
+    return handleRedirect(next, res, maxRetries, currentRetries + 1);
+  }
+  return response;
+}
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/tlsPolicy.js
 function tlsPolicy(tlsSettings) {
   return {
@@ -46958,154 +46921,6 @@ function tlsPolicy(tlsSettings) {
     }
   };
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/util/typeGuards.js
-function isBlob(x) {
-  return typeof x.stream === "function";
-}
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/util/concat.js
-import { Readable } from "stream";
-async function* streamAsyncIterator() {
-  let reader = this.getReader();
-  try {
-    while (!0) {
-      let { done, value } = await reader.read();
-      if (done)
-        return;
-      yield value;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-function makeAsyncIterable(webStream) {
-  if (!webStream[Symbol.asyncIterator])
-    webStream[Symbol.asyncIterator] = streamAsyncIterator.bind(webStream);
-  if (!webStream.values)
-    webStream.values = streamAsyncIterator.bind(webStream);
-}
-function ensureNodeStream(stream) {
-  if (stream instanceof ReadableStream)
-    return makeAsyncIterable(stream), Readable.fromWeb(stream);
-  else
-    return stream;
-}
-function toStream(source) {
-  if (source instanceof Uint8Array)
-    return Readable.from(Buffer.from(source));
-  else if (isBlob(source))
-    return ensureNodeStream(source.stream());
-  else
-    return ensureNodeStream(source);
-}
-async function concat(sources) {
-  return function() {
-    let streams = sources.map((x) => typeof x === "function" ? x() : x).map(toStream);
-    return Readable.from(async function* () {
-      for (let stream of streams)
-        for await (let chunk of stream)
-          yield chunk;
-    }());
-  };
-}
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/multipartPolicy.js
-function generateBoundary() {
-  return `----AzSDKFormBoundary${randomUUID2()}`;
-}
-function encodeHeaders(headers) {
-  let result = "";
-  for (let [key, value] of headers)
-    result += `${key}: ${value}\r
-`;
-  return result;
-}
-function getLength(source) {
-  if (source instanceof Uint8Array)
-    return source.byteLength;
-  else if (isBlob(source))
-    return source.size === -1 ? void 0 : source.size;
-  else
-    return;
-}
-function getTotalLength(sources) {
-  let total = 0;
-  for (let source of sources) {
-    let partLength = getLength(source);
-    if (partLength === void 0)
-      return;
-    else
-      total += partLength;
-  }
-  return total;
-}
-async function buildRequestBody(request2, parts, boundary) {
-  let sources = [
-    stringToUint8Array(`--${boundary}`, "utf-8"),
-    ...parts.flatMap((part) => [
-      stringToUint8Array(`\r
-`, "utf-8"),
-      stringToUint8Array(encodeHeaders(part.headers), "utf-8"),
-      stringToUint8Array(`\r
-`, "utf-8"),
-      part.body,
-      stringToUint8Array(`\r
---${boundary}`, "utf-8")
-    ]),
-    stringToUint8Array(`--\r
-\r
-`, "utf-8")
-  ], contentLength = getTotalLength(sources);
-  if (contentLength)
-    request2.headers.set("Content-Length", contentLength);
-  request2.body = await concat(sources);
-}
-var multipartPolicyName = "multipartPolicy", maxBoundaryLength = 70, validBoundaryCharacters = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'()+,-./:=?");
-function assertValidBoundary(boundary) {
-  if (boundary.length > maxBoundaryLength)
-    throw Error(`Multipart boundary "${boundary}" exceeds maximum length of 70 characters`);
-  if (Array.from(boundary).some((x) => !validBoundaryCharacters.has(x)))
-    throw Error(`Multipart boundary "${boundary}" contains invalid characters`);
-}
-function multipartPolicy() {
-  return {
-    name: multipartPolicyName,
-    async sendRequest(request2, next) {
-      if (!request2.multipartBody)
-        return next(request2);
-      if (request2.body)
-        throw Error("multipartBody and regular body cannot be set at the same time");
-      let boundary = request2.multipartBody.boundary, contentTypeHeader = request2.headers.get("Content-Type") ?? "multipart/mixed", parsedHeader = contentTypeHeader.match(/^(multipart\/[^ ;]+)(?:; *boundary=(.+))?$/);
-      if (!parsedHeader)
-        throw Error(`Got multipart request body, but content-type header was not multipart: ${contentTypeHeader}`);
-      let [, contentType, parsedBoundary] = parsedHeader;
-      if (parsedBoundary && boundary && parsedBoundary !== boundary)
-        throw Error(`Multipart boundary was specified as ${parsedBoundary} in the header, but got ${boundary} in the request body`);
-      if (boundary ??= parsedBoundary, boundary)
-        assertValidBoundary(boundary);
-      else
-        boundary = generateBoundary();
-      return request2.headers.set("Content-Type", `${contentType}; boundary=${boundary}`), await buildRequestBody(request2, request2.multipartBody.parts, boundary), request2.multipartBody = void 0, next(request2);
-    }
-  };
-}
-
-// node_modules/@azure/core-rest-pipeline/dist/esm/pipeline.js
-function createEmptyPipeline2() {
-  return createEmptyPipeline();
-}
-// node_modules/@azure/core-rest-pipeline/node_modules/@azure/logger/dist/esm/index.js
-var context4 = createLoggerContext({
-  logLevelEnvVarName: "AZURE_LOG_LEVEL",
-  namespace: "azure"
-}), AzureLogger = context4.logger;
-function createClientLogger2(namespace) {
-  return context4.createClientLogger(namespace);
-}
-
-// node_modules/@azure/core-rest-pipeline/dist/esm/log.js
-var logger2 = createClientLogger2("core-rest-pipeline");
 // node_modules/@azure/core-rest-pipeline/dist/esm/policies/logPolicy.js
 function logPolicy2(options = {}) {
   return logPolicy({
@@ -47161,11 +46976,11 @@ async function getUserAgentValue(prefix) {
 }
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/policies/userAgentPolicy.js
-var UserAgentHeaderName = getUserAgentHeaderName(), userAgentPolicyName = "userAgentPolicy";
-function userAgentPolicy(options = {}) {
+var UserAgentHeaderName = getUserAgentHeaderName(), userAgentPolicyName2 = "userAgentPolicy";
+function userAgentPolicy2(options = {}) {
   let userAgentValue = getUserAgentValue(options.userAgentPrefix);
   return {
-    name: userAgentPolicyName,
+    name: userAgentPolicyName2,
     async sendRequest(request2, next) {
       if (!request2.headers.has(UserAgentHeaderName))
         request2.headers.set(UserAgentHeaderName, await userAgentValue);
@@ -47174,7 +46989,7 @@ function userAgentPolicy(options = {}) {
   };
 }
 // node_modules/@azure/abort-controller/dist/esm/AbortError.js
-class AbortError2 extends Error {
+class AbortError3 extends Error {
   constructor(message) {
     super(message);
     this.name = "AbortError";
@@ -47185,7 +47000,7 @@ function createAbortablePromise(buildPromise, options) {
   let { cleanupBeforeAbort, abortSignal, abortErrorMsg } = options ?? {};
   return new Promise((resolve3, reject) => {
     function rejectOnAbort() {
-      reject(new AbortError2(abortErrorMsg ?? "The operation was aborted."));
+      reject(new AbortError3(abortErrorMsg ?? "The operation was aborted."));
     }
     function removeListeners() {
       abortSignal?.removeEventListener("abort", onAbort);
@@ -47317,7 +47132,6 @@ function agentPolicy2(agent) {
 function tlsPolicy2(tlsSettings) {
   return tlsPolicy(tlsSettings);
 }
-
 // node_modules/@azure/core-rest-pipeline/node_modules/@azure/core-tracing/dist/esm/tracingContext.js
 var knownContextKeys = {
   span: Symbol.for("@azure/core-tracing span"),
@@ -47580,7 +47394,7 @@ function createPipelineFromOptions(options) {
       pipeline.addPolicy(tlsPolicy2(options.tlsOptions));
     pipeline.addPolicy(proxyPolicy2(options.proxyOptions)), pipeline.addPolicy(decompressResponsePolicy2());
   }
-  if (pipeline.addPolicy(wrapAbortSignalLikePolicy()), pipeline.addPolicy(formDataPolicy2(), { beforePolicies: [multipartPolicyName2] }), pipeline.addPolicy(userAgentPolicy(options.userAgentOptions)), pipeline.addPolicy(setClientRequestIdPolicy(options.telemetryOptions?.clientRequestIdHeaderName)), pipeline.addPolicy(multipartPolicy2(), { afterPhase: "Deserialize" }), pipeline.addPolicy(defaultRetryPolicy2(options.retryOptions), { phase: "Retry" }), pipeline.addPolicy(tracingPolicy({ ...options.userAgentOptions, ...options.loggingOptions }), {
+  if (pipeline.addPolicy(wrapAbortSignalLikePolicy()), pipeline.addPolicy(formDataPolicy2(), { beforePolicies: [multipartPolicyName2] }), pipeline.addPolicy(userAgentPolicy2(options.userAgentOptions)), pipeline.addPolicy(setClientRequestIdPolicy(options.telemetryOptions?.clientRequestIdHeaderName)), pipeline.addPolicy(multipartPolicy2(), { afterPhase: "Deserialize" }), pipeline.addPolicy(defaultRetryPolicy2(options.retryOptions), { phase: "Retry" }), pipeline.addPolicy(tracingPolicy({ ...options.userAgentOptions, ...options.loggingOptions }), {
     afterPhase: "Retry"
   }), isNodeLike2)
     pipeline.addPolicy(redirectPolicy2(options.redirectOptions), { afterPhase: "Retry" });
@@ -47797,7 +47611,7 @@ function createAbortablePromise2(buildPromise, options) {
   let { cleanupBeforeAbort, abortSignal, abortErrorMsg } = options ?? {};
   return new Promise((resolve3, reject) => {
     function rejectOnAbort() {
-      reject(new AbortError2(abortErrorMsg ?? "The operation was aborted."));
+      reject(new AbortError3(abortErrorMsg ?? "The operation was aborted."));
     }
     function removeListeners() {
       abortSignal?.removeEventListener("abort", onAbort);
@@ -47855,11 +47669,6 @@ function randomUUID3() {
 }
 var isNodeLike3 = isNodeLike;
 
-// node_modules/@azure/core-auth/dist/esm/tokenCredential.js
-function isTokenCredential(credential) {
-  let castCredential = credential;
-  return castCredential && typeof castCredential.getToken === "function" && (castCredential.signRequest === void 0 || castCredential.getToken.length > 0);
-}
 // node_modules/@azure/core-http-compat/dist/esm/policies/disableKeepAlivePolicy.js
 function createDisableKeepAlivePolicy() {
   return {
@@ -49001,12 +48810,12 @@ var context5 = createLoggerContext({
   logLevelEnvVarName: "AZURE_LOG_LEVEL",
   namespace: "azure"
 }), AzureLogger2 = context5.logger;
-function createClientLogger3(namespace) {
+function createClientLogger4(namespace) {
   return context5.createClientLogger(namespace);
 }
 
 // node_modules/@azure/core-client/dist/esm/log.js
-var logger3 = createClientLogger3("core-client");
+var logger3 = createClientLogger4("core-client");
 
 // node_modules/@azure/core-client/dist/esm/serviceClient.js
 class ServiceClient {
@@ -50960,12 +50769,12 @@ var context6 = createLoggerContext({
   logLevelEnvVarName: "AZURE_LOG_LEVEL",
   namespace: "azure"
 }), AzureLogger3 = context6.logger;
-function createClientLogger4(namespace) {
+function createClientLogger5(namespace) {
   return context6.createClientLogger(namespace);
 }
 
 // node_modules/@azure/storage-blob/dist/esm/log.js
-var logger4 = createClientLogger4("storage-blob");
+var logger4 = createClientLogger5("storage-blob");
 
 // node_modules/@azure/storage-common/dist/esm/BufferScheduler.js
 import { EventEmitter as EventEmitter2 } from "events";
@@ -51830,7 +51639,7 @@ class StorageSharedKeyCredential extends Credential {
   }
 }
 // node_modules/@azure/storage-common/dist/esm/log.js
-var logger5 = createClientLogger4("storage-common");
+var logger5 = createClientLogger5("storage-common");
 
 // node_modules/@azure/storage-common/dist/esm/policies/StorageRetryPolicyType.js
 var StorageRetryPolicyType;
@@ -51846,7 +51655,7 @@ var DEFAULT_RETRY_OPTIONS = {
   retryPolicyType: StorageRetryPolicyType.EXPONENTIAL,
   secondaryHost: "",
   tryTimeoutInMs: void 0
-}, RETRY_ABORT_ERROR = new AbortError2("The operation was aborted.");
+}, RETRY_ABORT_ERROR = new AbortError3("The operation was aborted.");
 
 class StorageRetryPolicy extends BaseRequestPolicy {
   retryOptions;
@@ -51996,7 +51805,7 @@ var storageRetryPolicyName = "storageRetryPolicy", DEFAULT_RETRY_OPTIONS2 = {
   "TIMEOUT",
   "EPIPE",
   "REQUEST_SEND_ERROR"
-], RETRY_ABORT_ERROR2 = new AbortError2("The operation was aborted.");
+], RETRY_ABORT_ERROR2 = new AbortError3("The operation was aborted.");
 function storageRetryPolicy(options = {}) {
   let retryPolicyType = options.retryPolicyType ?? DEFAULT_RETRY_OPTIONS2.retryPolicyType, maxTries = options.maxTries ?? DEFAULT_RETRY_OPTIONS2.maxTries, retryDelayInMs = options.retryDelayInMs ?? DEFAULT_RETRY_OPTIONS2.retryDelayInMs, maxRetryDelayInMs = options.maxRetryDelayInMs ?? DEFAULT_RETRY_OPTIONS2.maxRetryDelayInMs, secondaryHost = options.secondaryHost ?? DEFAULT_RETRY_OPTIONS2.secondaryHost, tryTimeoutInMs = options.tryTimeoutInMs ?? DEFAULT_RETRY_OPTIONS2.tryTimeoutInMs;
   function shouldRetry({ isPrimaryRetry, attempt, response, error: error2 }) {
@@ -65237,7 +65046,6 @@ class StorageClient2 {
     storageClientContext.requestContentType = void 0;
   }
 }
-
 // node_modules/@azure/core-tracing/dist/esm/tracingContext.js
 var knownContextKeys2 = {
   span: Symbol.for("@azure/core-tracing span"),
@@ -66275,7 +66083,7 @@ class RetriableReadableStream extends Readable3 {
       this.source.pause();
   };
   sourceAbortedHandler = () => {
-    let abortError = new AbortError2("The operation was aborted.");
+    let abortError = new AbortError3("The operation was aborted.");
     this.destroy(abortError);
   };
   sourceErrorOrEndHandler = (err) => {
@@ -66799,7 +66607,7 @@ class AvroReadable {
 
 // node_modules/@azure/storage-blob/dist/esm/internal-avro/AvroReadableFromStream.js
 import { Buffer as Buffer2 } from "buffer";
-var ABORT_ERROR = new AbortError2("Reading from the avro stream was aborted.");
+var ABORT_ERROR = new AbortError3("Reading from the avro stream was aborted.");
 
 class AvroReadableFromStream extends AvroReadable {
   _position;
@@ -68715,7 +68523,7 @@ var __awaiter10 = function(thisArg, _arguments, P, generator) {
     step((generator = generator.apply(thisArg, _arguments || [])).next());
   });
 };
-function uploadZipToBlobStorage(authenticatedUploadURL, zipUploadStream) {
+function uploadToBlobStorage(authenticatedUploadURL, uploadStream, contentType2) {
   return __awaiter10(this, void 0, void 0, function* () {
     let uploadByteCount = 0, lastProgressTime = Date.now(), abortController = new AbortController, chunkTimer = (interval) => __awaiter10(this, void 0, void 0, function* () {
       return new Promise((resolve3, reject) => {
@@ -68728,18 +68536,18 @@ function uploadZipToBlobStorage(authenticatedUploadURL, zipUploadStream) {
         });
       });
     }), maxConcurrency = getConcurrency(), bufferSize = getUploadChunkSize(), blockBlobClient = new BlobClient(authenticatedUploadURL).getBlockBlobClient();
-    debug(`Uploading artifact zip to blob storage with maxConcurrency: ${maxConcurrency}, bufferSize: ${bufferSize}`);
+    debug(`Uploading artifact to blob storage with maxConcurrency: ${maxConcurrency}, bufferSize: ${bufferSize}, contentType: ${contentType2}`);
     let options = {
-      blobHTTPHeaders: { blobContentType: "zip" },
+      blobHTTPHeaders: { blobContentType: contentType2 },
       onProgress: (progress) => {
         info(`Uploaded bytes ${progress.loadedBytes}`), uploadByteCount = progress.loadedBytes, lastProgressTime = Date.now();
       },
       abortSignal: abortController.signal
-    }, sha256Hash = void 0, uploadStream = new stream.PassThrough, hashStream = crypto3.createHash("sha256");
-    zipUploadStream.pipe(uploadStream), zipUploadStream.pipe(hashStream).setEncoding("hex"), info("Beginning upload of artifact content to blob storage");
+    }, sha256Hash = void 0, blobUploadStream = new stream.PassThrough, hashStream = crypto3.createHash("sha256");
+    uploadStream.pipe(blobUploadStream), uploadStream.pipe(hashStream).setEncoding("hex"), info("Beginning upload of artifact content to blob storage");
     try {
       yield Promise.race([
-        blockBlobClient.uploadStream(uploadStream, bufferSize, maxConcurrency, options),
+        blockBlobClient.uploadStream(blobUploadStream, bufferSize, maxConcurrency, options),
         chunkTimer(getUploadChunkTimeout())
       ]);
     } catch (error2) {
@@ -68749,7 +68557,7 @@ function uploadZipToBlobStorage(authenticatedUploadURL, zipUploadStream) {
     } finally {
       abortController.abort();
     }
-    if (info("Finished uploading artifact content to blob storage!"), hashStream.end(), sha256Hash = hashStream.read(), info(`SHA256 digest of uploaded artifact zip is ${sha256Hash}`), uploadByteCount === 0)
+    if (info("Finished uploading artifact content to blob storage!"), hashStream.end(), sha256Hash = hashStream.read(), info(`SHA256 digest of uploaded artifact is ${sha256Hash}`), uploadByteCount === 0)
       warning("No data was uploaded to blob storage. Reported upload byte count is 0.");
     return {
       uploadSize: uploadByteCount,
@@ -68760,7 +68568,11 @@ function uploadZipToBlobStorage(authenticatedUploadURL, zipUploadStream) {
 
 // node_modules/@actions/artifact/lib/internal/upload/zip.js
 var import_archiver = __toESM(require_archiver(), 1);
+import { realpath as realpath2 } from "fs/promises";
+
+// node_modules/@actions/artifact/lib/internal/upload/stream.js
 import * as stream2 from "stream";
+import * as fs5 from "fs";
 import { realpath } from "fs/promises";
 var __awaiter11 = function(thisArg, _arguments, P, generator) {
   function adopt(value) {
@@ -68788,9 +68600,9 @@ var __awaiter11 = function(thisArg, _arguments, P, generator) {
     }
     step((generator = generator.apply(thisArg, _arguments || [])).next());
   });
-}, DEFAULT_COMPRESSION_LEVEL = 6;
+};
 
-class ZipUploadStream extends stream2.Transform {
+class WaterMarkedUploadStream extends stream2.Transform {
   constructor(bufferSize) {
     super({
       highWaterMark: bufferSize
@@ -68800,8 +68612,51 @@ class ZipUploadStream extends stream2.Transform {
     cb(null, chunk);
   }
 }
+function createRawFileUploadStream(filePath) {
+  return __awaiter11(this, void 0, void 0, function* () {
+    debug(`Creating raw file upload stream for: ${filePath}`);
+    let bufferSize = getUploadChunkSize(), uploadStream = new WaterMarkedUploadStream(bufferSize), sourcePath = filePath;
+    if ((yield fs5.promises.lstat(filePath)).isSymbolicLink())
+      sourcePath = yield realpath(filePath);
+    let fileStream = fs5.createReadStream(sourcePath, {
+      highWaterMark: bufferSize
+    });
+    return fileStream.on("error", (error2) => {
+      error("An error has occurred while reading the file for upload"), error(String(error2)), uploadStream.destroy(Error("An error has occurred during file read for the artifact"));
+    }), fileStream.pipe(uploadStream), uploadStream;
+  });
+}
+
+// node_modules/@actions/artifact/lib/internal/upload/zip.js
+var __awaiter12 = function(thisArg, _arguments, P, generator) {
+  function adopt(value) {
+    return value instanceof P ? value : new P(function(resolve3) {
+      resolve3(value);
+    });
+  }
+  return new (P || (P = Promise))(function(resolve3, reject) {
+    function fulfilled(value) {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function rejected(value) {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function step(result) {
+      result.done ? resolve3(result.value) : adopt(result.value).then(fulfilled, rejected);
+    }
+    step((generator = generator.apply(thisArg, _arguments || [])).next());
+  });
+}, DEFAULT_COMPRESSION_LEVEL = 6;
 function createZipUploadStream(uploadSpecification_1) {
-  return __awaiter11(this, arguments, void 0, function* (uploadSpecification, compressionLevel = DEFAULT_COMPRESSION_LEVEL) {
+  return __awaiter12(this, arguments, void 0, function* (uploadSpecification, compressionLevel = DEFAULT_COMPRESSION_LEVEL) {
     debug(`Creating Artifact archive with compressionLevel: ${compressionLevel}`);
     let zip = import_archiver.default.create("zip", {
       highWaterMark: getUploadChunkSize(),
@@ -68812,13 +68667,13 @@ function createZipUploadStream(uploadSpecification_1) {
       if (file.sourcePath !== null) {
         let sourcePath = file.sourcePath;
         if (file.stats.isSymbolicLink())
-          sourcePath = yield realpath(file.sourcePath);
+          sourcePath = yield realpath2(file.sourcePath);
         zip.file(sourcePath, {
           name: file.destinationPath
         });
       } else
         zip.append("", { name: file.destinationPath });
-    let bufferSize = getUploadChunkSize(), zipUploadStream = new ZipUploadStream(bufferSize);
+    let bufferSize = getUploadChunkSize(), zipUploadStream = new WaterMarkedUploadStream(bufferSize);
     return debug(`Zip write high watermark value ${zipUploadStream.writableHighWaterMark}`), debug(`Zip read high watermark value ${zipUploadStream.readableHighWaterMark}`), zip.pipe(zipUploadStream), zip.finalize(), zipUploadStream;
   });
 }
@@ -68835,8 +68690,65 @@ var zipErrorCallback = (error2) => {
   debug("Zip stream for upload has ended.");
 };
 
+// node_modules/@actions/artifact/lib/internal/upload/types.js
+import * as path4 from "path";
+var mimeTypes = {
+  ".txt": "text/plain",
+  ".html": "text/html",
+  ".htm": "text/html",
+  ".css": "text/css",
+  ".csv": "text/csv",
+  ".xml": "text/xml",
+  ".md": "text/markdown",
+  ".js": "application/javascript",
+  ".mjs": "application/javascript",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".bmp": "image/bmp",
+  ".tiff": "image/tiff",
+  ".tif": "image/tiff",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".flac": "audio/flac",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".avi": "video/x-msvideo",
+  ".mov": "video/quicktime",
+  ".pdf": "application/pdf",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".ppt": "application/vnd.ms-powerpoint",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".zip": "application/zip",
+  ".tar": "application/x-tar",
+  ".gz": "application/gzip",
+  ".rar": "application/vnd.rar",
+  ".7z": "application/x-7z-compressed",
+  ".wasm": "application/wasm",
+  ".yaml": "application/x-yaml",
+  ".yml": "application/x-yaml",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+  ".eot": "application/vnd.ms-fontobject"
+};
+function getMimeType(filePath) {
+  let ext = path4.extname(filePath).toLowerCase();
+  return mimeTypes[ext] || "application/octet-stream";
+}
+
 // node_modules/@actions/artifact/lib/internal/upload/upload-artifact.js
-var __awaiter12 = function(thisArg, _arguments, P, generator) {
+var __awaiter13 = function(thisArg, _arguments, P, generator) {
   function adopt(value) {
     return value instanceof P ? value : new P(function(resolve3) {
       resolve3(value);
@@ -68864,23 +68776,42 @@ var __awaiter12 = function(thisArg, _arguments, P, generator) {
   });
 };
 function uploadArtifact(name, files, rootDirectory, options) {
-  return __awaiter12(this, void 0, void 0, function* () {
+  return __awaiter13(this, void 0, void 0, function* () {
+    let artifactFileName = `${name}.zip`;
+    if (options === null || options === void 0 ? void 0 : options.skipArchive) {
+      if (files.length === 0)
+        throw new FilesNotFoundError([]);
+      if (files.length > 1)
+        throw Error("skipArchive option is only supported when uploading a single file");
+      if (!fs6.existsSync(files[0]))
+        throw new FilesNotFoundError(files);
+      artifactFileName = path5.basename(files[0]), name = artifactFileName;
+    }
     validateArtifactName(name), validateRootDirectory(rootDirectory);
-    let zipSpecification = getUploadZipSpecification(files, rootDirectory);
-    if (zipSpecification.length === 0)
-      throw new FilesNotFoundError(zipSpecification.flatMap((s) => s.sourcePath ? [s.sourcePath] : []));
-    let backendIds = getBackendIdsFromToken(), artifactClient = internalArtifactTwirpClient(), createArtifactReq = {
+    let zipSpecification = [];
+    if (!(options === null || options === void 0 ? void 0 : options.skipArchive)) {
+      if (zipSpecification = getUploadZipSpecification(files, rootDirectory), zipSpecification.length === 0)
+        throw new FilesNotFoundError(zipSpecification.flatMap((s) => s.sourcePath ? [s.sourcePath] : []));
+    }
+    let contentType2 = getMimeType(artifactFileName), backendIds = getBackendIdsFromToken(), artifactClient = internalArtifactTwirpClient(), createArtifactReq = {
       workflowRunBackendId: backendIds.workflowRunBackendId,
       workflowJobRunBackendId: backendIds.workflowJobRunBackendId,
       name,
-      version: 4
+      mimeType: StringValue.create({ value: contentType2 }),
+      version: 7
     }, expiresAt = getExpiration(options === null || options === void 0 ? void 0 : options.retentionDays);
     if (expiresAt)
       createArtifactReq.expiresAt = expiresAt;
     let createArtifactResp = yield artifactClient.CreateArtifact(createArtifactReq);
     if (!createArtifactResp.ok)
       throw new InvalidResponseError("CreateArtifact: response from backend was not ok");
-    let zipUploadStream = yield createZipUploadStream(zipSpecification, options === null || options === void 0 ? void 0 : options.compressionLevel), uploadResult = yield uploadZipToBlobStorage(createArtifactResp.signedUploadUrl, zipUploadStream), finalizeArtifactReq = {
+    let stream3;
+    if (options === null || options === void 0 ? void 0 : options.skipArchive)
+      stream3 = yield createRawFileUploadStream(files[0]);
+    else
+      stream3 = yield createZipUploadStream(zipSpecification, options === null || options === void 0 ? void 0 : options.compressionLevel);
+    info(`Uploading artifact: ${artifactFileName}`);
+    let uploadResult = yield uploadToBlobStorage(createArtifactResp.signedUploadUrl, stream3, contentType2), finalizeArtifactReq = {
       workflowRunBackendId: backendIds.workflowRunBackendId,
       workflowJobRunBackendId: backendIds.workflowJobRunBackendId,
       name,
@@ -68895,7 +68826,7 @@ function uploadArtifact(name, files, rootDirectory, options) {
     if (!finalizeArtifactResp.ok)
       throw new InvalidResponseError("FinalizeArtifact: response from backend was not ok");
     let artifactId = BigInt(finalizeArtifactResp.artifactId);
-    return info(`Artifact ${name}.zip successfully finalized. Artifact ID ${artifactId}`), {
+    return info(`Artifact ${name} successfully finalized. Artifact ID ${artifactId}`), {
       size: uploadResult.uploadSize,
       digest: uploadResult.sha256Hash,
       id: Number(artifactId)
@@ -68904,13 +68835,13 @@ function uploadArtifact(name, files, rootDirectory, options) {
 }
 
 // node_modules/@actions/artifact/lib/internal/download/download-artifact.js
-import fs5 from "fs/promises";
+import fs7 from "fs/promises";
 import * as fsSync from "fs";
 import * as crypto4 from "crypto";
 import * as stream3 from "stream";
-import * as path4 from "path";
+import * as path6 from "path";
 var import_unzip_stream = __toESM(require_unzip(), 1);
-var __awaiter13 = function(thisArg, _arguments, P, generator) {
+var __awaiter14 = function(thisArg, _arguments, P, generator) {
   function adopt(value) {
     return value instanceof P ? value : new P(function(resolve3) {
       resolve3(value);
@@ -68940,10 +68871,10 @@ var __awaiter13 = function(thisArg, _arguments, P, generator) {
   let parsed = new URL(url2);
   return parsed.search = "", parsed.toString();
 };
-function exists2(path5) {
-  return __awaiter13(this, void 0, void 0, function* () {
+function exists2(path7) {
+  return __awaiter14(this, void 0, void 0, function* () {
     try {
-      return yield fs5.access(path5), !0;
+      return yield fs7.access(path7), !0;
     } catch (error2) {
       if (error2.code === "ENOENT")
         return !1;
@@ -68953,7 +68884,7 @@ function exists2(path5) {
   });
 }
 function streamExtract(url2, directory, skipDecompress) {
-  return __awaiter13(this, void 0, void 0, function* () {
+  return __awaiter14(this, void 0, void 0, function* () {
     let retryCount = 0;
     while (retryCount < 5)
       try {
@@ -68965,13 +68896,13 @@ function streamExtract(url2, directory, skipDecompress) {
   });
 }
 function streamExtractExternal(url_1, directory_1) {
-  return __awaiter13(this, arguments, void 0, function* (url2, directory, opts = {}) {
+  return __awaiter14(this, arguments, void 0, function* (url2, directory, opts = {}) {
     let { timeout = 30000, skipDecompress = !1 } = opts, response = yield new HttpClient(getUserAgentString()).get(url2);
     if (response.message.statusCode !== 200)
       throw Error(`Unexpected HTTP response from blob storage: ${response.message.statusCode} ${response.message.statusMessage}`);
-    let contentType2 = response.message.headers["content-type"] || "", mimeType = contentType2.split(";", 1)[0].trim().toLowerCase(), urlEndsWithZip = new URL(url2).pathname.toLowerCase().endsWith(".zip"), isZip = mimeType === "application/zip" || mimeType === "application/x-zip-compressed" || mimeType === "application/zip-compressed" || urlEndsWithZip, contentDisposition = response.message.headers["content-disposition"] || "", fileName = "artifact", filenameMatch = contentDisposition.match(/filename\*?=['"]?(?:UTF-\d['"]*)?([^;\r\n"']*)['"]?/i);
-    if (filenameMatch && filenameMatch[1])
-      fileName = path4.basename(decodeURIComponent(filenameMatch[1].trim()));
+    let contentType2 = response.message.headers["content-type"] || "", mimeType = contentType2.split(";", 1)[0].trim().toLowerCase(), urlEndsWithZip = new URL(url2).pathname.toLowerCase().endsWith(".zip"), isZip = mimeType === "application/zip" || mimeType === "application/x-zip-compressed" || mimeType === "application/zip-compressed" || urlEndsWithZip, contentDisposition = response.message.headers["content-disposition"] || "", fileName = "artifact", filenameStar = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;\r\n]*)/i), filenamePlain = contentDisposition.match(/(?<!\*)filename\s*=\s*['"]?([^;\r\n"']*)['"]?/i), rawName = (filenameStar === null || filenameStar === void 0 ? void 0 : filenameStar[1]) || (filenamePlain === null || filenamePlain === void 0 ? void 0 : filenamePlain[1]);
+    if (rawName)
+      fileName = path6.basename(decodeURIComponent(rawName.trim()));
     debug(`Content-Type: ${contentType2}, mimeType: ${mimeType}, urlEndsWithZip: ${urlEndsWithZip}, isZip: ${isZip}, skipDecompress: ${skipDecompress}`), debug(`Content-Disposition: ${contentDisposition}, fileName: ${fileName}`);
     let sha256Digest = void 0;
     return new Promise((resolve3, reject) => {
@@ -68992,14 +68923,14 @@ function streamExtractExternal(url_1, directory_1) {
       if (isZip && !skipDecompress)
         passThrough.pipe(import_unzip_stream.default.Extract({ path: directory })).on("close", onClose).on("error", onError);
       else {
-        let filePath = path4.join(directory, fileName), writeStream = fsSync.createWriteStream(filePath);
+        let filePath = path6.join(directory, fileName), writeStream = fsSync.createWriteStream(filePath);
         info(`Downloading raw file (non-zip) to: ${filePath}`), passThrough.pipe(writeStream).on("close", onClose).on("error", onError);
       }
     });
   });
 }
 function downloadArtifactPublic(artifactId, repositoryOwner, repositoryName, token, options) {
-  return __awaiter13(this, void 0, void 0, function* () {
+  return __awaiter14(this, void 0, void 0, function* () {
     let downloadPath = yield resolveOrCreateDirectory(options === null || options === void 0 ? void 0 : options.path), api = getOctokit(token), digestMismatch = !1;
     info(`Downloading artifact '${artifactId}' from '${repositoryOwner}/${repositoryName}'`);
     let { headers, status } = yield api.rest.actions.downloadArtifact({
@@ -69031,7 +68962,7 @@ function downloadArtifactPublic(artifactId, repositoryOwner, repositoryName, tok
   });
 }
 function downloadArtifactInternal(artifactId, options) {
-  return __awaiter13(this, void 0, void 0, function* () {
+  return __awaiter14(this, void 0, void 0, function* () {
     let downloadPath = yield resolveOrCreateDirectory(options === null || options === void 0 ? void 0 : options.path), artifactClient = internalArtifactTwirpClient(), digestMismatch = !1, { workflowRunBackendId, workflowJobRunBackendId } = getBackendIdsFromToken(), listReq = {
       workflowRunBackendId,
       workflowJobRunBackendId,
@@ -69062,9 +68993,9 @@ Are you trying to download from a different run? Try specifying a github-token w
   });
 }
 function resolveOrCreateDirectory() {
-  return __awaiter13(this, arguments, void 0, function* (downloadPath = getGitHubWorkspaceDir()) {
+  return __awaiter14(this, arguments, void 0, function* (downloadPath = getGitHubWorkspaceDir()) {
     if (!(yield exists2(downloadPath)))
-      debug(`Artifact destination folder does not exist, creating: ${downloadPath}`), yield fs5.mkdir(downloadPath, { recursive: !0 });
+      debug(`Artifact destination folder does not exist, creating: ${downloadPath}`), yield fs7.mkdir(downloadPath, { recursive: !0 });
     else
       debug(`Artifact destination folder already exists: ${downloadPath}`);
     return downloadPath;
@@ -69093,13 +69024,13 @@ var VERSION7 = "6.0.0";
 function requestLog(octokit) {
   octokit.hook.wrap("request", (request2, options) => {
     octokit.log.debug("request", options);
-    let start = Date.now(), requestOptions = octokit.request.endpoint.parse(options), path5 = requestOptions.url.replace(options.baseUrl, "");
+    let start = Date.now(), requestOptions = octokit.request.endpoint.parse(options), path7 = requestOptions.url.replace(options.baseUrl, "");
     return request2(options).then((response) => {
       let requestId2 = response.headers["x-github-request-id"];
-      return octokit.log.info(`${requestOptions.method} ${path5} - ${response.status} with id ${requestId2} in ${Date.now() - start}ms`), response;
+      return octokit.log.info(`${requestOptions.method} ${path7} - ${response.status} with id ${requestId2} in ${Date.now() - start}ms`), response;
     }).catch((error2) => {
       let requestId2 = error2.response?.headers["x-github-request-id"] || "UNKNOWN";
-      throw octokit.log.error(`${requestOptions.method} ${path5} - ${error2.status} with id ${requestId2} in ${Date.now() - start}ms`), error2;
+      throw octokit.log.error(`${requestOptions.method} ${path7} - ${error2.status} with id ${requestId2} in ${Date.now() - start}ms`), error2;
     });
   });
 }
@@ -69159,7 +69090,7 @@ function retry(octokit, octokitOptions) {
 retry.VERSION = VERSION8;
 
 // node_modules/@actions/artifact/lib/internal/find/get-artifact.js
-var __awaiter14 = function(thisArg, _arguments, P, generator) {
+var __awaiter15 = function(thisArg, _arguments, P, generator) {
   function adopt(value) {
     return value instanceof P ? value : new P(function(resolve3) {
       resolve3(value);
@@ -69187,7 +69118,7 @@ var __awaiter14 = function(thisArg, _arguments, P, generator) {
   });
 };
 function getArtifactPublic(artifactName, workflowRunId, repositoryOwner, repositoryName, token) {
-  return __awaiter14(this, void 0, void 0, function* () {
+  return __awaiter15(this, void 0, void 0, function* () {
     var _a;
     let [retryOpts, requestOpts] = getRetryOptions(defaults), opts = {
       log: void 0,
@@ -69222,7 +69153,7 @@ function getArtifactPublic(artifactName, workflowRunId, repositoryOwner, reposit
   });
 }
 function getArtifactInternal(artifactName) {
-  return __awaiter14(this, void 0, void 0, function* () {
+  return __awaiter15(this, void 0, void 0, function* () {
     var _a;
     let artifactClient = internalArtifactTwirpClient(), { workflowRunBackendId, workflowJobRunBackendId } = getBackendIdsFromToken(), req = {
       workflowRunBackendId,
@@ -69249,7 +69180,7 @@ function getArtifactInternal(artifactName) {
 }
 
 // node_modules/@actions/artifact/lib/internal/delete/delete-artifact.js
-var __awaiter15 = function(thisArg, _arguments, P, generator) {
+var __awaiter16 = function(thisArg, _arguments, P, generator) {
   function adopt(value) {
     return value instanceof P ? value : new P(function(resolve3) {
       resolve3(value);
@@ -69277,7 +69208,7 @@ var __awaiter15 = function(thisArg, _arguments, P, generator) {
   });
 };
 function deleteArtifactPublic(artifactName, workflowRunId, repositoryOwner, repositoryName, token) {
-  return __awaiter15(this, void 0, void 0, function* () {
+  return __awaiter16(this, void 0, void 0, function* () {
     var _a;
     let [retryOpts, requestOpts] = getRetryOptions(defaults), opts = {
       log: void 0,
@@ -69298,7 +69229,7 @@ function deleteArtifactPublic(artifactName, workflowRunId, repositoryOwner, repo
   });
 }
 function deleteArtifactInternal(artifactName) {
-  return __awaiter15(this, void 0, void 0, function* () {
+  return __awaiter16(this, void 0, void 0, function* () {
     let artifactClient = internalArtifactTwirpClient(), { workflowRunBackendId, workflowJobRunBackendId } = getBackendIdsFromToken(), listReq = {
       workflowRunBackendId,
       workflowJobRunBackendId,
@@ -69321,7 +69252,7 @@ function deleteArtifactInternal(artifactName) {
 }
 
 // node_modules/@actions/artifact/lib/internal/find/list-artifacts.js
-var __awaiter16 = function(thisArg, _arguments, P, generator) {
+var __awaiter17 = function(thisArg, _arguments, P, generator) {
   function adopt(value) {
     return value instanceof P ? value : new P(function(resolve3) {
       resolve3(value);
@@ -69349,7 +69280,7 @@ var __awaiter16 = function(thisArg, _arguments, P, generator) {
   });
 }, maximumArtifactCount = getMaxArtifactListCount(), paginationCount = 100, maxNumberOfPages = Math.ceil(maximumArtifactCount / paginationCount);
 function listArtifactsPublic(workflowRunId_1, repositoryOwner_1, repositoryName_1, token_1) {
-  return __awaiter16(this, arguments, void 0, function* (workflowRunId, repositoryOwner, repositoryName, token, latest = !1) {
+  return __awaiter17(this, arguments, void 0, function* (workflowRunId, repositoryOwner, repositoryName, token, latest = !1) {
     info(`Fetching artifact list for workflow run ${workflowRunId} in repository ${repositoryOwner}/${repositoryName}`);
     let artifacts = [], [retryOpts, requestOpts] = getRetryOptions(defaults), opts = {
       log: void 0,
@@ -69401,7 +69332,7 @@ function listArtifactsPublic(workflowRunId_1, repositoryOwner_1, repositoryName_
   });
 }
 function listArtifactsInternal() {
-  return __awaiter16(this, arguments, void 0, function* (latest = !1) {
+  return __awaiter17(this, arguments, void 0, function* (latest = !1) {
     let artifactClient = internalArtifactTwirpClient(), { workflowRunBackendId, workflowJobRunBackendId } = getBackendIdsFromToken(), req = {
       workflowRunBackendId,
       workflowJobRunBackendId
@@ -69432,7 +69363,7 @@ function filterLatest(artifacts) {
 }
 
 // node_modules/@actions/artifact/lib/internal/client.js
-var __awaiter17 = function(thisArg, _arguments, P, generator) {
+var __awaiter18 = function(thisArg, _arguments, P, generator) {
   function adopt(value) {
     return value instanceof P ? value : new P(function(resolve3) {
       resolve3(value);
@@ -69473,7 +69404,7 @@ var __awaiter17 = function(thisArg, _arguments, P, generator) {
 
 class DefaultArtifactClient {
   uploadArtifact(name, files, rootDirectory, options) {
-    return __awaiter17(this, void 0, void 0, function* () {
+    return __awaiter18(this, void 0, void 0, function* () {
       try {
         if (isGhes())
           throw new GHESNotSupportedError;
@@ -69488,7 +69419,7 @@ If the error persists, please check whether Actions is operating normally at [ht
     });
   }
   downloadArtifact(artifactId, options) {
-    return __awaiter17(this, void 0, void 0, function* () {
+    return __awaiter18(this, void 0, void 0, function* () {
       try {
         if (isGhes())
           throw new GHESNotSupportedError;
@@ -69507,7 +69438,7 @@ If the error persists, please check whether Actions and API requests are operati
     });
   }
   listArtifacts(options) {
-    return __awaiter17(this, void 0, void 0, function* () {
+    return __awaiter18(this, void 0, void 0, function* () {
       try {
         if (isGhes())
           throw new GHESNotSupportedError;
@@ -69526,7 +69457,7 @@ If the error persists, please check whether Actions and API requests are operati
     });
   }
   getArtifact(artifactName, options) {
-    return __awaiter17(this, void 0, void 0, function* () {
+    return __awaiter18(this, void 0, void 0, function* () {
       try {
         if (isGhes())
           throw new GHESNotSupportedError;
@@ -69545,7 +69476,7 @@ If the error persists, please check whether Actions and API requests are operati
     });
   }
   deleteArtifact(artifactName, options) {
-    return __awaiter17(this, void 0, void 0, function* () {
+    return __awaiter18(this, void 0, void 0, function* () {
       try {
         if (isGhes())
           throw new GHESNotSupportedError;

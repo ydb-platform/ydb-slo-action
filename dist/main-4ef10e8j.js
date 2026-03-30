@@ -2,7 +2,7 @@ import {
   debug,
   exec,
   warning
-} from "./main-qx9yp3g6.js";
+} from "./main-psx1kkej.js";
 
 // shared/thresholds.ts
 import * as fs from "node:fs";
@@ -269,7 +269,11 @@ function resolveRelativeThresholds(metricName, config) {
   };
 }
 function analyzeMetric(metric, currentRef, baselineRef, options = {}) {
-  let { trimPercent = 0.1, emaAlpha = 0.15, thresholdConfig } = options, direction = inferDirection(metric.name), currentVals = extractValues(metric, currentRef), baselineVals = extractValues(metric, baselineRef), current = buildRefSummary(currentVals, trimPercent), baseline = buildRefSummary(baselineVals, trimPercent), absoluteCheck = { severity: "success", value: current.trimmedMean, violations: [] }, absoluteThresholds;
+  let { trimPercent = 0.1, emaAlpha = 0.15, thresholdConfig } = options, direction = inferDirection(metric.name), currentVals = extractValues(metric, currentRef), baselineVals = extractValues(metric, baselineRef), current = buildRefSummary(currentVals, trimPercent), baseline = buildRefSummary(baselineVals, trimPercent), absoluteCheck = {
+    severity: "success",
+    value: current.trimmedMean,
+    violations: []
+  }, absoluteThresholds;
   if (thresholdConfig) {
     absoluteCheck = evaluateAbsoluteThreshold(metric.name, current.trimmedMean, direction, thresholdConfig);
     let matched = findMatchingThreshold(metric.name, thresholdConfig);
@@ -298,7 +302,13 @@ function analyzeMetric(metric, currentRef, baselineRef, options = {}) {
           let check = evaluateRelativeThreshold(metric.name, changePercent, concordance, direction, thresholdConfig);
           relSeverity = check.severity, violations = check.violations;
         }
-        relativeCheck = { severity: relSeverity, pairedRatio, changePercent, concordance, violations };
+        relativeCheck = {
+          severity: relSeverity,
+          pairedRatio,
+          changePercent,
+          concordance,
+          violations
+        };
         let sortedRatios = [...aligned.map((p) => p.ratio).filter((r) => isFinite(r))].sort((a, b) => a - b);
         forestEntry = {
           name: metric.name,

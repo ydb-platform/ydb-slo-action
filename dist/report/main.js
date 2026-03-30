@@ -1,7 +1,7 @@
 import {
   analyzeWorkload,
   loadThresholdConfig
-} from "../main-y69nhd1x.js";
+} from "../main-4ef10e8j.js";
 import {
   DefaultArtifactClient,
   context,
@@ -11,7 +11,7 @@ import {
   info,
   setFailed,
   warning
-} from "../main-qx9yp3g6.js";
+} from "../main-psx1kkej.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";
@@ -75,9 +75,10 @@ async function downloadRunArtifacts(destinationPath) {
   }
   return workloadArtifacts;
 }
-async function uploadReportArtifact(workload, htmlPath, cwd, retentionDays) {
+async function uploadReportArtifact(cwd, workload, htmlPath, retentionDays = 30) {
   let artifactClient = new DefaultArtifactClient, { id } = await artifactClient.uploadArtifact(`${workload}-html-report`, [htmlPath], cwd, {
-    retentionDays
+    retentionDays,
+    skipArchive: !0
   });
   return `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts/${id}`;
 }
@@ -296,7 +297,7 @@ async function main() {
       info(`  ⚠️ ${analysis.summary.warnings} warning(s)`);
     let html = await generateHTMLReport(meta, alerts, analysis, metrics, templatePath), htmlPath = path2.join(cwd, `${workload}-report.html`);
     await fs4.writeFile(htmlPath, html, "utf-8");
-    let reportUrl = await uploadReportArtifact(workload, htmlPath, cwd, artifactRetentionDays);
+    let reportUrl = await uploadReportArtifact(cwd, workload, htmlPath, artifactRetentionDays);
     info(`  \uD83D\uDCCE Report: ${reportUrl}`), reports.push({
       workload,
       currentRef: meta.workload_current_ref || "current",

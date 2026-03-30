@@ -6,7 +6,7 @@ import {
   getOctokit,
   info,
   warning
-} from "./main-qx9yp3g6.js";
+} from "./main-psx1kkej.js";
 
 // init/lib/docker.ts
 async function getContainerIp(containerName) {
@@ -17,9 +17,23 @@ async function getContainerIp(containerName) {
       listeners: {
         stdout: (data) => chunks.push(data.toString())
       }
-    }), chunks.join("").trim() || null;
+    }), chunks.join("").trim();
   } catch (error) {
     return warning(`Failed to get container IP for ${containerName}: ${String(error)}`), null;
+  }
+}
+async function getContainerLogs(containerName) {
+  try {
+    let chunks = [];
+    return await exec("docker", ["logs", "-t", containerName], {
+      silent: !0,
+      listeners: {
+        stdout: (data) => chunks.push(data.toString()),
+        stderr: (data) => chunks.push(data.toString())
+      }
+    }), chunks.join("").trim();
+  } catch (error) {
+    return warning(`Failed to get container logs for ${containerName}: ${String(error)}`), "";
   }
 }
 async function collectComposeLogs(cwd, profiles) {
@@ -77,12 +91,13 @@ async function waitForContainerCompletion(options) {
     }).then(() => {
       if (completed = !0, timeoutHandle)
         clearTimeout(timeoutHandle);
+      return;
     });
     if (await Promise.race([waitPromise, timeoutPromise]), !completed)
       throw Error(`Container ${container} did not complete in time`);
     let exitCode = parseInt(chunks.join("").trim(), 10);
     if (exitCode !== 0)
-      throw Error(`Container ${container} exited with code ${exitCode}`);
+      throw Error(`Container ${container} exited with code ${exitCode}.`);
   } catch (error) {
     let statusInfo = "";
     try {
@@ -94,7 +109,12 @@ async function waitForContainerCompletion(options) {
         }
       }), statusInfo = ` [Status: ${statusChunks.join("").trim()}]`;
     } catch {}
-    throw Error(`Failed to wait for container ${container}${statusInfo}: ${String(error)}`);
+    try {
+      warning(await getContainerLogs(container));
+    } catch {}
+    throw Error(`Failed to wait for container ${container}${statusInfo}.`, {
+      cause: error
+    });
   }
 }
 
