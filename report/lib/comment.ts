@@ -5,11 +5,9 @@
 import { debug, getInput, info } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
 
-import {
-	type Severity,
-	type WorkloadAnalysis,
-} from '../../shared/analysis.js'
+import { type Severity, type WorkloadAnalysis } from '../../shared/analysis.js'
 export interface WorkloadReportSummary {
+	failed: boolean
 	workload: string
 	currentRef: string
 	baselineRef: string
@@ -170,7 +168,10 @@ async function findExistingComment(pull: number): Promise<number | null> {
 /**
  * Create or update PR comment
  */
-export async function createOrUpdateComment(pull: number, body: string): Promise<{ url: string; id: number }> {
+export async function createOrUpdateComment(
+	pull: number,
+	body: string
+): Promise<{ url: string; id: number }> {
 	let token = getInput('github_token')
 	let octokit = getOctokit(token)
 

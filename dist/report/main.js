@@ -1,7 +1,7 @@
 import {
   analyzeWorkload,
   loadThresholdConfig
-} from "../main-4ef10e8j.js";
+} from "../main-t5hbpttf.js";
 import {
   DefaultArtifactClient,
   context,
@@ -11,7 +11,7 @@ import {
   info,
   setFailed,
   warning
-} from "../main-psx1kkej.js";
+} from "../main-w8t1tja0.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";
@@ -285,6 +285,25 @@ async function main() {
     let meta = await loadMetadata(artifact.metaPath), alerts = await loadAlerts(artifact.alertsPath), metrics = await loadMetrics(artifact.metricsPath);
     if (!prNumber && meta.pull)
       prNumber = meta.pull;
+    if (meta.failed) {
+      reports.push({
+        failed: !0,
+        workload,
+        currentRef: meta.workload_current_ref || "current",
+        baselineRef: meta.workload_baseline_ref || "baseline",
+        analysis: {
+          workload,
+          severity: "failure",
+          metrics: []
+        },
+        commit: meta.commit,
+        runUrl: meta.run_url,
+        repoUrl: meta.repo_url,
+        reportUrl: meta.run_url,
+        durationMs: meta.duration_ms
+      });
+      continue;
+    }
     info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`);
     let analysis = analyzeWorkload(meta.workload, metrics, meta.workload_current_ref || "current", meta.workload_baseline_ref || "baseline", {
       trimPercent: 0.1,
@@ -299,6 +318,7 @@ async function main() {
     await fs4.writeFile(htmlPath, html, "utf-8");
     let reportUrl = await uploadReportArtifact(cwd, workload, htmlPath, artifactRetentionDays);
     info(`  \uD83D\uDCCE Report: ${reportUrl}`), reports.push({
+      failed: !1,
       workload,
       currentRef: meta.workload_current_ref || "current",
       baselineRef: meta.workload_baseline_ref || "baseline",

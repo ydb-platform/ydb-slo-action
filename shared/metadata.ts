@@ -1,6 +1,7 @@
 export interface TestMetadata {
 	pull?: number
 	commit?: string
+	failed?: '' | 'cluster' | 'workload'
 	repo_url?: string
 	repo_full_name?: string
 	run_id?: string

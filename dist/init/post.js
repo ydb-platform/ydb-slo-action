@@ -3,11 +3,11 @@ import {
   getComposeProfiles,
   getContainerIp,
   uploadArtifacts
-} from "../main-z26hetxe.js";
+} from "../main-73wr87bf.js";
 import {
   analyzeWorkload,
   formatValue
-} from "../main-4ef10e8j.js";
+} from "../main-t5hbpttf.js";
 import {
   debug,
   exec,
@@ -16,7 +16,7 @@ import {
   info,
   summary,
   warning
-} from "../main-psx1kkej.js";
+} from "../main-w8t1tja0.js";
 
 // init/post.ts
 import * as fs2 from "node:fs/promises";
@@ -340,13 +340,16 @@ async function post() {
   let metadataContent = await collectMetadata();
   await fs2.writeFile(metadataPath, metadataContent, { encoding: "utf-8" });
   let profiles = await getComposeProfiles(cwd);
-  await exec("docker", ["compose", "-f", "compose.yml", "down"], {
+  if (await exec("docker", ["compose", "-f", "compose.yml", "down"], {
     cwd: path2.resolve(process.env.GITHUB_ACTION_PATH, "deploy"),
     env: {
       ...process.env,
       COMPOSE_PROFILES: profiles.join(",")
     }
-  }), await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath], cwd), await writeWorkloadSummary(metricsContent);
+  }), await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath], cwd), getState("failed"))
+    await writeFailedSummary();
+  else
+    await writeWorkloadSummary(metricsContent);
 }
 async function collectLogs() {
   info("Collecting logs...");
@@ -369,10 +372,11 @@ async function collectMetrics() {
 }
 async function collectMetadata() {
   info("Saving metadata...");
-  let pull = getState("pull"), commit = getState("commit"), start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, duration = finish.getTime() - start.getTime(), workload = getState("workload"), workload_current_ref = getInput("workload_current_ref"), workload_baseline_ref = getInput("workload_baseline_ref");
+  let pull = getState("pull"), commit = getState("commit"), start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, failed = getState("failed"), duration = finish.getTime() - start.getTime(), workload = getState("workload"), workload_current_ref = getInput("workload_current_ref"), workload_baseline_ref = getInput("workload_baseline_ref");
   return JSON.stringify({
     pull,
     commit,
+    failed,
     repo_url: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}` : void 0,
     repo_full_name: process.env.GITHUB_REPOSITORY,
     run_id: process.env.GITHUB_RUN_ID,
@@ -392,5 +396,11 @@ async function writeWorkloadSummary(metricsContent) {
   let workload = getState("workload"), currentRef = getInput("workload_current_ref"), baselineRef = getInput("workload_baseline_ref"), metrics = metricsContent.split(`
 `).filter((line) => line.trim().length > 0).map((line) => JSON.parse(line)), analysis = analyzeWorkload(workload, metrics, currentRef, baselineRef);
   await writeJobSummary(analysis);
+}
+async function writeFailedSummary() {
+  let cwd = getState("cwd"), workload = getState("workload");
+  summary.addHeading(`Failed ${workload}.`);
+  let workloadLogs = await collectComposeLogs(cwd, ["workload-current", "workload-baseline"]);
+  summary.addCodeBlock(workloadLogs), await summary.write();
 }
 post();

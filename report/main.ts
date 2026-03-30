@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import { getInput, info, setFailed } from '@actions/core'
 
-import { analyzeWorkload } from '../shared/analysis.js'
+import { type MetricAnalysis, analyzeWorkload } from '../shared/analysis.js'
 import { loadThresholdConfig } from '../shared/thresholds.js'
 
 import { downloadRunArtifacts, uploadReportArtifact } from './lib/artifacts.js'
@@ -63,6 +63,27 @@ async function main() {
 			prNumber = meta.pull
 		}
 
+		if (meta.failed) {
+			reports.push({
+				failed: true,
+				workload,
+				currentRef: meta.workload_current_ref || 'current',
+				baselineRef: meta.workload_baseline_ref || 'baseline',
+				analysis: {
+					workload,
+					severity: 'failure',
+					metrics: [] as MetricAnalysis[],
+				},
+				commit: meta.commit,
+				runUrl: meta.run_url,
+				repoUrl: meta.repo_url,
+				reportUrl: meta.run_url,
+				durationMs: meta.duration_ms,
+			} as WorkloadReportSummary)
+
+			continue
+		}
+
 		info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`)
 
 		// Analyze workload with paired-comparison model
@@ -94,6 +115,7 @@ async function main() {
 		info(`  📎 Report: ${reportUrl}`)
 
 		reports.push({
+			failed: false,
 			workload,
 			currentRef: meta.workload_current_ref || 'current',
 			baselineRef: meta.workload_baseline_ref || 'baseline',

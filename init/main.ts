@@ -2,7 +2,16 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { debug, error, getInput, info, saveState, setFailed, setOutput } from '@actions/core'
+import {
+	debug,
+	error,
+	getInput,
+	info,
+	saveState,
+	setFailed,
+	setOutput,
+	warning,
+} from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
@@ -22,8 +31,18 @@ async function main() {
 	fs.mkdirSync(cwd, { recursive: true })
 
 	await copyAssets(cwd)
-	await deployInfra(cwd, workload)
-	await waitForWorkloads()
+
+	try {
+		await deployInfra(cwd, workload)
+	} catch {
+		saveState('failed', 'cluster')
+	}
+
+	try {
+		await waitForWorkloads()
+	} catch {
+		saveState('failed', 'workload')
+	}
 }
 
 async function copyAssets(cwd: string): Promise<void> {
@@ -62,21 +81,35 @@ async function deployInfra(cwd: string, workload: string): Promise<void> {
 		profiles.push('workload-baseline')
 	}
 
-	await exec(`docker`, [`compose`, `up`, `--quiet-pull`, `--quiet-build`, `--detach`], {
-		cwd,
-		env: {
-			...process.env,
-			COMPOSE_PROFILES: profiles.join(','),
-			WORKLOAD_NAME: workload,
-			WORKLOAD_DURATION: workloadDuration,
-			WORKLOAD_CURRENT_REF: workloadCurrentRef,
-			WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
-			WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
-			WORKLOAD_BASELINE_REF: workloadBaselineRef,
-			WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
-			WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand,
-		},
-	})
+	let started = false
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		try {
+			await exec(`docker`, [`compose`, `up`, `--quiet-pull`, `--quiet-build`, `--detach`], {
+				cwd,
+				env: {
+					...process.env,
+					COMPOSE_PROFILES: profiles.join(','),
+					WORKLOAD_NAME: workload,
+					WORKLOAD_DURATION: workloadDuration,
+					WORKLOAD_CURRENT_REF: workloadCurrentRef,
+					WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
+					WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
+					WORKLOAD_BASELINE_REF: workloadBaselineRef,
+					WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
+					WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand,
+				},
+			})
+		} catch (err) {
+			warning(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`)
+			continue
+		}
+
+		started = true
+	}
+
+	if (!started) {
+		throw new Error('Failed to start YDB cluster.')
+	}
 
 	debug(`Ran with profiles: ${profiles.join(', ')}`)
 
@@ -131,8 +164,7 @@ async function waitForWorkloads(): Promise<void> {
 	let finish = new Date()
 	saveState('finish', finish.toISOString())
 	info(`Workloads finished at ${finish}`)
-
-	process.exit(0)
 }
 
-main()
+await main()
+process.exit(0)

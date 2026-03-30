@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { debug, getInput, getState, info } from '@actions/core'
+import { debug, getInput, getState, info, summary } from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { analyzeWorkload } from '../shared/analysis.js'
@@ -46,7 +46,12 @@ async function post() {
 	})
 
 	await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath], cwd)
-	await writeWorkloadSummary(metricsContent)
+
+	if (getState('failed')) {
+		await writeFailedSummary()
+	} else {
+		await writeWorkloadSummary(metricsContent)
+	}
 }
 
 async function collectLogs(): Promise<string> {
@@ -97,6 +102,7 @@ async function collectMetadata(): Promise<string> {
 	let commit = getState('commit')
 	let start = new Date(getState('start'))
 	let finish = getState('finish') ? new Date(getState('finish')) : new Date()
+	let failed = getState('failed') as '' | 'cluster' | 'workload'
 	let duration = finish.getTime() - start.getTime()
 
 	let workload = getState('workload')
@@ -106,6 +112,7 @@ async function collectMetadata(): Promise<string> {
 	let content = JSON.stringify({
 		pull,
 		commit,
+		failed,
 		repo_url:
 			process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY
 				? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`
@@ -146,6 +153,18 @@ async function writeWorkloadSummary(metricsContent: string) {
 	let analysis = analyzeWorkload(workload, metrics, currentRef, baselineRef)
 
 	await writeJobSummary(analysis)
+}
+
+async function writeFailedSummary() {
+	let cwd = getState('cwd')
+	let workload = getState('workload')
+
+	summary.addHeading(`Failed ${workload}.`)
+
+	let workloadLogs = await collectComposeLogs(cwd, ['workload-current', 'workload-baseline'])
+	summary.addCodeBlock(workloadLogs)
+
+	await summary.write()
 }
 
 post()
