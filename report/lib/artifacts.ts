@@ -47,6 +47,10 @@ export async function downloadRunArtifacts(
 	for (let artifact of artifacts) {
 		let artifactDir = path.join(destinationPath, artifact.name)
 
+		if (artifact.name.includes('report.html')) {
+			continue
+		}
+
 		debug(`Downloading artifact ${artifact.name}...`)
 
 		let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {

@@ -37,6 +37,8 @@ async function downloadRunArtifacts(destinationPath) {
   let downloadedPaths = /* @__PURE__ */ new Map;
   for (let artifact of artifacts) {
     let artifactDir = path.join(destinationPath, artifact.name);
+    if (artifact.name.includes("report.html"))
+      continue;
     debug(`Downloading artifact ${artifact.name}...`);
     let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
       path: artifactDir,
