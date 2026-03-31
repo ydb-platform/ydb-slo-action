@@ -66,6 +66,10 @@ async function collectLogs(): Promise<string> {
 async function collectAlerts(): Promise<string> {
 	info('Collecting alerts from Prometheus...')
 
+	if (!getState('start') || !getState('finish')) {
+		return ''
+	}
+
 	let start = new Date(getState('start'))
 	let finish = getState('finish') ? new Date(getState('finish')) : new Date()
 
@@ -80,6 +84,10 @@ async function collectAlerts(): Promise<string> {
 
 async function collectMetrics(): Promise<string> {
 	info('Collecting metrics...')
+
+	if (!getState('start') || !getState('finish')) {
+		return ''
+	}
 
 	let start = new Date(getState('start'))
 	let finish = getState('finish') ? new Date(getState('finish')) : new Date()

@@ -357,13 +357,15 @@ async function collectLogs() {
   return await collectComposeLogs(cwd, profiles);
 }
 async function collectAlerts() {
-  info("Collecting alerts from Prometheus...");
+  if (info("Collecting alerts from Prometheus..."), !getState("start") || !getState("finish"))
+    return "";
   let start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, prometheusIp = await getContainerIp("ydb-prometheus"), prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : "http://prometheus:9090";
   return debug(`Prometheus URL for alerts: ${prometheusUrl}`), (await collectAlertsFromPrometheus(prometheusUrl, start, finish)).map((a) => JSON.stringify(a)).join(`
 `);
 }
 async function collectMetrics() {
-  info("Collecting metrics...");
+  if (info("Collecting metrics..."), !getState("start") || !getState("finish"))
+    return "";
   let start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, prometheusIp = await getContainerIp("ydb-prometheus"), prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : "http://prometheus:9090";
   debug(`Prometheus URL: ${prometheusUrl}`);
   let config = await loadMetricConfig(getInput("metrics_yaml"), getInput("metrics_yaml_path"));
