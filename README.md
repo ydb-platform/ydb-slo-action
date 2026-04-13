@@ -127,6 +127,16 @@ The `report` job requires these GitHub token permissions:
 
 The `init` job does not require any special permissions.
 
+## AI-Assisted Workload Development
+
+Install the [Agent Skill](https://github.com/vercel-labs/skills) to get AI assistance when writing your workload:
+
+```bash
+npx skills add ydb-platform/ydb-slo-action
+```
+
+The skill provides your coding agent with the full workload contract, required metrics, and configuration format.
+
 ## Workload Contract
 
 Your workload is a Docker image. The action runs it inside the same Docker network as the YDB cluster and Prometheus. Two instances run simultaneously — current and baseline — under the same chaos conditions.
