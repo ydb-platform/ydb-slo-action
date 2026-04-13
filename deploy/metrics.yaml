@@ -66,9 +66,9 @@ metrics:
     query: |
       clamp_min(
         round(
-          sum by(ref) (increase(sdk_retry_attempts_total{operation_type="write"}[5s]))
+          sum by(ref) (increase(sdk_retry_attempts_total{operation_type="read"}[5s]))
           -
-          sum by(ref) (increase(sdk_operations_total{operation_type="write"}[5s]))
+          sum by(ref) (increase(sdk_operations_total{operation_type="read"}[5s]))
         ),
         0
       )
