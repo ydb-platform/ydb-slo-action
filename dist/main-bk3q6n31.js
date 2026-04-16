@@ -296,7 +296,7 @@ function analyzeMetric(metric, currentRef, baselineRef, options = {}) {
     let currentSeries = metric.data.find((s) => s.metric.ref === currentRef), baselineSeries = metric.data.find((s) => s.metric.ref === baselineRef);
     if (currentSeries && baselineSeries) {
       let aligned = alignSeries(currentSeries, baselineSeries);
-      if (aligned.length > 0) {
+      if (aligned.filter((p) => isFinite(p.ratio)).length > 0) {
         let pairedRatio = computePairedRatio(aligned, trimPercent), changePercent = (pairedRatio - 1) * 100, concordance = computeConcordance(aligned, direction), relSeverity = "success", violations = [];
         if (thresholdConfig) {
           let check = evaluateRelativeThreshold(metric.name, changePercent, concordance, direction, thresholdConfig);

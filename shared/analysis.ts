@@ -339,7 +339,9 @@ export function analyzeMetric(
 		if (currentSeries && baselineSeries) {
 			let aligned = alignSeries(currentSeries, baselineSeries)
 
-			if (aligned.length > 0) {
+			let finiteRatios = aligned.filter((p) => isFinite(p.ratio))
+
+			if (finiteRatios.length > 0) {
 				let pairedRatio = computePairedRatio(aligned, trimPercent)
 				let changePercent = (pairedRatio - 1) * 100
 				let concordance = computeConcordance(aligned, direction)
