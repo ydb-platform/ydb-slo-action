@@ -111,9 +111,9 @@ function evaluateRelativeThreshold(metricName, changePercent, concordance, direc
   let severity = "success";
   if (isWorse && absChange > neutralThreshold) {
     if (absChange >= criticalThreshold)
-      severity = "failure", violations.push(`Regression ${absChange.toFixed(1)}% >= critical ${criticalThreshold}%`);
+      severity = "failure", violations.push(`▲ ${absChange.toFixed(1)}% (≥ ${criticalThreshold}% fail)`);
     else if (absChange >= warningThreshold)
-      severity = "warning", violations.push(`Regression ${absChange.toFixed(1)}% >= warning ${warningThreshold}%`);
+      severity = "warning", violations.push(`▲ ${absChange.toFixed(1)}% (≥ ${warningThreshold}% warn)`);
   }
   return {
     severity,
@@ -383,6 +383,39 @@ function analyzeWorkload(workload, metrics, currentRef, baselineRef, options = {
     summary: { total: cleanAnalyses.length, success, warnings, failures }
   };
 }
+function describeChange(metric) {
+  let check = metric.relativeCheck;
+  if (!check || !isFinite(check.changePercent))
+    return null;
+  let pct = check.changePercent, abs = Math.abs(pct), neutral = metric.relativeThresholds?.neutralChangePercent ?? 5;
+  if (abs < neutral)
+    return { trend: "flat", arrow: "≈", percent: abs };
+  let isWorse = !1, isBetter = !1;
+  if (metric.direction === "lower_is_better")
+    isWorse = pct > 0, isBetter = pct < 0;
+  else if (metric.direction === "higher_is_better")
+    isWorse = pct < 0, isBetter = pct > 0;
+  if (isBetter)
+    return { trend: "better", arrow: "▼", percent: abs };
+  if (isWorse) {
+    let warn = metric.relativeThresholds?.warningChangePercent, crit = metric.relativeThresholds?.criticalChangePercent, hint;
+    if (check.severity === "failure" && crit != null)
+      hint = `≥ ${crit}% fail`;
+    else if (check.severity === "warning" && warn != null)
+      hint = `≥ ${warn}% warn`;
+    else if (warn != null)
+      hint = `< ${warn}% warn`;
+    return { trend: "worse", arrow: "▲", percent: abs, hint };
+  }
+  return { trend: "flat", arrow: pct > 0 ? "▲" : "▼", percent: abs };
+}
+function formatChangeCell(metric) {
+  let parts = describeChange(metric);
+  if (!parts)
+    return "N/A";
+  let body = `${parts.arrow} ${parts.percent.toFixed(1)}%`;
+  return parts.hint ? `${body} (${parts.hint})` : body;
+}
 function formatValue(value, metricName) {
   if (isNaN(value))
     return "N/A";
@@ -401,4 +434,4 @@ function formatValue(value, metricName) {
   return value.toFixed(2);
 }
 
-export { loadThresholdConfig, analyzeWorkload, formatValue };
+export { loadThresholdConfig, analyzeWorkload, formatChangeCell, formatValue };

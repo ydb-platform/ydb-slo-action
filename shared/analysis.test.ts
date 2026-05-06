@@ -8,11 +8,45 @@ import {
 	analyzeWorkload,
 	computeConcordance,
 	computePairedRatio,
+	describeChange,
 	formatChange,
+	formatChangeCell,
 	formatValue,
 	inferDirection,
+	type MetricAnalysis,
 } from './analysis.js'
 import type { CollectedMetric, RangeSeries } from './metrics.js'
+
+function makeAnalysis(overrides: {
+	direction: 'lower_is_better' | 'higher_is_better' | 'neutral'
+	changePercent: number
+	severity: 'success' | 'warning' | 'failure'
+	warning?: number
+	critical?: number
+	neutral?: number
+}): MetricAnalysis {
+	return {
+		name: 'm',
+		direction: overrides.direction,
+		type: 'range',
+		current: { trimmedMean: 0, mean: 0, median: 0, p95: 0, p99: 0, count: 1 },
+		baseline: { trimmedMean: 0, mean: 0, median: 0, p95: 0, p99: 0, count: 1 },
+		absoluteCheck: { severity: 'success', value: 0, violations: [] },
+		relativeCheck: {
+			severity: overrides.severity,
+			pairedRatio: 1 + overrides.changePercent / 100,
+			changePercent: overrides.changePercent,
+			concordance: 0,
+			violations: [],
+		},
+		relativeThresholds: {
+			warningChangePercent: overrides.warning ?? 30,
+			criticalChangePercent: overrides.critical ?? 100,
+			neutralChangePercent: overrides.neutral ?? 5,
+		},
+		severity: overrides.severity,
+	}
+}
 
 test('inferDirection recognizes latency as lower_is_better', () => {
 	assert.equal(inferDirection('read_latency_p95_ms'), 'lower_is_better')
@@ -277,4 +311,45 @@ test('formatValue and formatChange produce stable strings', () => {
 	assert.equal(formatChange(10.04, 'success'), '+10.0% ✅')
 	assert.equal(formatChange(-10.04, 'failure'), '-10.0% 🔴')
 	assert.equal(formatChange(NaN, 'success'), 'N/A')
+})
+
+test('describeChange marks below-neutral changes as flat', () => {
+	let parts = describeChange(makeAnalysis({ direction: 'lower_is_better', changePercent: 0.4, severity: 'success' }))
+	assert.deepEqual(parts, { trend: 'flat', arrow: '≈', percent: 0.4 })
+})
+
+test('describeChange marks lower_is_better regression below warn as worse with hint', () => {
+	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: 12.5, severity: 'success', warning: 30 })
+	assert.deepEqual(describeChange(m), { trend: 'worse', arrow: '▲', percent: 12.5, hint: '< 30% warn' })
+})
+
+test('describeChange marks improvement without hint', () => {
+	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: -10, severity: 'success' })
+	assert.deepEqual(describeChange(m), { trend: 'better', arrow: '▼', percent: 10 })
+})
+
+test('describeChange picks warn hint at warning severity', () => {
+	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: 40, severity: 'warning', warning: 30, critical: 100 })
+	assert.deepEqual(describeChange(m), { trend: 'worse', arrow: '▲', percent: 40, hint: '≥ 30% warn' })
+})
+
+test('describeChange picks fail hint at failure severity', () => {
+	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: 120, severity: 'failure', warning: 30, critical: 100 })
+	assert.deepEqual(describeChange(m), { trend: 'worse', arrow: '▲', percent: 120, hint: '≥ 100% fail' })
+})
+
+test('describeChange treats higher_is_better drop as worse', () => {
+	let m = makeAnalysis({ direction: 'higher_is_better', changePercent: -10, severity: 'success', warning: 25 })
+	assert.deepEqual(describeChange(m), { trend: 'worse', arrow: '▲', percent: 10, hint: '< 25% warn' })
+})
+
+test('formatChangeCell renders the cell text', () => {
+	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: 12.5, severity: 'success', warning: 30 })
+	assert.equal(formatChangeCell(m), '▲ 12.5% (< 30% warn)')
+
+	let improved = makeAnalysis({ direction: 'lower_is_better', changePercent: -10, severity: 'success' })
+	assert.equal(formatChangeCell(improved), '▼ 10.0%')
+
+	let flat = makeAnalysis({ direction: 'lower_is_better', changePercent: 0.5, severity: 'success' })
+	assert.equal(formatChangeCell(flat), '≈ 0.5%')
 })

@@ -4,20 +4,19 @@
 
 import { summary } from '@actions/core'
 
-import { formatValue, type MetricAnalysis, type Severity, type WorkloadAnalysis } from '../../shared/analysis.js'
+import {
+	formatChangeCell,
+	formatValue,
+	type Severity,
+	type WorkloadAnalysis,
+} from '../../shared/analysis.js'
 
 function severityEmoji(severity: Severity): string {
 	return severity === 'failure' ? '🔴' : severity === 'warning' ? '🟡' : '🟢'
 }
 
-function metricStatusEmoji(metric: MetricAnalysis): string {
-	if (metric.severity === 'failure') return '🔴'
-	if (metric.severity === 'warning') return '🟡'
-	if (metric.relativeCheck) {
-		let abs = Math.abs(metric.relativeCheck.changePercent)
-		if (abs < 5) return '⚪'
-	}
-	return '✅'
+function metricStatusEmoji(severity: Severity): string {
+	return severity === 'failure' ? '🔴' : severity === 'warning' ? '🟡' : '✅'
 }
 
 /**
@@ -43,11 +42,9 @@ export async function writeJobSummary(analysis: WorkloadAnalysis): Promise<void>
 				m.name,
 				formatValue(m.current.trimmedMean, m.name),
 				m.baseline.count > 0 ? formatValue(m.baseline.trimmedMean, m.name) : 'N/A',
-				m.relativeCheck
-					? `${m.relativeCheck.changePercent >= 0 ? '+' : ''}${m.relativeCheck.changePercent.toFixed(1)}%`
-					: 'N/A',
+				formatChangeCell(m),
 				m.relativeCheck ? m.relativeCheck.concordance.toFixed(2) : 'N/A',
-				metricStatusEmoji(m),
+				metricStatusEmoji(m.severity),
 			]),
 		]
 		summary.addTable(matrix)
@@ -61,7 +58,7 @@ export async function writeJobSummary(analysis: WorkloadAnalysis): Promise<void>
 			...analysis.metrics.map((m) => [
 				m.name,
 				formatValue(m.current.trimmedMean, m.name),
-				metricStatusEmoji(m),
+				metricStatusEmoji(m.severity),
 			]),
 		]
 		summary.addTable(matrix)

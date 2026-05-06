@@ -254,10 +254,10 @@ export function evaluateRelativeThreshold(
 	if (isWorse && absChange > neutralThreshold) {
 		if (absChange >= criticalThreshold) {
 			severity = 'failure'
-			violations.push(`Regression ${absChange.toFixed(1)}% >= critical ${criticalThreshold}%`)
+			violations.push(`▲ ${absChange.toFixed(1)}% (≥ ${criticalThreshold}% fail)`)
 		} else if (absChange >= warningThreshold) {
 			severity = 'warning'
-			violations.push(`Regression ${absChange.toFixed(1)}% >= warning ${warningThreshold}%`)
+			violations.push(`▲ ${absChange.toFixed(1)}% (≥ ${warningThreshold}% warn)`)
 		}
 	}
 

@@ -6,8 +6,9 @@ import {
 } from "../main-73wr87bf.js";
 import {
   analyzeWorkload,
+  formatChangeCell,
   formatValue
-} from "../main-bk3q6n31.js";
+} from "../main-2q2e71fw.js";
 import {
   debug,
   exec,
@@ -277,16 +278,8 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
 function severityEmoji(severity) {
   return severity === "failure" ? "\uD83D\uDD34" : severity === "warning" ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
 }
-function metricStatusEmoji(metric) {
-  if (metric.severity === "failure")
-    return "\uD83D\uDD34";
-  if (metric.severity === "warning")
-    return "\uD83D\uDFE1";
-  if (metric.relativeCheck) {
-    if (Math.abs(metric.relativeCheck.changePercent) < 5)
-      return "⚪";
-  }
-  return "✅";
+function metricStatusEmoji(severity) {
+  return severity === "failure" ? "\uD83D\uDD34" : severity === "warning" ? "\uD83D\uDFE1" : "✅";
 }
 async function writeJobSummary(analysis) {
   let emoji = severityEmoji(analysis.severity);
@@ -304,9 +297,9 @@ async function writeJobSummary(analysis) {
         m.name,
         formatValue(m.current.trimmedMean, m.name),
         m.baseline.count > 0 ? formatValue(m.baseline.trimmedMean, m.name) : "N/A",
-        m.relativeCheck ? `${m.relativeCheck.changePercent >= 0 ? "+" : ""}${m.relativeCheck.changePercent.toFixed(1)}%` : "N/A",
+        formatChangeCell(m),
         m.relativeCheck ? m.relativeCheck.concordance.toFixed(2) : "N/A",
-        metricStatusEmoji(m)
+        metricStatusEmoji(m.severity)
       ])
     ];
     summary.addTable(matrix);
@@ -320,7 +313,7 @@ async function writeJobSummary(analysis) {
       ...analysis.metrics.map((m) => [
         m.name,
         formatValue(m.current.trimmedMean, m.name),
-        metricStatusEmoji(m)
+        metricStatusEmoji(m.severity)
       ])
     ];
     summary.addTable(matrix);

@@ -495,6 +495,66 @@ export function analyzeWorkload(
 }
 
 // ---------------------------------------------------------------------------
+// Change cell helpers — describe the relative-change cell with arrow + hint
+// ---------------------------------------------------------------------------
+
+export type ChangeTrend = 'worse' | 'better' | 'flat'
+
+export interface ChangeCellParts {
+	trend: ChangeTrend
+	arrow: '▲' | '▼' | '≈'
+	percent: number // |changePercent|
+	hint?: string // e.g. "< 30% warn", "≥ 30% warn", "≥ 100% fail"
+}
+
+export function describeChange(metric: MetricAnalysis): ChangeCellParts | null {
+	let check = metric.relativeCheck
+	if (!check || !isFinite(check.changePercent)) return null
+
+	let pct = check.changePercent
+	let abs = Math.abs(pct)
+	let neutral = metric.relativeThresholds?.neutralChangePercent ?? 5
+
+	if (abs < neutral) {
+		return { trend: 'flat', arrow: '≈', percent: abs }
+	}
+
+	let isWorse = false
+	let isBetter = false
+	if (metric.direction === 'lower_is_better') {
+		isWorse = pct > 0
+		isBetter = pct < 0
+	} else if (metric.direction === 'higher_is_better') {
+		isWorse = pct < 0
+		isBetter = pct > 0
+	}
+
+	if (isBetter) {
+		return { trend: 'better', arrow: '▼', percent: abs }
+	}
+
+	if (isWorse) {
+		let warn = metric.relativeThresholds?.warningChangePercent
+		let crit = metric.relativeThresholds?.criticalChangePercent
+		let hint: string | undefined
+		if (check.severity === 'failure' && crit != null) hint = `≥ ${crit}% fail`
+		else if (check.severity === 'warning' && warn != null) hint = `≥ ${warn}% warn`
+		else if (warn != null) hint = `< ${warn}% warn`
+		return { trend: 'worse', arrow: '▲', percent: abs, hint }
+	}
+
+	// direction === 'neutral': arrow follows sign, no worse/better hint
+	return { trend: 'flat', arrow: pct > 0 ? '▲' : '▼', percent: abs }
+}
+
+export function formatChangeCell(metric: MetricAnalysis): string {
+	let parts = describeChange(metric)
+	if (!parts) return 'N/A'
+	let body = `${parts.arrow} ${parts.percent.toFixed(1)}%`
+	return parts.hint ? `${body} (${parts.hint})` : body
+}
+
+// ---------------------------------------------------------------------------
 // Formatting helpers (kept from old module)
 // ---------------------------------------------------------------------------
 
