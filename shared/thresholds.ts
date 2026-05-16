@@ -141,6 +141,7 @@ export async function loadThresholdConfig(customYaml?: string, customPath?: stri
 		}
 	}
 
+	debug(`Loaded thresholds config: ${JSON.stringify(config, null, 2)}`)
 	return config
 }
 
