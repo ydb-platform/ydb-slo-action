@@ -55,57 +55,43 @@ In `deploy/compose.yml`, add `profiles: [extra-nodes]` to services
 - `disable_compose_profiles: extra-nodes` filters the profile out →
   `database-3/4/5` do not start → 2-node cluster.
 
-No existing `depends_on` references `database-3/4/5`; the new readiness
-dependency added in Change 2 references them via `required: false`, so disabling
+Nothing in compose `depends_on` references `database-3/4/5`, so gating them via
 the profile does not break startup ordering.
 
-### Change 2 — gate readiness on the database nodes (`depends_on`)
+### Why not `depends_on` on the database nodes (deliberate constraint)
 
-Today `database-readiness` only `depends_on` storage + init steps, **not the
-database nodes**. So it can start before any dynamic node has registered. With
-the old hardcoded script this only "worked" because it retried 5 fixed IPs for
-60s; a discovery-based script would instead see an empty endpoint list and have
-no notion of how many nodes to wait for (it could pass on 1 node while the
-second is still registering).
+The natural fix for "how many nodes to wait for" would be to add the database
+nodes to `database-readiness.depends_on` (`condition: service_healthy`,
+`required: false` for the profiled ones). **We deliberately do not do this** —
+it would fight an existing design decision, recorded in git history:
 
-Fix: add the database nodes to `database-readiness.depends_on` so it starts only
-after every **enabled** node is healthy:
+- `e60ae5b` removed the direct `database-N: service_healthy` dependencies (then
+  on `chaos-monkey`/workloads) and replaced them with a single
+  `database-readiness` container that depends only on storage + init steps.
+- Follow-ups show why the healthcheck is an unreliable readiness signal:
+  `4439478` switched the per-node check from `scheme ls` (read) to
+  `CREATE TABLE` (DDL/write); `9c123ef` raised retries 10→30 (nodes ready much
+  later than the port opens); `4b96fe1` gave each node its own `rd_check_<ip>`
+  table (nodes become serve-ready at different times).
 
-```yaml
-database-readiness:
-  depends_on:
-    # …existing storage-1 / storage-init / database-init…
-    database-1: { condition: service_healthy }
-    database-2: { condition: service_healthy }
-    database-3: { condition: service_healthy, required: false }
-    database-4: { condition: service_healthy, required: false }
-    database-5: { condition: service_healthy, required: false }
-```
+So `ydbd`'s healthcheck (gRPC port open) fires well before a dynamic node can
+serve `SELECT 1`/DDL. The readiness *script* — a tolerant poller with retries —
+is the real gate, and it must stay self-contained. The "0 endpoints at start"
+problem is therefore solved **inside the script** (Change 2), not via compose
+`depends_on`.
 
-`required: false` is essential and **verified against Compose v5.0.1**:
+### Change 2 — discovery-based readiness script (no `depends_on`)
 
-- A non-profiled service that `depends_on` a service in a *disabled* profile
-  with the default `required: true` makes the whole project invalid
-  (`service "X" depends on undefined service "Y": invalid compose project`) — so
-  small mode would fail to start.
-- With `required: false`, the disabled dependency is **skipped with a warning**
-  (no auto-enable, no error). When the profile *is* active, the `service_healthy`
-  condition is honored normally.
-
-Net effect: small mode waits for `database-1/2`; full mode waits for
-`database-1..5`; the "expected count" is implicit in the enabled services — no
-hardcoded count, no `init` coupling. (`ydbd`'s healthcheck = gRPC port open, so
-the per-node serving check in Change 3 still closes the "port open but not yet
-serving the tenant" gap.)
-
-### Change 3 — discovery-based readiness script
-
-Rewrite `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh` so it
-verifies the nodes the cluster *actually* has, not a hardcoded IP list:
+Rewrite `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh` to
+verify the nodes the cluster *actually* has, replacing the hardcoded `.11–.15`
+loop — while keeping `database-readiness.depends_on` unchanged (storage + init
+only):
 
 1. `check_cluster_health` — keep as-is (monitoring healthcheck via storage
-   endpoint returns `GOOD`).
-2. **Discover** the tenant's database endpoints by asking an always-on node:
+   endpoint returns `GOOD`, 30 retries).
+2. **Discover + wait for the set to settle.** Poll the registered database
+   endpoints and wait until the set stops growing — this replaces the hardcoded
+   "expected count" without `depends_on` and without knowing N in advance:
    ```
    ydb --endpoint grpc://172.28.0.11:2136 --database /Root/testdb discovery list
    ```
@@ -113,23 +99,28 @@ verifies the nodes the cluster *actually* has, not a hardcoded IP list:
      modes. (Storage `172.28.0.10` is a fallback bootstrap candidate.)
    - Output lines look like `grpc://172.28.0.11:2136 [az] #table_service …`;
      extract `host:port` (`grep -oE 'grpcs?://[^ ]+'` → strip scheme).
-   - Poll until the set is non-empty and has settled, then proceed. With Change 2
-     gating start on all enabled nodes being healthy, the registration lag here
-     is small; the poll just absorbs it.
+   - Loop: read the current set; if empty, retry; if the set is unchanged for
+     `K` consecutive polls, treat it as settled and proceed. Bound the whole
+     loop with a total timeout so a flapping cluster fails honestly.
+   - Settling at 2 (small) or 5 (full) is automatic. The residual risk of
+     settling before a very-late node is the same exposure the workload itself
+     has (it also connects via discovery) — acceptable and consistent.
 3. Run the existing per-node `check_node_responds` (SQL `SELECT 1` + DDL
-   `CREATE TABLE IF NOT EXISTS …`, with `--no-discovery` to pin the specific
-   node) over each **discovered** endpoint instead of the hardcoded `.11–.15`.
+   `CREATE TABLE IF NOT EXISTS rd_check_<id>`, with `--no-discovery` to pin the
+   specific node) over each **discovered** endpoint instead of the hardcoded
+   `.11–.15`.
    - Generalize `check_node_responds` to accept a `host:port` endpoint; derive
      the table suffix from it (sanitize `.`/`:` → `_`).
 
 Result: works for any node count, keeps per-node strictness, zero hardcoded IP
-list — matching the chaos layer's dynamic-discovery philosophy.
+list, **no compose `depends_on`** — matching both the chaos layer's dynamic
+discovery and the existing self-contained-readiness design.
 
 CLI verified against docs for YDB CLI `stable-25-3`: the subcommand is
 `discovery list` (not `list-endpoints`). Exact output parsing + whether the
 storage node can also serve tenant discovery to be confirmed during E2E.
 
-### Change 4 — documentation
+### Change 3 — documentation
 
 - `deploy/env.example`: note how to run small mode locally
   (`disable_compose_profiles` env / compose `--profile` usage).
@@ -154,12 +145,10 @@ storage node can also serve tenant discovery to be confirmed during E2E.
 
 ## Files to change
 
-1. `deploy/compose.yml` —
-   - add `profiles: [extra-nodes]` to `database-3/4/5`;
-   - add `database-1/2` (`service_healthy`) and `database-3/4/5`
-     (`service_healthy`, `required: false`) to `database-readiness.depends_on`.
-2. `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh` — discovery
-   loop replacing hardcoded `.11–.15`.
+1. `deploy/compose.yml` — add `profiles: [extra-nodes]` to `database-3/4/5`.
+   `database-readiness.depends_on` stays unchanged (storage + init only).
+2. `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh` —
+   discovery + settle loop replacing the hardcoded `.11–.15` checks.
 3. `deploy/env.example` + user docs — document small mode + trade-off.
 
 No `init/` TypeScript changes (profile is auto-detected). `dist/` unaffected.
@@ -171,10 +160,8 @@ E2E only (project has no unit tests for this path):
 - **Default run** (no `disable_compose_profiles`): 5 database nodes start,
   readiness passes, workload completes — unchanged behavior.
 - **Small run** (`disable_compose_profiles: extra-nodes`): only
-  `database-1/2` start; readiness discovers exactly 2 endpoints and passes;
+  `database-1/2` start; readiness settles on exactly 2 endpoints and passes;
   workload completes; Prometheus shows `.13–.15` down without firing alerts.
-  Compose logs a benign skip warning for the `required: false` deps
-  (`database-3/4/5`) — expected, not an error.
 - Locally: `disable_compose_profiles=extra-nodes` equivalent via
   `docker compose --profile telemetry --profile workload-current up` (omit
   `extra-nodes`) and confirm `ydb-database-3/4/5` are absent and
