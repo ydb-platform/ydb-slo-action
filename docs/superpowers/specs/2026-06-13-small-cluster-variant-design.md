@@ -55,10 +55,50 @@ In `deploy/compose.yml`, add `profiles: [extra-nodes]` to services
 - `disable_compose_profiles: extra-nodes` filters the profile out →
   `database-3/4/5` do not start → 2-node cluster.
 
-Nothing in compose `depends_on` references `database-3/4/5`, so gating them does
-not break startup ordering.
+No existing `depends_on` references `database-3/4/5`; the new readiness
+dependency added in Change 2 references them via `required: false`, so disabling
+the profile does not break startup ordering.
 
-### Change 2 — discovery-based readiness (required)
+### Change 2 — gate readiness on the database nodes (`depends_on`)
+
+Today `database-readiness` only `depends_on` storage + init steps, **not the
+database nodes**. So it can start before any dynamic node has registered. With
+the old hardcoded script this only "worked" because it retried 5 fixed IPs for
+60s; a discovery-based script would instead see an empty endpoint list and have
+no notion of how many nodes to wait for (it could pass on 1 node while the
+second is still registering).
+
+Fix: add the database nodes to `database-readiness.depends_on` so it starts only
+after every **enabled** node is healthy:
+
+```yaml
+database-readiness:
+  depends_on:
+    # …existing storage-1 / storage-init / database-init…
+    database-1: { condition: service_healthy }
+    database-2: { condition: service_healthy }
+    database-3: { condition: service_healthy, required: false }
+    database-4: { condition: service_healthy, required: false }
+    database-5: { condition: service_healthy, required: false }
+```
+
+`required: false` is essential and **verified against Compose v5.0.1**:
+
+- A non-profiled service that `depends_on` a service in a *disabled* profile
+  with the default `required: true` makes the whole project invalid
+  (`service "X" depends on undefined service "Y": invalid compose project`) — so
+  small mode would fail to start.
+- With `required: false`, the disabled dependency is **skipped with a warning**
+  (no auto-enable, no error). When the profile *is* active, the `service_healthy`
+  condition is honored normally.
+
+Net effect: small mode waits for `database-1/2`; full mode waits for
+`database-1..5`; the "expected count" is implicit in the enabled services — no
+hardcoded count, no `init` coupling. (`ydbd`'s healthcheck = gRPC port open, so
+the per-node serving check in Change 3 still closes the "port open but not yet
+serving the tenant" gap.)
+
+### Change 3 — discovery-based readiness script
 
 Rewrite `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh` so it
 verifies the nodes the cluster *actually* has, not a hardcoded IP list:
@@ -73,8 +113,9 @@ verifies the nodes the cluster *actually* has, not a hardcoded IP list:
      modes. (Storage `172.28.0.10` is a fallback bootstrap candidate.)
    - Output lines look like `grpc://172.28.0.11:2136 [az] #table_service …`;
      extract `host:port` (`grep -oE 'grpcs?://[^ ]+'` → strip scheme).
-   - Poll with retries until the set is non-empty (dynamic nodes register
-     slightly after the cluster reports `GOOD`); fail after the timeout budget.
+   - Poll until the set is non-empty and has settled, then proceed. With Change 2
+     gating start on all enabled nodes being healthy, the registration lag here
+     is small; the poll just absorbs it.
 3. Run the existing per-node `check_node_responds` (SQL `SELECT 1` + DDL
    `CREATE TABLE IF NOT EXISTS …`, with `--no-discovery` to pin the specific
    node) over each **discovered** endpoint instead of the hardcoded `.11–.15`.
@@ -88,7 +129,7 @@ CLI verified against docs for YDB CLI `stable-25-3`: the subcommand is
 `discovery list` (not `list-endpoints`). Exact output parsing + whether the
 storage node can also serve tenant discovery to be confirmed during E2E.
 
-### Change 3 — documentation
+### Change 4 — documentation
 
 - `deploy/env.example`: note how to run small mode locally
   (`disable_compose_profiles` env / compose `--profile` usage).
@@ -113,7 +154,10 @@ storage node can also serve tenant discovery to be confirmed during E2E.
 
 ## Files to change
 
-1. `deploy/compose.yml` — add `profiles: [extra-nodes]` to `database-3/4/5`.
+1. `deploy/compose.yml` —
+   - add `profiles: [extra-nodes]` to `database-3/4/5`;
+   - add `database-1/2` (`service_healthy`) and `database-3/4/5`
+     (`service_healthy`, `required: false`) to `database-readiness.depends_on`.
 2. `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh` — discovery
    loop replacing hardcoded `.11–.15`.
 3. `deploy/env.example` + user docs — document small mode + trade-off.
@@ -129,6 +173,8 @@ E2E only (project has no unit tests for this path):
 - **Small run** (`disable_compose_profiles: extra-nodes`): only
   `database-1/2` start; readiness discovers exactly 2 endpoints and passes;
   workload completes; Prometheus shows `.13–.15` down without firing alerts.
+  Compose logs a benign skip warning for the `required: false` deps
+  (`database-3/4/5`) — expected, not an error.
 - Locally: `disable_compose_profiles=extra-nodes` equivalent via
   `docker compose --profile telemetry --profile workload-current up` (omit
   `extra-nodes`) and confirm `ydb-database-3/4/5` are absent and
