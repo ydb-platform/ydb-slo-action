@@ -89,7 +89,9 @@ async function main() {
 		// Per-scenario thresholds (shipped by init) override the report-global config
 		let effectiveConfig = thresholdsConfig
 		if (artifact.thresholdsPath) {
-			info(`  🎯 Applying per-scenario thresholds from ${path.basename(artifact.thresholdsPath)}`)
+			info(
+				`  🎯 Applying per-scenario thresholds from ${path.basename(artifact.thresholdsPath)}`
+			)
 			let scenarioYaml = await fs.readFile(artifact.thresholdsPath, 'utf-8')
 			effectiveConfig = await mergeWorkloadThresholds(thresholdsConfig, scenarioYaml)
 		}
