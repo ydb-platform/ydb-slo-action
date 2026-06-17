@@ -323,6 +323,14 @@ async function writeJobSummary(analysis) {
 
 // init/post.ts
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
+async function collectFlamegraphArtifacts(cwd, workload) {
+  try {
+    let entries = await fs2.readdir(cwd);
+    return entries.filter((entry) => entry.startsWith(`${workload}-`) && entry.endsWith(".html")).map((entry) => path2.join(cwd, entry));
+  } catch {
+    return [];
+  }
+}
 async function post() {
   let cwd = getState("cwd"), workload = getState("workload"), logsPath = path2.join(cwd, `${workload}-logs.txt`), alertsPath = path2.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path2.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path2.join(cwd, `${workload}-metadata.json`), logsContent = await collectLogs();
   await fs2.writeFile(logsPath, logsContent, { encoding: "utf-8" });
@@ -339,7 +347,7 @@ async function post() {
       ...process.env,
       COMPOSE_PROFILES: profiles.join(",")
     }
-  }), await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath], cwd), getState("failed"))
+  }), await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath, ...await collectFlamegraphArtifacts(cwd, workload)], cwd), getState("failed"))
     await writeFailedSummary();
   else
     await writeWorkloadSummary(metricsContent);

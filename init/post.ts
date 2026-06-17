@@ -15,6 +15,18 @@ import { writeJobSummary } from './lib/summary.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
 
+async function collectFlamegraphArtifacts(cwd: string, workload: string): Promise<string[]> {
+	try {
+		let entries = await fs.readdir(cwd)
+
+		return entries
+			.filter((entry) => entry.startsWith(`${workload}-`) && entry.endsWith('.html'))
+			.map((entry) => path.join(cwd, entry))
+	} catch {
+		return []
+	}
+}
+
 async function post() {
 	let cwd = getState('cwd')
 	let workload = getState('workload')
@@ -45,7 +57,12 @@ async function post() {
 		},
 	})
 
-	await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath], cwd)
+	let flamegraphPaths = await collectFlamegraphArtifacts(cwd, workload)
+	await uploadArtifacts(
+		workload,
+		[logsPath, alertsPath, metricsPath, metadataPath, ...flamegraphPaths],
+		cwd,
+	)
 
 	if (getState('failed')) {
 		await writeFailedSummary()
