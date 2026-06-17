@@ -8,24 +8,13 @@ import { exec } from '@actions/exec'
 import { analyzeWorkload } from '../shared/analysis.js'
 import { type CollectedMetric, loadMetricConfig } from '../shared/metrics.js'
 import { collectAlertsFromPrometheus } from './lib/alerts.js'
+import { collectExtraArtifacts } from './lib/artifacts.js'
 import { collectComposeLogs, getComposeProfiles, getContainerIp } from './lib/docker.js'
 import { uploadArtifacts } from './lib/github.js'
 import { collectMetricsFromPrometheus } from './lib/metrics.js'
 import { writeJobSummary } from './lib/summary.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
-
-async function collectFlamegraphArtifacts(cwd: string, workload: string): Promise<string[]> {
-	try {
-		let entries = await fs.readdir(cwd)
-
-		return entries
-			.filter((entry) => entry.startsWith(`${workload}-`) && entry.endsWith('.html'))
-			.map((entry) => path.join(cwd, entry))
-	} catch {
-		return []
-	}
-}
 
 async function post() {
 	let cwd = getState('cwd')
@@ -57,10 +46,10 @@ async function post() {
 		},
 	})
 
-	let flamegraphPaths = await collectFlamegraphArtifacts(cwd, workload)
+	let extraArtifactPaths = await collectExtraArtifacts(cwd)
 	await uploadArtifacts(
 		workload,
-		[logsPath, alertsPath, metricsPath, metadataPath, ...flamegraphPaths],
+		[logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths],
 		cwd,
 	)
 

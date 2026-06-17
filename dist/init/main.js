@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function main() {
   let cwd = path.join(process.cwd(), ".slo"), workload = getInput("workload_name") || "unspecified";
-  saveState("cwd", cwd), saveState("pull", await getPullRequestNumber()), saveState("commit", process.env.GITHUB_SHA), saveState("workload", workload), fs.mkdirSync(cwd, { recursive: !0 }), await copyAssets(cwd);
+  saveState("cwd", cwd), saveState("pull", await getPullRequestNumber()), saveState("commit", process.env.GITHUB_SHA), saveState("workload", workload), fs.mkdirSync(cwd, { recursive: !0 }), fs.mkdirSync(path.join(cwd, "extra"), { recursive: !0 }), await copyAssets(cwd);
   try {
     await deployInfra(cwd, workload);
   } catch (err) {

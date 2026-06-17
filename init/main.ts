@@ -7,6 +7,7 @@ import { exec } from '@actions/exec'
 
 import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
 import { getPullRequestNumber } from './lib/github.js'
+import { extraArtifactsPath } from './lib/artifacts.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
 
@@ -20,6 +21,7 @@ async function main() {
 	saveState('workload', workload)
 
 	fs.mkdirSync(cwd, { recursive: true })
+	fs.mkdirSync(extraArtifactsPath(cwd), { recursive: true })
 
 	await copyAssets(cwd)
 

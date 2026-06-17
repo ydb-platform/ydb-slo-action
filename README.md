@@ -333,6 +333,42 @@ Download artifacts from the GitHub Actions UI to inspect raw data:
 - `{workload}-logs.txt` — Docker container logs
 - `{workload}-alerts.jsonl` — Prometheus alerts
 - `{workload}-metadata.json` — test metadata (PR, commit, timestamps, duration)
+- `extra/**` — optional files added by your workflow (see below)
+
+### Extra Artifacts
+
+The init action uploads a single job artifact named after `workload_name`. Besides
+logs, metrics, alerts, and metadata, it also includes any files you place under
+`.slo/extra/` in the job working directory.
+
+**When to write files:** after the init action main phase finishes (workloads
+completed) and before the init action post phase runs. In practice, add a workflow
+step immediately after `uses: ydb-platform/ydb-slo-action/init@v2` with
+`if: always()`.
+
+**How to write files:**
+
+```yaml
+- uses: ydb-platform/ydb-slo-action/init@v2
+  id: slo
+  with:
+    workload_name: my-sdk-test
+    workload_current_image: my-sdk:current
+
+- name: Collect extra SLO artifacts
+  if: always()
+  run: |
+    mkdir -p .slo/extra/flamegraphs
+    cp ./reports/cpu.html .slo/extra/flamegraphs/current-cpu.html
+    cp ./reports/heap.html .slo/extra/flamegraphs/current-heap.html
+```
+
+Subdirectories under `.slo/extra/` are preserved in the uploaded artifact bundle.
+Use this for flame graphs, heap dumps, debug bundles, SDK-specific reports, or
+any other files that should ship together with the standard SLO outputs.
+
+The init action creates `.slo/extra/` at startup; you only need to copy or
+generate files there before the action post phase uploads artifacts.
 
 ## Contributing
 
