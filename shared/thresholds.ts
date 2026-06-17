@@ -140,6 +140,20 @@ export async function loadThresholdConfig(
 	return config
 }
 
+/**
+ * Merge a per-scenario thresholds YAML over a base config.
+ * Per-scenario values win (scalars via `??`, metrics concatenated scenario-first).
+ * Empty or invalid YAML returns the base config unchanged.
+ */
+export async function mergeWorkloadThresholds(
+	base: ThresholdConfig,
+	yamlContent: string
+): Promise<ThresholdConfig> {
+	let perScenario = await parseThresholdsYaml(yamlContent)
+	if (!perScenario) return base
+	return mergeThresholdConfigs(base, perScenario)
+}
+
 // ---------------------------------------------------------------------------
 // Pattern matching (unchanged)
 // ---------------------------------------------------------------------------

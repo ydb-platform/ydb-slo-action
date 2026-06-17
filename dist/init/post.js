@@ -9,7 +9,7 @@ import {
   analyzeWorkload,
   formatChangeCell,
   formatValue
-} from "../main-2q2e71fw.js";
+} from "../main-rx0v7xr7.js";
 import {
   debug,
   exec,
