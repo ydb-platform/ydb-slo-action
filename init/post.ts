@@ -8,6 +8,7 @@ import { exec } from '@actions/exec'
 import { analyzeWorkload } from '../shared/analysis.js'
 import { type CollectedMetric, loadMetricConfig } from '../shared/metrics.js'
 import { collectAlertsFromPrometheus } from './lib/alerts.js'
+import { collectExtraArtifacts } from './lib/artifacts.js'
 import { collectComposeLogs, getComposeProfiles, getContainerIp } from './lib/docker.js'
 import { uploadArtifacts } from './lib/github.js'
 import { collectMetricsFromPrometheus } from './lib/metrics.js'
@@ -45,7 +46,12 @@ async function post() {
 		},
 	})
 
-	await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath], cwd)
+	let extraArtifactPaths = await collectExtraArtifacts(cwd)
+	await uploadArtifacts(
+		workload,
+		[logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths],
+		cwd,
+	)
 
 	if (getState('failed')) {
 		await writeFailedSummary()
