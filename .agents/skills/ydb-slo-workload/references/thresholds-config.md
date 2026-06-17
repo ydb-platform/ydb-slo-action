@@ -2,6 +2,13 @@
 
 The report action evaluates metrics against SLO thresholds and assigns severity levels: `success`, `warning`, or `failure`. Defaults are in `deploy/thresholds.yaml`. Users can extend or override via `thresholds_yaml` or `thresholds_yaml_path` report action inputs.
 
+Thresholds can also be set **per scenario** on the `init` action via its own
+`thresholds_yaml` / `thresholds_yaml_path` inputs (same format as below). In a
+matrix build each scenario is one `workload`; its thresholds are shipped as a
+`{workload}-thresholds.yaml` artifact and merged **over** the report-global
+config for that workload only. Precedence (low → high): `deploy/thresholds.yaml`
+defaults → report `thresholds_yaml` → init (per-scenario) `thresholds_yaml`.
+
 ## YAML format
 
 ```yaml

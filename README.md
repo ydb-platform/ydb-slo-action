@@ -95,6 +95,8 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `workload_baseline_command` | no       | `""`          | Command arguments for baseline workload                                              |
 | `metrics_yaml`              | no       | —             | Custom metrics configuration (inline YAML), merged with defaults                     |
 | `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults                      |
+| `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
+| `thresholds_yaml_path`      | no       | —             | Path to a per-scenario SLO thresholds file; merged over the report action's thresholds for this workload |
 | `disable_compose_profiles`  | no       | —             | Comma-separated list of compose profiles to disable (e.g., `chaos,telemetry`)        |
 
 ### Cluster size
@@ -347,6 +349,40 @@ Configure SLO thresholds to control when the report action warns or fails. Use `
 | `critical_min` / `critical_max` | Absolute value bounds that trigger failure                  |
 
 See [`deploy/thresholds.yaml`](deploy/thresholds.yaml) for the full default configuration.
+
+#### Per-scenario thresholds
+
+In a matrix build each scenario is a separate `workload`. Give a scenario its own
+thresholds on the **`init`** action, next to its `metrics_yaml` — they are merged
+**over** the report-global thresholds for that workload only. Precedence (low →
+high): built-in defaults → report `thresholds_yaml` → init `thresholds_yaml`.
+
+```yaml
+jobs:
+  slo:
+    strategy:
+      matrix:
+        sdk:
+          - name: native-table
+            path: native/table
+          - name: database-sql-table
+            path: database/sql/table
+            thresholds_yaml: |
+              metrics:
+                - pattern: "*_latency_p99_ms"
+                  direction: lower_is_better
+                  warning_max: 25
+                  critical_max: 50   # database/sql is slower — looser ceiling
+    steps:
+      - uses: ydb-platform/ydb-slo-action/init@v2
+        with:
+          workload_name:   ${{ matrix.sdk.name }}
+          thresholds_yaml: ${{ matrix.sdk.thresholds_yaml }}
+```
+
+A scenario without `thresholds_yaml` inherits the report-global + default
+thresholds. The format is identical to the report `thresholds_yaml` (see fields
+above).
 
 ## Debugging
 
