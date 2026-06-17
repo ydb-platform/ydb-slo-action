@@ -36,7 +36,8 @@ You can test the infrastructure locally. Docker Compose uses profiles to control
 
 | Profile             | Services                                        |
 | ------------------- | ----------------------------------------------- |
-| _(none)_            | YDB cluster only (1 storage + 5 database nodes) |
+| _(none)_            | YDB cluster only (1 storage + 2 database nodes) |
+| `extra-nodes`       | 3 more database nodes (full 5-node cluster)     |
 | `telemetry`         | Prometheus + Grafana                            |
 | `chaos`             | Chaos monkey + blackhole node                   |
 | `workload-current`  | Current workload container                      |
@@ -45,8 +46,11 @@ You can test the infrastructure locally. Docker Compose uses profiles to control
 ```bash
 cd deploy
 
-# YDB cluster only
+# YDB cluster only (2 database nodes)
 docker compose up -d
+
+# Full 5-node cluster
+docker compose --profile extra-nodes up -d
 
 # YDB + Prometheus + Grafana + chaos monkey
 docker compose --profile telemetry --profile chaos up -d

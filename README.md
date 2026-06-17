@@ -96,6 +96,23 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults                      |
 | `disable_compose_profiles`  | no       | —             | Comma-separated list of compose profiles to disable (e.g., `chaos,telemetry`)        |
 
+### Cluster size
+
+By default the cluster runs **5 database nodes**. Disable the `extra-nodes`
+profile to run a smaller **2-node** cluster — cheaper and faster to start:
+
+```yaml
+- uses: ydb-platform/ydb-slo-action/init@v2
+  with:
+    workload_name: my-test
+    workload_current_image: my-workload:pr-123
+    disable_compose_profiles: extra-nodes
+```
+
+A 2-node cluster suits quick smoke runs more than strict SLO gating: chaos
+faults remove a larger fraction of the cluster (stopping one node drops 50% of
+compute instead of 20%), so latency/availability swings are wider by design.
+
 ### Init Action Outputs
 
 - `ydb-prometheus-url` — Prometheus HTTP endpoint (e.g. `http://172.28.0.X:9090`)

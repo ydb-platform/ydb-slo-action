@@ -90,8 +90,12 @@ Each workload container is limited to:
 
 The workload runs in the same Docker network (`172.28.0.0/16`) as:
 - YDB storage node (`172.28.0.10`)
-- YDB database nodes (`172.28.0.11`–`172.28.0.15`)
+- YDB database nodes (`172.28.0.11`–`172.28.0.15`) — the cluster runs 2 to 5 of
+  them depending on configuration (5 by default; 2 when the operator sets
+  `disable_compose_profiles: extra-nodes`). Do not assume a fixed node count.
 - Prometheus (`ydb-prometheus`)
 - Blackhole node (`172.28.0.99`) — used for chaos network scenarios
 
-The hostname `ydb` resolves to all 5 database nodes + the blackhole node via `extra_hosts`.
+Connect via the `ydb` hostname (or `YDB_CONNECTION_STRING`): it maps to the
+database node IPs via `extra_hosts`, and the SDK discovers the actually-running
+nodes from there — so the workload connects the same way at any cluster size.
