@@ -29,6 +29,7 @@ A workload is a Docker image that connects to YDB, performs read/write operation
 | Configure thresholds | Help write `thresholds_yaml` with appropriate patterns and bounds |
 | Review existing workload | Check compliance with the contract, correct label usage, error handling |
 | Build Docker image | Guide Dockerfile creation, CMD vs command override, resource awareness |
+| Add custom job artifacts | Copy or generate files under `.slo/extra/` in a step after init main; see README "Extra Artifacts" |
 
 ### 2. Load references
 
