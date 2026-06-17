@@ -96,6 +96,8 @@ services:
   database-3:
     <<: *ydb-node
     container_name: ydb-database-3
+    profiles:
+      - extra-nodes
     command: ['--grpc-public-address-v4', '172.28.0.13']
     environment:
       - YDB_TENANT=/Root/testdb
@@ -116,6 +118,8 @@ services:
   database-4:
     <<: *ydb-node
     container_name: ydb-database-4
+    profiles:
+      - extra-nodes
     command: ['--grpc-public-address-v4', '172.28.0.14']
     environment:
       - YDB_TENANT=/Root/testdb
@@ -136,6 +140,8 @@ services:
   database-5:
     <<: *ydb-node
     container_name: ydb-database-5
+    profiles:
+      - extra-nodes
     command: ['--grpc-public-address-v4', '172.28.0.15']
     environment:
       - YDB_TENANT=/Root/testdb

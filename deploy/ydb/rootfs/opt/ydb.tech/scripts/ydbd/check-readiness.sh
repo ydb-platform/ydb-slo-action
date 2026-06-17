@@ -41,8 +41,7 @@ check_cluster_health() {
 }
 
 check_node_responds() {
-    local node_ip="$1"
-    local endpoint="grpc://${node_ip}:2136"
+    local endpoint="$1"
 
     log "Checking if node at $endpoint responds"
 
@@ -58,10 +57,11 @@ check_node_responds() {
             continue
         fi
 
-        local node_ip_str="${node_ip//./_}"
+        # Unique per-node table to avoid cross-node races (see commit 4b96fe1)
+        local node_id="${endpoint//[^a-zA-Z0-9]/_}"
 
         # Check DDL operations
-        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "CREATE TABLE IF NOT EXISTS rd_check_${node_ip_str} (ip Utf8, primary key (ip));" 2>&1 >/dev/null; then
+        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "CREATE TABLE IF NOT EXISTS rd_check_${node_id} (ip Utf8, primary key (ip));" 2>&1 >/dev/null; then
             attempt=$((attempt + 1))
             log "Node at $endpoint not responding to DDL (attempt $attempt/$max_attempts)"
             sleep 2
@@ -81,12 +81,26 @@ log "Starting database readiness check"
 # First check overall cluster health
 check_cluster_health
 
-# Then verify each node responds
-check_node_responds "172.28.0.11"
-check_node_responds "172.28.0.12"
-check_node_responds "172.28.0.13"
-check_node_responds "172.28.0.14"
-check_node_responds "172.28.0.15"
+# Then verify each running database node responds.
+# A node container is resolvable via Docker DNS only while it is running, so
+# nodes absent from the active compose profiles resolve to nothing and are
+# skipped — keeping the check correct for any cluster size.
+DATABASE_HOSTS="ydb-database-1 ydb-database-2 ydb-database-3 ydb-database-4 ydb-database-5"
 
-log "Cluster is healthy and all database nodes are responding!"
+checked=0
+for host in $DATABASE_HOSTS; do
+    if ! getent hosts "$host" >/dev/null 2>&1; then
+        log "Skipping $host (not running)"
+        continue
+    fi
+    check_node_responds "grpc://${host}:2136"
+    checked=$((checked + 1))
+done
+
+if [[ $checked -eq 0 ]]; then
+    log "ERROR: No database nodes resolved"
+    exit 1
+fi
+
+log "Cluster is healthy and all $checked running database node(s) are responding!"
 exit 0

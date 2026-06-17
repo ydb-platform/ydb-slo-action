@@ -80,45 +80,55 @@ is the real gate, and it must stay self-contained. The "0 endpoints at start"
 problem is therefore solved **inside the script** (Change 2), not via compose
 `depends_on`.
 
-### Change 2 — discovery-based readiness script (no `depends_on`)
+### Change 2 — DNS-skip readiness script (no `depends_on`, no discovery)
 
-Rewrite `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh` to
-verify the nodes the cluster *actually* has, replacing the hardcoded `.11–.15`
-loop — while keeping `database-readiness.depends_on` unchanged (storage + init
-only):
+Discovery was rejected after analysis: it can only enumerate nodes that have
+*already* registered, so it cannot know the intended set without a fragile
+"wait until the set stops growing" heuristic, and it needs a live bootstrap
+endpoint. The intended set is known only to the **compose profile**, and Docker
+already exposes that at runtime: **a node's container name resolves via Docker
+DNS only while it is running.** That is exactly the "absent vs not-yet-ready"
+signal the check needs.
+
+Rewrite `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh`
+(keeping `database-readiness.depends_on` unchanged — storage + init only):
 
 1. `check_cluster_health` — keep as-is (monitoring healthcheck via storage
    endpoint returns `GOOD`, 30 retries).
-2. **Discover + wait for the set to settle.** Poll the registered database
-   endpoints and wait until the set stops growing — this replaces the hardcoded
-   "expected count" without `depends_on` and without knowing N in advance:
+2. Iterate the full topology by **container hostname** and skip the ones that
+   don't resolve (absent → disabled profile); check the ones that do:
+   ```sh
+   DATABASE_HOSTS="ydb-database-1 ydb-database-2 ydb-database-3 ydb-database-4 ydb-database-5"
+   for host in $DATABASE_HOSTS; do
+       getent hosts "$host" >/dev/null 2>&1 || { log "Skipping $host (not running)"; continue; }
+       check_node_responds "grpc://${host}:2136"
+       checked=$((checked + 1))
+   done
+   [[ $checked -gt 0 ]] || { log "ERROR: No database nodes resolved"; exit 1; }
    ```
-   ydb --endpoint grpc://172.28.0.11:2136 --database /Root/testdb discovery list
-   ```
-   - `database-1` (`172.28.0.11`) is a non-profiled core node → present in both
-     modes. (Storage `172.28.0.10` is a fallback bootstrap candidate.)
-   - Output lines look like `grpc://172.28.0.11:2136 [az] #table_service …`;
-     extract `host:port` (`grep -oE 'grpcs?://[^ ]+'` → strip scheme).
-   - Loop: read the current set; if empty, retry; if the set is unchanged for
-     `K` consecutive polls, treat it as settled and proceed. Bound the whole
-     loop with a total timeout so a flapping cluster fails honestly.
-   - Settling at 2 (small) or 5 (full) is automatic. The residual risk of
-     settling before a very-late node is the same exposure the workload itself
-     has (it also connects via discovery) — acceptable and consistent.
-3. Run the existing per-node `check_node_responds` (SQL `SELECT 1` + DDL
-   `CREATE TABLE IF NOT EXISTS rd_check_<id>`, with `--no-discovery` to pin the
-   specific node) over each **discovered** endpoint instead of the hardcoded
-   `.11–.15`.
-   - Generalize `check_node_responds` to accept a `host:port` endpoint; derive
-     the table suffix from it (sanitize `.`/`:` → `_`).
+   - DNS resolves as soon as the container is attached to the network (at
+     creation), well before it serves — so a present-but-starting node resolves
+     and is then waited on by `check_node_responds`'s retries; an absent node
+     never resolves and is skipped. `check_cluster_health` runs first and gives
+     sibling containers time to be created, so present nodes resolve reliably.
+   - `getent` is available (Debian + glibc base image).
+3. `check_node_responds` now takes a full **endpoint** (`grpc://host:2136`)
+   instead of an IP; the per-node table suffix is derived from it
+   (`${endpoint//[^a-zA-Z0-9]/_}` → `rd_check_grpc___ydb_database_1_2136`),
+   preserving the per-node-table race fix from `4b96fe1`. `--no-discovery` stays
+   (pins each check to that specific node).
 
-Result: works for any node count, keeps per-node strictness, zero hardcoded IP
-list, **no compose `depends_on`** — matching both the chaos layer's dynamic
-discovery and the existing self-contained-readiness design.
+Result: works for any cluster size, keeps per-node strictness, **no hardcoded
+IPs, no `depends_on`, no discovery bootstrap** — fully self-contained, matching
+the existing readiness design. The only remaining constant is the topology
+upper bound `1..5`, which is tolerant of absence.
 
-CLI verified against docs for YDB CLI `stable-25-3`: the subcommand is
-`discovery list` (not `list-endpoints`). Exact output parsing + whether the
-storage node can also serve tenant discovery to be confirmed during E2E.
+**Verified locally** (colima, both modes, `READINESS_EXIT_CODE=0`):
+- small (`docker compose up`, no profile): checks `ydb-database-1/2`, logs
+  `Skipping ydb-database-3/4/5 (not running)`, then "all 2 running database
+  node(s) are responding!".
+- full (`docker compose --profile extra-nodes up`): checks all of
+  `ydb-database-1..5`, no skips, "all 5 running database node(s) are responding!".
 
 ### Change 3 — documentation
 
@@ -148,21 +158,30 @@ storage node can also serve tenant discovery to be confirmed during E2E.
 1. `deploy/compose.yml` — add `profiles: [extra-nodes]` to `database-3/4/5`.
    `database-readiness.depends_on` stays unchanged (storage + init only).
 2. `deploy/ydb/rootfs/opt/ydb.tech/scripts/ydbd/check-readiness.sh` —
-   discovery + settle loop replacing the hardcoded `.11–.15` checks.
-3. `deploy/env.example` + user docs — document small mode + trade-off.
+   DNS-skip loop + endpoint-based `check_node_responds`, replacing the hardcoded
+   `.11–.15` checks. **(done, verified locally)**
+3. `README.md` (Cluster size section), `CONTRIBUTING.md` (profile table +
+   examples), `deploy/env.example` — document small mode + trade-off.
+   **(done)**
 
 No `init/` TypeScript changes (profile is auto-detected). `dist/` unaffected.
 
 ## Verification
 
-E2E only (project has no unit tests for this path):
+E2E only (project has no unit tests for this path).
 
-- **Default run** (no `disable_compose_profiles`): 5 database nodes start,
-  readiness passes, workload completes — unchanged behavior.
-- **Small run** (`disable_compose_profiles: extra-nodes`): only
-  `database-1/2` start; readiness settles on exactly 2 endpoints and passes;
-  workload completes; Prometheus shows `.13–.15` down without firing alerts.
-- Locally: `disable_compose_profiles=extra-nodes` equivalent via
-  `docker compose --profile telemetry --profile workload-current up` (omit
-  `extra-nodes`) and confirm `ydb-database-3/4/5` are absent and
-  `ydb-database-readiness` exits 0.
+Readiness behaviour **verified locally** (colima, no workload):
+
+- **Small** — `docker compose up -d` (profiles opt-in → `extra-nodes` off): only
+  `ydb-database-1/2` created; `ydb-database-readiness` exits 0, logs skip
+  `ydb-database-3/4/5` and report "all 2 running database node(s) responding".
+- **Full** — `docker compose --profile extra-nodes up -d`: all five nodes
+  created; readiness exits 0 with no skips ("all 5 ... responding").
+
+Note: in the **action**, `init` enables all detected profiles by default →
+`extra-nodes` on → 5 nodes (default). `disable_compose_profiles: extra-nodes`
+selects the 2-node small mode. (Locally the polarity is inverted because compose
+profiles are opt-in — worth a line in the docs.)
+
+Still pending (full E2E): a real workload run + report in small mode, and
+confirming Prometheus `.13–.15` down targets fire no alerts.
