@@ -2,7 +2,16 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { debug, error, getInput, info, saveState, setFailed, setOutput } from '@actions/core'
+import {
+	debug,
+	error,
+	getInput,
+	info,
+	saveState,
+	setFailed,
+	setOutput,
+	warning,
+} from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
@@ -127,8 +136,11 @@ async function waitForWorkloads(): Promise<void> {
 	let workloadBaselineImage = getInput('workload_baseline_image') || ''
 	let workloadDuration = parseInt(getInput('workload_duration') || '60', 10)
 	let workloadTimeoutMs = (workloadDuration + 60) * 1000
+	let failFast = getInput('fail_on_workload_error') === 'true'
 
-	debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms`)
+	debug(
+		`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms, failFast=${failFast}`
+	)
 
 	let workloadsToWait: { name: string; container: string }[] = []
 
@@ -139,29 +151,43 @@ async function waitForWorkloads(): Promise<void> {
 		workloadsToWait.push({ name: 'baseline', container: 'ydb-workload-baseline' })
 	}
 
+	let failures: string[] = []
+
 	if (workloadsToWait.length > 0) {
 		info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`)
 		info(`  - ${workloadsToWait.map((w) => w.name).join(', ')}`)
 		info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 60s buffer)`)
 
-		try {
-			await Promise.all(
-				workloadsToWait.map((w) =>
-					waitForContainerCompletion({
-						container: w.container,
-						timeoutMs: workloadTimeoutMs,
-					})
-				)
+		// allSettled: in the default (tolerant) mode we wait for the full window of
+		// every workload instead of bailing on the first failure.
+		let results = await Promise.allSettled(
+			workloadsToWait.map((w) =>
+				waitForContainerCompletion({ container: w.container, timeoutMs: workloadTimeoutMs })
 			)
+		)
+
+		results.forEach((result, i) => {
+			if (result.status === 'rejected') {
+				let name = workloadsToWait[i].name
+				failures.push(`${name}: ${result.reason}`)
+				warning(`Workload '${name}' failed: ${result.reason}`)
+			}
+		})
+
+		if (failures.length === 0) {
 			info('All workloads completed successfully')
-		} catch (err) {
-			error(`Workload failed: ${err}`)
 		}
 	}
 
+	// Always record the window BEFORE any throw, so post has a valid window for
+	// diagnostic metrics even on a fail-mode crash.
 	let finish = new Date()
 	saveState('finish', finish.toISOString())
 	info(`Workloads finished at ${finish}`)
+
+	if (failFast && failures.length > 0) {
+		throw new Error(`Workload(s) failed: ${failures.join('; ')}`)
+	}
 }
 
 await main()
