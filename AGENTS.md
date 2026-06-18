@@ -121,11 +121,15 @@ git commit -m "emoji subject"
 
 ### GitHub Actions Lifecycle (Init Action)
 
-1. `main.ts` runs PRE user workload → deploys infrastructure, saves state via `saveState()`
-2. User workload runs
-3. `post.ts` runs POST → collects metrics, uploads artifacts, cleanup
+1. `main.ts` runs first → deploys infrastructure, runs workload containers, waits for them
+2. `post.ts` runs at job end (always) → best-effort collects artifacts, tears down, uploads
 
-State passed via `saveState()`/`getState()`: cwd, workload name, PR number, start timestamp
+State passed via `saveState()`/`getState()`: cwd, workload name, PR number, commit, start/finish timestamps, failure reason (`failed`).
+
+**Lifecycle resilience contract:**
+
+- `main` owns the definitive pass/fail decision. Cluster deploy failure fails the run unconditionally; a workload failure fails the run only when `fail_on_workload_error: true`.
+- `post` is best-effort diagnostics + cleanup and never decides pass/fail. It discovers what exists (e.g. probes for the Prometheus container) instead of assuming, degrades each collector to an empty artifact when its source is absent, guarantees teardown via `finally`, and never crashes. Whether a report runs on a failed init is workflow orchestration (`needs:`/`if:`, or `workflow_run.conclusion`), not an action input.
 
 ### Metrics Collection
 
