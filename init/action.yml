@@ -18,6 +18,10 @@ inputs:
     description: "Duration of the workload in seconds."
     required: false
     default: "60"
+  fail_on_workload_error:
+    description: "Fail the whole run if any workload container exits non-zero or times out."
+    required: false
+    default: "false"
 
   # Workload: current
   workload_current_ref:
