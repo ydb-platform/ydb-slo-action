@@ -1,9 +1,10 @@
 import {
+  extraArtifactsPath,
   getComposeProfiles,
   getContainerIp,
   getPullRequestNumber,
   waitForContainerCompletion
-} from "../main-73wr87bf.js";
+} from "../main-mmj9rtzx.js";
 import {
   debug,
   error,
@@ -12,7 +13,8 @@ import {
   info,
   saveState,
   setFailed,
-  setOutput
+  setOutput,
+  warning
 } from "../main-w8t1tja0.js";
 
 // init/main.ts
@@ -22,7 +24,7 @@ import { fileURLToPath } from "node:url";
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function main() {
   let cwd = path.join(process.cwd(), ".slo"), workload = getInput("workload_name") || "unspecified";
-  saveState("cwd", cwd), saveState("pull", await getPullRequestNumber()), saveState("commit", process.env.GITHUB_SHA), saveState("workload", workload), fs.mkdirSync(cwd, { recursive: !0 }), fs.mkdirSync(path.join(cwd, "extra"), { recursive: !0 }), await copyAssets(cwd);
+  saveState("cwd", cwd), saveState("pull", await getPullRequestNumber()), saveState("commit", process.env.GITHUB_SHA), saveState("workload", workload), fs.mkdirSync(cwd, { recursive: !0 }), fs.mkdirSync(extraArtifactsPath(cwd), { recursive: !0 }), await copyAssets(cwd);
   try {
     await deployInfra(cwd, workload);
   } catch (err) {
@@ -87,26 +89,26 @@ async function deployInfra(cwd, workload) {
 async function waitForWorkloads() {
   let start = /* @__PURE__ */ new Date;
   saveState("start", start.toISOString()), info(`Workloads started at ${start}`);
-  let workloadCurrentImage = getInput("workload_current_image"), workloadBaselineImage = getInput("workload_baseline_image") || "", workloadDuration = parseInt(getInput("workload_duration") || "60", 10), workloadTimeoutMs = (workloadDuration + 60) * 1000;
-  debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms`);
+  let workloadCurrentImage = getInput("workload_current_image"), workloadBaselineImage = getInput("workload_baseline_image") || "", workloadDuration = parseInt(getInput("workload_duration") || "60", 10), workloadTimeoutMs = (workloadDuration + 60) * 1000, failFast = getInput("fail_on_workload_error") === "true";
+  debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms, failFast=${failFast}`);
   let workloadsToWait = [];
   if (workloadCurrentImage)
     workloadsToWait.push({ name: "current", container: "ydb-workload-current" });
   if (workloadBaselineImage)
     workloadsToWait.push({ name: "baseline", container: "ydb-workload-baseline" });
+  let failures = [];
   if (workloadsToWait.length > 0) {
-    info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`), info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 60s buffer)`);
-    try {
-      await Promise.all(workloadsToWait.map((w) => waitForContainerCompletion({
-        container: w.container,
-        timeoutMs: workloadTimeoutMs
-      }))), info("All workloads completed successfully");
-    } catch (err) {
-      error(`Workload failed: ${err}`);
-    }
+    if (info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`), info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 60s buffer)`), (await Promise.allSettled(workloadsToWait.map((w) => waitForContainerCompletion({ container: w.container, timeoutMs: workloadTimeoutMs })))).forEach((result, i) => {
+      if (result.status === "rejected") {
+        let name = workloadsToWait[i].name;
+        failures.push(`${name}: ${result.reason}`), warning(`Workload '${name}' failed: ${result.reason}`);
+      }
+    }), failures.length === 0)
+      info("All workloads completed successfully");
   }
   let finish = /* @__PURE__ */ new Date;
-  saveState("finish", finish.toISOString()), info(`Workloads finished at ${finish}`);
+  if (saveState("finish", finish.toISOString()), info(`Workloads finished at ${finish}`), failFast && failures.length > 0)
+    throw Error(`Workload(s) failed: ${failures.join("; ")}`);
 }
 await main();
 process.exit(0);

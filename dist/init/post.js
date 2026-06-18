@@ -1,9 +1,10 @@
 import {
   collectComposeLogs,
+  collectExtraArtifacts,
   getComposeProfiles,
   getContainerIp,
   uploadArtifacts
-} from "../main-73wr87bf.js";
+} from "../main-mmj9rtzx.js";
 import {
   analyzeWorkload,
   formatChangeCell,
@@ -323,50 +324,60 @@ async function writeJobSummary(analysis) {
 
 // init/post.ts
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
-async function walkExtraFiles(dir) {
-  let entries = await fs2.readdir(dir, { withFileTypes: true });
-  let files = [];
-  for (let entry of entries) {
-    let fullPath = path2.join(dir, entry.name);
-    if (entry.isDirectory())
-      files.push(...await walkExtraFiles(fullPath));
-    else if (entry.isFile())
-      files.push(fullPath);
-  }
-  return files;
-}
-async function collectExtraArtifacts(cwd) {
-  let extraDir = path2.join(cwd, "extra");
-  try {
-    await fs2.access(extraDir);
-  } catch {
-    return [];
-  }
-  let files = await walkExtraFiles(extraDir);
-  if (files.length > 0)
-    info(`Found ${files.length} extra artifact file(s) in ${extraDir}`);
-  return files;
-}
 async function post() {
-  let cwd = getState("cwd"), workload = getState("workload"), logsPath = path2.join(cwd, `${workload}-logs.txt`), alertsPath = path2.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path2.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path2.join(cwd, `${workload}-metadata.json`), logsContent = await collectLogs();
-  await fs2.writeFile(logsPath, logsContent, { encoding: "utf-8" });
-  let alertsContent = await collectAlerts();
-  await fs2.writeFile(alertsPath, alertsContent, { encoding: "utf-8" });
-  let metricsContent = await collectMetrics();
-  await fs2.writeFile(metricsPath, metricsContent, { encoding: "utf-8" });
-  let metadataContent = await collectMetadata();
-  await fs2.writeFile(metadataPath, metadataContent, { encoding: "utf-8" });
-  let profiles = await getComposeProfiles(cwd);
-  if (await exec("docker", ["compose", "-f", "compose.yml", "down"], {
-    cwd: path2.resolve(process.env.GITHUB_ACTION_PATH, "deploy"),
-    env: {
-      ...process.env,
-      COMPOSE_PROFILES: profiles.join(",")
-    }
-  }), await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath, ...await collectExtraArtifacts(cwd)], cwd), getState("failed"))
-    await writeFailedSummary();
-  else
-    await writeWorkloadSummary(metricsContent);
+  let cwd = getState("cwd"), workload = getState("workload"), logsPath = path2.join(cwd, `${workload}-logs.txt`), alertsPath = path2.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path2.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path2.join(cwd, `${workload}-metadata.json`), metricsContent = "", extraArtifactPaths = [];
+  try {
+    await persist(logsPath, collectLogs), await persist(alertsPath, collectAlerts), metricsContent = await persist(metricsPath, collectMetrics), await persist(metadataPath, collectMetadata);
+  } finally {
+    await teardown(cwd);
+  }
+  try {
+    extraArtifactPaths = await collectExtraArtifacts(cwd);
+  } catch (err) {
+    warning(`Failed to collect extra artifacts: ${err}`);
+  }
+  try {
+    await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths], cwd);
+  } catch (err) {
+    warning(`Artifact upload failed: ${err}`);
+  }
+  try {
+    if (getState("failed"))
+      await writeFailedSummary();
+    else
+      await writeWorkloadSummary(metricsContent);
+  } catch (err) {
+    warning(`Writing job summary failed: ${err}`);
+  }
+}
+async function persist(filePath, collect) {
+  let content = "";
+  try {
+    content = await collect();
+  } catch (err) {
+    warning(`Failed to collect ${path2.basename(filePath)}: ${err}`);
+  }
+  try {
+    await fs2.writeFile(filePath, content, { encoding: "utf-8" });
+  } catch (err) {
+    warning(`Failed to write ${path2.basename(filePath)}: ${err}`);
+  }
+  return content;
+}
+async function teardown(cwd) {
+  info("Tearing down infrastructure...");
+  try {
+    let profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(","));
+    await exec("docker", ["compose", "-f", "compose.yml", "down"], {
+      cwd: path2.resolve(process.env.GITHUB_ACTION_PATH, "deploy"),
+      env: {
+        ...process.env,
+        COMPOSE_PROFILES: profiles.join(",")
+      }
+    });
+  } catch (err) {
+    warning(`Teardown (docker compose down) failed: ${err}`);
+  }
 }
 async function collectLogs() {
   info("Collecting logs...");
@@ -374,24 +385,33 @@ async function collectLogs() {
   return await collectComposeLogs(cwd, profiles);
 }
 async function collectAlerts() {
-  if (info("Collecting alerts from Prometheus..."), !getState("start") || !getState("finish"))
-    return "";
-  let start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, prometheusIp = await getContainerIp("ydb-prometheus"), prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : "http://prometheus:9090";
-  return debug(`Prometheus URL for alerts: ${prometheusUrl}`), (await collectAlertsFromPrometheus(prometheusUrl, start, finish)).map((a) => JSON.stringify(a)).join(`
+  info("Collecting alerts from Prometheus...");
+  let start = getState("start"), finish = getState("finish"), prometheusIp = await getContainerIp("ydb-prometheus");
+  if (!prometheusIp || !start || !finish)
+    return info("Skipping alerts: Prometheus is not available or no time window exists"), "";
+  let prometheusUrl = `http://${prometheusIp}:9090`;
+  debug(`Prometheus URL for alerts: ${prometheusUrl}`);
+  try {
+    return (await collectAlertsFromPrometheus(prometheusUrl, new Date(start), new Date(finish))).map((a) => JSON.stringify(a)).join(`
 `);
+  } catch (err) {
+    return warning(`Failed to collect alerts: ${err}`), "";
+  }
 }
 async function collectMetrics() {
-  if (info("Collecting metrics..."), !getState("start") || !getState("finish"))
-    return "";
-  let start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, prometheusIp = await getContainerIp("ydb-prometheus"), prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : "http://prometheus:9090";
+  info("Collecting metrics...");
+  let start = getState("start"), finish = getState("finish"), prometheusIp = await getContainerIp("ydb-prometheus");
+  if (!prometheusIp || !start || !finish)
+    return info("Skipping metrics: Prometheus is not available or no time window exists"), "";
+  let prometheusUrl = `http://${prometheusIp}:9090`;
   debug(`Prometheus URL: ${prometheusUrl}`);
   let config = await loadMetricConfig(getInput("metrics_yaml"), getInput("metrics_yaml_path"));
-  return (await collectMetricsFromPrometheus(prometheusUrl, start, finish, config)).map((m) => JSON.stringify(m)).join(`
+  return (await collectMetricsFromPrometheus(prometheusUrl, new Date(start), new Date(finish), config)).map((m) => JSON.stringify(m)).join(`
 `);
 }
 async function collectMetadata() {
   info("Saving metadata...");
-  let pull = getState("pull"), commit = getState("commit"), start = new Date(getState("start")), finish = getState("finish") ? new Date(getState("finish")) : /* @__PURE__ */ new Date, failed = getState("failed"), duration = finish.getTime() - start.getTime(), workload = getState("workload"), workload_current_ref = getInput("workload_current_ref"), workload_baseline_ref = getInput("workload_baseline_ref");
+  let pull = getState("pull"), commit = getState("commit"), failed = getState("failed"), startState = getState("start"), finishState = getState("finish"), start = startState ? new Date(startState) : void 0, finish = finishState ? new Date(finishState) : void 0, workload = getState("workload"), workload_current_ref = getInput("workload_current_ref"), workload_baseline_ref = getInput("workload_baseline_ref");
   return JSON.stringify({
     pull,
     commit,
@@ -403,11 +423,11 @@ async function collectMetadata() {
     workload,
     workload_current_ref,
     workload_baseline_ref,
-    start_time: start.toISOString(),
-    start_epoch_ms: start.getTime(),
-    finish_time: finish.toISOString(),
-    finish_epoch_ms: finish.getTime(),
-    duration_ms: duration
+    start_time: start?.toISOString(),
+    start_epoch_ms: start?.getTime(),
+    finish_time: finish?.toISOString(),
+    finish_epoch_ms: finish?.getTime(),
+    duration_ms: start && finish ? finish.getTime() - start.getTime() : void 0
   });
 }
 async function writeWorkloadSummary(metricsContent) {
@@ -417,9 +437,7 @@ async function writeWorkloadSummary(metricsContent) {
   await writeJobSummary(analysis);
 }
 async function writeFailedSummary() {
-  let cwd = getState("cwd"), workload = getState("workload");
-  summary.addHeading(`Failed ${workload}.`);
-  let workloadLogs = await collectComposeLogs(cwd, ["workload-current", "workload-baseline"]);
-  summary.addCodeBlock(workloadLogs), await summary.write();
+  let workload = getState("workload"), failed = getState("failed");
+  summary.addHeading(`Failed ${workload} (${failed || "unknown"}).`), summary.addRaw(`See the \`${workload}-logs.txt\` artifact attached to this run for full logs.`, !0), await summary.write();
 }
 post();

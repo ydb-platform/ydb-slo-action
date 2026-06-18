@@ -165,4 +165,35 @@ async function uploadArtifacts(name, artifacts, cwd) {
   }
 }
 
-export { getContainerIp, collectComposeLogs, getComposeProfiles, waitForContainerCompletion, getPullRequestNumber, uploadArtifacts };
+// init/lib/artifacts.ts
+import * as fs2 from "node:fs/promises";
+import * as path from "node:path";
+var EXTRA_ARTIFACTS_DIR = "extra";
+function extraArtifactsPath(cwd) {
+  return path.join(cwd, EXTRA_ARTIFACTS_DIR);
+}
+async function walkFiles(dir) {
+  let entries = await fs2.readdir(dir, { withFileTypes: !0 }), files = [];
+  for (let entry of entries) {
+    let fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory())
+      files.push(...await walkFiles(fullPath));
+    else if (entry.isFile())
+      files.push(fullPath);
+  }
+  return files;
+}
+async function collectExtraArtifacts(cwd) {
+  let extraDir = extraArtifactsPath(cwd);
+  try {
+    await fs2.access(extraDir);
+  } catch {
+    return [];
+  }
+  let files = await walkFiles(extraDir);
+  if (files.length > 0)
+    info(`Found ${files.length} extra artifact file(s) in ${extraDir}`);
+  return files;
+}
+
+export { getContainerIp, collectComposeLogs, getComposeProfiles, waitForContainerCompletion, getPullRequestNumber, uploadArtifacts, extraArtifactsPath, collectExtraArtifacts };

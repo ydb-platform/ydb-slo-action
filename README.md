@@ -87,6 +87,7 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `github_token`              | no       | —             | GitHub token for API access                                                          |
 | `github_issue`              | no       | auto-detected | Pull request number                                                                  |
 | `workload_duration`         | no       | `60`          | Duration of the workload in seconds                                                  |
+| `fail_on_workload_error`    | no       | `false`       | Fail the whole run if any workload container exits non-zero or times out              |
 | `workload_current_ref`      | no       | `current`     | Git ref for current version (used as `ref` label in metrics)                         |
 | `workload_current_command`  | no       | `""`          | Command arguments for current workload                                               |
 | `workload_baseline_image`   | no       | —             | Docker image for baseline workload (if not provided, baseline comparison is skipped) |
@@ -112,6 +113,56 @@ profile to run a smaller **2-node** cluster — cheaper and faster to start:
 A 2-node cluster suits quick smoke runs more than strict SLO gating: chaos
 faults remove a larger fraction of the cluster (stopping one node drops 50% of
 compute instead of 20%), so latency/availability swings are wider by design.
+
+### Fail fast on workload errors
+
+By default a workload container that exits non-zero (or times out) is recorded but
+does **not** fail the run — metrics are still collected and a report is produced.
+Set `fail_on_workload_error: true` to turn any such failure into a hard failure of
+the whole run (useful for simple pass/fail smoke tests):
+
+```yaml
+- uses: ydb-platform/ydb-slo-action/init@v2
+  with:
+    workload_name: topics-smoke
+    workload_current_image: my-topics-workload:current
+    fail_on_workload_error: true
+    disable_compose_profiles: telemetry,chaos # no metrics needed for a smoke test
+```
+
+The flag only fails the run. Whether a **report** is produced on a failed run is
+decided by your workflow, not the action. In a single workflow, gate the report job:
+
+```yaml
+report:
+  needs: test # skipped when `test` fails -> no report on failure
+  # if: ${{ !cancelled() }}   # alternatively: always report (failure card on failure)
+```
+
+For pull requests from forks (where the `pull_request` token is read-only and
+cannot post comments), report from a separate workflow triggered by `workflow_run`,
+which runs in the base repo with write permissions:
+
+```yaml
+# .github/workflows/slo-report.yml
+on:
+  workflow_run:
+    workflows: ["SLO Test"] # = name: of the SLO workflow
+    types: [completed]
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: ydb-platform/ydb-slo-action/report@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_run_id: ${{ github.event.workflow_run.id }}
+```
 
 ### Init Action Outputs
 
