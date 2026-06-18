@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { debug, getInput, getState, info, summary } from '@actions/core'
+import { debug, getInput, getState, info, summary, warning } from '@actions/core'
 import { exec } from '@actions/exec'
 
 import { analyzeWorkload } from '../shared/analysis.js'
@@ -25,38 +25,87 @@ async function post() {
 	let metricsPath = path.join(cwd, `${workload}-metrics.jsonl`)
 	let metadataPath = path.join(cwd, `${workload}-metadata.json`)
 
-	let logsContent = await collectLogs()
-	await fs.writeFile(logsPath, logsContent, { encoding: 'utf-8' })
+	let metricsContent = ''
+	let extraArtifactPaths: string[] = []
 
-	let alertsContent = await collectAlerts()
-	await fs.writeFile(alertsPath, alertsContent, { encoding: 'utf-8' })
+	try {
+		// Per-artifact best-effort: an unavailable source yields an empty file,
+		// never a thrown error and never a skipped sibling artifact.
+		await persist(logsPath, collectLogs)
+		await persist(alertsPath, collectAlerts)
+		metricsContent = await persist(metricsPath, collectMetrics)
+		await persist(metadataPath, collectMetadata)
+	} finally {
+		await teardown(cwd)
+	}
 
-	let metricsContent = await collectMetrics()
-	await fs.writeFile(metricsPath, metricsContent, { encoding: 'utf-8' })
+	try {
+		extraArtifactPaths = await collectExtraArtifacts(cwd)
+	} catch (err) {
+		warning(`Failed to collect extra artifacts: ${err}`)
+	}
 
-	let metadataContent = await collectMetadata()
-	await fs.writeFile(metadataPath, metadataContent, { encoding: 'utf-8' })
+	try {
+		await uploadArtifacts(
+			workload,
+			[logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths],
+			cwd
+		)
+	} catch (err) {
+		warning(`Artifact upload failed: ${err}`)
+	}
 
-	let profiles = await getComposeProfiles(cwd)
-	await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], {
-		cwd: path.resolve(process.env['GITHUB_ACTION_PATH'], 'deploy'),
-		env: {
-			...process.env,
-			COMPOSE_PROFILES: profiles.join(','),
-		},
-	})
+	try {
+		if (getState('failed')) {
+			await writeFailedSummary()
+		} else {
+			await writeWorkloadSummary(metricsContent)
+		}
+	} catch (err) {
+		warning(`Writing job summary failed: ${err}`)
+	}
+}
 
-	let extraArtifactPaths = await collectExtraArtifacts(cwd)
-	await uploadArtifacts(
-		workload,
-		[logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths],
-		cwd,
-	)
+/**
+ * Collect best-effort and write to disk. Never throws. A collector that cannot
+ * reach its source returns an empty string, so the file is always written.
+ */
+async function persist(filePath: string, collect: () => Promise<string>): Promise<string> {
+	let content = ''
 
-	if (getState('failed')) {
-		await writeFailedSummary()
-	} else {
-		await writeWorkloadSummary(metricsContent)
+	try {
+		content = await collect()
+	} catch (err) {
+		warning(`Failed to collect ${path.basename(filePath)}: ${err}`)
+	}
+
+	try {
+		await fs.writeFile(filePath, content, { encoding: 'utf-8' })
+	} catch (err) {
+		warning(`Failed to write ${path.basename(filePath)}: ${err}`)
+	}
+
+	return content
+}
+
+/** Tear down the compose project. Never throws — cleanup must always run. */
+async function teardown(cwd: string): Promise<void> {
+	info('Tearing down infrastructure...')
+
+	try {
+		let profiles = await getComposeProfiles(
+			cwd,
+			getInput('disable_compose_profiles').split(',')
+		)
+		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], {
+			cwd: path.resolve(process.env['GITHUB_ACTION_PATH'], 'deploy'),
+			env: {
+				...process.env,
+				COMPOSE_PROFILES: profiles.join(','),
+			},
+		})
+	} catch (err) {
+		warning(`Teardown (docker compose down) failed: ${err}`)
 	}
 }
 
@@ -72,41 +121,55 @@ async function collectLogs(): Promise<string> {
 async function collectAlerts(): Promise<string> {
 	info('Collecting alerts from Prometheus...')
 
-	if (!getState('start') || !getState('finish')) {
+	let start = getState('start')
+	let finish = getState('finish')
+	let prometheusIp = await getContainerIp('ydb-prometheus')
+
+	if (!prometheusIp || !start || !finish) {
+		info('Skipping alerts: Prometheus is not available or no time window exists')
 		return ''
 	}
 
-	let start = new Date(getState('start'))
-	let finish = getState('finish') ? new Date(getState('finish')) : new Date()
-
-	let prometheusIp = await getContainerIp('ydb-prometheus')
-	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://prometheus:9090'
+	let prometheusUrl = `http://${prometheusIp}:9090`
 	debug(`Prometheus URL for alerts: ${prometheusUrl}`)
 
-	let alerts = await collectAlertsFromPrometheus(prometheusUrl, start, finish)
-	let content = alerts.map((a) => JSON.stringify(a)).join('\n')
-	return content
+	try {
+		let alerts = await collectAlertsFromPrometheus(
+			prometheusUrl,
+			new Date(start),
+			new Date(finish)
+		)
+		return alerts.map((a) => JSON.stringify(a)).join('\n')
+	} catch (err) {
+		warning(`Failed to collect alerts: ${err}`)
+		return ''
+	}
 }
 
 async function collectMetrics(): Promise<string> {
 	info('Collecting metrics...')
 
-	if (!getState('start') || !getState('finish')) {
+	let start = getState('start')
+	let finish = getState('finish')
+	let prometheusIp = await getContainerIp('ydb-prometheus')
+
+	if (!prometheusIp || !start || !finish) {
+		info('Skipping metrics: Prometheus is not available or no time window exists')
 		return ''
 	}
 
-	let start = new Date(getState('start'))
-	let finish = getState('finish') ? new Date(getState('finish')) : new Date()
-
-	let prometheusIp = await getContainerIp('ydb-prometheus')
-	let prometheusUrl = prometheusIp ? `http://${prometheusIp}:9090` : 'http://prometheus:9090'
+	let prometheusUrl = `http://${prometheusIp}:9090`
 	debug(`Prometheus URL: ${prometheusUrl}`)
 
 	let config = await loadMetricConfig(getInput('metrics_yaml'), getInput('metrics_yaml_path'))
-	let metrics = await collectMetricsFromPrometheus(prometheusUrl, start, finish, config)
-	let content = metrics.map((m) => JSON.stringify(m)).join('\n')
+	let metrics = await collectMetricsFromPrometheus(
+		prometheusUrl,
+		new Date(start),
+		new Date(finish),
+		config
+	)
 
-	return content
+	return metrics.map((m) => JSON.stringify(m)).join('\n')
 }
 
 async function collectMetadata(): Promise<string> {
@@ -114,10 +177,12 @@ async function collectMetadata(): Promise<string> {
 
 	let pull = getState('pull')
 	let commit = getState('commit')
-	let start = new Date(getState('start'))
-	let finish = getState('finish') ? new Date(getState('finish')) : new Date()
 	let failed = getState('failed') as '' | 'cluster' | 'workload'
-	let duration = finish.getTime() - start.getTime()
+
+	let startState = getState('start')
+	let finishState = getState('finish')
+	let start = startState ? new Date(startState) : undefined
+	let finish = finishState ? new Date(finishState) : undefined
 
 	let workload = getState('workload')
 	let workload_current_ref = getInput('workload_current_ref')
@@ -142,11 +207,11 @@ async function collectMetadata(): Promise<string> {
 		workload,
 		workload_current_ref,
 		workload_baseline_ref,
-		start_time: start.toISOString(),
-		start_epoch_ms: start.getTime(),
-		finish_time: finish.toISOString(),
-		finish_epoch_ms: finish.getTime(),
-		duration_ms: duration,
+		start_time: start?.toISOString(),
+		start_epoch_ms: start?.getTime(),
+		finish_time: finish?.toISOString(),
+		finish_epoch_ms: finish?.getTime(),
+		duration_ms: start && finish ? finish.getTime() - start.getTime() : undefined,
 	})
 
 	return content
@@ -170,13 +235,14 @@ async function writeWorkloadSummary(metricsContent: string) {
 }
 
 async function writeFailedSummary() {
-	let cwd = getState('cwd')
 	let workload = getState('workload')
+	let failed = getState('failed') as '' | 'cluster' | 'workload'
 
-	summary.addHeading(`Failed ${workload}.`)
-
-	let workloadLogs = await collectComposeLogs(cwd, ['workload-current', 'workload-baseline'])
-	summary.addCodeBlock(workloadLogs)
+	summary.addHeading(`Failed ${workload} (${failed || 'unknown'}).`)
+	summary.addRaw(
+		`See the \`${workload}-logs.txt\` artifact attached to this run for full logs.`,
+		true
+	)
 
 	await summary.write()
 }
