@@ -41,7 +41,7 @@ export async function loadTemplate(customPath?: string): Promise<string> {
 export function injectData(template: string, data: ReportData): string {
 	let serialized = JSON.stringify(data)
 	let dataScript = `<script type="module">window.__REPORT_DATA__ = ${serialized};</script>`
-	return template.replace('<script data-source></script>', dataScript)
+	return template.replace(/(<script type="importmap">[\s\S]*?<\/script>)/, '$1\n\t\t' + dataScript)
 }
 
 /**
