@@ -23,10 +23,12 @@ check_cluster_health() {
 
     local max_attempts=30
     local attempt=0
+    local output
 
     while [[ $attempt -lt $max_attempts ]]; do
         # Note: monitoring healthcheck doesn't need --database parameter
-        if timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${YDB_STORAGE_ENDPOINT}" monitoring healthcheck 2>/dev/null | grep -q "GOOD"; then
+        output=$(timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${YDB_STORAGE_ENDPOINT}" monitoring healthcheck 2>&1 || true)
+        if grep -q "GOOD" <<<"$output"; then
             log "Cluster health check passed"
             return 0
         fi
@@ -37,6 +39,8 @@ check_cluster_health() {
     done
 
     log "ERROR: Cluster health check failed after $max_attempts attempts"
+    log "Last healthcheck output (why the cluster self-check isn't GOOD):"
+    echo "$output" >&2
     return 1
 }
 

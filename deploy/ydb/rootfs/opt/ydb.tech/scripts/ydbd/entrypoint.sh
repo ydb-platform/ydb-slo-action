@@ -23,11 +23,21 @@ perform_cluster_bootstrap() {
 perform_database_creation() {
     local database_path="${YDB_TENANT:-/Root/testdb}"
     log "Creating database '$database_path' with endpoint: $YDB_ENDPOINT"
-    if ydbd -s "$YDB_ENDPOINT" admin database "$database_path" create ssd:1 2>&1 | grep -q "ALREADY_EXISTS"; then
-        log "Database '$database_path' already exists"
-    else
-        log "Database creation completed with exit code: $?"
+
+    local output
+    if output=$(ydbd -s "$YDB_ENDPOINT" admin database "$database_path" create ssd:1 2>&1); then
+        log "Database '$database_path' created"
+        return 0
     fi
+
+    if grep -q "ALREADY_EXISTS" <<<"$output"; then
+        log "Database '$database_path' already exists"
+        return 0
+    fi
+
+    log "ERROR: Database creation failed:"
+    echo "$output" >&2
+    return 1
 }
 
 start_ydb_node() {
