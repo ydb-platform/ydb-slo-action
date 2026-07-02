@@ -23,14 +23,35 @@ perform_cluster_bootstrap() {
 perform_database_creation() {
     local database_path="${YDB_TENANT:-/Root/testdb}"
     log "Creating database '$database_path' with endpoint: $YDB_ENDPOINT"
-    if ydbd -s "$YDB_ENDPOINT" admin database "$database_path" create ssd:1 2>&1 | grep -q "ALREADY_EXISTS"; then
-        log "Database '$database_path' already exists"
-    else
-        log "Database creation completed with exit code: $?"
+
+    local output
+    if output=$(ydbd -s "$YDB_ENDPOINT" admin database "$database_path" create ssd:1 2>&1); then
+        log "Database '$database_path' created"
+        return 0
     fi
+
+    if grep -q "ALREADY_EXISTS" <<<"$output"; then
+        log "Database '$database_path' already exists"
+        return 0
+    fi
+
+    log "ERROR: Database creation failed:"
+    echo "$output" >&2
+    return 1
 }
 
 start_ydb_node() {
+    if [[ -n "$YDB_START_DELAY" ]]; then
+        # Dynamic nodes all depend only on storage-1 and race to register with
+        # it the moment it's healthy. storage-1's BlobStorage session setup
+        # has a hardcoded 5s timeout (ProxyEstablishSessionsTimeout in
+        # ydb/core/blobstorage/dsproxy/dsproxy.h) - a burst of simultaneous
+        # registrations can blow past that under load, so nodes stagger their
+        # start instead of all hitting storage-1 at once.
+        log "Delaying node start by ${YDB_START_DELAY}s to stagger registration with storage"
+        sleep "$YDB_START_DELAY"
+    fi
+
     local grpc_port="${YDB_GRPC_PORT:-2136}"
     local mon_port="${YDB_MON_PORT:-8765}"
     local ic_port="${YDB_IC_PORT:-19001}"
