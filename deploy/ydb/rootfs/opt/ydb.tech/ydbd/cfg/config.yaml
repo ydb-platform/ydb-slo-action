@@ -25,14 +25,14 @@ config:
     enable_public_api_external_blobs: false
     enable_scheme_transactions_at_scheme_shard: true
 
+  # A single drive is enough: erasure is none (no redundancy across disks
+  # to benefit from), and a second/third SectorMap PDisk is one more thing
+  # that can fail to initialize (observed: "Can't open file SectorMap:2:64"
+  # -> PDisk StateError -> disintegrated group) for no upside here.
   host_configs:
     - host_config_id: 1
       drive:
         - path: SectorMap:1:64
-          type: SSD
-        - path: SectorMap:2:64
-          type: SSD
-        - path: SectorMap:3:64
           type: SSD
 
   hosts:

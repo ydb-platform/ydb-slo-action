@@ -41,6 +41,17 @@ perform_database_creation() {
 }
 
 start_ydb_node() {
+    if [[ -n "$YDB_START_DELAY" ]]; then
+        # Dynamic nodes all depend only on storage-1 and race to register with
+        # it the moment it's healthy. storage-1's BlobStorage session setup
+        # has a hardcoded 5s timeout (ProxyEstablishSessionsTimeout in
+        # ydb/core/blobstorage/dsproxy/dsproxy.h) - a burst of simultaneous
+        # registrations can blow past that under load, so nodes stagger their
+        # start instead of all hitting storage-1 at once.
+        log "Delaying node start by ${YDB_START_DELAY}s to stagger registration with storage"
+        sleep "$YDB_START_DELAY"
+    fi
+
     local grpc_port="${YDB_GRPC_PORT:-2136}"
     local mon_port="${YDB_MON_PORT:-8765}"
     local ic_port="${YDB_IC_PORT:-19001}"
