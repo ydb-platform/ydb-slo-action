@@ -311,11 +311,13 @@ async function main() {
     }
     info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`);
     let effectiveConfig = thresholdsConfig;
-    if (artifact.thresholdsPath) {
-      info(`  \uD83C\uDFAF Applying per-scenario thresholds from ${path2.basename(artifact.thresholdsPath)}`);
-      let scenarioYaml = await fs4.readFile(artifact.thresholdsPath, "utf-8");
-      effectiveConfig = await mergeWorkloadThresholds(thresholdsConfig, scenarioYaml);
-    }
+    if (artifact.thresholdsPath)
+      try {
+        let scenarioYaml = await fs4.readFile(artifact.thresholdsPath, "utf-8");
+        effectiveConfig = await mergeWorkloadThresholds(thresholdsConfig, scenarioYaml), info(`  \uD83C\uDFAF Applying per-scenario thresholds from ${path2.basename(artifact.thresholdsPath)}`);
+      } catch (error) {
+        warning(`Could not apply per-scenario thresholds for ${workload}, using report-global config: ${String(error)}`);
+      }
     let analysis = analyzeWorkload(meta.workload, metrics, meta.workload_current_ref || "current", meta.workload_baseline_ref || "baseline", {
       trimPercent: 0.1,
       emaAlpha: 0.15,

@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { getInput, info, setFailed } from '@actions/core'
+import { getInput, info, setFailed, warning } from '@actions/core'
 
 import { type MetricAnalysis, analyzeWorkload } from '../shared/analysis.js'
 import { loadThresholdConfig, mergeWorkloadThresholds } from '../shared/thresholds.js'
@@ -89,11 +89,17 @@ async function main() {
 		// Per-scenario thresholds (shipped by init) override the report-global config
 		let effectiveConfig = thresholdsConfig
 		if (artifact.thresholdsPath) {
-			info(
-				`  🎯 Applying per-scenario thresholds from ${path.basename(artifact.thresholdsPath)}`
-			)
-			let scenarioYaml = await fs.readFile(artifact.thresholdsPath, 'utf-8')
-			effectiveConfig = await mergeWorkloadThresholds(thresholdsConfig, scenarioYaml)
+			try {
+				let scenarioYaml = await fs.readFile(artifact.thresholdsPath, 'utf-8')
+				effectiveConfig = await mergeWorkloadThresholds(thresholdsConfig, scenarioYaml)
+				info(
+					`  🎯 Applying per-scenario thresholds from ${path.basename(artifact.thresholdsPath)}`
+				)
+			} catch (error) {
+				warning(
+					`Could not apply per-scenario thresholds for ${workload}, using report-global config: ${String(error)}`
+				)
+			}
 		}
 
 		// Analyze workload with paired-comparison model
