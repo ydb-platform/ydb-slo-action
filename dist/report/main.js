@@ -1,7 +1,8 @@
 import {
   analyzeWorkload,
-  loadThresholdConfig
-} from "../main-2q2e71fw.js";
+  loadThresholdConfig,
+  mergeWorkloadThresholds
+} from "../main-xrdd04fk.js";
 import {
   DefaultArtifactClient,
   context,
@@ -71,6 +72,8 @@ async function downloadRunArtifacts(destinationPath) {
         artifact.alertsPath = file;
       else if (basename2.endsWith("-metrics.jsonl"))
         artifact.metricsPath = file;
+      else if (basename2.endsWith("-thresholds.yaml") || basename2.endsWith("-thresholds.yml"))
+        artifact.thresholdsPath = file;
     }
     if (artifact.metaPath && artifact.metricsPath)
       workloadArtifacts.set(workload, artifact);
@@ -307,10 +310,18 @@ async function main() {
       continue;
     }
     info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`);
+    let effectiveConfig = thresholdsConfig;
+    if (artifact.thresholdsPath)
+      try {
+        let scenarioYaml = await fs4.readFile(artifact.thresholdsPath, "utf-8");
+        effectiveConfig = await mergeWorkloadThresholds(thresholdsConfig, scenarioYaml), info(`  \uD83C\uDFAF Applying per-scenario thresholds from ${path2.basename(artifact.thresholdsPath)}`);
+      } catch (error) {
+        warning(`Could not apply per-scenario thresholds for ${workload}, using report-global config: ${String(error)}`);
+      }
     let analysis = analyzeWorkload(meta.workload, metrics, meta.workload_current_ref || "current", meta.workload_baseline_ref || "baseline", {
       trimPercent: 0.1,
       emaAlpha: 0.15,
-      thresholdConfig: thresholdsConfig
+      thresholdConfig: effectiveConfig
     });
     if (analysis.summary.failures > 0)
       info(`  ❌ ${analysis.summary.failures} critical threshold violation(s)`);

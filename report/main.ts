@@ -2,10 +2,10 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { getInput, info, setFailed } from '@actions/core'
+import { getInput, info, setFailed, warning } from '@actions/core'
 
 import { type MetricAnalysis, analyzeWorkload } from '../shared/analysis.js'
-import { loadThresholdConfig } from '../shared/thresholds.js'
+import { loadThresholdConfig, mergeWorkloadThresholds } from '../shared/thresholds.js'
 
 import { downloadRunArtifacts, uploadReportArtifact } from './lib/artifacts.js'
 import {
@@ -86,6 +86,22 @@ async function main() {
 
 		info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`)
 
+		// Per-scenario thresholds (shipped by init) override the report-global config
+		let effectiveConfig = thresholdsConfig
+		if (artifact.thresholdsPath) {
+			try {
+				let scenarioYaml = await fs.readFile(artifact.thresholdsPath, 'utf-8')
+				effectiveConfig = await mergeWorkloadThresholds(thresholdsConfig, scenarioYaml)
+				info(
+					`  🎯 Applying per-scenario thresholds from ${path.basename(artifact.thresholdsPath)}`
+				)
+			} catch (error) {
+				warning(
+					`Could not apply per-scenario thresholds for ${workload}, using report-global config: ${String(error)}`
+				)
+			}
+		}
+
 		// Analyze workload with paired-comparison model
 		let analysis = analyzeWorkload(
 			meta.workload,
@@ -95,7 +111,7 @@ async function main() {
 			{
 				trimPercent: 0.1,
 				emaAlpha: 0.15,
-				thresholdConfig: thresholdsConfig,
+				thresholdConfig: effectiveConfig,
 			}
 		)
 

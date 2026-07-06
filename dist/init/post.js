@@ -9,7 +9,7 @@ import {
   analyzeWorkload,
   formatChangeCell,
   formatValue
-} from "../main-2q2e71fw.js";
+} from "../main-xrdd04fk.js";
 import {
   debug,
   exec,
@@ -325,7 +325,7 @@ async function writeJobSummary(analysis) {
 // init/post.ts
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function post() {
-  let cwd = getState("cwd"), workload = getState("workload"), logsPath = path2.join(cwd, `${workload}-logs.txt`), alertsPath = path2.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path2.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path2.join(cwd, `${workload}-metadata.json`), metricsContent = "", extraArtifactPaths = [];
+  let cwd = getState("cwd"), workload = getState("workload"), logsPath = path2.join(cwd, `${workload}-logs.txt`), alertsPath = path2.join(cwd, `${workload}-alerts.jsonl`), metricsPath = path2.join(cwd, `${workload}-metrics.jsonl`), metadataPath = path2.join(cwd, `${workload}-metadata.json`), thresholdsPath = path2.join(cwd, `${workload}-thresholds.yaml`), metricsContent = "", extraArtifactPaths = [];
   try {
     await persist(logsPath, collectLogs), await persist(alertsPath, collectAlerts), metricsContent = await persist(metricsPath, collectMetrics), await persist(metadataPath, collectMetadata);
   } finally {
@@ -336,8 +336,11 @@ async function post() {
   } catch (err) {
     warning(`Failed to collect extra artifacts: ${err}`);
   }
+  let thresholdsContent = await persist(thresholdsPath, collectThresholds), uploads = [logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths];
+  if (thresholdsContent.trim())
+    uploads.push(thresholdsPath);
   try {
-    await uploadArtifacts(workload, [logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths], cwd);
+    await uploadArtifacts(workload, uploads, cwd);
   } catch (err) {
     warning(`Artifact upload failed: ${err}`);
   }
@@ -408,6 +411,20 @@ async function collectMetrics() {
   let config = await loadMetricConfig(getInput("metrics_yaml"), getInput("metrics_yaml_path"));
   return (await collectMetricsFromPrometheus(prometheusUrl, new Date(start), new Date(finish), config)).map((m) => JSON.stringify(m)).join(`
 `);
+}
+async function collectThresholds() {
+  info("Collecting thresholds...");
+  let inline = getInput("thresholds_yaml");
+  if (inline)
+    return debug("Using inline per-scenario thresholds_yaml"), inline;
+  let inputPath = getInput("thresholds_yaml_path");
+  if (inputPath)
+    try {
+      return debug(`Reading per-scenario thresholds from ${inputPath}`), await fs2.readFile(inputPath, { encoding: "utf-8" });
+    } catch (error) {
+      warning(`Could not read thresholds_yaml_path "${inputPath}": ${String(error)}`);
+    }
+  return "";
 }
 async function collectMetadata() {
   info("Saving metadata...");

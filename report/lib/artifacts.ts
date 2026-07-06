@@ -14,6 +14,7 @@ export interface WorkloadArtifact {
 	metaPath: string
 	alertsPath: string
 	metricsPath: string
+	thresholdsPath?: string
 }
 
 /**
@@ -96,6 +97,11 @@ export async function downloadRunArtifacts(
 				artifact.alertsPath = file
 			} else if (basename.endsWith('-metrics.jsonl')) {
 				artifact.metricsPath = file
+			} else if (
+				basename.endsWith('-thresholds.yaml') ||
+				basename.endsWith('-thresholds.yml')
+			) {
+				artifact.thresholdsPath = file
 			}
 		}
 

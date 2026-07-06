@@ -24,6 +24,7 @@ async function post() {
 	let alertsPath = path.join(cwd, `${workload}-alerts.jsonl`)
 	let metricsPath = path.join(cwd, `${workload}-metrics.jsonl`)
 	let metadataPath = path.join(cwd, `${workload}-metadata.json`)
+	let thresholdsPath = path.join(cwd, `${workload}-thresholds.yaml`)
 
 	let metricsContent = ''
 	let extraArtifactPaths: string[] = []
@@ -45,12 +46,14 @@ async function post() {
 		warning(`Failed to collect extra artifacts: ${err}`)
 	}
 
+	let thresholdsContent = await persist(thresholdsPath, collectThresholds)
+	let uploads = [logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths]
+	if (thresholdsContent.trim()) {
+		uploads.push(thresholdsPath)
+	}
+
 	try {
-		await uploadArtifacts(
-			workload,
-			[logsPath, alertsPath, metricsPath, metadataPath, ...extraArtifactPaths],
-			cwd
-		)
+		await uploadArtifacts(workload, uploads, cwd)
 	} catch (err) {
 		warning(`Artifact upload failed: ${err}`)
 	}
@@ -170,6 +173,28 @@ async function collectMetrics(): Promise<string> {
 	)
 
 	return metrics.map((m) => JSON.stringify(m)).join('\n')
+}
+
+async function collectThresholds(): Promise<string> {
+	info('Collecting thresholds...')
+
+	let inline = getInput('thresholds_yaml')
+	if (inline) {
+		debug('Using inline per-scenario thresholds_yaml')
+		return inline
+	}
+
+	let inputPath = getInput('thresholds_yaml_path')
+	if (inputPath) {
+		try {
+			debug(`Reading per-scenario thresholds from ${inputPath}`)
+			return await fs.readFile(inputPath, { encoding: 'utf-8' })
+		} catch (error) {
+			warning(`Could not read thresholds_yaml_path "${inputPath}": ${String(error)}`)
+		}
+	}
+
+	return ''
 }
 
 async function collectMetadata(): Promise<string> {

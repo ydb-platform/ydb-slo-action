@@ -1,7 +1,9 @@
 # Default SLO thresholds configuration
 # Users can override/extend by providing custom thresholds via:
-#   - thresholds_yaml input (inline YAML)
-#   - thresholds_yaml_path input (file path, default: .slo/thresholds.yaml)
+#   - report action thresholds_yaml input (inline YAML), applied to all workloads
+#   - report action thresholds_yaml_path input (file path)
+#   - init action thresholds_yaml / thresholds_yaml_path inputs, applied
+#     per-scenario (one workload) and merged OVER the report-global config
 #
 # Example custom config:
 #   metrics:

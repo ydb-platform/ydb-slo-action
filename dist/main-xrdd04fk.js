@@ -67,6 +67,12 @@ async function loadThresholdConfig(customYaml, customPath) {
   }
   return config;
 }
+async function mergeWorkloadThresholds(base, yamlContent) {
+  let perScenario = await parseThresholdsYaml(yamlContent);
+  if (!perScenario)
+    return base;
+  return mergeThresholdConfigs(base, perScenario);
+}
 function matchPattern(metricName, pattern) {
   let regexPattern = pattern.replace(/\*/g, ".*").replace(/\?/g, ".");
   return new RegExp(`^${regexPattern}$`, "i").test(metricName);
@@ -434,4 +440,4 @@ function formatValue(value, metricName) {
   return value.toFixed(2);
 }
 
-export { loadThresholdConfig, analyzeWorkload, formatChangeCell, formatValue };
+export { loadThresholdConfig, mergeWorkloadThresholds, analyzeWorkload, formatChangeCell, formatValue };
