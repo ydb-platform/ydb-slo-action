@@ -2,7 +2,7 @@ import {
   analyzeWorkload,
   loadThresholdConfig,
   mergeWorkloadThresholds
-} from "../main-xrdd04fk.js";
+} from "../main-b9fr1qy3.js";
 import {
   DefaultArtifactClient,
   context,
@@ -12,7 +12,7 @@ import {
   info,
   setFailed,
   warning
-} from "../main-w8t1tja0.js";
+} from "../main-640f0mww.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";
@@ -223,7 +223,8 @@ async function loadTemplate(customPath) {
 }
 function injectData(template, data) {
   let dataScript = `<script type="module">window.__REPORT_DATA__ = ${JSON.stringify(data)};</script>`;
-  return template.replace("<script data-source></script>", dataScript);
+  return template.replace(/(<script type="importmap">[\s\S]*?<\/script>)/, `$1
+		` + dataScript);
 }
 async function generateHTMLReport(meta, alerts, analysis, metrics, templatePath, config) {
   let template = await loadTemplate(templatePath);
