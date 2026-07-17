@@ -39,8 +39,14 @@ export async function loadTemplate(customPath?: string): Promise<string> {
  * Inject data into template at DATA_INJECTION marker
  */
 export function injectData(template: string, data: ReportData): string {
-	let serialized = JSON.stringify(data)
-	let dataScript = `<script type="module">window.__REPORT_DATA__ = ${serialized};</script>`
+	// Classic (non-module) script: a module data script participates in module
+	// loading, and if it starts before the import map Firefox rejects the map
+	// ("Import maps are not allowed after a module load or preload has started").
+	// A classic script never triggers that rule. Inserted right after the import
+	// map, so the map stays first in the head and precedes every module script.
+	// Escape "<" so data containing "</script>" can't close the tag early.
+	let serialized = JSON.stringify(data).replace(/</g, '\\u003c')
+	let dataScript = `<script>window.__REPORT_DATA__ = ${serialized};</script>`
 	return template.replace(/(<script type="importmap">[\s\S]*?<\/script>)/, '$1\n\t\t' + dataScript)
 }
 
