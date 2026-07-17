@@ -44,7 +44,6 @@ export function injectData(template: string, data: ReportData): string {
 	// ("Import maps are not allowed after a module load or preload has started").
 	// A classic script never triggers that rule. Inserted right after the import
 	// map, so the map stays first in the head and precedes every module script.
-	// Escape "<" so data containing "</script>" can't close the tag early.
 	let serialized = JSON.stringify(data)
 	let dataScript = `<script>window.__REPORT_DATA__ = ${serialized};</script>`
 	return template.replace(/(<script type="importmap">[\s\S]*?<\/script>)/, '$1\n\t\t' + dataScript)
