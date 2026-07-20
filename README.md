@@ -122,7 +122,7 @@ Set `YDB_IMAGE` to run the SLO environment with a specific YDB server image.
 If it is not set, the default image uses `APP_VERSION` (`stable-25-3` by default).
 
 ```bash
-YDB_IMAGE=cr.yandex/crptqonuodf51kdj7a7d/ydb:26.1.1.20 docker compose up
+YDB_IMAGE=ydbplatform/local-ydb:26.1.1.20 docker compose up
 ```
 
 ### Fail fast on workload errors

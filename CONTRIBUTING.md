@@ -120,7 +120,7 @@ vim .env
 To test against a different YDB server version, provide its full image path:
 
 ```bash
-YDB_IMAGE=cr.yandex/crptqonuodf51kdj7a7d/ydb:26.1.1.20 docker compose up
+YDB_IMAGE=ydbplatform/local-ydb:26.1.1.20 docker compose up
 ```
 
 ## Code Style
