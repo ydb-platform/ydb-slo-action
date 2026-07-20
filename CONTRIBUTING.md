@@ -107,6 +107,7 @@ vim .env
 
 | Variable                    | Default                 | Description                                                  |
 | --------------------------- | ----------------------- | ------------------------------------------------------------ |
+| `YDB_IMAGE`                 | `local-ydb:stable-25-3` | Docker image containing the YDB server and CLI binaries      |
 | `WORKLOAD_DURATION`         | `0`                     | Workload duration in seconds (0 = unlimited)                 |
 | `WORKLOAD_CURRENT_IMAGE`    | `ydb-workload-current`  | Docker image for current workload                            |
 | `WORKLOAD_BASELINE_IMAGE`   | `ydb-workload-baseline` | Docker image for baseline workload                           |
@@ -114,6 +115,12 @@ vim .env
 | `WORKLOAD_BASELINE_COMMAND` | _(empty)_               | Override command for baseline workload                       |
 
 **Note:** YDB connection and Prometheus endpoints are pre-configured in `compose.yml` and should not be overridden. See `deploy/env.example` for complete configuration options.
+
+To test against a different YDB server version, provide its full image path:
+
+```bash
+YDB_IMAGE=cr.yandex/crptqonuodf51kdj7a7d/ydb:26.1.1.20 docker compose up
+```
 
 ## Code Style
 

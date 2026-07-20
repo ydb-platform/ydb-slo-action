@@ -6,6 +6,8 @@ x-runtime: &runtime
 x-ydb-node: &ydb-node
   build:
     context: ./ydb
+    args:
+      YDB_IMAGE: ${YDB_IMAGE:-cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3}
   restart: always
   <<: *runtime
   expose:

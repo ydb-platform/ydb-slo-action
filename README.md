@@ -116,6 +116,15 @@ A 2-node cluster suits quick smoke runs more than strict SLO gating: chaos
 faults remove a larger fraction of the cluster (stopping one node drops 50% of
 compute instead of 20%), so latency/availability swings are wider by design.
 
+### YDB server image
+
+Set `YDB_IMAGE` to run the SLO environment with a specific YDB server image.
+The default remains `stable-25-3`.
+
+```bash
+YDB_IMAGE=cr.yandex/crptqonuodf51kdj7a7d/ydb:26.1.1.20 docker compose up
+```
+
 ### Fail fast on workload errors
 
 By default a workload container that exits non-zero (or times out) is recorded but

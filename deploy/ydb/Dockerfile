@@ -1,8 +1,11 @@
+# syntax=docker/dockerfile:1
+
+ARG YDB_IMAGE=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3
+FROM ${YDB_IMAGE} AS ydb-dist
+
 FROM --platform=linux/amd64 cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/debian:bookworm-slim
-ARG APP_VERSION=stable-25-3
 
 ENV APP_NAME="ydb" \
-	APP_VERSION="${APP_VERSION}" \
 	PATH="/opt/ydb.tech/ydb/bin:/opt/ydb.tech/ydbd/bin:$PATH"
 
 SHELL ["/bin/bash", "-o", "errexit", "-o", "nounset", "-o", "pipefail", "-c"]
@@ -17,9 +20,22 @@ RUN apt-get update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
+ARG YDB_IMAGE
+ENV APP_VERSION="${YDB_IMAGE}"
+
 COPY rootfs /
-COPY --from=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3 /ydb /opt/ydb.tech/ydb/bin/ydb
-COPY --from=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3 /ydbd /opt/ydb.tech/ydbd/bin/ydbd
+
+RUN --mount=type=bind,from=ydb-dist,source=/,target=/mnt/ydb-dist \
+	if [[ -x /mnt/ydb-dist/ydb && -x /mnt/ydb-dist/ydbd ]]; then \
+		ydb_bin_dir=/mnt/ydb-dist; \
+	elif [[ -x /mnt/ydb-dist/opt/ydb/bin/ydb && -x /mnt/ydb-dist/opt/ydb/bin/ydbd ]]; then \
+		ydb_bin_dir=/mnt/ydb-dist/opt/ydb/bin; \
+	else \
+		echo "YDB binaries not found in ${YDB_IMAGE}" >&2; \
+		exit 1; \
+	fi && \
+	install -D -m 0755 "${ydb_bin_dir}/ydb" /opt/ydb.tech/ydb/bin/ydb && \
+	install -D -m 0755 "${ydb_bin_dir}/ydbd" /opt/ydb.tech/ydbd/bin/ydbd
 
 RUN groupadd -r ydb && useradd -r -g ydb -u 1001 -d /home/ydb -m ydb && \
 	chmod +x /opt/ydb.tech/scripts/ydbd/entrypoint.sh && \
