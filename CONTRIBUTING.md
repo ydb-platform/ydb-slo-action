@@ -107,7 +107,8 @@ vim .env
 
 | Variable                    | Default                 | Description                                                  |
 | --------------------------- | ----------------------- | ------------------------------------------------------------ |
-| `YDB_IMAGE`                 | `local-ydb:stable-25-3` | Docker image containing the YDB server and CLI binaries      |
+| `APP_VERSION`               | `stable-25-3`           | Version tag used by the default YDB image                    |
+| `YDB_IMAGE`                 | derived from version    | Optional complete YDB server image override                  |
 | `WORKLOAD_DURATION`         | `0`                     | Workload duration in seconds (0 = unlimited)                 |
 | `WORKLOAD_CURRENT_IMAGE`    | `ydb-workload-current`  | Docker image for current workload                            |
 | `WORKLOAD_BASELINE_IMAGE`   | `ydb-workload-baseline` | Docker image for baseline workload                           |

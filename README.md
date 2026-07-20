@@ -119,7 +119,7 @@ compute instead of 20%), so latency/availability swings are wider by design.
 ### YDB server image
 
 Set `YDB_IMAGE` to run the SLO environment with a specific YDB server image.
-The default remains `stable-25-3`.
+If it is not set, the default image uses `APP_VERSION` (`stable-25-3` by default).
 
 ```bash
 YDB_IMAGE=cr.yandex/crptqonuodf51kdj7a7d/ydb:26.1.1.20 docker compose up

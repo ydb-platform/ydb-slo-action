@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 
-ARG YDB_IMAGE=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3
+ARG APP_VERSION=stable-25-3
+ARG YDB_IMAGE=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:${APP_VERSION}
 FROM ${YDB_IMAGE} AS ydb-dist
 
 FROM --platform=linux/amd64 cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/debian:bookworm-slim
@@ -20,8 +21,9 @@ RUN apt-get update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
+ARG APP_VERSION
 ARG YDB_IMAGE
-ENV APP_VERSION="${YDB_IMAGE}"
+ENV APP_VERSION="${APP_VERSION}"
 
 COPY rootfs /
 
