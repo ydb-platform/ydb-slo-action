@@ -1,10 +1,11 @@
-ARG APP_VERSION=stable-25-3
-ARG YDB_IMAGE=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:${APP_VERSION}
+ARG YDB_IMAGE=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3
 FROM ${YDB_IMAGE} AS ydb-dist
 
 FROM --platform=linux/amd64 cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/debian:bookworm-slim
+ARG APP_VERSION=stable-25-3
 
 ENV APP_NAME="ydb" \
+	APP_VERSION="${APP_VERSION}" \
 	PATH="/opt/ydb.tech/ydb/bin:/opt/ydb.tech/ydbd/bin:$PATH"
 
 SHELL ["/bin/bash", "-o", "errexit", "-o", "nounset", "-o", "pipefail", "-c"]
@@ -18,10 +19,6 @@ RUN apt-get update && \
 	netcat-openbsd && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
-
-ARG APP_VERSION
-ARG YDB_IMAGE
-ENV APP_VERSION="${APP_VERSION}"
 
 COPY rootfs /
 COPY --from=ydb-dist /ydb /opt/ydb.tech/ydb/bin/ydb
