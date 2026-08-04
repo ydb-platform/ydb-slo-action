@@ -67,12 +67,23 @@ The `init` action deploys a YDB cluster, runs your workload containers with chao
 
 ### Chaos Scenarios
 
-While your workloads run, the chaos monkey randomly:
+In regular mode the chaos monkey runs node-level scenarios:
 
 - Stops nodes gracefully or with SIGKILL
 - Pauses containers (simulating freezes)
 - Introduces network black holes
 - Performs rolling restarts
+
+In bridge mode it runs a separate pile-level sequence:
+
+- Planned `PRIMARY` switchover
+- Planned takedown and rejoin of the `SYNCHRONIZED` pile
+- Planned takedown of the `PRIMARY` pile with promotion of the other pile
+- Emergency failover and recovery of the `SYNCHRONIZED` pile
+- Emergency failover of the `PRIMARY` pile, promotion of the other pile, rejoin, and restoration of the original `PRIMARY`
+
+Every bridge scenario restores both piles to `PRIMARY/SYNCHRONIZED` before the next scenario starts.
+Use a workload duration of at least 15 minutes to cover the complete sequence with the default delays.
 
 Your SDK should handle these scenarios gracefully. The metrics show how well it copes with failures.
 
@@ -97,11 +108,28 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults                      |
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
 | `thresholds_yaml_path`      | no       | —             | Path to a per-scenario SLO thresholds file; merged over the report action's thresholds for this workload |
+| `bridge_mode`               | no       | `false`       | Run YDB as a two-pile 2DC bridge cluster                                             |
 | `disable_compose_profiles`  | no       | —             | Comma-separated list of compose profiles to disable (e.g., `chaos,telemetry`)        |
+
+### 2DC bridge cluster
+
+Set `bridge_mode: true` to run the same workloads and telemetry on a YDB cluster with two bridge piles and pile-level chaos scenarios:
+
+```yaml
+- uses: ydb-platform/ydb-slo-action/init@v2
+  with:
+    workload_name: my-bridge-test
+    workload_current_image: my-workload:pr-123
+    workload_baseline_image: my-workload:main
+    bridge_mode: true
+```
+
+The default bridge topology has two storage nodes and four database nodes, split evenly between `pile-1` and `pile-2`.
+Disabling the `extra-nodes` profile keeps one database node in each pile.
 
 ### Cluster size
 
-By default the cluster runs **5 database nodes**. Disable the `extra-nodes`
+In regular mode the cluster runs **5 database nodes** by default. Disable the `extra-nodes`
 profile to run a smaller **2-node** cluster — cheaper and faster to start:
 
 ```yaml
@@ -402,6 +430,12 @@ The action copies infrastructure to `.slo/` in the working directory:
 ```bash
 cd .slo
 docker compose logs
+```
+
+For a bridge-mode run, select its Compose file explicitly:
+
+```bash
+docker compose -f compose.bridge.yml logs
 ```
 
 ### Query Prometheus

@@ -1,0 +1,247 @@
+x-runtime: &runtime
+  platform: linux/amd64
+  networks:
+    - slo
+
+x-ydb-node: &ydb-node
+  build:
+    context: ./ydb
+  restart: always
+  <<: *runtime
+  expose:
+    - '2135'
+    - '8765'
+    - '19001'
+
+name: ydb
+
+networks:
+  slo:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  blackhole:
+    extends:
+      file: compose.yml
+      service: blackhole
+
+  storage-1:
+    <<: *ydb-node
+    hostname: ydb-storage-1
+    container_name: ydb-storage-1
+    command: ['--grpc-public-address-v4', '172.28.0.10']
+    environment:
+      - YDB_CONFIG_PATH=/opt/ydb.tech/ydbd/cfg/config.bridge.yaml
+      - YDB_NODE_LOCATION_DC=dc-a
+      - YDB_NODE_LOCATION_RACK=rack-1
+      - YDB_BRIDGE_PILE_NAME=pile-1
+    networks:
+      slo:
+        ipv4_address: 172.28.0.10
+    ports:
+      - '8765'
+    labels:
+      - ydb.node.type=storage
+      - ydb.node.location.dc=dc-a
+      - ydb.node.location.rack=rack-1
+      - ydb.node.location.pile=pile-1
+
+  storage-2:
+    <<: *ydb-node
+    hostname: ydb-storage-2
+    container_name: ydb-storage-2
+    command: ['--grpc-public-address-v4', '172.28.0.16']
+    environment:
+      - YDB_CONFIG_PATH=/opt/ydb.tech/ydbd/cfg/config.bridge.yaml
+      - YDB_NODE_LOCATION_DC=dc-b
+      - YDB_NODE_LOCATION_RACK=rack-1
+      - YDB_BRIDGE_PILE_NAME=pile-2
+    networks:
+      slo:
+        ipv4_address: 172.28.0.16
+    ports:
+      - '8765'
+    labels:
+      - ydb.node.type=storage
+      - ydb.node.location.dc=dc-b
+      - ydb.node.location.rack=rack-1
+      - ydb.node.location.pile=pile-2
+
+  database-1:
+    <<: *ydb-node
+    container_name: ydb-database-1
+    command: ['--grpc-public-address-v4', '172.28.0.11']
+    environment:
+      - YDB_CONFIG_PATH=/opt/ydb.tech/ydbd/cfg/config.bridge.yaml
+      - YDB_TENANT=/Root/testdb
+      - YDB_NODE_BROKERS=grpc://ydb-storage-1:2136,grpc://ydb-storage-2:2136
+      - YDB_START_DELAY=0
+      - YDB_NODE_LOCATION_DC=dc-a
+      - YDB_NODE_LOCATION_RACK=rack-1
+      - YDB_BRIDGE_PILE_NAME=pile-1
+    networks:
+      slo:
+        ipv4_address: 172.28.0.11
+    labels:
+      - ydb.node.type=database
+      - ydb.node.location.dc=dc-a
+      - ydb.node.location.rack=rack-1
+      - ydb.node.location.pile=pile-1
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-2:
+    <<: *ydb-node
+    container_name: ydb-database-2
+    command: ['--grpc-public-address-v4', '172.28.0.12']
+    environment:
+      - YDB_CONFIG_PATH=/opt/ydb.tech/ydbd/cfg/config.bridge.yaml
+      - YDB_TENANT=/Root/testdb
+      - YDB_NODE_BROKERS=grpc://ydb-storage-1:2136,grpc://ydb-storage-2:2136
+      - YDB_START_DELAY=4
+      - YDB_NODE_LOCATION_DC=dc-b
+      - YDB_NODE_LOCATION_RACK=rack-1
+      - YDB_BRIDGE_PILE_NAME=pile-2
+    networks:
+      slo:
+        ipv4_address: 172.28.0.12
+    labels:
+      - ydb.node.type=database
+      - ydb.node.location.dc=dc-b
+      - ydb.node.location.rack=rack-1
+      - ydb.node.location.pile=pile-2
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-3:
+    <<: *ydb-node
+    container_name: ydb-database-3
+    profiles:
+      - extra-nodes
+    command: ['--grpc-public-address-v4', '172.28.0.13']
+    environment:
+      - YDB_CONFIG_PATH=/opt/ydb.tech/ydbd/cfg/config.bridge.yaml
+      - YDB_TENANT=/Root/testdb
+      - YDB_NODE_BROKERS=grpc://ydb-storage-1:2136,grpc://ydb-storage-2:2136
+      - YDB_START_DELAY=8
+      - YDB_NODE_LOCATION_DC=dc-a
+      - YDB_NODE_LOCATION_RACK=rack-2
+      - YDB_BRIDGE_PILE_NAME=pile-1
+    networks:
+      slo:
+        ipv4_address: 172.28.0.13
+    labels:
+      - ydb.node.type=database
+      - ydb.node.location.dc=dc-a
+      - ydb.node.location.rack=rack-2
+      - ydb.node.location.pile=pile-1
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-4:
+    <<: *ydb-node
+    container_name: ydb-database-4
+    profiles:
+      - extra-nodes
+    command: ['--grpc-public-address-v4', '172.28.0.14']
+    environment:
+      - YDB_CONFIG_PATH=/opt/ydb.tech/ydbd/cfg/config.bridge.yaml
+      - YDB_TENANT=/Root/testdb
+      - YDB_NODE_BROKERS=grpc://ydb-storage-1:2136,grpc://ydb-storage-2:2136
+      - YDB_START_DELAY=12
+      - YDB_NODE_LOCATION_DC=dc-b
+      - YDB_NODE_LOCATION_RACK=rack-2
+      - YDB_BRIDGE_PILE_NAME=pile-2
+    networks:
+      slo:
+        ipv4_address: 172.28.0.14
+    labels:
+      - ydb.node.type=database
+      - ydb.node.location.dc=dc-b
+      - ydb.node.location.rack=rack-2
+      - ydb.node.location.pile=pile-2
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  storage-init:
+    <<: *ydb-node
+    container_name: ydb-storage-init
+    restart: no
+    environment:
+      - YDB_ENDPOINT=grpc://ydb-storage-1:2136
+      - YDB_INIT_OPERATION=bootstrap
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-2:
+        condition: service_healthy
+
+  database-init:
+    <<: *ydb-node
+    container_name: ydb-database-init
+    restart: no
+    environment:
+      - YDB_ENDPOINT=grpc://ydb-storage-1:2136
+      - YDB_INIT_OPERATION=create-database
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+
+  database-readiness:
+    <<: *ydb-node
+    container_name: ydb-database-readiness
+    restart: no
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_STORAGE_ENDPOINT=grpc://ydb-storage-1:2136
+      - YDB_INIT_OPERATION=check-readiness
+    depends_on:
+      database-init:
+        condition: service_completed_successfully
+
+  grafana:
+    extends:
+      file: compose.yml
+      service: grafana
+
+  prometheus:
+    extends:
+      file: compose.yml
+      service: prometheus
+
+  chaos-monkey:
+    extends:
+      file: compose.yml
+      service: chaos-monkey
+    environment:
+      - CHAOS_SCENARIOS_DIR=/opt/ydb.tech/chaos/bridge-scenarios
+      - BRIDGE_FAULT_DURATION=${BRIDGE_FAULT_DURATION:-15}
+      - BRIDGE_FAILOVER_DELAY=${BRIDGE_FAILOVER_DELAY:-5}
+      - BRIDGE_RECOVERY_TIMEOUT=${BRIDGE_RECOVERY_TIMEOUT:-180}
+      - BRIDGE_TRANSITION_DELAY=${BRIDGE_TRANSITION_DELAY:-15}
+
+  workload-current:
+    extends:
+      file: compose.yml
+      service: workload-current
+
+  workload-baseline:
+    extends:
+      file: compose.yml
+      service: workload-baseline

@@ -82,6 +82,15 @@ function mergeThresholdConfigs(
 	defaultConfig: ThresholdConfig,
 	customConfig: ThresholdConfig
 ): ThresholdConfig {
+	let customPatterns = (customConfig.metrics || []).flatMap((threshold) =>
+		threshold.pattern ? [threshold.pattern] : []
+	)
+	let inheritedMetrics = (defaultConfig.metrics || []).filter(
+		(threshold) =>
+			!threshold.name ||
+			!customPatterns.some((pattern) => matchPattern(threshold.name!, pattern))
+	)
+
 	// prettier-ignore
 	return {
 		neutral_change_percent: customConfig.neutral_change_percent ?? defaultConfig.neutral_change_percent,
@@ -89,7 +98,7 @@ function mergeThresholdConfigs(
 			warning_change_percent: customConfig.default?.warning_change_percent ?? defaultConfig.default.warning_change_percent,
 			critical_change_percent: customConfig.default?.critical_change_percent ?? defaultConfig.default.critical_change_percent,
 		},
-		metrics: [...(customConfig.metrics || []), ...(defaultConfig.metrics || [])],
+		metrics: [...(customConfig.metrics || []), ...inheritedMetrics],
 	}
 }
 

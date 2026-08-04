@@ -4,7 +4,7 @@ import {
   getContainerIp,
   getPullRequestNumber,
   waitForContainerCompletion
-} from "../main-mmj9rtzx.js";
+} from "../main-7kr7ynhf.js";
 import {
   debug,
   error,
@@ -15,7 +15,7 @@ import {
   setFailed,
   setOutput,
   warning
-} from "../main-w8t1tja0.js";
+} from "../main-nh6pkjgy.js";
 
 // init/main.ts
 import * as fs from "node:fs";
@@ -23,10 +23,10 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function main() {
-  let cwd = path.join(process.cwd(), ".slo"), workload = getInput("workload_name") || "unspecified";
-  saveState("cwd", cwd), saveState("pull", await getPullRequestNumber()), saveState("commit", process.env.GITHUB_SHA), saveState("workload", workload), fs.mkdirSync(cwd, { recursive: !0 }), fs.mkdirSync(extraArtifactsPath(cwd), { recursive: !0 }), await copyAssets(cwd);
+  let cwd = path.join(process.cwd(), ".slo"), workload = getInput("workload_name") || "unspecified", composeFile = getInput("bridge_mode") === "true" ? "compose.bridge.yml" : "compose.yml";
+  saveState("cwd", cwd), saveState("compose_file", composeFile), saveState("pull", await getPullRequestNumber()), saveState("commit", process.env.GITHUB_SHA), saveState("workload", workload), fs.mkdirSync(cwd, { recursive: !0 }), fs.mkdirSync(extraArtifactsPath(cwd), { recursive: !0 }), await copyAssets(cwd);
   try {
-    await deployInfra(cwd, workload);
+    await deployInfra(cwd, workload, composeFile);
   } catch (err) {
     saveState("failed", "cluster"), error(err), process.exit(1);
   }
@@ -48,16 +48,16 @@ async function copyAssets(cwd) {
   }
   debug(`Deploy assets copied to ${cwd}`);
 }
-async function deployInfra(cwd, workload) {
-  let profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(",")), workloadDuration = getInput("workload_duration") || "60", workloadCurrentRef = getInput("workload_current_ref") || "current", workloadCurrentImage = getInput("workload_current_image"), workloadCurrentCommand = getInput("workload_current_command") || "", workloadBaselineRef = getInput("workload_baseline_ref") || "baseline", workloadBaselineImage = getInput("workload_baseline_image") || "", workloadBaselineCommand = getInput("workload_baseline_command") || "";
-  if (workloadCurrentImage)
+async function deployInfra(cwd, workload, composeFile) {
+  let profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(","), composeFile), workloadDuration = getInput("workload_duration") || "60", workloadCurrentRef = getInput("workload_current_ref") || "current", workloadCurrentImage = getInput("workload_current_image"), workloadCurrentCommand = getInput("workload_current_command") || "", workloadBaselineRef = getInput("workload_baseline_ref") || "baseline", workloadBaselineImage = getInput("workload_baseline_image") || "", workloadBaselineCommand = getInput("workload_baseline_command") || "";
+  if (profiles = profiles.filter((profile) => profile !== "workload-current" && profile !== "workload-baseline"), workloadCurrentImage)
     profiles.push("workload-current");
   if (workloadBaselineImage)
     profiles.push("workload-baseline");
   let started = !1;
   for (let attempt = 1;attempt <= 3; attempt++) {
     try {
-      await exec("docker", ["compose", "up", "--quiet-pull", "--quiet-build", "--detach"], {
+      await exec("docker", ["compose", "-f", composeFile, "up", "--quiet-pull", "--quiet-build", "--detach"], {
         cwd,
         env: {
           ...process.env,
@@ -81,7 +81,7 @@ async function deployInfra(cwd, workload) {
   }
   if (!started)
     throw Error("Failed to start YDB cluster.");
-  if (debug(`Ran with profiles: ${profiles.join(", ")}`), profiles.includes("telemetry")) {
+  if (debug(`Ran ${composeFile} with profiles: ${profiles.join(", ")}`), profiles.includes("telemetry")) {
     let prometheusIp = await getContainerIp("ydb-prometheus");
     setOutput("ydb-prometheus-url", `http://${prometheusIp}:9090`), setOutput("ydb-prometheus-otlp", `http://${prometheusIp}:9090/api/v1/otlp`);
   }

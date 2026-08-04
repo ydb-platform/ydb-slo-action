@@ -64,6 +64,10 @@ inputs:
     required: false
 
   # Infrastructure
+  bridge_mode:
+    description: "Run YDB as a two-pile 2DC bridge cluster."
+    required: false
+    default: "false"
   disable_compose_profiles:
     description: "Comma-separated list of compose profiles to disable (e.g., 'chaos,telemetry')."
     required: false
