@@ -222,7 +222,7 @@ async function loadTemplate(customPath) {
   return dist_default;
 }
 function injectData(template, data) {
-  let dataScript = `<script type="module">window.__REPORT_DATA__ = ${JSON.stringify(data)};</script>`;
+  let dataScript = `<script>window.__REPORT_DATA__ = ${JSON.stringify(data)};</script>`;
   return template.replace(/(<script type="importmap">[\s\S]*?<\/script>)/, `$1
 		` + dataScript);
 }
