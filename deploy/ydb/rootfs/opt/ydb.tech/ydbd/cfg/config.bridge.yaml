@@ -1,0 +1,54 @@
+metadata:
+  kind: MainConfig
+  cluster: ydb-slo-bridge-testing
+  version: 0
+config:
+  erasure: none
+  fail_domain_type: disk
+  default_disk_type: SSD
+  yaml_config_enabled: true
+
+  actor_system_config:
+    use_auto_config: true
+    cpu_count: 4
+
+  memory_controller_config:
+    hard_limit_bytes: 17179869184
+
+  self_management_config:
+    enabled: true
+
+  bridge_config:
+    piles:
+      - name: pile-1
+      - name: pile-2
+
+  feature_flags:
+    enable_drain_on_shutdown: false
+    enable_mvcc_snapshot_reads: true
+    enable_persistent_query_stats: true
+    enable_public_api_external_blobs: false
+    enable_scheme_transactions_at_scheme_shard: true
+
+  host_configs:
+    - host_config_id: 1
+      drive:
+        - path: SectorMap:1:64
+          type: SSD
+
+  hosts:
+    - host: ydb-storage-1
+      port: 19001
+      host_config_id: 1
+      location:
+        bridge_pile_name: pile-1
+        data_center: dc-a
+        rack: rack-1
+
+    - host: ydb-storage-2
+      port: 19001
+      host_config_id: 1
+      location:
+        bridge_pile_name: pile-2
+        data_center: dc-b
+        rack: rack-1

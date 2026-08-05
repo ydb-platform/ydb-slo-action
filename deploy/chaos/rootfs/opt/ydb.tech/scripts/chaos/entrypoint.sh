@@ -4,7 +4,7 @@ set -e
 # Load chaos library
 . /opt/ydb.tech/scripts/chaos/libchaos.sh
 
-SCENARIOS_DIR="/opt/ydb.tech/chaos/scenarios"
+SCENARIOS_DIR="${CHAOS_SCENARIOS_DIR:-/opt/ydb.tech/chaos/scenarios}"
 SCENARIO_DELAY="${CHAOS_SCENARIO_DELAY:-60}"
 INITIAL_DELAY="${CHAOS_INITIAL_DELAY:-0}"
 
@@ -39,7 +39,7 @@ for script in $(find "$SCENARIOS_DIR" -maxdepth 1 -name "*.sh" -type f | sort); 
         scenario_name=$(basename "$script" | sed 's/.sh$//')
         log "Running scenario: ${scenario_name}"
 
-        "$script" 2>&1 | sed 's/^/  /'
+        "$script"
 
         echo ""
     else

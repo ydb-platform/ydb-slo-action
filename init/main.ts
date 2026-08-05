@@ -23,8 +23,10 @@ process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta
 async function main() {
 	let cwd = path.join(process.cwd(), '.slo')
 	let workload = getInput('workload_name') || 'unspecified'
+	let composeFile = getInput('bridge_mode') === 'true' ? 'compose.bridge.yml' : 'compose.yml'
 
 	saveState('cwd', cwd)
+	saveState('compose_file', composeFile)
 	saveState('pull', await getPullRequestNumber())
 	saveState('commit', process.env['GITHUB_SHA'])
 	saveState('workload', workload)
@@ -35,7 +37,7 @@ async function main() {
 	await copyAssets(cwd)
 
 	try {
-		await deployInfra(cwd, workload)
+		await deployInfra(cwd, workload, composeFile)
 	} catch (err) {
 		saveState('failed', 'cluster')
 		error(err as Error)
@@ -68,8 +70,12 @@ async function copyAssets(cwd: string): Promise<void> {
 	debug(`Deploy assets copied to ${cwd}`)
 }
 
-async function deployInfra(cwd: string, workload: string): Promise<void> {
-	let profiles = await getComposeProfiles(cwd, getInput('disable_compose_profiles').split(','))
+async function deployInfra(cwd: string, workload: string, composeFile: string): Promise<void> {
+	let profiles = await getComposeProfiles(
+		cwd,
+		getInput('disable_compose_profiles').split(','),
+		composeFile
+	)
 
 	let workloadDuration = getInput('workload_duration') || '60'
 	let workloadCurrentRef = getInput('workload_current_ref') || 'current'
@@ -79,7 +85,10 @@ async function deployInfra(cwd: string, workload: string): Promise<void> {
 	let workloadBaselineImage = getInput('workload_baseline_image') || ''
 	let workloadBaselineCommand = getInput('workload_baseline_command') || ''
 
-	// Only activate workload profiles if images are provided
+	profiles = profiles.filter(
+		(profile) => profile !== 'workload-current' && profile !== 'workload-baseline'
+	)
+
 	if (workloadCurrentImage) {
 		profiles.push('workload-current')
 	}
@@ -90,21 +99,25 @@ async function deployInfra(cwd: string, workload: string): Promise<void> {
 	let started = false
 	for (let attempt = 1; attempt <= 3; attempt++) {
 		try {
-			await exec(`docker`, [`compose`, `up`, `--quiet-pull`, `--quiet-build`, `--detach`], {
-				cwd,
-				env: {
-					...process.env,
-					COMPOSE_PROFILES: profiles.join(','),
-					WORKLOAD_NAME: workload,
-					WORKLOAD_DURATION: workloadDuration,
-					WORKLOAD_CURRENT_REF: workloadCurrentRef,
-					WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
-					WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
-					WORKLOAD_BASELINE_REF: workloadBaselineRef,
-					WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
-					WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand,
-				},
-			})
+			await exec(
+				`docker`,
+				[`compose`, `-f`, composeFile, `up`, `--quiet-pull`, `--quiet-build`, `--detach`],
+				{
+					cwd,
+					env: {
+						...process.env,
+						COMPOSE_PROFILES: profiles.join(','),
+						WORKLOAD_NAME: workload,
+						WORKLOAD_DURATION: workloadDuration,
+						WORKLOAD_CURRENT_REF: workloadCurrentRef,
+						WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
+						WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
+						WORKLOAD_BASELINE_REF: workloadBaselineRef,
+						WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
+						WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand,
+					},
+				}
+			)
 		} catch (err) {
 			info(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`)
 			continue
@@ -118,7 +131,7 @@ async function deployInfra(cwd: string, workload: string): Promise<void> {
 		throw new Error('Failed to start YDB cluster.')
 	}
 
-	debug(`Ran with profiles: ${profiles.join(', ')}`)
+	debug(`Ran ${composeFile} with profiles: ${profiles.join(', ')}`)
 
 	if (profiles.includes('telemetry')) {
 		let prometheusIp = await getContainerIp('ydb-prometheus')

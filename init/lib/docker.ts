@@ -93,7 +93,11 @@ export async function getContainerLogs(containerName: string): Promise<string> {
 /**
  * Collects logs from Docker Compose services
  */
-export async function collectComposeLogs(cwd: string, profiles: string[]): Promise<string> {
+export async function collectComposeLogs(
+	cwd: string,
+	profiles: string[],
+	composeFile = 'compose.yml'
+): Promise<string> {
 	try {
 		let chunks: string[] = []
 
@@ -101,9 +105,9 @@ export async function collectComposeLogs(cwd: string, profiles: string[]): Promi
 			`docker`,
 			[
 				`compose`,
-				...profiles.flatMap((profile) => ['--profile', profile]),
 				`-f`,
-				`compose.yml`,
+				composeFile,
+				...profiles.flatMap((profile) => ['--profile', profile]),
 				`logs`,
 				`--no-color`,
 			],
@@ -129,26 +133,27 @@ export async function collectComposeLogs(cwd: string, profiles: string[]): Promi
  */
 export async function getComposeProfiles(
 	cwd: string,
-	disableProfiles: string[] = []
+	disableProfiles: string[] = [],
+	composeFile = 'compose.yml'
 ): Promise<string[]> {
 	try {
 		let chunks: string[] = []
 
-		await exec(`yq`, [`-r`, `.. | .profiles? | select(. != null) | .[]`, `compose.yml`], {
+		await exec(`docker`, [`compose`, `-f`, composeFile, `config`, `--profiles`], {
 			cwd,
 			silent: true,
-			ignoreReturnCode: true,
 			listeners: {
 				stdout: (data) => chunks.push(data.toString()),
 			},
 		})
 
 		let stdout = chunks.join('')
+		let disabled = disableProfiles.map((profile) => profile.trim()).filter(Boolean)
 		let profiles = stdout
 			.trim()
 			.split('\n')
 			.filter(Boolean)
-			.filter((profile: string) => !disableProfiles.includes(profile))
+			.filter((profile: string) => !disabled.includes(profile))
 
 		return [...new Set(profiles)]
 	} catch (error) {

@@ -6,7 +6,7 @@ import {
   getOctokit,
   info,
   warning
-} from "./main-640f0mww.js";
+} from "./main-nh6pkjgy.js";
 
 // init/lib/docker.ts
 async function getContainerIp(containerName) {
@@ -36,14 +36,14 @@ async function getContainerLogs(containerName) {
     return warning(`Failed to get container logs for ${containerName}: ${String(error)}`), "";
   }
 }
-async function collectComposeLogs(cwd, profiles) {
+async function collectComposeLogs(cwd, profiles, composeFile = "compose.yml") {
   try {
     let chunks = [];
     return await exec("docker", [
       "compose",
-      ...profiles.flatMap((profile) => ["--profile", profile]),
       "-f",
-      "compose.yml",
+      composeFile,
+      ...profiles.flatMap((profile) => ["--profile", profile]),
       "logs",
       "--no-color"
     ], {
@@ -58,19 +58,18 @@ async function collectComposeLogs(cwd, profiles) {
     return warning(`Failed to collect docker compose logs: ${String(error)}`), "";
   }
 }
-async function getComposeProfiles(cwd, disableProfiles = []) {
+async function getComposeProfiles(cwd, disableProfiles = [], composeFile = "compose.yml") {
   try {
     let chunks = [];
-    await exec("yq", ["-r", ".. | .profiles? | select(. != null) | .[]", "compose.yml"], {
+    await exec("docker", ["compose", "-f", composeFile, "config", "--profiles"], {
       cwd,
       silent: !0,
-      ignoreReturnCode: !0,
       listeners: {
         stdout: (data) => chunks.push(data.toString())
       }
     });
-    let profiles = chunks.join("").trim().split(`
-`).filter(Boolean).filter((profile) => !disableProfiles.includes(profile));
+    let stdout = chunks.join(""), disabled = disableProfiles.map((profile) => profile.trim()).filter(Boolean), profiles = stdout.trim().split(`
+`).filter(Boolean).filter((profile) => !disabled.includes(profile));
     return [...new Set(profiles)];
   } catch (error) {
     return warning(`Failed to detect profiles dynamically: ${String(error)}`), [];

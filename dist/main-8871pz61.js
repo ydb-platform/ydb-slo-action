@@ -2,7 +2,7 @@ import {
   debug,
   exec,
   warning
-} from "./main-640f0mww.js";
+} from "./main-nh6pkjgy.js";
 
 // shared/thresholds.ts
 import * as fs from "node:fs";
@@ -26,13 +26,14 @@ async function parseThresholdsYaml(yamlContent) {
   }
 }
 function mergeThresholdConfigs(defaultConfig, customConfig) {
+  let customPatterns = (customConfig.metrics || []).flatMap((threshold) => threshold.pattern ? [threshold.pattern] : []), inheritedMetrics = (defaultConfig.metrics || []).filter((threshold) => !threshold.name || !customPatterns.some((pattern) => matchPattern(threshold.name, pattern)));
   return {
     neutral_change_percent: customConfig.neutral_change_percent ?? defaultConfig.neutral_change_percent,
     default: {
       warning_change_percent: customConfig.default?.warning_change_percent ?? defaultConfig.default.warning_change_percent,
       critical_change_percent: customConfig.default?.critical_change_percent ?? defaultConfig.default.critical_change_percent
     },
-    metrics: [...customConfig.metrics || [], ...defaultConfig.metrics || []]
+    metrics: [...customConfig.metrics || [], ...inheritedMetrics]
   };
 }
 async function loadDefaultThresholdConfig() {

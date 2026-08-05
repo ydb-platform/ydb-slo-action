@@ -25,6 +25,7 @@ GitHub Actions toolkit for automated SLO testing of YDB database SDKs.
 ### 2. Infrastructure as Code
 
 - Docker Compose defines all infrastructure
+- `bridge_mode` selects the two-pile 2DC Compose topology; the default topology remains single-pile
 - Metrics = YAML files (not hardcoded)
 - Chaos scenarios = shell scripts
 - `deploy/` directory copied to `.slo/` at runtime
@@ -174,6 +175,8 @@ echo "Scenario completed"
 **Rules:**
 
 - Always restore system to healthy state
+- Bridge scenarios run from a separate directory and must restore both `PRIMARY/SYNCHRONIZED` health and the original `PRIMARY`
+- Leave a stabilization delay between bridge configuration transitions; reported pile roles can change before the configuration quorum is ready
 - Use randomization (random node selection)
 - Add `echo` for observability
 

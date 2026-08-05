@@ -193,6 +193,38 @@ test.if(hasYq())('mergeWorkloadThresholds: per-scenario override wins over base'
 	assert.equal(evaluated.severity, 'success')
 })
 
+test.if(hasYq())(
+	'mergeWorkloadThresholds: per-scenario pattern overrides base exact rule',
+	async () => {
+		let { mergeWorkloadThresholds } = await import('./thresholds.js')
+
+		let base = {
+			neutral_change_percent: 5,
+			default: { warning_change_percent: 20, critical_change_percent: 50 },
+			metrics: [
+				{ name: 'read_latency_p99_ms', direction: 'lower_is_better', critical_max: 10 },
+			],
+		}
+
+		let perScenario = [
+			'metrics:',
+			'  - pattern: "*_latency_p99_ms"',
+			'    direction: lower_is_better',
+			'    critical_max: 50',
+		].join('\n')
+
+		let merged = await mergeWorkloadThresholds(base, perScenario)
+
+		let evaluated = evaluateAbsoluteThreshold(
+			'read_latency_p99_ms',
+			30,
+			'lower_is_better',
+			merged
+		)
+		assert.equal(evaluated.severity, 'success')
+	}
+)
+
 test.if(hasYq())('mergeWorkloadThresholds: base rules not overridden still apply', async () => {
 	let { mergeWorkloadThresholds } = await import('./thresholds.js')
 

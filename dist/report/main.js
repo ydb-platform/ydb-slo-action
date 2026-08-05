@@ -2,7 +2,7 @@ import {
   analyzeWorkload,
   loadThresholdConfig,
   mergeWorkloadThresholds
-} from "../main-b9fr1qy3.js";
+} from "../main-8871pz61.js";
 import {
   DefaultArtifactClient,
   context,
@@ -12,7 +12,7 @@ import {
   info,
   setFailed,
   warning
-} from "../main-640f0mww.js";
+} from "../main-nh6pkjgy.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";
@@ -182,7 +182,7 @@ async function createOrUpdateComment(pull, body) {
 // report/lib/html.ts
 import * as fs2 from "node:fs/promises";
 
-// report/template/dist/index.html
+// ../../../../Developer/github.com/ydb-platform/ydb-slo-action/report/template/dist/index.html
 var dist_default = `<!doctype html>
 <html lang="en">
 	<head>
@@ -222,7 +222,7 @@ async function loadTemplate(customPath) {
   return dist_default;
 }
 function injectData(template, data) {
-  let dataScript = `<script>window.__REPORT_DATA__ = ${JSON.stringify(data).replace(/</g, "\\u003c")};</script>`;
+  let dataScript = `<script>window.__REPORT_DATA__ = ${JSON.stringify(data)};</script>`;
   return template.replace(/(<script type="importmap">[\s\S]*?<\/script>)/, `$1
 		` + dataScript);
 }

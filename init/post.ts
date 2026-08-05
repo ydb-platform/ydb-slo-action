@@ -96,12 +96,14 @@ async function teardown(cwd: string): Promise<void> {
 	info('Tearing down infrastructure...')
 
 	try {
+		let composeFile = getState('compose_file') || 'compose.yml'
 		let profiles = await getComposeProfiles(
 			cwd,
-			getInput('disable_compose_profiles').split(',')
+			getInput('disable_compose_profiles').split(','),
+			composeFile
 		)
-		await exec(`docker`, [`compose`, `-f`, `compose.yml`, `down`], {
-			cwd: path.resolve(process.env['GITHUB_ACTION_PATH'], 'deploy'),
+		await exec(`docker`, [`compose`, `-f`, composeFile, `down`], {
+			cwd,
 			env: {
 				...process.env,
 				COMPOSE_PROFILES: profiles.join(','),
@@ -115,8 +117,13 @@ async function teardown(cwd: string): Promise<void> {
 async function collectLogs(): Promise<string> {
 	info('Collecting logs...')
 	let cwd = getState('cwd')
-	let profiles = await getComposeProfiles(cwd, getInput('disable_compose_profiles').split(','))
-	let content = await collectComposeLogs(cwd, profiles)
+	let composeFile = getState('compose_file') || 'compose.yml'
+	let profiles = await getComposeProfiles(
+		cwd,
+		getInput('disable_compose_profiles').split(','),
+		composeFile
+	)
+	let content = await collectComposeLogs(cwd, profiles, composeFile)
 
 	return content
 }
@@ -212,6 +219,7 @@ async function collectMetadata(): Promise<string> {
 	let workload = getState('workload')
 	let workload_current_ref = getInput('workload_current_ref')
 	let workload_baseline_ref = getInput('workload_baseline_ref')
+	let bridge_mode = getInput('bridge_mode') === 'true'
 
 	let content = JSON.stringify({
 		pull,
@@ -232,6 +240,7 @@ async function collectMetadata(): Promise<string> {
 		workload,
 		workload_current_ref,
 		workload_baseline_ref,
+		bridge_mode,
 		start_time: start?.toISOString(),
 		start_epoch_ms: start?.getTime(),
 		finish_time: finish?.toISOString(),

@@ -78,6 +78,11 @@ During the test, the chaos monkey will randomly:
 - Restart nodes
 - Black-hole network traffic to nodes
 
+In `bridge_mode`, node-level scenarios are replaced with planned switchover,
+planned takedown, and emergency failover of both `PRIMARY` and `SYNCHRONIZED`
+piles. Each scenario rejoins the affected pile, waits for synchronization, and
+restores the original `PRIMARY` before the next scenario.
+
 The workload must not crash on transient errors. Use SDK retry policies and handle connection timeouts. Failed operations should be counted in `sdk_operations_total` with `operation_status="error"`.
 
 ## Container resources
@@ -90,9 +95,12 @@ Each workload container is limited to:
 
 The workload runs in the same Docker network (`172.28.0.0/16`) as:
 - YDB storage node (`172.28.0.10`)
-- YDB database nodes (`172.28.0.11`–`172.28.0.15`) — the cluster runs 2 to 5 of
-  them depending on configuration (5 by default; 2 when the operator sets
-  `disable_compose_profiles: extra-nodes`). Do not assume a fixed node count.
+- YDB database nodes (`172.28.0.11`–`172.28.0.15`) — the regular cluster runs 2
+  to 5 of them depending on configuration (5 by default; 2 when the operator
+  sets `disable_compose_profiles: extra-nodes`).
+- In `bridge_mode`, a second storage node runs at `172.28.0.16`, and the cluster
+  has 2 to 4 database nodes split evenly between two piles. Do not assume a
+  fixed node count or a single storage node.
 - Prometheus (`ydb-prometheus`)
 - Blackhole node (`172.28.0.99`) — used for chaos network scenarios
 

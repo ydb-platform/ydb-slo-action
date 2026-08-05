@@ -4,12 +4,12 @@ import {
   getComposeProfiles,
   getContainerIp,
   uploadArtifacts
-} from "../main-jz8hdhw0.js";
+} from "../main-7kr7ynhf.js";
 import {
   analyzeWorkload,
   formatChangeCell,
   formatValue
-} from "../main-b9fr1qy3.js";
+} from "../main-8871pz61.js";
 import {
   debug,
   exec,
@@ -18,7 +18,7 @@ import {
   info,
   summary,
   warning
-} from "../main-640f0mww.js";
+} from "../main-nh6pkjgy.js";
 
 // init/post.ts
 import * as fs2 from "node:fs/promises";
@@ -370,9 +370,9 @@ async function persist(filePath, collect) {
 async function teardown(cwd) {
   info("Tearing down infrastructure...");
   try {
-    let profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(","));
-    await exec("docker", ["compose", "-f", "compose.yml", "down"], {
-      cwd: path2.resolve(process.env.GITHUB_ACTION_PATH, "deploy"),
+    let composeFile = getState("compose_file") || "compose.yml", profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(","), composeFile);
+    await exec("docker", ["compose", "-f", composeFile, "down"], {
+      cwd,
       env: {
         ...process.env,
         COMPOSE_PROFILES: profiles.join(",")
@@ -384,8 +384,8 @@ async function teardown(cwd) {
 }
 async function collectLogs() {
   info("Collecting logs...");
-  let cwd = getState("cwd"), profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(","));
-  return await collectComposeLogs(cwd, profiles);
+  let cwd = getState("cwd"), composeFile = getState("compose_file") || "compose.yml", profiles = await getComposeProfiles(cwd, getInput("disable_compose_profiles").split(","), composeFile);
+  return await collectComposeLogs(cwd, profiles, composeFile);
 }
 async function collectAlerts() {
   info("Collecting alerts from Prometheus...");
@@ -428,7 +428,7 @@ async function collectThresholds() {
 }
 async function collectMetadata() {
   info("Saving metadata...");
-  let pull = getState("pull"), commit = getState("commit"), failed = getState("failed"), startState = getState("start"), finishState = getState("finish"), start = startState ? new Date(startState) : void 0, finish = finishState ? new Date(finishState) : void 0, workload = getState("workload"), workload_current_ref = getInput("workload_current_ref"), workload_baseline_ref = getInput("workload_baseline_ref");
+  let pull = getState("pull"), commit = getState("commit"), failed = getState("failed"), startState = getState("start"), finishState = getState("finish"), start = startState ? new Date(startState) : void 0, finish = finishState ? new Date(finishState) : void 0, workload = getState("workload"), workload_current_ref = getInput("workload_current_ref"), workload_baseline_ref = getInput("workload_baseline_ref"), bridge_mode = getInput("bridge_mode") === "true";
   return JSON.stringify({
     pull,
     commit,
@@ -440,6 +440,7 @@ async function collectMetadata() {
     workload,
     workload_current_ref,
     workload_baseline_ref,
+    bridge_mode,
     start_time: start?.toISOString(),
     start_epoch_ms: start?.getTime(),
     finish_time: finish?.toISOString(),

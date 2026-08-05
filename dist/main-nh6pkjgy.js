@@ -2,25 +2,40 @@ import { createRequire } from "node:module";
 var __create = Object.create;
 var { getPrototypeOf: __getProtoOf, defineProperty: __defProp, getOwnPropertyNames: __getOwnPropNames } = Object;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __toESM = (mod, isNodeMode, target) => {
+function __accessProp(key) {
+  return this[key];
+}
+var __toESMCache_node, __toESMCache_esm, __toESM = (mod, isNodeMode, target) => {
+  var canCache = mod != null && typeof mod === "object";
+  if (canCache) {
+    var cache = isNodeMode ? __toESMCache_node ??= /* @__PURE__ */ new WeakMap : __toESMCache_esm ??= /* @__PURE__ */ new WeakMap, cached = cache.get(mod);
+    if (cached)
+      return cached;
+  }
   target = mod != null ? __create(__getProtoOf(mod)) : {};
   let to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: !0 }) : target;
   for (let key of __getOwnPropNames(mod))
     if (!__hasOwnProp.call(to, key))
       __defProp(to, key, {
-        get: () => mod[key],
+        get: __accessProp.bind(mod, key),
         enumerable: !0
       });
+  if (canCache)
+    cache.set(mod, to);
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, {
       get: all[name],
       enumerable: !0,
       configurable: !0,
-      set: (newValue) => all[name] = () => newValue
+      set: __exportSetter.bind(all, name)
     });
 };
 var __require = /* @__PURE__ */ createRequire(import.meta.url);
@@ -23941,7 +23956,7 @@ var require_errors2 = __commonJS((exports, module) => {
     return innerError || outerError;
   }
 
-  class AbortError3 extends Error {
+  class AbortError4 extends Error {
     constructor(message = "The operation was aborted", options = void 0) {
       if (options !== void 0 && typeof options !== "object")
         throw new codes.ERR_INVALID_ARG_TYPE("options", "Object", options);
@@ -24099,7 +24114,7 @@ var require_errors2 = __commonJS((exports, module) => {
   E("ERR_STREAM_WRITE_AFTER_END", "write after end", Error);
   E("ERR_UNKNOWN_ENCODING", "Unknown encoding: %s", TypeError);
   module.exports = {
-    AbortError: AbortError3,
+    AbortError: AbortError4,
     aggregateTwoErrors: hideStackFrames(aggregateTwoErrors),
     hideStackFrames,
     codes
@@ -24527,7 +24542,7 @@ var require_utils2 = __commonJS((exports, module) => {
 
 // node_modules/readable-stream/lib/internal/streams/end-of-stream.js
 var require_end_of_stream = __commonJS((exports, module) => {
-  var process4 = require_process(), { AbortError: AbortError3, codes } = require_errors2(), { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_STREAM_PREMATURE_CLOSE } = codes, { kEmptyObject, once } = require_util10(), { validateAbortSignal, validateFunction, validateObject, validateBoolean } = require_validators(), { Promise: Promise2, PromisePrototypeThen, SymbolDispose } = require_primordials(), {
+  var process4 = require_process(), { AbortError: AbortError4, codes } = require_errors2(), { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_STREAM_PREMATURE_CLOSE } = codes, { kEmptyObject, once } = require_util10(), { validateAbortSignal, validateFunction, validateObject, validateBoolean } = require_validators(), { Promise: Promise2, PromisePrototypeThen, SymbolDispose } = require_primordials(), {
     isClosed,
     isReadable,
     isReadableNodeStream,
@@ -24633,7 +24648,7 @@ var require_end_of_stream = __commonJS((exports, module) => {
     if (options.signal && !closed) {
       let abort = () => {
         let endCallback = callback;
-        cleanup(), endCallback.call(stream2, new AbortError3(void 0, {
+        cleanup(), endCallback.call(stream2, new AbortError4(void 0, {
           cause: options.signal.reason
         }));
       };
@@ -24653,7 +24668,7 @@ var require_end_of_stream = __commonJS((exports, module) => {
     let isAborted = !1, abort = nop;
     if (options.signal)
       if (abort = () => {
-        isAborted = !0, callback.call(stream2, new AbortError3(void 0, {
+        isAborted = !0, callback.call(stream2, new AbortError4(void 0, {
           cause: options.signal.reason
         }));
       }, options.signal.aborted)
@@ -24698,7 +24713,7 @@ var require_destroy2 = __commonJS((exports, module) => {
   var process4 = require_process(), {
     aggregateTwoErrors,
     codes: { ERR_MULTIPLE_CALLBACK },
-    AbortError: AbortError3
+    AbortError: AbortError4
   } = require_errors2(), { Symbol: Symbol2 } = require_primordials(), { kIsDestroyed, isDestroyed, isFinished, isServerRequest } = require_utils2(), kDestroy = Symbol2("kDestroy"), kConstruct = Symbol2("kConstruct");
   function checkError(err, w, r) {
     if (err) {
@@ -24853,7 +24868,7 @@ var require_destroy2 = __commonJS((exports, module) => {
     if (!stream2 || isDestroyed(stream2))
       return;
     if (!err && !isFinished(stream2))
-      err = new AbortError3;
+      err = new AbortError4;
     if (isServerRequest(stream2))
       stream2.socket = null, stream2.destroy(err);
     else if (isRequest(stream2))
@@ -24941,7 +24956,7 @@ var require_legacy = __commonJS((exports, module) => {
 
 // node_modules/readable-stream/lib/internal/streams/add-abort-signal.js
 var require_add_abort_signal = __commonJS((exports, module) => {
-  var { SymbolDispose } = require_primordials(), { AbortError: AbortError3, codes } = require_errors2(), { isNodeStream, isWebStream, kControllerErrorFunction } = require_utils2(), eos = require_end_of_stream(), { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2 } = codes, addAbortListener, validateAbortSignal = (signal, name) => {
+  var { SymbolDispose } = require_primordials(), { AbortError: AbortError4, codes } = require_errors2(), { isNodeStream, isWebStream, kControllerErrorFunction } = require_utils2(), eos = require_end_of_stream(), { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2 } = codes, addAbortListener, validateAbortSignal = (signal, name) => {
     if (typeof signal !== "object" || !("aborted" in signal))
       throw new ERR_INVALID_ARG_TYPE2(name, "AbortSignal", signal);
   };
@@ -24954,11 +24969,11 @@ var require_add_abort_signal = __commonJS((exports, module) => {
     if (typeof signal !== "object" || !("aborted" in signal))
       return stream2;
     let onAbort = isNodeStream(stream2) ? () => {
-      stream2.destroy(new AbortError3(void 0, {
+      stream2.destroy(new AbortError4(void 0, {
         cause: signal.reason
       }));
     } : () => {
-      stream2[kControllerErrorFunction](new AbortError3(void 0, {
+      stream2[kControllerErrorFunction](new AbortError4(void 0, {
         cause: signal.reason
       }));
     };
@@ -25227,7 +25242,7 @@ var require_readable3 = __commonJS((exports, module) => {
       ERR_STREAM_PUSH_AFTER_EOF,
       ERR_STREAM_UNSHIFT_AFTER_END_EVENT
     },
-    AbortError: AbortError3
+    AbortError: AbortError4
   } = require_errors2(), { validateObject } = require_validators(), kPaused = Symbol2("kPaused"), { StringDecoder } = __require("string_decoder"), from = require_from();
   ObjectSetPrototypeOf(Readable5.prototype, Stream.prototype);
   ObjectSetPrototypeOf(Readable5, Stream);
@@ -25311,7 +25326,7 @@ var require_readable3 = __commonJS((exports, module) => {
   Readable5.prototype[SymbolAsyncDispose] = function() {
     let error2;
     if (!this.destroyed)
-      error2 = this.readableEnded ? null : new AbortError3, this.destroy(error2);
+      error2 = this.readableEnded ? null : new AbortError4, this.destroy(error2);
     return new Promise2((resolve3, reject) => eos(this, (err) => err && err !== error2 ? reject(err) : resolve3(null)));
   };
   Readable5.prototype.push = function(chunk, encoding) {
@@ -26451,7 +26466,7 @@ var require_duplexify = __commonJS((exports, module) => {
     isReadableStream: isReadableStream2,
     isWritableStream
   } = require_utils2(), eos = require_end_of_stream(), {
-    AbortError: AbortError3,
+    AbortError: AbortError4,
     codes: { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_INVALID_RETURN_VALUE }
   } = require_errors2(), { destroyer } = require_destroy2(), Duplex = require_duplex(), Readable5 = require_readable3(), Writable = require_writable(), { createDeferredPromise } = require_util10(), from = require_from(), Blob2 = globalThis.Blob || bufferModule.Blob, isBlob2 = typeof Blob2 < "u" ? function(b) {
     return b instanceof Blob2;
@@ -26581,7 +26596,7 @@ var require_duplexify = __commonJS((exports, module) => {
           if (process4.nextTick(cb), done)
             return;
           if (signal.aborted)
-            throw new AbortError3(void 0, {
+            throw new AbortError4(void 0, {
               cause: signal.reason
             });
           ({ promise, resolve: resolve3 } = createDeferredPromise()), yield chunk;
@@ -26671,7 +26686,7 @@ var require_duplexify = __commonJS((exports, module) => {
       };
     return d._destroy = function(err, callback) {
       if (!err && onclose !== null)
-        err = new AbortError3;
+        err = new AbortError4;
       if (onreadable = null, ondrain = null, onfinish = null, onclose === null)
         callback(err);
       else
@@ -26885,7 +26900,7 @@ var require_pipeline = __commonJS((exports, module) => {
       ERR_STREAM_DESTROYED,
       ERR_STREAM_PREMATURE_CLOSE
     },
-    AbortError: AbortError3
+    AbortError: AbortError4
   } = require_errors2(), { validateFunction, validateAbortSignal } = require_validators(), {
     isIterable,
     isReadable,
@@ -26998,7 +27013,7 @@ var require_pipeline = __commonJS((exports, module) => {
     let ac = new AbortController2, signal = ac.signal, outerSignal = opts === null || opts === void 0 ? void 0 : opts.signal, lastStreamCleanup = [];
     validateAbortSignal(outerSignal, "options.signal");
     function abort() {
-      finishImpl(new AbortError3);
+      finishImpl(new AbortError4);
     }
     addAbortListener = addAbortListener || require_util10().addAbortListener;
     let disposable;
@@ -27187,7 +27202,7 @@ var require_compose = __commonJS((exports, module) => {
     isWritableStream,
     isReadableStream: isReadableStream2
   } = require_utils2(), {
-    AbortError: AbortError3,
+    AbortError: AbortError4,
     codes: { ERR_INVALID_ARG_VALUE, ERR_MISSING_ARGS }
   } = require_errors2(), eos = require_end_of_stream();
   module.exports = function(...streams) {
@@ -27305,7 +27320,7 @@ var require_compose = __commonJS((exports, module) => {
     }
     return d._destroy = function(err, callback) {
       if (!err && onclose !== null)
-        err = new AbortError3;
+        err = new AbortError4;
       if (onreadable = null, ondrain = null, onfinish = null, onclose === null)
         callback(err);
       else if (onclose = callback, isNodeStream(tail))
@@ -27318,7 +27333,7 @@ var require_compose = __commonJS((exports, module) => {
 var require_operators = __commonJS((exports, module) => {
   var AbortController2 = globalThis.AbortController || require_abort_controller().AbortController, {
     codes: { ERR_INVALID_ARG_VALUE, ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE2, ERR_MISSING_ARGS, ERR_OUT_OF_RANGE },
-    AbortError: AbortError3
+    AbortError: AbortError4
   } = require_errors2(), { validateAbortSignal, validateInteger, validateObject } = require_validators(), kWeakHandler = require_primordials().Symbol("kWeak"), kResistStopPropagation = require_primordials().Symbol("kResistStopPropagation"), { finished } = require_end_of_stream(), staticCompose = require_compose(), { addAbortSignalNoValidate } = require_add_abort_signal(), { isWritable, isNodeStream } = require_utils2(), { deprecate } = require_util10(), {
     ArrayPrototypePush,
     Boolean: Boolean2,
@@ -27376,7 +27391,7 @@ var require_operators = __commonJS((exports, module) => {
             if (done)
               return;
             if (signal.aborted)
-              throw new AbortError3;
+              throw new AbortError4;
             try {
               if (val = fn(val, signalOpt), val === kEmpty)
                 continue;
@@ -27408,7 +27423,7 @@ var require_operators = __commonJS((exports, module) => {
             if (val === kEof)
               return;
             if (signal.aborted)
-              throw new AbortError3;
+              throw new AbortError4;
             if (val !== kEmpty)
               yield val;
             queue.shift(), maybeResume();
@@ -27433,7 +27448,7 @@ var require_operators = __commonJS((exports, module) => {
       for await (let val of this) {
         var _options$signal;
         if (options !== null && options !== void 0 && (_options$signal = options.signal) !== null && _options$signal !== void 0 && _options$signal.aborted)
-          throw new AbortError3({
+          throw new AbortError4({
             cause: options.signal.reason
           });
         yield [index++, val];
@@ -27493,7 +27508,7 @@ var require_operators = __commonJS((exports, module) => {
       validateAbortSignal(options.signal, "options.signal");
     let hasInitialValue = arguments.length > 1;
     if (options !== null && options !== void 0 && (_options$signal2 = options.signal) !== null && _options$signal2 !== void 0 && _options$signal2.aborted) {
-      let err = new AbortError3(void 0, {
+      let err = new AbortError4(void 0, {
         cause: options.signal.reason
       });
       throw this.once("error", () => {}), await finished(this.destroy(err)), err;
@@ -27512,7 +27527,7 @@ var require_operators = __commonJS((exports, module) => {
       for await (let value of this) {
         var _options$signal3;
         if (gotAnyItemFromStream = !0, options !== null && options !== void 0 && (_options$signal3 = options.signal) !== null && _options$signal3 !== void 0 && _options$signal3.aborted)
-          throw new AbortError3;
+          throw new AbortError4;
         if (!hasInitialValue)
           initialValue = value, hasInitialValue = !0;
         else
@@ -27536,7 +27551,7 @@ var require_operators = __commonJS((exports, module) => {
     for await (let val of this) {
       var _options$signal4;
       if (options !== null && options !== void 0 && (_options$signal4 = options.signal) !== null && _options$signal4 !== void 0 && _options$signal4.aborted)
-        throw new AbortError3(void 0, {
+        throw new AbortError4(void 0, {
           cause: options.signal.reason
         });
       ArrayPrototypePush(result, val);
@@ -27565,11 +27580,11 @@ var require_operators = __commonJS((exports, module) => {
     return number = toIntegerOrInfinity(number), async function* () {
       var _options$signal5;
       if (options !== null && options !== void 0 && (_options$signal5 = options.signal) !== null && _options$signal5 !== void 0 && _options$signal5.aborted)
-        throw new AbortError3;
+        throw new AbortError4;
       for await (let val of this) {
         var _options$signal6;
         if (options !== null && options !== void 0 && (_options$signal6 = options.signal) !== null && _options$signal6 !== void 0 && _options$signal6.aborted)
-          throw new AbortError3;
+          throw new AbortError4;
         if (number-- <= 0)
           yield val;
       }
@@ -27583,11 +27598,11 @@ var require_operators = __commonJS((exports, module) => {
     return number = toIntegerOrInfinity(number), async function* () {
       var _options$signal7;
       if (options !== null && options !== void 0 && (_options$signal7 = options.signal) !== null && _options$signal7 !== void 0 && _options$signal7.aborted)
-        throw new AbortError3;
+        throw new AbortError4;
       for await (let val of this) {
         var _options$signal8;
         if (options !== null && options !== void 0 && (_options$signal8 = options.signal) !== null && _options$signal8 !== void 0 && _options$signal8.aborted)
-          throw new AbortError3;
+          throw new AbortError4;
         if (number-- > 0)
           yield val;
         if (number <= 0)
@@ -45079,203 +45094,11 @@ function getUploadZipSpecification(filesToZip, rootDirectory) {
   }
   return specification;
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/abort-controller/AbortError.js
-class AbortError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "AbortError";
-  }
+// node_modules/@azure/core-auth/dist/esm/tokenCredential.js
+function isTokenCredential(credential) {
+  let castCredential = credential;
+  return castCredential && typeof castCredential.getToken === "function" && (castCredential.signRequest === void 0 || castCredential.getToken.length > 0);
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/logger/log.js
-import { EOL as EOL7 } from "node:os";
-import util from "node:util";
-import process2 from "node:process";
-function log(message, ...args) {
-  process2.stderr.write(`${util.format(message, ...args)}${EOL7}`);
-}
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/logger/debug.js
-var debugEnvVariable = typeof process < "u" && process.env && process.env.DEBUG || void 0, enabledString, enabledNamespaces = [], skippedNamespaces = [], debuggers = [];
-if (debugEnvVariable)
-  enable(debugEnvVariable);
-var debugObj = Object.assign((namespace) => {
-  return createDebugger(namespace);
-}, {
-  enable,
-  enabled,
-  disable,
-  log
-});
-function enable(namespaces) {
-  enabledString = namespaces, enabledNamespaces = [], skippedNamespaces = [];
-  let namespaceList = namespaces.split(",").map((ns) => ns.trim());
-  for (let ns of namespaceList)
-    if (ns.startsWith("-"))
-      skippedNamespaces.push(ns.substring(1));
-    else
-      enabledNamespaces.push(ns);
-  for (let instance of debuggers)
-    instance.enabled = enabled(instance.namespace);
-}
-function enabled(namespace) {
-  if (namespace.endsWith("*"))
-    return !0;
-  for (let skipped of skippedNamespaces)
-    if (namespaceMatches(namespace, skipped))
-      return !1;
-  for (let enabledNamespace of enabledNamespaces)
-    if (namespaceMatches(namespace, enabledNamespace))
-      return !0;
-  return !1;
-}
-function namespaceMatches(namespace, patternToMatch) {
-  if (patternToMatch.indexOf("*") === -1)
-    return namespace === patternToMatch;
-  let pattern = patternToMatch;
-  if (patternToMatch.indexOf("**") !== -1) {
-    let patternParts = [], lastCharacter = "";
-    for (let character of patternToMatch)
-      if (character === "*" && lastCharacter === "*")
-        continue;
-      else
-        lastCharacter = character, patternParts.push(character);
-    pattern = patternParts.join("");
-  }
-  let namespaceIndex = 0, patternIndex = 0, patternLength = pattern.length, namespaceLength = namespace.length, lastWildcard = -1, lastWildcardNamespace = -1;
-  while (namespaceIndex < namespaceLength && patternIndex < patternLength)
-    if (pattern[patternIndex] === "*") {
-      if (lastWildcard = patternIndex, patternIndex++, patternIndex === patternLength)
-        return !0;
-      while (namespace[namespaceIndex] !== pattern[patternIndex])
-        if (namespaceIndex++, namespaceIndex === namespaceLength)
-          return !1;
-      lastWildcardNamespace = namespaceIndex, namespaceIndex++, patternIndex++;
-      continue;
-    } else if (pattern[patternIndex] === namespace[namespaceIndex])
-      patternIndex++, namespaceIndex++;
-    else if (lastWildcard >= 0) {
-      if (patternIndex = lastWildcard + 1, namespaceIndex = lastWildcardNamespace + 1, namespaceIndex === namespaceLength)
-        return !1;
-      while (namespace[namespaceIndex] !== pattern[patternIndex])
-        if (namespaceIndex++, namespaceIndex === namespaceLength)
-          return !1;
-      lastWildcardNamespace = namespaceIndex, namespaceIndex++, patternIndex++;
-      continue;
-    } else
-      return !1;
-  let namespaceDone = namespaceIndex === namespace.length, patternDone = patternIndex === pattern.length, trailingWildCard = patternIndex === pattern.length - 1 && pattern[patternIndex] === "*";
-  return namespaceDone && (patternDone || trailingWildCard);
-}
-function disable() {
-  let result = enabledString || "";
-  return enable(""), result;
-}
-function createDebugger(namespace) {
-  let newDebugger = Object.assign(debug2, {
-    enabled: enabled(namespace),
-    destroy,
-    log: debugObj.log,
-    namespace,
-    extend
-  });
-  function debug2(...args) {
-    if (!newDebugger.enabled)
-      return;
-    if (args.length > 0)
-      args[0] = `${namespace} ${args[0]}`;
-    newDebugger.log(...args);
-  }
-  return debuggers.push(newDebugger), newDebugger;
-}
-function destroy() {
-  let index = debuggers.indexOf(this);
-  if (index >= 0)
-    return debuggers.splice(index, 1), !0;
-  return !1;
-}
-function extend(namespace) {
-  let newDebugger = createDebugger(`${this.namespace}:${namespace}`);
-  return newDebugger.log = this.log, newDebugger;
-}
-var debug_default = debugObj;
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/logger/logger.js
-var TYPESPEC_RUNTIME_LOG_LEVELS = ["verbose", "info", "warning", "error"], levelMap = {
-  verbose: 400,
-  info: 300,
-  warning: 200,
-  error: 100
-};
-function patchLogMethod(parent, child2) {
-  child2.log = (...args) => {
-    parent.log(...args);
-  };
-}
-function isTypeSpecRuntimeLogLevel(level) {
-  return TYPESPEC_RUNTIME_LOG_LEVELS.includes(level);
-}
-function createLoggerContext(options) {
-  let registeredLoggers = /* @__PURE__ */ new Set, logLevelFromEnv = typeof process < "u" && process.env && process.env[options.logLevelEnvVarName] || void 0, logLevel, clientLogger = debug_default(options.namespace);
-  clientLogger.log = (...args) => {
-    debug_default.log(...args);
-  };
-  function contextSetLogLevel(level) {
-    if (level && !isTypeSpecRuntimeLogLevel(level))
-      throw Error(`Unknown log level '${level}'. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(",")}`);
-    logLevel = level;
-    let enabledNamespaces2 = [];
-    for (let logger of registeredLoggers)
-      if (shouldEnable(logger))
-        enabledNamespaces2.push(logger.namespace);
-    debug_default.enable(enabledNamespaces2.join(","));
-  }
-  if (logLevelFromEnv)
-    if (isTypeSpecRuntimeLogLevel(logLevelFromEnv))
-      contextSetLogLevel(logLevelFromEnv);
-    else
-      console.error(`${options.logLevelEnvVarName} set to unknown log level '${logLevelFromEnv}'; logging is not enabled. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(", ")}.`);
-  function shouldEnable(logger) {
-    return Boolean(logLevel && levelMap[logger.level] <= levelMap[logLevel]);
-  }
-  function createLogger2(parent, level) {
-    let logger = Object.assign(parent.extend(level), {
-      level
-    });
-    if (patchLogMethod(parent, logger), shouldEnable(logger)) {
-      let enabledNamespaces2 = debug_default.disable();
-      debug_default.enable(enabledNamespaces2 + "," + logger.namespace);
-    }
-    return registeredLoggers.add(logger), logger;
-  }
-  function contextGetLogLevel() {
-    return logLevel;
-  }
-  function contextCreateClientLogger(namespace) {
-    let clientRootLogger = clientLogger.extend(namespace);
-    return patchLogMethod(clientLogger, clientRootLogger), {
-      error: createLogger2(clientRootLogger, "error"),
-      warning: createLogger2(clientRootLogger, "warning"),
-      info: createLogger2(clientRootLogger, "info"),
-      verbose: createLogger2(clientRootLogger, "verbose")
-    };
-  }
-  return {
-    setLogLevel: contextSetLogLevel,
-    getLogLevel: contextGetLogLevel,
-    createClientLogger: contextCreateClientLogger,
-    logger: clientLogger
-  };
-}
-var context3 = createLoggerContext({
-  logLevelEnvVarName: "TYPESPEC_RUNTIME_LOG_LEVEL",
-  namespace: "typeSpecRuntime"
-}), TypeSpecRuntimeLogger = context3.logger;
-function createClientLogger(namespace) {
-  return context3.createClientLogger(namespace);
-}
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/httpHeaders.js
 function normalizeName(name) {
   return name.toLowerCase();
@@ -45660,16 +45483,207 @@ function isRestError(e) {
     return !0;
   return isError(e) && e.name === "RestError";
 }
-// node_modules/@typespec/ts-http-runtime/dist/esm/util/bytesEncoding.js
-function stringToUint8Array(value, format) {
-  return Buffer.from(value, format);
-}
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/nodeHttpClient.js
 import http2 from "node:http";
 import https2 from "node:https";
 import zlib from "node:zlib";
 import { Transform } from "node:stream";
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/abort-controller/AbortError.js
+class AbortError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "AbortError";
+  }
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/logger/log.js
+import { EOL as EOL7 } from "node:os";
+import util from "node:util";
+import process2 from "node:process";
+function log(message, ...args) {
+  process2.stderr.write(`${util.format(message, ...args)}${EOL7}`);
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/logger/debug.js
+var debugEnvVariable = typeof process < "u" && process.env && process.env.DEBUG || void 0, enabledString, enabledNamespaces = [], skippedNamespaces = [], debuggers = [];
+if (debugEnvVariable)
+  enable(debugEnvVariable);
+var debugObj = Object.assign((namespace) => {
+  return createDebugger(namespace);
+}, {
+  enable,
+  enabled,
+  disable,
+  log
+});
+function enable(namespaces) {
+  enabledString = namespaces, enabledNamespaces = [], skippedNamespaces = [];
+  let namespaceList = namespaces.split(",").map((ns) => ns.trim());
+  for (let ns of namespaceList)
+    if (ns.startsWith("-"))
+      skippedNamespaces.push(ns.substring(1));
+    else
+      enabledNamespaces.push(ns);
+  for (let instance of debuggers)
+    instance.enabled = enabled(instance.namespace);
+}
+function enabled(namespace) {
+  if (namespace.endsWith("*"))
+    return !0;
+  for (let skipped of skippedNamespaces)
+    if (namespaceMatches(namespace, skipped))
+      return !1;
+  for (let enabledNamespace of enabledNamespaces)
+    if (namespaceMatches(namespace, enabledNamespace))
+      return !0;
+  return !1;
+}
+function namespaceMatches(namespace, patternToMatch) {
+  if (patternToMatch.indexOf("*") === -1)
+    return namespace === patternToMatch;
+  let pattern = patternToMatch;
+  if (patternToMatch.indexOf("**") !== -1) {
+    let patternParts = [], lastCharacter = "";
+    for (let character of patternToMatch)
+      if (character === "*" && lastCharacter === "*")
+        continue;
+      else
+        lastCharacter = character, patternParts.push(character);
+    pattern = patternParts.join("");
+  }
+  let namespaceIndex = 0, patternIndex = 0, patternLength = pattern.length, namespaceLength = namespace.length, lastWildcard = -1, lastWildcardNamespace = -1;
+  while (namespaceIndex < namespaceLength && patternIndex < patternLength)
+    if (pattern[patternIndex] === "*") {
+      if (lastWildcard = patternIndex, patternIndex++, patternIndex === patternLength)
+        return !0;
+      while (namespace[namespaceIndex] !== pattern[patternIndex])
+        if (namespaceIndex++, namespaceIndex === namespaceLength)
+          return !1;
+      lastWildcardNamespace = namespaceIndex, namespaceIndex++, patternIndex++;
+      continue;
+    } else if (pattern[patternIndex] === namespace[namespaceIndex])
+      patternIndex++, namespaceIndex++;
+    else if (lastWildcard >= 0) {
+      if (patternIndex = lastWildcard + 1, namespaceIndex = lastWildcardNamespace + 1, namespaceIndex === namespaceLength)
+        return !1;
+      while (namespace[namespaceIndex] !== pattern[patternIndex])
+        if (namespaceIndex++, namespaceIndex === namespaceLength)
+          return !1;
+      lastWildcardNamespace = namespaceIndex, namespaceIndex++, patternIndex++;
+      continue;
+    } else
+      return !1;
+  let namespaceDone = namespaceIndex === namespace.length, patternDone = patternIndex === pattern.length, trailingWildCard = patternIndex === pattern.length - 1 && pattern[patternIndex] === "*";
+  return namespaceDone && (patternDone || trailingWildCard);
+}
+function disable() {
+  let result = enabledString || "";
+  return enable(""), result;
+}
+function createDebugger(namespace) {
+  let newDebugger = Object.assign(debug2, {
+    enabled: enabled(namespace),
+    destroy,
+    log: debugObj.log,
+    namespace,
+    extend
+  });
+  function debug2(...args) {
+    if (!newDebugger.enabled)
+      return;
+    if (args.length > 0)
+      args[0] = `${namespace} ${args[0]}`;
+    newDebugger.log(...args);
+  }
+  return debuggers.push(newDebugger), newDebugger;
+}
+function destroy() {
+  let index = debuggers.indexOf(this);
+  if (index >= 0)
+    return debuggers.splice(index, 1), !0;
+  return !1;
+}
+function extend(namespace) {
+  let newDebugger = createDebugger(`${this.namespace}:${namespace}`);
+  return newDebugger.log = this.log, newDebugger;
+}
+var debug_default = debugObj;
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/logger/logger.js
+var TYPESPEC_RUNTIME_LOG_LEVELS = ["verbose", "info", "warning", "error"], levelMap = {
+  verbose: 400,
+  info: 300,
+  warning: 200,
+  error: 100
+};
+function patchLogMethod(parent, child2) {
+  child2.log = (...args) => {
+    parent.log(...args);
+  };
+}
+function isTypeSpecRuntimeLogLevel(level) {
+  return TYPESPEC_RUNTIME_LOG_LEVELS.includes(level);
+}
+function createLoggerContext(options) {
+  let registeredLoggers = /* @__PURE__ */ new Set, logLevelFromEnv = typeof process < "u" && process.env && process.env[options.logLevelEnvVarName] || void 0, logLevel, clientLogger = debug_default(options.namespace);
+  clientLogger.log = (...args) => {
+    debug_default.log(...args);
+  };
+  function contextSetLogLevel(level) {
+    if (level && !isTypeSpecRuntimeLogLevel(level))
+      throw Error(`Unknown log level '${level}'. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(",")}`);
+    logLevel = level;
+    let enabledNamespaces2 = [];
+    for (let logger of registeredLoggers)
+      if (shouldEnable(logger))
+        enabledNamespaces2.push(logger.namespace);
+    debug_default.enable(enabledNamespaces2.join(","));
+  }
+  if (logLevelFromEnv)
+    if (isTypeSpecRuntimeLogLevel(logLevelFromEnv))
+      contextSetLogLevel(logLevelFromEnv);
+    else
+      console.error(`${options.logLevelEnvVarName} set to unknown log level '${logLevelFromEnv}'; logging is not enabled. Acceptable values: ${TYPESPEC_RUNTIME_LOG_LEVELS.join(", ")}.`);
+  function shouldEnable(logger) {
+    return Boolean(logLevel && levelMap[logger.level] <= levelMap[logLevel]);
+  }
+  function createLogger2(parent, level) {
+    let logger = Object.assign(parent.extend(level), {
+      level
+    });
+    if (patchLogMethod(parent, logger), shouldEnable(logger)) {
+      let enabledNamespaces2 = debug_default.disable();
+      debug_default.enable(enabledNamespaces2 + "," + logger.namespace);
+    }
+    return registeredLoggers.add(logger), logger;
+  }
+  function contextGetLogLevel() {
+    return logLevel;
+  }
+  function contextCreateClientLogger(namespace) {
+    let clientRootLogger = clientLogger.extend(namespace);
+    return patchLogMethod(clientLogger, clientRootLogger), {
+      error: createLogger2(clientRootLogger, "error"),
+      warning: createLogger2(clientRootLogger, "warning"),
+      info: createLogger2(clientRootLogger, "info"),
+      verbose: createLogger2(clientRootLogger, "verbose")
+    };
+  }
+  return {
+    setLogLevel: contextSetLogLevel,
+    getLogLevel: contextGetLogLevel,
+    createClientLogger: contextCreateClientLogger,
+    logger: clientLogger
+  };
+}
+var context3 = createLoggerContext({
+  logLevelEnvVarName: "TYPESPEC_RUNTIME_LOG_LEVEL",
+  namespace: "typeSpecRuntime"
+}), TypeSpecRuntimeLogger = context3.logger;
+function createClientLogger(namespace) {
+  return context3.createClientLogger(namespace);
+}
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/log.js
 var logger = createClientLogger("ts-http-runtime");
@@ -45906,53 +45920,33 @@ function createNodeHttpClient() {
 function createDefaultHttpClient() {
   return createNodeHttpClient();
 }
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/logPolicy.js
-var logPolicyName = "logPolicy";
-function logPolicy(options = {}) {
-  let logger2 = options.logger ?? logger.info, sanitizer = new Sanitizer({
-    additionalAllowedHeaderNames: options.additionalAllowedHeaderNames,
-    additionalAllowedQueryParameters: options.additionalAllowedQueryParameters
-  });
+// node_modules/@azure/core-rest-pipeline/dist/esm/pipeline.js
+function createEmptyPipeline2() {
+  return createEmptyPipeline();
+}
+// node_modules/@azure/logger/dist/esm/index.js
+var context4 = createLoggerContext({
+  logLevelEnvVarName: "AZURE_LOG_LEVEL",
+  namespace: "azure"
+}), AzureLogger = context4.logger;
+function createClientLogger3(namespace) {
+  return context4.createClientLogger(namespace);
+}
+
+// node_modules/@azure/core-rest-pipeline/dist/esm/log.js
+var logger2 = createClientLogger3("core-rest-pipeline");
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/agentPolicy.js
+function agentPolicy(agent) {
   return {
-    name: logPolicyName,
-    async sendRequest(request2, next) {
-      if (!logger2.enabled)
-        return next(request2);
-      logger2(`Request: ${sanitizer.sanitize(request2)}`);
-      let response = await next(request2);
-      return logger2(`Response status code: ${response.status}`), logger2(`Headers: ${sanitizer.sanitize(response.headers)}`), response;
+    name: "agentPolicy",
+    sendRequest: async (req, next) => {
+      if (!req.agent)
+        req.agent = agent;
+      return next(req);
     }
   };
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/redirectPolicy.js
-var redirectPolicyName = "redirectPolicy", allowedRedirect = ["GET", "HEAD"];
-function redirectPolicy(options = {}) {
-  let { maxRetries = 20 } = options;
-  return {
-    name: "redirectPolicy",
-    async sendRequest(request2, next) {
-      let response = await next(request2);
-      return handleRedirect(next, response, maxRetries);
-    }
-  };
-}
-async function handleRedirect(next, response, maxRetries, currentRetries = 0) {
-  let { request: request2, status, headers } = response, locationHeader = headers.get("location");
-  if (locationHeader && (status === 300 || status === 301 && allowedRedirect.includes(request2.method) || status === 302 && allowedRedirect.includes(request2.method) || status === 303 && request2.method === "POST" || status === 307) && currentRetries < maxRetries) {
-    let url = new URL(locationHeader, request2.url);
-    if (request2.url = url.toString(), status === 303)
-      request2.method = "GET", request2.headers.delete("Content-Length"), delete request2.body;
-    request2.headers.delete("Authorization");
-    let res = await next(request2);
-    return handleRedirect(next, res, maxRetries, currentRetries + 1);
-  }
-  return response;
-}
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/constants.js
-var DEFAULT_RETRY_POLICY_COUNT = 3;
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/decompressResponsePolicy.js
 var decompressResponsePolicyName = "decompressResponsePolicy";
 function decompressResponsePolicy() {
@@ -45965,7 +45959,6 @@ function decompressResponsePolicy() {
     }
   };
 }
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/random.js
 function getRandomIntegerInclusive(min, max) {
   return min = Math.ceil(min), max = Math.floor(max), Math.floor(Math.random() * (max - min + 1)) + min;
@@ -46074,10 +46067,13 @@ function isSystemError(err) {
   return err.code === "ETIMEDOUT" || err.code === "ESOCKETTIMEDOUT" || err.code === "ECONNREFUSED" || err.code === "ECONNRESET" || err.code === "ENOENT" || err.code === "ENOTFOUND";
 }
 
+// node_modules/@typespec/ts-http-runtime/dist/esm/constants.js
+var DEFAULT_RETRY_POLICY_COUNT = 3;
+
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/retryPolicy.js
 var retryPolicyLogger = createClientLogger("ts-http-runtime retryPolicy"), retryPolicyName = "retryPolicy";
 function retryPolicy(strategies, options = { maxRetries: DEFAULT_RETRY_POLICY_COUNT }) {
-  let logger2 = options.logger || retryPolicyLogger;
+  let logger3 = options.logger || retryPolicyLogger;
   return {
     name: retryPolicyName,
     async sendRequest(request2, next) {
@@ -46086,25 +46082,25 @@ function retryPolicy(strategies, options = { maxRetries: DEFAULT_RETRY_POLICY_CO
         while (!0) {
           retryCount += 1, response = void 0, responseError = void 0;
           try {
-            logger2.info(`Retry ${retryCount}: Attempting to send request`, request2.requestId), response = await next(request2), logger2.info(`Retry ${retryCount}: Received a response from request`, request2.requestId);
+            logger3.info(`Retry ${retryCount}: Attempting to send request`, request2.requestId), response = await next(request2), logger3.info(`Retry ${retryCount}: Received a response from request`, request2.requestId);
           } catch (e) {
-            if (logger2.error(`Retry ${retryCount}: Received an error from request`, request2.requestId), responseError = e, !e || responseError.name !== "RestError")
+            if (logger3.error(`Retry ${retryCount}: Received an error from request`, request2.requestId), responseError = e, !e || responseError.name !== "RestError")
               throw e;
             response = responseError.response;
           }
           if (request2.abortSignal?.aborted)
-            throw logger2.error(`Retry ${retryCount}: Request aborted.`), new AbortError;
+            throw logger3.error(`Retry ${retryCount}: Request aborted.`), new AbortError;
           if (retryCount >= (options.maxRetries ?? DEFAULT_RETRY_POLICY_COUNT))
-            if (logger2.info(`Retry ${retryCount}: Maximum retries reached. Returning the last received response, or throwing the last received error.`), responseError)
+            if (logger3.info(`Retry ${retryCount}: Maximum retries reached. Returning the last received response, or throwing the last received error.`), responseError)
               throw responseError;
             else if (response)
               return response;
             else
               throw Error("Maximum retries reached with no response or error to throw");
-          logger2.info(`Retry ${retryCount}: Processing ${strategies.length} retry strategies.`);
+          logger3.info(`Retry ${retryCount}: Processing ${strategies.length} retry strategies.`);
           strategiesLoop:
             for (let strategy of strategies) {
-              let strategyLogger = strategy.logger || logger2;
+              let strategyLogger = strategy.logger || logger3;
               strategyLogger.info(`Retry ${retryCount}: Processing retry strategy ${strategy.name}.`);
               let modifiers = strategy.retry({
                 retryCount,
@@ -46128,9 +46124,9 @@ function retryPolicy(strategies, options = { maxRetries: DEFAULT_RETRY_POLICY_CO
               }
             }
           if (responseError)
-            throw logger2.info("None of the retry strategies could work with the received error. Throwing it."), responseError;
+            throw logger3.info("None of the retry strategies could work with the received error. Throwing it."), responseError;
           if (response)
-            return logger2.info("None of the retry strategies could work with the received response. Returning it."), response;
+            return logger3.info("None of the retry strategies could work with the received response. Returning it."), response;
         }
     }
   };
@@ -46145,6 +46141,10 @@ function defaultRetryPolicy(options = {}) {
       maxRetries: options.maxRetries ?? DEFAULT_RETRY_POLICY_COUNT
     }).sendRequest
   };
+}
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/bytesEncoding.js
+function stringToUint8Array2(value, format) {
+  return Buffer.from(value, format);
 }
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/checkEnvironment.js
@@ -46200,7 +46200,7 @@ async function prepareFormData(formData, request2) {
           headers: createHttpHeaders({
             "Content-Disposition": `form-data; name="${fieldName}"`
           }),
-          body: stringToUint8Array(value, "utf-8")
+          body: stringToUint8Array2(value, "utf-8")
         });
       else if (value === void 0 || value === null || typeof value !== "object")
         throw Error(`Unexpected value for key ${fieldName}: ${value}. Value should be serialized to string first.`);
@@ -46213,7 +46213,155 @@ async function prepareFormData(formData, request2) {
       }
   request2.multipartBody = { parts };
 }
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/logPolicy.js
+var logPolicyName = "logPolicy";
+function logPolicy(options = {}) {
+  let logger3 = options.logger ?? logger.info, sanitizer = new Sanitizer({
+    additionalAllowedHeaderNames: options.additionalAllowedHeaderNames,
+    additionalAllowedQueryParameters: options.additionalAllowedQueryParameters
+  });
+  return {
+    name: logPolicyName,
+    async sendRequest(request2, next) {
+      if (!logger3.enabled)
+        return next(request2);
+      logger3(`Request: ${sanitizer.sanitize(request2)}`);
+      let response = await next(request2);
+      return logger3(`Response status code: ${response.status}`), logger3(`Headers: ${sanitizer.sanitize(response.headers)}`), response;
+    }
+  };
+}
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/typeGuards.js
+function isBlob(x) {
+  return typeof x.stream === "function";
+}
 
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/concat.js
+import { Readable } from "stream";
+async function* streamAsyncIterator() {
+  let reader = this.getReader();
+  try {
+    while (!0) {
+      let { done, value } = await reader.read();
+      if (done)
+        return;
+      yield value;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+function makeAsyncIterable(webStream) {
+  if (!webStream[Symbol.asyncIterator])
+    webStream[Symbol.asyncIterator] = streamAsyncIterator.bind(webStream);
+  if (!webStream.values)
+    webStream.values = streamAsyncIterator.bind(webStream);
+}
+function ensureNodeStream(stream) {
+  if (stream instanceof ReadableStream)
+    return makeAsyncIterable(stream), Readable.fromWeb(stream);
+  else
+    return stream;
+}
+function toStream(source) {
+  if (source instanceof Uint8Array)
+    return Readable.from(Buffer.from(source));
+  else if (isBlob(source))
+    return ensureNodeStream(source.stream());
+  else
+    return ensureNodeStream(source);
+}
+async function concat(sources) {
+  return function() {
+    let streams = sources.map((x) => typeof x === "function" ? x() : x).map(toStream);
+    return Readable.from(async function* () {
+      for (let stream of streams)
+        for await (let chunk of stream)
+          yield chunk;
+    }());
+  };
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/multipartPolicy.js
+function generateBoundary() {
+  return `----AzSDKFormBoundary${randomUUID2()}`;
+}
+function encodeHeaders(headers) {
+  let result = "";
+  for (let [key, value] of headers)
+    result += `${key}: ${value}\r
+`;
+  return result;
+}
+function getLength(source) {
+  if (source instanceof Uint8Array)
+    return source.byteLength;
+  else if (isBlob(source))
+    return source.size === -1 ? void 0 : source.size;
+  else
+    return;
+}
+function getTotalLength(sources) {
+  let total = 0;
+  for (let source of sources) {
+    let partLength = getLength(source);
+    if (partLength === void 0)
+      return;
+    else
+      total += partLength;
+  }
+  return total;
+}
+async function buildRequestBody(request2, parts, boundary) {
+  let sources = [
+    stringToUint8Array2(`--${boundary}`, "utf-8"),
+    ...parts.flatMap((part) => [
+      stringToUint8Array2(`\r
+`, "utf-8"),
+      stringToUint8Array2(encodeHeaders(part.headers), "utf-8"),
+      stringToUint8Array2(`\r
+`, "utf-8"),
+      part.body,
+      stringToUint8Array2(`\r
+--${boundary}`, "utf-8")
+    ]),
+    stringToUint8Array2(`--\r
+\r
+`, "utf-8")
+  ], contentLength = getTotalLength(sources);
+  if (contentLength)
+    request2.headers.set("Content-Length", contentLength);
+  request2.body = await concat(sources);
+}
+var multipartPolicyName = "multipartPolicy", maxBoundaryLength = 70, validBoundaryCharacters = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'()+,-./:=?");
+function assertValidBoundary(boundary) {
+  if (boundary.length > maxBoundaryLength)
+    throw Error(`Multipart boundary "${boundary}" exceeds maximum length of 70 characters`);
+  if (Array.from(boundary).some((x) => !validBoundaryCharacters.has(x)))
+    throw Error(`Multipart boundary "${boundary}" contains invalid characters`);
+}
+function multipartPolicy() {
+  return {
+    name: multipartPolicyName,
+    async sendRequest(request2, next) {
+      if (!request2.multipartBody)
+        return next(request2);
+      if (request2.body)
+        throw Error("multipartBody and regular body cannot be set at the same time");
+      let boundary = request2.multipartBody.boundary, contentTypeHeader = request2.headers.get("Content-Type") ?? "multipart/mixed", parsedHeader = contentTypeHeader.match(/^(multipart\/[^ ;]+)(?:; *boundary=(.+))?$/);
+      if (!parsedHeader)
+        throw Error(`Got multipart request body, but content-type header was not multipart: ${contentTypeHeader}`);
+      let [, contentType, parsedBoundary] = parsedHeader;
+      if (parsedBoundary && boundary && parsedBoundary !== boundary)
+        throw Error(`Multipart boundary was specified as ${parsedBoundary} in the header, but got ${boundary} in the request body`);
+      if (boundary ??= parsedBoundary, boundary)
+        assertValidBoundary(boundary);
+      else
+        boundary = generateBoundary();
+      return request2.headers.set("Content-Type", `${contentType}; boundary=${boundary}`), await buildRequestBody(request2, request2.multipartBody.parts, boundary), request2.multipartBody = void 0, next(request2);
+    }
+  };
+}
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/proxyPolicy.js
 var import_https_proxy_agent = __toESM(require_dist2(), 1), import_http_proxy_agent = __toESM(require_dist3(), 1);
 var HTTPS_PROXY = "HTTPS_PROXY", HTTP_PROXY = "HTTP_PROXY", ALL_PROXY = "ALL_PROXY", NO_PROXY = "NO_PROXY", proxyPolicyName = "proxyPolicy", globalNoProxyList = [], noProxyListLoaded = !1, globalBypassedMap = /* @__PURE__ */ new Map;
@@ -46315,19 +46463,30 @@ function proxyPolicy(proxySettings, options) {
     }
   };
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/agentPolicy.js
-function agentPolicy(agent) {
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/redirectPolicy.js
+var redirectPolicyName = "redirectPolicy", allowedRedirect = ["GET", "HEAD"];
+function redirectPolicy(options = {}) {
+  let { maxRetries = 20 } = options;
   return {
-    name: "agentPolicy",
-    sendRequest: async (req, next) => {
-      if (!req.agent)
-        req.agent = agent;
-      return next(req);
+    name: "redirectPolicy",
+    async sendRequest(request2, next) {
+      let response = await next(request2);
+      return handleRedirect(next, response, maxRetries);
     }
   };
 }
-
+async function handleRedirect(next, response, maxRetries, currentRetries = 0) {
+  let { request: request2, status, headers } = response, locationHeader = headers.get("location");
+  if (locationHeader && (status === 300 || status === 301 && allowedRedirect.includes(request2.method) || status === 302 && allowedRedirect.includes(request2.method) || status === 303 && request2.method === "POST" || status === 307) && currentRetries < maxRetries) {
+    let url = new URL(locationHeader, request2.url);
+    if (request2.url = url.toString(), status === 303)
+      request2.method = "GET", request2.headers.delete("Content-Length"), delete request2.body;
+    request2.headers.delete("Authorization");
+    let res = await next(request2);
+    return handleRedirect(next, res, maxRetries, currentRetries + 1);
+  }
+  return response;
+}
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/tlsPolicy.js
 function tlsPolicy(tlsSettings) {
   return {
@@ -46339,154 +46498,6 @@ function tlsPolicy(tlsSettings) {
     }
   };
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/util/typeGuards.js
-function isBlob(x) {
-  return typeof x.stream === "function";
-}
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/util/concat.js
-import { Readable } from "stream";
-async function* streamAsyncIterator() {
-  let reader = this.getReader();
-  try {
-    while (!0) {
-      let { done, value } = await reader.read();
-      if (done)
-        return;
-      yield value;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-function makeAsyncIterable(webStream) {
-  if (!webStream[Symbol.asyncIterator])
-    webStream[Symbol.asyncIterator] = streamAsyncIterator.bind(webStream);
-  if (!webStream.values)
-    webStream.values = streamAsyncIterator.bind(webStream);
-}
-function ensureNodeStream(stream) {
-  if (stream instanceof ReadableStream)
-    return makeAsyncIterable(stream), Readable.fromWeb(stream);
-  else
-    return stream;
-}
-function toStream(source) {
-  if (source instanceof Uint8Array)
-    return Readable.from(Buffer.from(source));
-  else if (isBlob(source))
-    return ensureNodeStream(source.stream());
-  else
-    return ensureNodeStream(source);
-}
-async function concat(sources) {
-  return function() {
-    let streams = sources.map((x) => typeof x === "function" ? x() : x).map(toStream);
-    return Readable.from(async function* () {
-      for (let stream of streams)
-        for await (let chunk of stream)
-          yield chunk;
-    }());
-  };
-}
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/multipartPolicy.js
-function generateBoundary() {
-  return `----AzSDKFormBoundary${randomUUID2()}`;
-}
-function encodeHeaders(headers) {
-  let result = "";
-  for (let [key, value] of headers)
-    result += `${key}: ${value}\r
-`;
-  return result;
-}
-function getLength(source) {
-  if (source instanceof Uint8Array)
-    return source.byteLength;
-  else if (isBlob(source))
-    return source.size === -1 ? void 0 : source.size;
-  else
-    return;
-}
-function getTotalLength(sources) {
-  let total = 0;
-  for (let source of sources) {
-    let partLength = getLength(source);
-    if (partLength === void 0)
-      return;
-    else
-      total += partLength;
-  }
-  return total;
-}
-async function buildRequestBody(request2, parts, boundary) {
-  let sources = [
-    stringToUint8Array(`--${boundary}`, "utf-8"),
-    ...parts.flatMap((part) => [
-      stringToUint8Array(`\r
-`, "utf-8"),
-      stringToUint8Array(encodeHeaders(part.headers), "utf-8"),
-      stringToUint8Array(`\r
-`, "utf-8"),
-      part.body,
-      stringToUint8Array(`\r
---${boundary}`, "utf-8")
-    ]),
-    stringToUint8Array(`--\r
-\r
-`, "utf-8")
-  ], contentLength = getTotalLength(sources);
-  if (contentLength)
-    request2.headers.set("Content-Length", contentLength);
-  request2.body = await concat(sources);
-}
-var multipartPolicyName = "multipartPolicy", maxBoundaryLength = 70, validBoundaryCharacters = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'()+,-./:=?");
-function assertValidBoundary(boundary) {
-  if (boundary.length > maxBoundaryLength)
-    throw Error(`Multipart boundary "${boundary}" exceeds maximum length of 70 characters`);
-  if (Array.from(boundary).some((x) => !validBoundaryCharacters.has(x)))
-    throw Error(`Multipart boundary "${boundary}" contains invalid characters`);
-}
-function multipartPolicy() {
-  return {
-    name: multipartPolicyName,
-    async sendRequest(request2, next) {
-      if (!request2.multipartBody)
-        return next(request2);
-      if (request2.body)
-        throw Error("multipartBody and regular body cannot be set at the same time");
-      let boundary = request2.multipartBody.boundary, contentTypeHeader = request2.headers.get("Content-Type") ?? "multipart/mixed", parsedHeader = contentTypeHeader.match(/^(multipart\/[^ ;]+)(?:; *boundary=(.+))?$/);
-      if (!parsedHeader)
-        throw Error(`Got multipart request body, but content-type header was not multipart: ${contentTypeHeader}`);
-      let [, contentType, parsedBoundary] = parsedHeader;
-      if (parsedBoundary && boundary && parsedBoundary !== boundary)
-        throw Error(`Multipart boundary was specified as ${parsedBoundary} in the header, but got ${boundary} in the request body`);
-      if (boundary ??= parsedBoundary, boundary)
-        assertValidBoundary(boundary);
-      else
-        boundary = generateBoundary();
-      return request2.headers.set("Content-Type", `${contentType}; boundary=${boundary}`), await buildRequestBody(request2, request2.multipartBody.parts, boundary), request2.multipartBody = void 0, next(request2);
-    }
-  };
-}
-
-// node_modules/@azure/core-rest-pipeline/dist/esm/pipeline.js
-function createEmptyPipeline2() {
-  return createEmptyPipeline();
-}
-// node_modules/@azure/logger/dist/esm/index.js
-var context4 = createLoggerContext({
-  logLevelEnvVarName: "AZURE_LOG_LEVEL",
-  namespace: "azure"
-}), AzureLogger = context4.logger;
-function createClientLogger2(namespace) {
-  return context4.createClientLogger(namespace);
-}
-
-// node_modules/@azure/core-rest-pipeline/dist/esm/log.js
-var logger2 = createClientLogger2("core-rest-pipeline");
 // node_modules/@azure/core-rest-pipeline/dist/esm/policies/logPolicy.js
 function logPolicy2(options = {}) {
   return logPolicy({
@@ -46542,11 +46553,11 @@ async function getUserAgentValue(prefix) {
 }
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/policies/userAgentPolicy.js
-var UserAgentHeaderName = getUserAgentHeaderName(), userAgentPolicyName = "userAgentPolicy";
-function userAgentPolicy(options = {}) {
+var UserAgentHeaderName = getUserAgentHeaderName(), userAgentPolicyName2 = "userAgentPolicy";
+function userAgentPolicy2(options = {}) {
   let userAgentValue = getUserAgentValue(options.userAgentPrefix);
   return {
-    name: userAgentPolicyName,
+    name: userAgentPolicyName2,
     async sendRequest(request2, next) {
       if (!request2.headers.has(UserAgentHeaderName))
         request2.headers.set(UserAgentHeaderName, await userAgentValue);
@@ -46555,7 +46566,7 @@ function userAgentPolicy(options = {}) {
   };
 }
 // node_modules/@azure/abort-controller/dist/esm/AbortError.js
-class AbortError2 extends Error {
+class AbortError3 extends Error {
   constructor(message) {
     super(message);
     this.name = "AbortError";
@@ -46566,7 +46577,7 @@ function createAbortablePromise(buildPromise, options) {
   let { cleanupBeforeAbort, abortSignal, abortErrorMsg } = options ?? {};
   return new Promise((resolve3, reject) => {
     function rejectOnAbort() {
-      reject(new AbortError2(abortErrorMsg ?? "The operation was aborted."));
+      reject(new AbortError3(abortErrorMsg ?? "The operation was aborted."));
     }
     function removeListeners() {
       abortSignal?.removeEventListener("abort", onAbort);
@@ -46701,7 +46712,6 @@ function agentPolicy2(agent) {
 function tlsPolicy2(tlsSettings) {
   return tlsPolicy(tlsSettings);
 }
-
 // node_modules/@azure/core-tracing/dist/esm/tracingContext.js
 var knownContextKeys = {
   span: Symbol.for("@azure/core-tracing span"),
@@ -46964,7 +46974,7 @@ function createPipelineFromOptions(options) {
       pipeline.addPolicy(tlsPolicy2(options.tlsOptions));
     pipeline.addPolicy(proxyPolicy2(options.proxyOptions)), pipeline.addPolicy(decompressResponsePolicy2());
   }
-  if (pipeline.addPolicy(wrapAbortSignalLikePolicy()), pipeline.addPolicy(formDataPolicy2(), { beforePolicies: [multipartPolicyName2] }), pipeline.addPolicy(userAgentPolicy(options.userAgentOptions)), pipeline.addPolicy(setClientRequestIdPolicy(options.telemetryOptions?.clientRequestIdHeaderName)), pipeline.addPolicy(multipartPolicy2(), { afterPhase: "Deserialize" }), pipeline.addPolicy(defaultRetryPolicy2(options.retryOptions), { phase: "Retry" }), pipeline.addPolicy(tracingPolicy({ ...options.userAgentOptions, ...options.loggingOptions }), {
+  if (pipeline.addPolicy(wrapAbortSignalLikePolicy()), pipeline.addPolicy(formDataPolicy2(), { beforePolicies: [multipartPolicyName2] }), pipeline.addPolicy(userAgentPolicy2(options.userAgentOptions)), pipeline.addPolicy(setClientRequestIdPolicy(options.telemetryOptions?.clientRequestIdHeaderName)), pipeline.addPolicy(multipartPolicy2(), { afterPhase: "Deserialize" }), pipeline.addPolicy(defaultRetryPolicy2(options.retryOptions), { phase: "Retry" }), pipeline.addPolicy(tracingPolicy({ ...options.userAgentOptions, ...options.loggingOptions }), {
     afterPhase: "Retry"
   }), isNodeLike2)
     pipeline.addPolicy(redirectPolicy2(options.redirectOptions), { afterPhase: "Retry" });
@@ -47175,11 +47185,6 @@ function getCaeChallengeClaims(challenges) {
   if (!challenges)
     return;
   return parseChallenges(challenges).find((x) => x.scheme === "Bearer" && x.params.claims && x.params.error === "insufficient_claims")?.params.claims;
-}
-// node_modules/@azure/core-auth/dist/esm/tokenCredential.js
-function isTokenCredential(credential) {
-  let castCredential = credential;
-  return castCredential && typeof castCredential.getToken === "function" && (castCredential.signRequest === void 0 || castCredential.getToken.length > 0);
 }
 // node_modules/@azure/core-http-compat/dist/esm/policies/disableKeepAlivePolicy.js
 function createDisableKeepAlivePolicy() {
@@ -48318,7 +48323,7 @@ function appendQueryParams(url, queryParams, sequenceParams, noOverwrite = !1) {
 }
 
 // node_modules/@azure/core-client/dist/esm/log.js
-var logger3 = createClientLogger2("core-client");
+var logger3 = createClientLogger3("core-client");
 
 // node_modules/@azure/core-client/dist/esm/serviceClient.js
 class ServiceClient {
@@ -50268,7 +50273,7 @@ async function parseXML(str, opts = {}) {
   return parsedXml;
 }
 // node_modules/@azure/storage-blob/dist/esm/log.js
-var logger4 = createClientLogger2("storage-blob");
+var logger4 = createClientLogger3("storage-blob");
 
 // node_modules/@azure/storage-common/dist/esm/BufferScheduler.js
 import { EventEmitter as EventEmitter2 } from "events";
@@ -51133,7 +51138,7 @@ class StorageSharedKeyCredential extends Credential {
   }
 }
 // node_modules/@azure/storage-common/dist/esm/log.js
-var logger5 = createClientLogger2("storage-common");
+var logger5 = createClientLogger3("storage-common");
 
 // node_modules/@azure/storage-common/dist/esm/policies/StorageRetryPolicyType.js
 var StorageRetryPolicyType;
@@ -51149,7 +51154,7 @@ var DEFAULT_RETRY_OPTIONS = {
   retryPolicyType: StorageRetryPolicyType.EXPONENTIAL,
   secondaryHost: "",
   tryTimeoutInMs: void 0
-}, RETRY_ABORT_ERROR = new AbortError2("The operation was aborted.");
+}, RETRY_ABORT_ERROR = new AbortError3("The operation was aborted.");
 
 class StorageRetryPolicy extends BaseRequestPolicy {
   retryOptions;
@@ -51299,7 +51304,7 @@ var storageRetryPolicyName = "storageRetryPolicy", DEFAULT_RETRY_OPTIONS2 = {
   "TIMEOUT",
   "EPIPE",
   "REQUEST_SEND_ERROR"
-], RETRY_ABORT_ERROR2 = new AbortError2("The operation was aborted.");
+], RETRY_ABORT_ERROR2 = new AbortError3("The operation was aborted.");
 function storageRetryPolicy(options = {}) {
   let retryPolicyType = options.retryPolicyType ?? DEFAULT_RETRY_OPTIONS2.retryPolicyType, maxTries = options.maxTries ?? DEFAULT_RETRY_OPTIONS2.maxTries, retryDelayInMs = options.retryDelayInMs ?? DEFAULT_RETRY_OPTIONS2.retryDelayInMs, maxRetryDelayInMs = options.maxRetryDelayInMs ?? DEFAULT_RETRY_OPTIONS2.maxRetryDelayInMs, secondaryHost = options.secondaryHost ?? DEFAULT_RETRY_OPTIONS2.secondaryHost, tryTimeoutInMs = options.tryTimeoutInMs ?? DEFAULT_RETRY_OPTIONS2.tryTimeoutInMs;
   function shouldRetry({ isPrimaryRetry, attempt, response, error: error2 }) {
@@ -65458,7 +65463,7 @@ class RetriableReadableStream extends Readable3 {
       this.source.pause();
   };
   sourceAbortedHandler = () => {
-    let abortError = new AbortError2("The operation was aborted.");
+    let abortError = new AbortError3("The operation was aborted.");
     this.destroy(abortError);
   };
   sourceErrorOrEndHandler = (err) => {
@@ -65982,7 +65987,7 @@ class AvroReadable {
 
 // node_modules/@azure/storage-blob/dist/esm/internal-avro/AvroReadableFromStream.js
 import { Buffer as Buffer2 } from "buffer";
-var ABORT_ERROR = new AbortError2("Reading from the avro stream was aborted.");
+var ABORT_ERROR = new AbortError3("Reading from the avro stream was aborted.");
 
 class AvroReadableFromStream extends AvroReadable {
   _position;

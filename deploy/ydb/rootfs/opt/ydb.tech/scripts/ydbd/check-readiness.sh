@@ -16,7 +16,7 @@ trap 'log "ERROR: Script failed at line $LINENO with exit code $?"' ERR
 
 YDB_DATABASE="${YDB_TENANT:-/Root/testdb}"
 YDB_READINESS_TIMEOUT="${YDB_READINESS_TIMEOUT:-5}"
-YDB_STORAGE_ENDPOINT="grpc://172.28.0.10:2136"
+YDB_STORAGE_ENDPOINT="${YDB_STORAGE_ENDPOINT:-grpc://172.28.0.10:2136}"
 
 check_cluster_health() {
     log "Checking cluster health via $YDB_STORAGE_ENDPOINT"
