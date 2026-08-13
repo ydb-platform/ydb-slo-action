@@ -1,16 +1,28 @@
 # pyright: reportMissingImports=false
 
 import os
+import socket
 import sys
 
-from opentelemetry import metrics
-from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.sdk.resources import Resource
+
+def get_resource_attributes():
+    service_name = os.environ.get("OTEL_SERVICE_NAME", "unknown-service")
+    service_instance_id = os.environ.get("OTEL_SERVICE_INSTANCE_ID") or socket.gethostname()
+    return {
+        "service.name": service_name,
+        "service.instance.id": service_instance_id,
+    }
 
 
 def main():
+    from opentelemetry import metrics
+    from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+        OTLPMetricExporter,
+    )
+    from opentelemetry.sdk.metrics import MeterProvider
+    from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+    from opentelemetry.sdk.resources import Resource
+
     if len(sys.argv) < 4:
         print("Usage: otel_metric.py <type> <name> <value> [key=value ...]")
         sys.exit(1)
@@ -33,9 +45,7 @@ def main():
     endpoint = os.environ.get(
         "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318/v1/metrics"
     )
-    service_name = os.environ.get("OTEL_SERVICE_NAME", "unknown-service")
-
-    resource = Resource.create({"service.name": service_name})
+    resource = Resource.create(get_resource_attributes())
 
     # We use HTTP exporter
     exporter = OTLPMetricExporter(endpoint=endpoint)
