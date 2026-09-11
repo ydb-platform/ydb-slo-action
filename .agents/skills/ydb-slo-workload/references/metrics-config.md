@@ -1,6 +1,6 @@
 # Metrics Configuration
 
-The SLO Action collects metrics from Prometheus using PromQL queries defined in YAML. Default metrics are in `deploy/metrics.yaml`. Users can extend or override them via `metrics_yaml` or `metrics_yaml_path` action inputs.
+The SLO Action collects metrics from Prometheus using PromQL queries defined in YAML. Default metrics are in `deploy/metrics.yaml`. Users can extend, override, or disable them per workload via `metrics_yaml` or `metrics_yaml_path` action inputs.
 
 ## Default metrics
 
@@ -32,6 +32,7 @@ metrics:
   - name: my_metric           # Unique identifier (required)
     query: |                   # PromQL query (required)
       max by(ref) (my_gauge{ref!=""})
+    enabled: true             # Set false to exclude from collection and analysis
     step: 10s                  # Override default step
     unit: ms                   # Display unit in report
     round: 0.01                # Round values to this step
@@ -42,7 +43,8 @@ metrics:
 | Field | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `name` | yes | — | Unique metric identifier. If it matches a default metric name, overrides it |
-| `query` | yes | — | PromQL query. Use `by(ref)` to separate current/baseline series |
+| `query` | for new metrics | — | PromQL query. Use `by(ref)` to separate current/baseline series |
+| `enabled` | no | `true` | Set to `false` to exclude the metric from collection and analysis for this workload |
 | `step` | no | from `default.step` | Query resolution step (e.g., `5s`, `15s`) |
 | `unit` | no | — | Display unit (e.g., `ms`, `ops/s`, `%`) |
 | `round` | no | — | Round to nearest step (e.g., `0.01` = 2 decimal places, `1` = integers) |
@@ -54,3 +56,21 @@ Custom metrics are merged with defaults by `name`:
 - If a custom metric has the same `name` as a default, the custom fields override the default fields (partial override — only specified fields change)
 - New names are added alongside defaults
 - Custom metrics appear first in the report, then remaining defaults
+- A metric with `enabled: false` is removed after all configuration layers are merged
+- A higher-priority layer can set `enabled: true` to re-enable a metric and reuse its inherited query
+
+To exclude generic attempts metrics from a topic workload whose reconnect loop is
+outside the measured logical operations:
+
+```yaml
+metrics:
+  - name: read_retry_attempts
+    enabled: false
+  - name: write_retry_attempts
+    enabled: false
+```
+
+For that workload model each operation reports one attempt, so the derived
+`retry_attempts_total - operations_total` should be zero. Sparse non-zero values
+at scrape boundaries do not measure reader/writer recovery; use delivery rate,
+end-to-end latency, message loss, and availability as the topic SLO signals.

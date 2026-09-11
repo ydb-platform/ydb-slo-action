@@ -104,8 +104,8 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `workload_baseline_image`   | no       | —             | Docker image for baseline workload (if not provided, baseline comparison is skipped) |
 | `workload_baseline_ref`     | no       | `baseline`    | Git ref for baseline version (used as `ref` label in metrics)                        |
 | `workload_baseline_command` | no       | `""`          | Command arguments for baseline workload                                              |
-| `metrics_yaml`              | no       | —             | Custom metrics configuration (inline YAML), merged with defaults                     |
-| `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults                      |
+| `metrics_yaml`              | no       | —             | Custom metrics configuration (inline YAML), merged with defaults; supports per-workload exclusions |
+| `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults; supports per-workload exclusions  |
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
 | `thresholds_yaml_path`      | no       | —             | Path to a per-scenario SLO thresholds file; merged over the report action's thresholds for this workload |
 | `bridge_mode`               | no       | `false`       | Run YDB as a two-pile 2DC bridge cluster                                             |
@@ -278,6 +278,10 @@ sdk_operation_latency_p99_seconds{operation_type="read|write", operation_status=
 sdk_retry_attempts_total{operation_type="read|write", ref=<WORKLOAD_REF>}
 ```
 
+These source series are required only for built-in metrics that remain enabled
+for the workload. A workload can disable an inapplicable built-in metric in its
+`metrics_yaml` without emitting that metric's source series.
+
 **Labels:**
 
 | Label | Values | Purpose |
@@ -296,7 +300,7 @@ sdk_retry_attempts_total{operation_type="read|write", ref=<WORKLOAD_REF>}
 
 ### Custom Metrics
 
-You can add custom Prometheus queries alongside the defaults using `metrics_yaml` or `metrics_yaml_path`. Custom metrics are merged with the built-in defaults — you can override existing metrics by name or add new ones.
+You can add custom Prometheus queries alongside the defaults using `metrics_yaml` or `metrics_yaml_path`. Custom metrics are merged with the built-in defaults — you can override existing metrics by name, add new ones, or disable metrics that are not meaningful for a particular workload.
 
 ```yaml
 - uses: ydb-platform/ydb-slo-action/init@v2
@@ -318,15 +322,46 @@ You can add custom Prometheus queries alongside the defaults using `metrics_yaml
 
 **Metric definition fields:**
 
-| Field   | Required | Default             | Description                                                                   |
-| ------- | -------- | ------------------- | ----------------------------------------------------------------------------- |
-| `name`  | **yes**  | —                   | Unique metric identifier                                                      |
-| `query` | **yes**  | —                   | PromQL query. Use `max by(ref)` or `sum by(ref)` to separate current/baseline |
-| `step`  | no       | from `default.step` | Query resolution step (e.g., `5s`, `15s`)                                     |
-| `unit`  | no       | —                   | Display unit (e.g., `ms`, `ops/s`, `%`)                                       |
-| `round` | no       | —                   | Round values to this step (e.g., `0.01` for 2 decimal places)                 |
+| Field     | Required        | Default             | Description                                                                   |
+| --------- | --------------- | ------------------- | ----------------------------------------------------------------------------- |
+| `name`    | **yes**         | —                   | Unique metric identifier                                                      |
+| `query`   | for new metrics | —                   | PromQL query. Use `max by(ref)` or `sum by(ref)` to separate current/baseline |
+| `enabled` | no              | `true`              | Set to `false` to exclude this metric from collection and analysis            |
+| `step`    | no              | from `default.step` | Query resolution step (e.g., `5s`, `15s`)                                     |
+| `unit`    | no              | —                   | Display unit (e.g., `ms`, `ops/s`, `%`)                                       |
+| `round`   | no              | —                   | Round values to this step (e.g., `0.01` for 2 decimal places)                 |
 
 See [`deploy/metrics.yaml`](deploy/metrics.yaml) for the full list of built-in metrics.
+
+#### Per-workload metric exclusions
+
+Set `enabled: false` on a metric override to skip its Prometheus query and omit it
+from the report for that workload. Only `name` and `enabled` are needed when
+disabling a built-in metric:
+
+```yaml
+- uses: ydb-platform/ydb-slo-action/init@v2
+  with:
+    workload_name: sync-topic
+    workload_current_image: my-sdk:current
+    metrics_yaml: |
+      metrics:
+        - name: read_retry_attempts
+          enabled: false
+        - name: write_retry_attempts
+          enabled: false
+```
+
+This is useful for topic workloads that recreate a reader or writer outside the
+logical operation measured by the generic attempts counter. In that model every
+operation reports one attempt, so `retry_attempts_total - operations_total` is
+normally zero and sparse differences at scrape boundaries do not represent
+delivery or recovery. Topic delivery rate, end-to-end latency, message loss, and
+availability are the meaningful SLO signals instead.
+
+Configuration layers keep their existing precedence. A higher-priority
+`metrics_yaml_path` can explicitly set `enabled: true` to re-enable a metric and
+reuse its inherited query.
 
 ### Custom Thresholds
 

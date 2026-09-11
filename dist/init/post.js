@@ -74,6 +74,12 @@ function mergeMetricConfigs(defaultConfig, customConfig) {
     metrics
   };
 }
+function removeDisabledMetrics(config) {
+  return {
+    ...config,
+    metrics: config.metrics.filter((metric) => metric.enabled !== !1)
+  };
+}
 async function loadDefaultMetricConfig() {
   debug("Loading default metrics from GITHUB_ACTION_PATH/deploy/metrics.yaml");
   let actionRoot = path.resolve(process.env.GITHUB_ACTION_PATH), defaultPath = path.join(actionRoot, "deploy", "metrics.yaml");
@@ -104,7 +110,7 @@ async function loadMetricConfig(customYaml, customPath) {
     if (customConfig)
       config = mergeMetricConfigs(config, customConfig);
   }
-  return config;
+  return removeDisabledMetrics(config);
 }
 
 // init/lib/prometheus.ts

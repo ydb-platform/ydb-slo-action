@@ -26,9 +26,12 @@ The action sets these on your container automatically:
 
 Example: if the image's default CMD is `["./workload"]`, passing `workload_current_command: "--threads 10"` results in the container running with command `--threads 10` (no `./workload` prefix). Use ENTRYPOINT for the binary and CMD for default flags.
 
-## Required metrics
+## Metrics used by the built-in configuration
 
-Every metric must include the `ref` label set to `WORKLOAD_REF`.
+Every metric the workload emits must include the `ref` label set to
+`WORKLOAD_REF`. The built-in configuration expects the source series below
+unless the workload disables the corresponding report metric with
+`enabled: false` in `metrics_yaml` or `metrics_yaml_path`.
 
 ### The operation — fundamental unit of SLO testing
 
@@ -38,7 +41,9 @@ An **operation** is the minimal unit the SLO framework measures. Each operation 
 - **`operation_type`** — what kind of work: `read` (SELECT queries) or `write` (UPSERT/INSERT). Measured independently because read and write paths have different performance characteristics and failure modes.
 - **`operation_status`** — outcome: `success` or `error`. The ratio of success to total defines availability — the core SLO metric.
 
-Every metric below is tagged with these labels. They are not optional — without them the report cannot compute throughput, availability, or latency breakdowns.
+Each source series below must carry the labels shown in its definition. Labels
+used by an enabled query are not optional: without them the report cannot
+separate current from baseline or compute the requested breakdown.
 
 ### Counters
 
@@ -51,6 +56,11 @@ sdk_retry_attempts_total{operation_type, ref}
 
 `sdk_retry_attempts_total` — total number of technical attempts including the first one. The report computes extra retries as `retry_attempts - operations`.
 
+`sdk_operations_total` is used by the built-in throughput, availability, and
+retry-attempts metrics. `sdk_retry_attempts_total` is only required while
+`read_retry_attempts` or `write_retry_attempts` remains enabled. A workload that
+disables both attempts metrics does not need to emit this counter.
+
 ### Gauges (latency percentiles)
 
 ```
@@ -60,6 +70,9 @@ sdk_operation_latency_p99_seconds{operation_type, operation_status, ref}
 ```
 
 Pre-computed gauges — the workload calculates percentiles over a sliding window and pushes the result. The SLO Action does not compute percentiles from histograms.
+
+Each gauge is required only while the corresponding built-in latency metric is
+enabled for that workload.
 
 ## Push interval
 
