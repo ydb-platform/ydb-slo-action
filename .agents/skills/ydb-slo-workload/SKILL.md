@@ -56,7 +56,7 @@ These are the most common mistakes developers make — always keep them in mind:
 
 **Chaos is expected.** YDB nodes will be killed, paused, and network-partitioned during the test. The workload must handle transient connection errors, retries, and timeouts without crashing. The cluster can be as small as 2 database nodes (`disable_compose_profiles: extra-nodes`), where losing one node removes half the compute — so never pin to a specific node or assume a node count; rely on the `ydb` hostname and SDK discovery.
 
-**Required metrics (exact names):**
+**Metrics expected by the built-in configuration (exact names):**
 
 ```
 sdk_operations_total{operation_type, operation_status, ref}
@@ -65,3 +65,6 @@ sdk_operation_latency_p95_seconds{operation_type, operation_status, ref}
 sdk_operation_latency_p99_seconds{operation_type, operation_status, ref}
 sdk_retry_attempts_total{operation_type, ref}
 ```
+
+A workload does not need to emit the source series for a built-in metric that it
+explicitly disables through `metrics_yaml` or `metrics_yaml_path`.
