@@ -51,10 +51,10 @@ inputs:
 
   # Metrics
   metrics_yaml:
-    description: "Custom metrics configuration (inline YAML)."
+    description: "Custom metrics configuration (inline YAML). Use enabled: false to exclude a metric for this workload."
     required: false
   metrics_yaml_path:
-    description: "Path to custom metrics configuration file."
+    description: "Path to custom metrics configuration file. Use enabled: false to exclude a metric for this workload."
     required: false
   thresholds_yaml:
     description: "Per-scenario SLO thresholds (inline YAML). Shipped to the report action and merged over its thresholds for this workload."

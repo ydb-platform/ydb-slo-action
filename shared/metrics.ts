@@ -10,6 +10,7 @@ export interface MetricDefinition {
 	name: string
 	title?: string
 	query: string
+	enabled?: boolean
 	type?: MetricType
 	step?: string
 	unit?: string
@@ -132,6 +133,19 @@ function mergeMetricConfigs(defaultConfig: MetricConfig, customConfig: MetricCon
 }
 
 /**
+ * Remove metrics explicitly disabled by the effective configuration.
+ *
+ * Filtering happens after every configuration layer has been merged so a later,
+ * higher-priority layer can re-enable a metric without repeating its query.
+ */
+function removeDisabledMetrics(config: MetricConfig): MetricConfig {
+	return {
+		...config,
+		metrics: config.metrics.filter((metric) => metric.enabled !== false),
+	}
+}
+
+/**
  * Load default metrics from deploy/metrics.yaml
  */
 export async function loadDefaultMetricConfig(): Promise<MetricConfig> {
@@ -187,7 +201,7 @@ export async function loadMetricConfig(
 		}
 	}
 
-	return config
+	return removeDisabledMetrics(config)
 }
 
 /**

@@ -60,3 +60,42 @@ test.if(hasYq())('loadMetricConfig merges file after inline (higher priority)', 
 	assert.ok(config.metrics.some((m) => m.name === 'inline_metric'))
 	assert.ok(config.metrics.some((m) => m.name === 'read_latency_p50_ms'))
 })
+
+test.if(hasYq())('loadMetricConfig disables a default metric by name', async () => {
+	process.env['GITHUB_ACTION_PATH'] = process.cwd()
+
+	let { loadMetricConfig } = await import('./metrics.js')
+
+	let customYaml = [
+		'metrics:',
+		'  - name: read_retry_attempts',
+		'    enabled: false',
+		'  - name: write_retry_attempts',
+		'    enabled: false',
+	].join('\n')
+
+	let config = await loadMetricConfig(customYaml)
+
+	assert.ok(!config.metrics.some((m) => m.name === 'read_retry_attempts'))
+	assert.ok(!config.metrics.some((m) => m.name === 'write_retry_attempts'))
+	assert.ok(config.metrics.some((m) => m.name === 'read_availability'))
+})
+
+test.if(hasYq())('loadMetricConfig lets a higher-priority file re-enable a metric', async () => {
+	process.env['GITHUB_ACTION_PATH'] = process.cwd()
+
+	let { loadMetricConfig } = await import('./metrics.js')
+
+	let inlineYaml = ['metrics:', '  - name: read_retry_attempts', '    enabled: false'].join('\n')
+	let fileYaml = ['metrics:', '  - name: read_retry_attempts', '    enabled: true'].join('\n')
+
+	let dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ydb-slo-action-metrics-'))
+	let filePath = path.join(dir, 'metrics.yaml')
+	await fs.writeFile(filePath, fileYaml, { encoding: 'utf-8' })
+
+	let config = await loadMetricConfig(inlineYaml, filePath)
+	let metric = config.metrics.find((m) => m.name === 'read_retry_attempts')
+
+	assert.equal(metric?.enabled, true)
+	assert.match(metric?.query || '', /sdk_retry_attempts_total/)
+})
