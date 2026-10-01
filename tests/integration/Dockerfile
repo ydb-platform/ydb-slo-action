@@ -13,4 +13,5 @@ COPY report/ report/
 COPY tests/ tests/
 COPY .agents/skills/ydb-slo-workload/ .agents/skills/ydb-slo-workload/
 COPY deploy/ deploy/
+COPY deploy/chaos/rootfs/ /
 COPY .slo-gate.mjs ./
