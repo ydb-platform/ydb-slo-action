@@ -93,6 +93,35 @@ async function validateWorkloads(cwd, workloads, window) {
     throw new SloRunError(checks);
 }
 
+// init/lib/workloads.ts
+async function waitForWorkloads(cwd) {
+  let start = /* @__PURE__ */ new Date;
+  saveState("start", start.toISOString()), info(`Workloads started at ${start}`);
+  let workloadCurrentImage = getInput("workload_current_image"), workloadBaselineImage = getInput("workload_baseline_image") || "", workloadDuration = Number(getInput("workload_duration") || "60"), workloadTimeout = Number(getInput("workload_completion_timeout") || workloadDuration + 60);
+  if (!Number.isSafeInteger(workloadDuration) || workloadDuration <= 0 || !Number.isSafeInteger(workloadTimeout) || workloadTimeout <= 0 || workloadTimeout > 2147483)
+    throw Error("Workload duration and completion timeout must be positive integer seconds; timeout must fit the Node timer range");
+  let workloadTimeoutMs = workloadTimeout * 1000, failFast = getInput("fail_on_workload_error") === "true";
+  debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms, failFast=${failFast}`);
+  let workloadsToWait = [];
+  if (workloadCurrentImage)
+    workloadsToWait.push({ name: "current", container: "ydb-workload-current", ref: getInput("workload_current_ref") || "current" });
+  if (workloadBaselineImage)
+    workloadsToWait.push({ name: "baseline", container: "ydb-workload-baseline", ref: getInput("workload_baseline_ref") || "baseline" });
+  let failures = [];
+  if (workloadsToWait.length > 0) {
+    if (info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`), info(`  - Total completion budget: ${workloadTimeout}s`), (await Promise.allSettled(workloadsToWait.map((w) => waitForContainerCompletion({ container: w.container, timeoutMs: workloadTimeoutMs })))).forEach((result, i) => {
+      if (result.status === "rejected") {
+        let name = workloadsToWait[i].name;
+        failures.push(`${name}: ${result.reason}`), warning(`Workload '${name}' failed: ${result.reason}`);
+      }
+    }), failures.length === 0)
+      info("All workloads completed successfully");
+  }
+  let finish = /* @__PURE__ */ new Date;
+  if (saveState("finish", finish.toISOString()), info(`Workloads finished at ${finish}`), await validateWorkloads(cwd, workloadsToWait, { start, finish, failures }), failFast && failures.length > 0)
+    throw Error(`Workload(s) failed: ${failures.join("; ")}`);
+}
+
 // init/main.ts
 process.env.GITHUB_ACTION_PATH ??= fileURLToPath(new URL("../..", import.meta.url));
 async function main() {
@@ -158,30 +187,6 @@ async function deployInfra(cwd, workload, composeFile) {
     let prometheusIp = await getContainerIp("ydb-prometheus");
     setOutput("ydb-prometheus-url", `http://${prometheusIp}:9090`), setOutput("ydb-prometheus-otlp", `http://${prometheusIp}:9090/api/v1/otlp`);
   }
-}
-async function waitForWorkloads(cwd) {
-  let start = /* @__PURE__ */ new Date;
-  saveState("start", start.toISOString()), info(`Workloads started at ${start}`);
-  let workloadCurrentImage = getInput("workload_current_image"), workloadBaselineImage = getInput("workload_baseline_image") || "", workloadDuration = parseInt(getInput("workload_duration") || "60", 10), workloadTimeoutMs = (workloadDuration + 60) * 1000, failFast = getInput("fail_on_workload_error") === "true";
-  debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms, failFast=${failFast}`);
-  let workloadsToWait = [];
-  if (workloadCurrentImage)
-    workloadsToWait.push({ name: "current", container: "ydb-workload-current", ref: getInput("workload_current_ref") || "current" });
-  if (workloadBaselineImage)
-    workloadsToWait.push({ name: "baseline", container: "ydb-workload-baseline", ref: getInput("workload_baseline_ref") || "baseline" });
-  let failures = [];
-  if (workloadsToWait.length > 0) {
-    if (info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`), info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 60s buffer)`), (await Promise.allSettled(workloadsToWait.map((w) => waitForContainerCompletion({ container: w.container, timeoutMs: workloadTimeoutMs })))).forEach((result, i) => {
-      if (result.status === "rejected") {
-        let name = workloadsToWait[i].name;
-        failures.push(`${name}: ${result.reason}`), warning(`Workload '${name}' failed: ${result.reason}`);
-      }
-    }), failures.length === 0)
-      info("All workloads completed successfully");
-  }
-  let finish = /* @__PURE__ */ new Date;
-  if (saveState("finish", finish.toISOString()), info(`Workloads finished at ${finish}`), await validateWorkloads(cwd, workloadsToWait, { start: new Date(start), finish: new Date(finish), failures }), failFast && failures.length > 0)
-    throw Error(`Workload(s) failed: ${failures.join("; ")}`);
 }
 await main();
 process.exit(0);

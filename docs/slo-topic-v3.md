@@ -4,4 +4,4 @@
 
 Метрики — только `Ydb.Sdk.Topic`: `ydb.topic.writer.*` и `ydb.topic.reader.*`. В Actions V3 telemetry включена; графики показывают ACK/delivery rate, ACK duration, buffer usage/age, commit lag и session errors. Проверки P01/P02/P03 и исходы операций сохраняются отдельно в JSON, не в собственных инструментах.
 
-Хаос сохраняет шесть сценариев: graceful stop, restart, SIGKILL, pause/unpause, rolling restart и IP blackhole. Ошибка данных или незавершённый drain даёт ненулевой exit code; отсутствие обязательной SDK telemetry — INVALID. Топиковые транзакции не покрыты.
+Хаос сохраняет шесть сценариев: graceful stop, restart, SIGKILL, pause/unpause, rolling restart и IP blackhole. Общий `--completion-timeout` включает SDK cleanup; истечение срока пишет FAIL JSON и завершает процесс, даже если stream disposal завис. Actions `workload_completion_timeout` даёт ещё 30 секунд на результат и выход процесса. Отсутствие обязательной SDK telemetry — INVALID. Топиковые транзакции не покрыты.

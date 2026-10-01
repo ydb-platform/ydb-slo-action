@@ -10,14 +10,13 @@ import {
 	saveState,
 	setFailed,
 	setOutput,
-	warning,
 } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
+import { getComposeProfiles, getContainerIp } from './lib/docker.js'
 import { getPullRequestNumber } from './lib/github.js'
 import { extraArtifactsPath } from './lib/artifacts.js'
-import { validateWorkloads, type SloWorkload } from './lib/slo.js'
+import { waitForWorkloads } from './lib/workloads.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
 
@@ -138,71 +137,6 @@ async function deployInfra(cwd: string, workload: string, composeFile: string): 
 		let prometheusIp = await getContainerIp('ydb-prometheus')
 		setOutput('ydb-prometheus-url', `http://${prometheusIp}:9090`)
 		setOutput('ydb-prometheus-otlp', `http://${prometheusIp}:9090/api/v1/otlp`)
-	}
-}
-
-async function waitForWorkloads(cwd: string): Promise<void> {
-	let start = new Date()
-	saveState('start', start.toISOString())
-	info(`Workloads started at ${start}`)
-
-	let workloadCurrentImage = getInput('workload_current_image')
-	let workloadBaselineImage = getInput('workload_baseline_image') || ''
-	let workloadDuration = parseInt(getInput('workload_duration') || '60', 10)
-	let workloadTimeoutMs = (workloadDuration + 60) * 1000
-	let failFast = getInput('fail_on_workload_error') === 'true'
-
-	debug(
-		`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms, failFast=${failFast}`
-	)
-
-	let workloadsToWait: SloWorkload[] = []
-
-	if (workloadCurrentImage) {
-		workloadsToWait.push({ name: 'current', container: 'ydb-workload-current', ref: getInput('workload_current_ref') || 'current' })
-	}
-	if (workloadBaselineImage) {
-		workloadsToWait.push({ name: 'baseline', container: 'ydb-workload-baseline', ref: getInput('workload_baseline_ref') || 'baseline' })
-	}
-
-	let failures: string[] = []
-
-	if (workloadsToWait.length > 0) {
-		info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`)
-		info(`  - ${workloadsToWait.map((w) => w.name).join(', ')}`)
-		info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 60s buffer)`)
-
-		// allSettled: in the default (tolerant) mode we wait for the full window of
-		// every workload instead of bailing on the first failure.
-		let results = await Promise.allSettled(
-			workloadsToWait.map((w) =>
-				waitForContainerCompletion({ container: w.container, timeoutMs: workloadTimeoutMs })
-			)
-		)
-
-		results.forEach((result, i) => {
-			if (result.status === 'rejected') {
-				let name = workloadsToWait[i].name
-				failures.push(`${name}: ${result.reason}`)
-				warning(`Workload '${name}' failed: ${result.reason}`)
-			}
-		})
-
-		if (failures.length === 0) {
-			info('All workloads completed successfully')
-		}
-	}
-
-	// Always record the window BEFORE any throw, so post has a valid window for
-	// diagnostic metrics even on a fail-mode crash.
-	let finish = new Date()
-	saveState('finish', finish.toISOString())
-	info(`Workloads finished at ${finish}`)
-
-	await validateWorkloads(cwd, workloadsToWait, { start: new Date(start), finish: new Date(finish), failures })
-
-	if (failFast && failures.length > 0) {
-		throw new Error(`Workload(s) failed: ${failures.join('; ')}`)
 	}
 }
 
