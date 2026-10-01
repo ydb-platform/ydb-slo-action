@@ -188,6 +188,7 @@ var default_template_default = `<!doctype html>
 			@media (max-width: 640px) {
 				#app > div > aside { display: none; }
 				#app > div > main { min-width: 0; padding: 1rem; }
+				#app main h2 { min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
 			}
 		</style>
 		<meta charset="UTF-8" />

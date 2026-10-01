@@ -89,3 +89,36 @@ metrics:
     title: "First send to server ACK, p95"
     unit: ms
     query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_topic_writer_message_ack_duration_seconds_bucket[30s]))) * 1000
+  - name: ydb.topic.writer.sending.bytes
+    role: diagnostic
+    unit: By/s
+    query: sum by(ref) (rate(ydb_topic_writer_sending_bytes_total[30s]))
+  - name: ydb.topic.writer.buffer.limit.bytes
+    role: diagnostic
+    unit: By
+    query: sum by(ref) (ydb_topic_writer_buffer_limit_bytes)
+  - name: ydb.topic.writer.buffer.wait.duration
+    title: "Writer backpressure wait, p95"
+    role: diagnostic
+    unit: ms
+    query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_topic_writer_buffer_wait_duration_seconds_bucket[30s]))) * 1000
+  - name: ydb.topic.reader.partition_session.count
+    role: diagnostic
+    unit: sessions
+    query: sum by(ref) (ydb_topic_reader_partition_session_count)
+  - name: ydb.topic.reader.credit_balance_bytes
+    role: diagnostic
+    unit: By
+    query: sum by(ref) (ydb_topic_reader_credit_balance_bytes)
+  - name: ydb.topic.reader.received.messages
+    role: diagnostic
+    unit: messages/s
+    query: sum by(ref) (rate(ydb_topic_reader_received_messages_total[30s]))
+  - name: ydb.topic.reader.received.bytes
+    role: diagnostic
+    unit: By/s
+    query: sum by(ref) (rate(ydb_topic_reader_received_bytes_total[30s]))
+  - name: ydb.topic.reader.commit.queued
+    role: diagnostic
+    unit: messages/s
+    query: sum by(ref) (rate(ydb_topic_reader_commit_queued_total[30s]))

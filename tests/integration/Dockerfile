@@ -9,5 +9,8 @@ COPY package.json bun.lockb ./
 RUN bun install --frozen-lockfile
 COPY init/ init/
 COPY shared/ shared/
+COPY report/ report/
+COPY tests/ tests/
+COPY .agents/skills/ydb-slo-workload/ .agents/skills/ydb-slo-workload/
 COPY deploy/ deploy/
 COPY .slo-gate.mjs ./

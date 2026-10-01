@@ -1,4 +1,4 @@
-name: "YDB SLO Report v2"
+name: "YDB SLO Report v3"
 description: "Generate SLO performance reports with custom HTML templates and uPlot charts"
 author: "YDB Platform"
 
