@@ -1,0 +1,91 @@
+default:
+  step: 1s
+  timeout: 30s
+
+metrics:
+  - name: ydb.client.operation.duration
+    title: "Operation attempt duration, p95"
+    unit: ms
+    role: diagnostic
+    query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_client_operation_duration_seconds_bucket[30s]))) * 1000
+  - name: ydb.client.operation.failed
+    title: "Failed attempts, not logical failures"
+    role: diagnostic
+    unit: attempts/s
+    query: sum by(ref) (rate(ydb_client_operation_failed_total[30s]))
+  - name: ydb.client.retry.duration
+    title: "SDK retry operation duration, p95"
+    unit: ms
+    query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_client_retry_duration_seconds_bucket[30s]))) * 1000
+  - name: ydb.client.retry.attempts
+    role: diagnostic
+    unit: attempts
+    query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_client_retry_attempts_bucket[30s])))
+  - name: ydb.query.session.count
+    role: diagnostic
+    unit: sessions
+    query: sum by(ref) (ydb_query_session_count)
+  - name: ydb.query.session.pending_requests
+    role: diagnostic
+    unit: requests/s
+    query: sum by(ref) (rate(ydb_query_session_pending_requests_total[30s]))
+  - name: ydb.query.session.timeouts
+    role: diagnostic
+    unit: timeouts/s
+    query: sum by(ref) (rate(ydb_query_session_timeouts_total[30s]))
+  - name: ydb.query.session.closed
+    role: diagnostic
+    unit: sessions/s
+    query: sum by(ref) (rate(ydb_query_session_closed_total[30s]))
+  - name: ydb.query.session.create_time
+    title: "Session creation duration, p95"
+    role: diagnostic
+    unit: ms
+    query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_query_session_create_time_seconds_bucket[30s]))) * 1000
+
+  - name: ydb.topic.writer.sending.messages
+    role: diagnostic
+    unit: messages/s
+    query: sum by(ref) (rate(ydb_topic_writer_sending_messages_total[30s]))
+  - name: ydb.topic.writer.written.messages
+    unit: messages/s
+    query: sum by(ref) (rate(ydb_topic_writer_written_messages_total[30s]))
+  - name: ydb.topic.reader.delivered.messages
+    unit: messages/s
+    query: sum by(ref) (rate(ydb_topic_reader_delivered_messages_total[30s]))
+  - name: ydb.topic.writer.sending.oldest_age
+    role: diagnostic
+    unit: s
+    query: max by(ref) (ydb_topic_writer_sending_oldest_age_seconds)
+  - name: ydb.topic.reader.local_buffer.message_age.max
+    role: diagnostic
+    unit: s
+    query: max by(ref) (ydb_topic_reader_local_buffer_message_age_max_seconds)
+  - name: ydb.topic.writer.buffer.used.bytes
+    role: diagnostic
+    unit: By
+    query: sum by(ref) (ydb_topic_writer_buffer_used_bytes)
+  - name: ydb.topic.reader.local_buffer.messages
+    role: diagnostic
+    unit: messages
+    query: sum by(ref) (ydb_topic_reader_local_buffer_messages)
+  - name: ydb.topic.reader.commit_offset.lag.max
+    role: diagnostic
+    unit: messages
+    query: max by(ref) (ydb_topic_reader_commit_offset_lag_max)
+  - name: ydb.topic.reader.commit.acknowledged
+    role: diagnostic
+    unit: messages/s
+    query: sum by(ref) (rate(ydb_topic_reader_commit_acknowledged_total[30s]))
+  - name: ydb.topic.reader.session.errors
+    role: diagnostic
+    unit: errors/s
+    query: sum by(ref) (rate(ydb_topic_reader_session_errors_total[30s]))
+  - name: ydb.topic.writer.session.errors
+    role: diagnostic
+    unit: errors/s
+    query: sum by(ref) (rate(ydb_topic_writer_session_errors_total[30s]))
+  - name: ydb.topic.writer.message.ack.duration
+    title: "First send to server ACK, p95"
+    unit: ms
+    query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_topic_writer_message_ack_duration_seconds_bucket[30s]))) * 1000

@@ -1,0 +1,86 @@
+name: "Setup & Run YDB"
+description: "Sets up YDB test environment with monitoring. Collects and uploads metrics during cleanup."
+
+inputs:
+  # GitHub
+  github_token:
+    description: "GitHub token for API access."
+    required: false
+  github_issue:
+    description: "Pull request number. Auto-detected if not provided."
+    required: false
+
+  # Workload: general
+  workload_name:
+    description: "Name of the workload (used for artifact naming)."
+    required: true
+  workload_duration:
+    description: "Duration of the workload in seconds."
+    required: false
+    default: "60"
+  fail_on_workload_error:
+    description: "Stop waiting after a workload process failure. V3 always fails on FAIL or INVALID SLO evidence."
+    required: false
+    default: "true"
+
+  # Workload: current
+  workload_current_ref:
+    description: "Git ref for current version (used as 'ref' label in metrics)."
+    required: false
+    default: "current"
+  workload_current_image:
+    description: "Docker image for current workload."
+    required: true
+  workload_current_command:
+    description: "Command arguments for current workload."
+    required: false
+    default: ""
+
+  # Workload: baseline
+  workload_baseline_ref:
+    description: "Git ref for baseline version (used as 'ref' label in metrics)."
+    required: false
+    default: "baseline"
+  workload_baseline_image:
+    description: "Docker image for baseline workload. If not provided, baseline comparison is skipped."
+    required: false
+  workload_baseline_command:
+    description: "Command arguments for baseline workload."
+    required: false
+    default: ""
+
+  # Metrics
+  metrics_yaml:
+    description: "Custom metrics configuration (inline YAML)."
+    required: false
+  metrics_yaml_path:
+    description: "Path to custom metrics configuration file."
+    required: false
+  thresholds_yaml:
+    description: "Per-scenario SLO thresholds (inline YAML). Shipped to the report action and merged over its thresholds for this workload."
+    required: false
+  thresholds_yaml_path:
+    description: "Path to a per-scenario SLO thresholds file. Shipped to the report action and merged over its thresholds for this workload."
+    required: false
+
+  # Infrastructure
+  bridge_mode:
+    description: "Run YDB as a two-pile 2DC bridge cluster."
+    required: false
+    default: "false"
+  disable_compose_profiles:
+    description: "Comma-separated list of compose profiles to disable (e.g., 'chaos,telemetry')."
+    required: false
+
+outputs:
+  slo-verdict:
+    description: "V3 scenario verdict: PASS, FAIL or INVALID."
+  ydb-prometheus-url:
+    description: "Prometheus URL (if telemetry profile is enabled)."
+  ydb-prometheus-otlp:
+    description: "Prometheus OTLP receiver URL (if telemetry profile is enabled)."
+
+runs:
+  using: "node24"
+  main: "../dist/init/main.js"
+  post: "../dist/init/post.js"

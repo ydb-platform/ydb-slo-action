@@ -1,0 +1,31 @@
+# SLO V3
+
+Сначала переводим табличный SLO на [конвенцию SDK](https://wiki.yandex-team.ru/kikimr/developers/appteam/kb/observability-sdk), затем подключаем [метрики топиков](https://wiki.yandex-team.ru/users/kurdyukov-kir/ydb-topics-metrics-review). V3 — версия SLO, не версия observability.
+
+## Таблицы
+
+- **T01. Запись:** UPSERT под нагрузкой и отказами; подтверждённые значения проверяем чтением.
+- **T02. Чтение:** SELECT подтверждённых ключей; сверяем данные, пустой ответ не считаем успехом.
+- **T03. Восстановление:** после снятия отказа полезная нагрузка возвращается до deadline.
+- **T04. Пул:** после отказа сессии восстанавливаются, запросы не зависают.
+
+Метрики — только конвенция: `ydb.client.operation.duration/failed`, `ydb.client.retry.duration/attempts`, `ydb.query.session.*`. Исходы read/write и проверка данных — отдельный JSON-отчёт, не собственные метрики. `ExecuteQuery` не различает SELECT и UPSERT.
+
+## Топики
+
+- **P01. Доставка:** все сообщения с ACK прочитаны, payload и порядок внутри партиции сохранены; после записи выполняем drain.
+- **P02. Batch/single:** оба API проходят одинаковую проверку данных и commit.
+- **P03. Commit retry:** после временной ошибки целевой offset подтверждён; допустимые повторы дедуплицируем.
+- **P04. Зависший клиент:** общий поток не скрывает остановку отдельного Writer/Reader.
+- **P05. Backpressure:** ожидание или отказ соответствует API; после снятия ограничения работа продолжается.
+- **P06. Транзакции:** проверка атомарности таблицы и топика — следующий этап, текущий worker её не покрывает.
+
+Метрики Writer: `sending.messages`, `written.messages`, `sending.oldest_age`, `buffer.*`, `session.errors`. Reader: `delivered.messages`, `local_buffer.*`, `commit.*`, `commit_offset.lag.max`, `session.errors`. Префиксы — `ydb.topic.writer.` и `ydb.topic.reader.`. ACK записи в транзакции не доказывает commit.
+
+## Вердикт
+
+**PASS:** данные корректны, нагрузка и восстановление в заданном бюджете. **FAIL:** нарушен инвариант или deadline. **INVALID:** сценарий не исполнен либо нет обязательных данных.
+
+Порог, нагрузку и deadline задаём до запуска. Ошибка попытки не равна ошибке логической операции. Нет метрик — не ноль. Counter считаем через rate/increase; возраст — через max; latency — из Histogram, готовые перцентили не усредняем.
+
+Отказы: graceful stop, restart, SIGKILL, pause, rolling restart, network blackhole. Сохраняем параметры, итог проверок, метрики, логи и события отказов. Любая ошибка проверки должна дать ненулевой exit code.

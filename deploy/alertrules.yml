@@ -1,0 +1,10 @@
+groups:
+  - name: chaos
+    rules:
+      - alert: ChaosFaultActive
+        expr: chaos_active == 1
+        labels:
+          severity: info
+        annotations:
+          summary: "Chaos fault active: {{ $labels.fault }}"
+          description: "Fault {{ $labels.fault }} active on {{ $labels.node }}"

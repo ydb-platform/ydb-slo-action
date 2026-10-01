@@ -1,0 +1,210 @@
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import {
+	debug,
+	error,
+	getInput,
+	info,
+	saveState,
+	setFailed,
+	setOutput,
+	warning,
+} from '@actions/core'
+import { exec } from '@actions/exec'
+
+import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
+import { getPullRequestNumber } from './lib/github.js'
+import { extraArtifactsPath } from './lib/artifacts.js'
+import { validateWorkloads, type SloWorkload } from './lib/slo.js'
+
+process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
+
+async function main() {
+	let cwd = path.join(process.cwd(), '.slo')
+	let workload = getInput('workload_name') || 'unspecified'
+	let composeFile = getInput('bridge_mode') === 'true' ? 'compose.bridge.yml' : 'compose.yml'
+
+	saveState('cwd', cwd)
+	saveState('compose_file', composeFile)
+	saveState('pull', await getPullRequestNumber())
+	saveState('commit', process.env['GITHUB_SHA'])
+	saveState('workload', workload)
+
+	fs.mkdirSync(cwd, { recursive: true })
+	fs.mkdirSync(extraArtifactsPath(cwd), { recursive: true })
+
+	await copyAssets(cwd)
+
+	try {
+		await deployInfra(cwd, workload, composeFile)
+	} catch (err) {
+		saveState('failed', 'cluster')
+		error(err as Error)
+		process.exit(1)
+	}
+
+	try {
+		await waitForWorkloads(cwd)
+	} catch (err) {
+		saveState('failed', 'workload')
+		error(err as Error)
+		process.exit(1)
+	}
+}
+
+async function copyAssets(cwd: string): Promise<void> {
+	let deployPath = path.join(process.env['GITHUB_ACTION_PATH']!, 'deploy')
+
+	if (!fs.existsSync(deployPath)) {
+		setFailed(`Deploy assets not found at ${deployPath}`)
+		return
+	}
+
+	for (let entry of fs.readdirSync(deployPath)) {
+		let src = path.join(deployPath, entry)
+		let dest = path.join(cwd, entry)
+		fs.cpSync(src, dest, { recursive: true })
+	}
+
+	debug(`Deploy assets copied to ${cwd}`)
+}
+
+async function deployInfra(cwd: string, workload: string, composeFile: string): Promise<void> {
+	let profiles = await getComposeProfiles(
+		cwd,
+		getInput('disable_compose_profiles').split(','),
+		composeFile
+	)
+
+	let workloadDuration = getInput('workload_duration') || '60'
+	let workloadCurrentRef = getInput('workload_current_ref') || 'current'
+	let workloadCurrentImage = getInput('workload_current_image')
+	let workloadCurrentCommand = getInput('workload_current_command') || ''
+	let workloadBaselineRef = getInput('workload_baseline_ref') || 'baseline'
+	let workloadBaselineImage = getInput('workload_baseline_image') || ''
+	let workloadBaselineCommand = getInput('workload_baseline_command') || ''
+
+	profiles = profiles.filter(
+		(profile) => profile !== 'workload-current' && profile !== 'workload-baseline'
+	)
+
+	if (workloadCurrentImage) {
+		profiles.push('workload-current')
+	}
+	if (workloadBaselineImage) {
+		profiles.push('workload-baseline')
+	}
+
+	let started = false
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		try {
+			await exec(
+				`docker`,
+				[`compose`, `-f`, composeFile, `up`, `--quiet-pull`, `--quiet-build`, `--detach`],
+				{
+					cwd,
+					env: {
+						...process.env,
+						COMPOSE_PROFILES: profiles.join(','),
+						WORKLOAD_NAME: workload,
+						WORKLOAD_DURATION: workloadDuration,
+						WORKLOAD_CURRENT_REF: workloadCurrentRef,
+						WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
+						WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
+						WORKLOAD_BASELINE_REF: workloadBaselineRef,
+						WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
+						WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand,
+					},
+				}
+			)
+		} catch (err) {
+			info(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`)
+			continue
+		}
+
+		started = true
+		break
+	}
+
+	if (!started) {
+		throw new Error('Failed to start YDB cluster.')
+	}
+
+	debug(`Ran ${composeFile} with profiles: ${profiles.join(', ')}`)
+
+	if (profiles.includes('telemetry')) {
+		let prometheusIp = await getContainerIp('ydb-prometheus')
+		setOutput('ydb-prometheus-url', `http://${prometheusIp}:9090`)
+		setOutput('ydb-prometheus-otlp', `http://${prometheusIp}:9090/api/v1/otlp`)
+	}
+}
+
+async function waitForWorkloads(cwd: string): Promise<void> {
+	let start = new Date()
+	saveState('start', start.toISOString())
+	info(`Workloads started at ${start}`)
+
+	let workloadCurrentImage = getInput('workload_current_image')
+	let workloadBaselineImage = getInput('workload_baseline_image') || ''
+	let workloadDuration = parseInt(getInput('workload_duration') || '60', 10)
+	let workloadTimeoutMs = (workloadDuration + 60) * 1000
+	let failFast = getInput('fail_on_workload_error') === 'true'
+
+	debug(
+		`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms, failFast=${failFast}`
+	)
+
+	let workloadsToWait: SloWorkload[] = []
+
+	if (workloadCurrentImage) {
+		workloadsToWait.push({ name: 'current', container: 'ydb-workload-current', ref: getInput('workload_current_ref') || 'current' })
+	}
+	if (workloadBaselineImage) {
+		workloadsToWait.push({ name: 'baseline', container: 'ydb-workload-baseline', ref: getInput('workload_baseline_ref') || 'baseline' })
+	}
+
+	let failures: string[] = []
+
+	if (workloadsToWait.length > 0) {
+		info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`)
+		info(`  - ${workloadsToWait.map((w) => w.name).join(', ')}`)
+		info(`  - Timeout: ${workloadTimeoutMs / 1000}s (workload duration + 60s buffer)`)
+
+		// allSettled: in the default (tolerant) mode we wait for the full window of
+		// every workload instead of bailing on the first failure.
+		let results = await Promise.allSettled(
+			workloadsToWait.map((w) =>
+				waitForContainerCompletion({ container: w.container, timeoutMs: workloadTimeoutMs })
+			)
+		)
+
+		results.forEach((result, i) => {
+			if (result.status === 'rejected') {
+				let name = workloadsToWait[i].name
+				failures.push(`${name}: ${result.reason}`)
+				warning(`Workload '${name}' failed: ${result.reason}`)
+			}
+		})
+
+		if (failures.length === 0) {
+			info('All workloads completed successfully')
+		}
+	}
+
+	// Always record the window BEFORE any throw, so post has a valid window for
+	// diagnostic metrics even on a fail-mode crash.
+	let finish = new Date()
+	saveState('finish', finish.toISOString())
+	info(`Workloads finished at ${finish}`)
+
+	await validateWorkloads(cwd, workloadsToWait, { start: new Date(start), finish: new Date(finish), failures })
+
+	if (failFast && failures.length > 0) {
+		throw new Error(`Workload(s) failed: ${failures.join('; ')}`)
+	}
+}
+
+await main()
+process.exit(0)

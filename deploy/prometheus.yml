@@ -1,0 +1,37 @@
+global:
+  scrape_interval: 1s
+  evaluation_interval: 1s
+
+otlp:
+  promote_resource_attributes:
+    - ref
+    - workload
+    - run_id
+
+rule_files:
+  - "/etc/prometheus/alertrules.yml"
+
+scrape_configs:
+  - job_name: ydb
+    scrape_interval: 5s
+    honor_labels: true
+    metrics_path: /counters/counters=ydb/name_label=name/prometheus
+    static_configs:
+      - targets:
+          - ydb-database-1:8765
+          - ydb-database-2:8765
+          - ydb-database-3:8765
+          - ydb-database-4:8765
+          - ydb-database-5:8765
+
+  - job_name: interconnect
+    scrape_interval: 5s
+    honor_labels: true
+    metrics_path: /counters/counters=interconnect/prometheus
+    static_configs:
+      - targets:
+          - ydb-database-1:8765
+          - ydb-database-2:8765
+          - ydb-database-3:8765
+          - ydb-database-4:8765
+          - ydb-database-5:8765

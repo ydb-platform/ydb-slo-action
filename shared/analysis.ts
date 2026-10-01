@@ -1,0 +1,608 @@
+/**
+ * Paired-comparison analysis for SLO metrics.
+ *
+ * Instead of computing N aggregates independently, this module aligns
+ * current/baseline time series by timestamp and computes pointwise ratios.
+ * Because both workloads see the same chaos at the same time, the ratio
+ * current[t]/baseline[t] cancels environmental noise.
+ */
+
+import type { CollectedMetric, RangeSeries } from './metrics.js'
+import { ema, fiveNumberSummary, histogram, percentile, trimmedMean } from './stats.js'
+import {
+	type AbsoluteCheck,
+	type MetricDirection,
+	type RelativeCheck,
+	type Severity,
+	type ThresholdConfig,
+	evaluateAbsoluteThreshold,
+	evaluateRelativeThreshold,
+	findMatchingThreshold,
+} from './thresholds.js'
+
+export type { MetricDirection, Severity, AbsoluteCheck, RelativeCheck }
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface AlignedPoint {
+	timestamp: number
+	current: number
+	baseline: number
+	ratio: number // current / baseline
+	deltaPercent: number // (current - baseline) / baseline * 100
+}
+
+export interface RetriesCheck {
+	severity: Severity
+	currentTotal: number
+	baselineTotal: number
+	retryRate: number // retries / operations
+	reason?: string
+}
+
+export interface RefSummary {
+	trimmedMean: number
+	mean: number
+	median: number
+	p95: number
+	p99: number
+	count: number
+}
+
+export interface VisualizationData {
+	aligned: AlignedPoint[]
+	emaCurrent: number[]
+	emaBaseline: number[]
+	currentHistogram: { edges: number[]; counts: number[] }
+	baselineHistogram: { edges: number[]; counts: number[] }
+	currentBox: [number, number, number, number, number]
+	baselineBox: [number, number, number, number, number]
+}
+
+export interface AbsoluteThresholds {
+	warningMin?: number
+	criticalMin?: number
+	warningMax?: number
+	criticalMax?: number
+}
+
+export interface RelativeThresholds {
+	warningChangePercent: number
+	criticalChangePercent: number
+	neutralChangePercent: number
+}
+
+export interface MetricAnalysis {
+	name: string
+	title?: string
+	unit?: string
+	direction: MetricDirection
+	type: 'range' | 'instant'
+	current: RefSummary
+	baseline: RefSummary
+	absoluteCheck: AbsoluteCheck
+	absoluteThresholds?: AbsoluteThresholds
+	relativeCheck?: RelativeCheck
+	relativeThresholds?: RelativeThresholds
+	retriesCheck?: RetriesCheck // only for *_attempts metrics
+	severity: Severity // worst(absolute, relative, retries)
+	visualization?: VisualizationData // only for range metrics
+}
+
+export interface ForestPlotEntry {
+	name: string
+	changePercent: number
+	concordance: number
+	iqrLow: number // 25th percentile of ratios as %
+	iqrHigh: number // 75th percentile of ratios as %
+	severity: Severity
+}
+
+export interface WorkloadAnalysis {
+	workload: string
+	metrics: MetricAnalysis[]
+	forestPlot: ForestPlotEntry[] // only when baseline exists
+	severity: Severity
+	summary: { total: number; success: number; warnings: number; failures: number }
+}
+
+export interface AnalysisOptions {
+	trimPercent?: number // default 0.10
+	emaAlpha?: number // default 0.15
+	thresholdConfig?: ThresholdConfig
+}
+
+// ---------------------------------------------------------------------------
+// Direction inference
+// ---------------------------------------------------------------------------
+
+export function inferDirection(name: string): MetricDirection {
+	let lower = name.toLowerCase()
+
+	if (
+		lower.includes('latency') ||
+		lower.includes('duration') ||
+		lower.includes('time') ||
+		lower.includes('delay') ||
+		lower.includes('error') ||
+		lower.includes('failure') ||
+		lower.includes('attempts')
+	) {
+		return 'lower_is_better'
+	}
+
+	if (
+		lower.includes('availability') ||
+		lower.includes('throughput') ||
+		lower.includes('success') ||
+		lower.includes('qps') ||
+		lower.includes('rps') ||
+		lower.includes('ops')
+	) {
+		return 'higher_is_better'
+	}
+
+	return 'neutral'
+}
+
+// ---------------------------------------------------------------------------
+// Series alignment
+// ---------------------------------------------------------------------------
+
+export function alignSeries(current: RangeSeries, baseline: RangeSeries): AlignedPoint[] {
+	// Build a Map from baseline timestamps → values for O(n) lookup
+	let baselineMap = new Map<number, number>()
+	for (let [ts, val] of baseline.values) {
+		baselineMap.set(ts, parseFloat(val))
+	}
+
+	let aligned: AlignedPoint[] = []
+	for (let [ts, val] of current.values) {
+		let bv = baselineMap.get(ts)
+		if (bv === undefined) continue
+
+		let cv = parseFloat(val)
+		if (isNaN(cv) || isNaN(bv)) continue
+
+		let ratio = bv !== 0 ? cv / bv : NaN
+		let deltaPercent = bv !== 0 ? ((cv - bv) / bv) * 100 : NaN
+
+		aligned.push({ timestamp: ts, current: cv, baseline: bv, ratio, deltaPercent })
+	}
+
+	return aligned
+}
+
+// ---------------------------------------------------------------------------
+// Paired ratio & concordance
+// ---------------------------------------------------------------------------
+
+export function computePairedRatio(aligned: AlignedPoint[], trimFraction: number = 0.1): number {
+	let ratios = aligned.map((p) => p.ratio).filter((r) => isFinite(r))
+	return trimmedMean(ratios, trimFraction)
+}
+
+export function computeConcordance(aligned: AlignedPoint[], direction: MetricDirection): number {
+	if (aligned.length === 0) return 0
+
+	let worseCount = 0
+	for (let p of aligned) {
+		if (direction === 'lower_is_better' && p.current > p.baseline) worseCount++
+		else if (direction === 'higher_is_better' && p.current < p.baseline) worseCount++
+	}
+
+	return worseCount / aligned.length
+}
+
+// ---------------------------------------------------------------------------
+// Ref summary
+// ---------------------------------------------------------------------------
+
+function buildRefSummary(values: number[], trimFraction: number): RefSummary {
+	if (values.length === 0) {
+		return { trimmedMean: NaN, mean: NaN, median: NaN, p95: NaN, p99: NaN, count: 0 }
+	}
+
+	let sorted = [...values].sort((a, b) => a - b)
+	return {
+		trimmedMean: trimmedMean(values, trimFraction),
+		mean: values.reduce((a, b) => a + b, 0) / values.length,
+		median: percentile(sorted, 0.5),
+		p95: percentile(sorted, 0.95),
+		p99: percentile(sorted, 0.99),
+		count: values.length,
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Visualization data
+// ---------------------------------------------------------------------------
+
+export function buildVisualization(
+	aligned: AlignedPoint[],
+	currentVals: number[],
+	baselineVals: number[],
+	emaAlpha: number = 0.15
+): VisualizationData {
+	let histMin = Math.min(Math.min(...currentVals), Math.min(...baselineVals))
+	let histMax = Math.max(Math.max(...currentVals), Math.max(...baselineVals))
+	return {
+		aligned,
+		emaCurrent: ema(currentVals, emaAlpha),
+		emaBaseline: ema(baselineVals, emaAlpha),
+		currentHistogram: histogram(currentVals, 20, histMin, histMax),
+		baselineHistogram: histogram(baselineVals, 20, histMin, histMax),
+		currentBox: fiveNumberSummary(currentVals),
+		baselineBox: fiveNumberSummary(baselineVals),
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Worst severity
+// ---------------------------------------------------------------------------
+
+function worstSeverity(...severities: (Severity | undefined)[]): Severity {
+	if (severities.some((s) => s === 'failure')) return 'failure'
+	if (severities.some((s) => s === 'warning')) return 'warning'
+	return 'success'
+}
+
+// ---------------------------------------------------------------------------
+// Extract raw values from a series for a ref
+// ---------------------------------------------------------------------------
+
+function extractValues(metric: CollectedMetric, ref: string): number[] {
+	let series = metric.data.find((s) => s.metric.ref === ref)
+	if (!series) return []
+
+	if (metric.type === 'instant') {
+		let v = parseFloat((series as any).value[1])
+		return isNaN(v) ? [] : [v]
+	}
+
+	return (series as RangeSeries).values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
+}
+
+function resolveRelativeThresholds(
+	metricName: string,
+	config: ThresholdConfig
+): RelativeThresholds {
+	let matched = findMatchingThreshold(metricName, config)
+	return {
+		warningChangePercent:
+			matched?.warning_change_percent ?? config.default.warning_change_percent,
+		criticalChangePercent:
+			matched?.critical_change_percent ?? config.default.critical_change_percent,
+		neutralChangePercent: config.neutral_change_percent,
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Core: analyze one metric
+// ---------------------------------------------------------------------------
+
+export function analyzeMetric(
+	metric: CollectedMetric,
+	currentRef: string,
+	baselineRef: string,
+	options: AnalysisOptions = {}
+): MetricAnalysis {
+	let { trimPercent = 0.1, emaAlpha = 0.15, thresholdConfig } = options
+	let direction = inferDirection(metric.name)
+
+	let currentVals = extractValues(metric, currentRef)
+	let baselineVals = extractValues(metric, baselineRef)
+
+	let current = buildRefSummary(currentVals, trimPercent)
+	let baseline = buildRefSummary(baselineVals, trimPercent)
+
+	// Absolute threshold check
+	let absoluteCheck: AbsoluteCheck = {
+		severity: 'success',
+		value: current.trimmedMean,
+		violations: [],
+	}
+	let absoluteThresholds: AbsoluteThresholds | undefined
+	if (thresholdConfig) {
+		absoluteCheck = evaluateAbsoluteThreshold(
+			metric.name,
+			current.trimmedMean,
+			direction,
+			thresholdConfig
+		)
+		let matched = findMatchingThreshold(metric.name, thresholdConfig)
+		if (matched) {
+			let t: AbsoluteThresholds = {}
+			if (matched.warning_min != null) t.warningMin = matched.warning_min
+			if (matched.critical_min != null) t.criticalMin = matched.critical_min
+			if (matched.warning_max != null) t.warningMax = matched.warning_max
+			if (matched.critical_max != null) t.criticalMax = matched.critical_max
+			if (Object.keys(t).length > 0) absoluteThresholds = t
+		}
+	}
+
+	// Relative (paired) check — only for range metrics with both refs present
+	let relativeCheck: RelativeCheck | undefined
+	let visualization: VisualizationData | undefined
+	let forestEntry: ForestPlotEntry | undefined
+
+	if (metric.type === 'range' && currentVals.length > 0 && baselineVals.length > 0) {
+		let currentSeries = metric.data.find((s) => s.metric.ref === currentRef) as
+			| RangeSeries
+			| undefined
+		let baselineSeries = metric.data.find((s) => s.metric.ref === baselineRef) as
+			| RangeSeries
+			| undefined
+
+		if (currentSeries && baselineSeries) {
+			let aligned = alignSeries(currentSeries, baselineSeries)
+
+			let finiteRatios = aligned.filter((p) => isFinite(p.ratio))
+
+			if (finiteRatios.length > 0) {
+				let pairedRatio = computePairedRatio(aligned, trimPercent)
+				let changePercent = (pairedRatio - 1) * 100
+				let concordance = computeConcordance(aligned, direction)
+
+				let relSeverity: Severity = 'success'
+				let violations: string[] = []
+				if (thresholdConfig) {
+					let check = evaluateRelativeThreshold(
+						metric.name,
+						changePercent,
+						concordance,
+						direction,
+						thresholdConfig
+					)
+					relSeverity = check.severity
+					violations = check.violations
+				}
+
+				relativeCheck = {
+					severity: relSeverity,
+					pairedRatio,
+					changePercent,
+					concordance,
+					violations,
+				}
+
+				// Build forest plot entry
+				let ratios = aligned.map((p) => p.ratio).filter((r) => isFinite(r))
+				let sortedRatios = [...ratios].sort((a, b) => a - b)
+				forestEntry = {
+					name: metric.name,
+					changePercent,
+					concordance,
+					iqrLow: (percentile(sortedRatios, 0.25) - 1) * 100,
+					iqrHigh: (percentile(sortedRatios, 0.75) - 1) * 100,
+					severity: relSeverity,
+				}
+			}
+
+			visualization = buildVisualization(aligned, currentVals, baselineVals, emaAlpha)
+		}
+	}
+
+	let severity = worstSeverity(absoluteCheck.severity, relativeCheck?.severity)
+
+	return {
+		name: metric.name,
+		title: metric.title,
+		unit: metric.unit,
+		direction,
+		type: metric.type,
+		current,
+		baseline,
+		absoluteCheck,
+		absoluteThresholds,
+		relativeCheck,
+		relativeThresholds: thresholdConfig
+			? resolveRelativeThresholds(metric.name, thresholdConfig)
+			: undefined,
+		severity,
+		visualization,
+		_forestEntry: forestEntry,
+	} as MetricAnalysis & { _forestEntry?: ForestPlotEntry }
+}
+
+// ---------------------------------------------------------------------------
+// Core: analyze all metrics for a workload
+// ---------------------------------------------------------------------------
+
+export function analyzeWorkload(
+	workload: string,
+	metrics: CollectedMetric[],
+	currentRef: string,
+	baselineRef: string,
+	options: AnalysisOptions = {}
+): WorkloadAnalysis {
+	let analyses: (MetricAnalysis & { _forestEntry?: ForestPlotEntry })[] = []
+
+	for (let metric of metrics) {
+		let analysis = analyzeMetric(metric, currentRef, baselineRef, options) as MetricAnalysis & {
+			_forestEntry?: ForestPlotEntry
+		}
+		analyses.push(analysis)
+	}
+
+	// Retries cross-metric check (Step 5)
+	let attemptsPairs: [string, string][] = [
+		['read_attempts', 'read_throughput'],
+		['write_attempts', 'write_throughput'],
+	]
+
+	for (let [attemptsName, throughputName] of attemptsPairs) {
+		let attemptsMetric = analyses.find((a) => a.name === attemptsName)
+		let throughputMetric = analyses.find((a) => a.name === throughputName)
+
+		if (attemptsMetric && throughputMetric) {
+			let currentAttempts = attemptsMetric.current.trimmedMean
+			let baselineAttempts = attemptsMetric.baseline.trimmedMean
+			let currentThroughput = throughputMetric.current.trimmedMean
+			let retryRate = currentThroughput > 0 ? currentAttempts / currentThroughput : 0
+
+			let retriesSeverity: Severity = 'success'
+			let reason: string | undefined
+
+			if (baselineAttempts === 0 && currentAttempts > 0) {
+				retriesSeverity = 'warning'
+				reason = 'Retries appeared (baseline had none)'
+			}
+			if (retryRate > 0.01) {
+				retriesSeverity = 'failure'
+				reason = `Retry rate ${(retryRate * 100).toFixed(2)}% > 1%`
+			}
+
+			attemptsMetric.retriesCheck = {
+				severity: retriesSeverity,
+				currentTotal: currentAttempts,
+				baselineTotal: baselineAttempts,
+				retryRate,
+				reason,
+			}
+
+			attemptsMetric.severity = worstSeverity(attemptsMetric.severity, retriesSeverity)
+		}
+	}
+
+	// Build forest plot and clean up internal fields
+	let forestPlot: ForestPlotEntry[] = []
+	let cleanAnalyses: MetricAnalysis[] = []
+
+	for (let a of analyses) {
+		if (a._forestEntry) {
+			forestPlot.push(a._forestEntry)
+		}
+		let { _forestEntry, ...clean } = a
+		cleanAnalyses.push(clean)
+	}
+
+	// Overall severity and summary
+	let success = cleanAnalyses.filter((a) => a.severity === 'success').length
+	let warnings = cleanAnalyses.filter((a) => a.severity === 'warning').length
+	let failures = cleanAnalyses.filter((a) => a.severity === 'failure').length
+	let overallSeverity = worstSeverity(...cleanAnalyses.map((a) => a.severity))
+
+	return {
+		workload,
+		metrics: cleanAnalyses,
+		forestPlot,
+		severity: overallSeverity,
+		summary: { total: cleanAnalyses.length, success, warnings, failures },
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Change cell helpers — describe the relative-change cell with arrow + hint
+// ---------------------------------------------------------------------------
+
+export type ChangeTrend = 'worse' | 'better' | 'flat'
+
+export interface ChangeCellParts {
+	trend: ChangeTrend
+	arrow: '▲' | '▼' | '≈'
+	percent: number // |changePercent|
+	hint?: string // e.g. "< 30% warn", "≥ 30% warn", "≥ 100% fail"
+}
+
+export function describeChange(metric: MetricAnalysis): ChangeCellParts | null {
+	let check = metric.relativeCheck
+	if (!check || !isFinite(check.changePercent)) return null
+
+	let pct = check.changePercent
+	let abs = Math.abs(pct)
+	let neutral = metric.relativeThresholds?.neutralChangePercent ?? 5
+
+	if (abs < neutral) {
+		return { trend: 'flat', arrow: '≈', percent: abs }
+	}
+
+	let isWorse = false
+	let isBetter = false
+	if (metric.direction === 'lower_is_better') {
+		isWorse = pct > 0
+		isBetter = pct < 0
+	} else if (metric.direction === 'higher_is_better') {
+		isWorse = pct < 0
+		isBetter = pct > 0
+	}
+
+	if (isBetter) {
+		return { trend: 'better', arrow: '▼', percent: abs }
+	}
+
+	if (isWorse) {
+		let warn = metric.relativeThresholds?.warningChangePercent
+		let crit = metric.relativeThresholds?.criticalChangePercent
+		let hint: string | undefined
+		if (check.severity === 'failure' && crit != null) hint = `≥ ${crit}% fail`
+		else if (check.severity === 'warning' && warn != null) hint = `≥ ${warn}% warn`
+		else if (warn != null) hint = `< ${warn}% warn`
+		return { trend: 'worse', arrow: '▲', percent: abs, hint }
+	}
+
+	// direction === 'neutral': arrow follows sign, no worse/better hint
+	return { trend: 'flat', arrow: pct > 0 ? '▲' : '▼', percent: abs }
+}
+
+export function formatChangeCell(metric: MetricAnalysis): string {
+	let parts = describeChange(metric)
+	if (!parts) return 'N/A'
+	let body = `${parts.arrow} ${parts.percent.toFixed(1)}%`
+	return parts.hint ? `${body} (${parts.hint})` : body
+}
+
+// ---------------------------------------------------------------------------
+// Formatting helpers (kept from old module)
+// ---------------------------------------------------------------------------
+
+export function formatValue(value: number, metricName: string): string {
+	if (isNaN(value)) return 'N/A'
+
+	let lowerName = metricName.toLowerCase()
+
+	if (
+		lowerName.includes('latency') ||
+		lowerName.includes('duration') ||
+		lowerName.endsWith('_ms')
+	) {
+		return `${value.toFixed(2)}ms`
+	}
+
+	if (lowerName.includes('time') && lowerName.endsWith('_s')) {
+		return `${value.toFixed(2)}s`
+	}
+
+	if (
+		lowerName.includes('availability') ||
+		lowerName.includes('percent') ||
+		lowerName.includes('rate')
+	) {
+		return `${value.toFixed(2)}%`
+	}
+
+	if (
+		lowerName.includes('throughput') ||
+		lowerName.includes('qps') ||
+		lowerName.includes('rps') ||
+		lowerName.includes('ops')
+	) {
+		if (value >= 1000) {
+			return `${(value / 1000).toFixed(2)}k/s`
+		}
+		return `${value.toFixed(0)}/s`
+	}
+
+	return value.toFixed(2)
+}
+
+export function formatChange(percent: number, severity: Severity): string {
+	if (isNaN(percent)) return 'N/A'
+
+	let sign = percent >= 0 ? '+' : ''
+	let emoji = severity === 'success' ? '✅' : severity === 'warning' ? '🟡' : '🔴'
+
+	return `${sign}${percent.toFixed(1)}% ${emoji}`
+}

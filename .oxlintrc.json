@@ -1,0 +1,32 @@
+{
+	"rules": {
+		"sort-imports": [
+			"warn",
+			{
+				"allowSeparatedGroups": true,
+				"ignoreDeclarationSort": true,
+				"ignoreMemberSort": false,
+				"ignoreCase": false
+			}
+		],
+		"unicorn/require-post-message-target-origin": "off",
+		"yoda": "deny",
+		"vitest/consistent-test-it": ["error", { "fn": "test" }],
+		"vitest/max-nested-describe": ["error", { "max": 0 }],
+		"vitest/valid-expect": [
+			"error",
+			{
+				"maxArgs": 3,
+				"minArgs": 1
+			}
+		],
+		"no-await-in-loop": "off"
+	},
+	"plugins": ["node", "import", "vitest", "promise", "typescript", "oxc"],
+	"ignorePatterns": ["**/node_modules/**", "**/dist/**"],
+	"categories": {
+		"correctness": "error",
+		"suspicious": "warn",
+		"perf": "error"
+	}
+}

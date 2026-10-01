@@ -1,0 +1,170 @@
+#!/bin/bash
+set -e
+
+# YDB connection parameters from environment or defaults
+ENDPOINT="${YDB_ENDPOINT:-grpc://ydb:2136}"
+DATABASE="${YDB_DATABASE:-/Root/testdb}"
+
+# Parse command-line arguments
+RATE=""
+THREADS=""
+DURATION="${WORKLOAD_DURATION:-60}"
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--threads)
+			THREADS="$2"
+			shift 2
+			;;
+		--rate)
+			RATE="$2"
+			shift 2
+			;;
+		--duration)
+			DURATION="$2"
+			shift 2
+			;;
+		*)
+			# Pass unknown arguments to ydb workload
+			break
+			;;
+	esac
+done
+
+# Apply defaults if not provided
+RATE="${RATE:-1000}"
+THREADS="${THREADS:-10}"
+
+# OTLP parameters
+export OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://ydb-prometheus:9090/api/v1/otlp/v1/metrics}"
+export OTEL_SERVICE_NAME="${OTEL_SERVICE_NAME:-ydb-kv-workload}"
+WORKLOAD_REF="${WORKLOAD_REF:-current}"
+
+# Cleanup function
+cleanup() {
+	echo "Cleaning up KV workload tables..."
+	ydb --endpoint "$ENDPOINT" --database "$DATABASE" workload kv clean || true
+
+	# Kill background jobs
+	jobs -p | xargs -r kill 2>/dev/null || true
+}
+
+# Register cleanup on exit
+trap cleanup EXIT
+
+# Function to push metrics in one OTLP export (same timeline)
+push_metrics_batch() {
+	local operation_type=$1
+	local txs=$2
+	local retries=$3
+	local success=$4
+	local p50=$5
+	local p95=$6
+	local p99=$7
+
+	if ! command -v python3 >/dev/null 2>&1; then
+		return
+	fi
+
+	python3 /usr/local/bin/otel_metric.py batch "$operation_type" "$txs" "$retries" "$success" "$p50" "$p95" "$p99" 2>/dev/null || true
+}
+
+# Function to process workload output
+process_workload() {
+	local operation_type=$1
+
+	push_metrics_batch "$operation_type" "0" "0" "0" "0" "0" "0"
+
+	while read -r line; do
+		# Print the line with prefix
+		echo "[$operation_type] $line"
+
+		# Skip header line
+		if [[ "$line" =~ ^Window ]]; then
+			continue
+		fi
+
+		# Skip header line
+		if [[ "$line" =~ ^Total ]]; then
+			continue
+		fi
+
+		# Parse tab-separated values
+		IFS=$'\t' read -r window txs txs_sec retries errors p50 p95 p99 pmax timestamp rest <<< "$line"
+
+		# Skip if essential values are missing
+		if [ -z "$txs" ] || [ -z "$errors" ]; then
+			continue
+		fi
+
+		local success=$((txs - errors))
+		local p50_seconds=""
+		local p95_seconds=""
+		local p99_seconds=""
+
+		if [ -n "$p50" ]; then
+			p50_seconds="$(echo "scale=6; $p50 / 1000" | bc)"
+		fi
+		if [ -n "$p95" ]; then
+			p95_seconds="$(echo "scale=6; $p95 / 1000" | bc)"
+		fi
+		if [ -n "$p99" ]; then
+			p99_seconds="$(echo "scale=6; $p99 / 1000" | bc)"
+		fi
+
+		# Push all metrics in a single OTLP export
+		push_metrics_batch "$operation_type" "$txs" "$retries" "$success" "$p50_seconds" "$p95_seconds" "$p99_seconds"
+	done
+}
+
+echo "Initializing KV workload tables..."
+ydb --endpoint "$ENDPOINT" --database "$DATABASE" workload kv init
+
+echo "Starting parallel workloads (duration=${DURATION}s, threads=${THREADS}, rate=${RATE})..."
+
+# Start write workload (upsert) in background
+echo "Starting write workload (upsert)..."
+(
+	ydb --endpoint "$ENDPOINT" --database "$DATABASE" workload kv run upsert \
+		--seconds "$DURATION" \
+		--threads "$THREADS" \
+		--rate "$RATE" \
+		--print-timestamp \
+		"$@" | process_workload "write"
+) &
+
+WRITE_PID=$!
+
+# Start read workload (select) in background
+echo "Starting read workload (select)..."
+(
+	ydb --endpoint "$ENDPOINT" --database "$DATABASE" workload kv run select \
+		--seconds "$DURATION" \
+		--threads "$THREADS" \
+		--rate "$RATE" \
+		--print-timestamp \
+		"$@" | process_workload "read"
+) &
+
+READ_PID=$!
+
+# Wait for both workloads to complete
+echo "Waiting for workloads to complete..."
+wait $WRITE_PID
+WRITE_EXIT=$?
+wait $READ_PID
+READ_EXIT=$?
+
+echo ""
+echo "Read workload exit code: $READ_EXIT"
+echo "Write workload exit code: $WRITE_EXIT"
+
+push_metrics_batch "read" "0" "0" "0" "0" "0" "0"
+push_metrics_batch "write" "0" "0" "0" "0" "0" "0"
+
+if [ $WRITE_EXIT -ne 0 ] || [ $READ_EXIT -ne 0 ]; then
+	echo "ERROR: One or more workloads failed"
+	exit 1
+fi
+
+echo "SUCCESS: All workloads completed successfully"

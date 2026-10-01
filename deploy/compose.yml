@@ -1,0 +1,351 @@
+x-runtime: &runtime
+  platform: linux/amd64
+  networks:
+    - slo
+
+x-ydb-node: &ydb-node
+  build:
+    context: ./ydb
+  restart: always
+  <<: *runtime
+  expose:
+    - '2135'
+    - '8765'
+    - '19001'
+  extra_hosts:
+    - 'ydb:172.28.0.10'
+    - 'ydb-storage-1:172.28.0.10'
+
+name: ydb
+
+networks:
+  slo:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  blackhole:
+    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/socat
+    container_name: ydb-blackhole
+    restart: unless-stopped
+    networks:
+      slo:
+        ipv4_address: 172.28.0.99
+    command: tcp-listen:2136,fork,reuseaddr exec:'/bin/cat'
+    profiles:
+      - chaos
+    labels:
+      - ydb.node.type=blackhole
+
+  storage-1:
+    <<: *ydb-node
+    hostname: ydb-storage-1
+    container_name: ydb-storage-1
+    command: ['--grpc-public-address-v4', '172.28.0.10']
+    networks:
+      slo:
+        ipv4_address: 172.28.0.10
+    ports:
+      - '8765'
+    labels:
+      - ydb.node.type=storage
+
+  database-1:
+    <<: *ydb-node
+    container_name: ydb-database-1
+    command: ['--grpc-public-address-v4', '172.28.0.11']
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_START_DELAY=0
+    networks:
+      slo:
+        ipv4_address: 172.28.0.11
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-2:
+    <<: *ydb-node
+    container_name: ydb-database-2
+    command: ['--grpc-public-address-v4', '172.28.0.12']
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_START_DELAY=4
+    networks:
+      slo:
+        ipv4_address: 172.28.0.12
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-3:
+    <<: *ydb-node
+    container_name: ydb-database-3
+    profiles:
+      - extra-nodes
+    command: ['--grpc-public-address-v4', '172.28.0.13']
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_START_DELAY=8
+    networks:
+      slo:
+        ipv4_address: 172.28.0.13
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-4:
+    <<: *ydb-node
+    container_name: ydb-database-4
+    profiles:
+      - extra-nodes
+    command: ['--grpc-public-address-v4', '172.28.0.14']
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_START_DELAY=12
+    networks:
+      slo:
+        ipv4_address: 172.28.0.14
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  database-5:
+    <<: *ydb-node
+    container_name: ydb-database-5
+    profiles:
+      - extra-nodes
+    command: ['--grpc-public-address-v4', '172.28.0.15']
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_START_DELAY=16
+    networks:
+      slo:
+        ipv4_address: 172.28.0.15
+    labels:
+      - ydb.node.type=database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  storage-init:
+    <<: *ydb-node
+    container_name: ydb-storage-init
+    restart: no
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_INIT_OPERATION=bootstrap
+    depends_on:
+      storage-1:
+        condition: service_healthy
+
+  database-init:
+    <<: *ydb-node
+    container_name: ydb-database-init
+    restart: no
+    environment:
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_INIT_OPERATION=create-database
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+
+  database-readiness:
+    <<: *ydb-node
+    container_name: ydb-database-readiness
+    restart: no
+    environment:
+      - YDB_TENANT=/Root/testdb
+      - YDB_INIT_OPERATION=check-readiness
+    depends_on:
+      storage-1:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      database-init:
+        condition: service_completed_successfully
+
+  grafana:
+    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/grafana
+    <<: *runtime
+    container_name: ydb-grafana
+    restart: unless-stopped
+    ports:
+      - '3000'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      prometheus:
+        condition: service_started
+    profiles:
+      - telemetry
+
+  prometheus:
+    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/prometheus
+    restart: unless-stopped
+    <<: *runtime
+    container_name: ydb-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver
+      - --web.enable-otlp-receiver
+      - --web.enable-admin-api
+    volumes:
+      - ./alertrules.yml:/etc/prometheus/alertrules.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - '9090'
+    profiles:
+      - telemetry
+
+  chaos-monkey:
+    build:
+      context: ./chaos
+    restart: on-failure
+    privileged: true
+    <<: *runtime
+    container_name: ydb-chaos-monkey
+    environment:
+      - CHAOS_INITIAL_DELAY=30
+      - CHAOS_SCENARIO_DELAY=60
+      - CHAOS_EVENTS_FILE=/var/log/chaos-events.jsonl
+      - OTEL_SERVICE_NAME=chaos-monkey
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp/v1/metrics
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      database-readiness:
+        condition: service_completed_successfully
+    profiles:
+      - chaos
+
+  workload-current:
+    <<: *runtime
+    image: ${WORKLOAD_CURRENT_IMAGE:-ydb-workload-current}
+    container_name: ydb-workload-current
+    restart: no
+    command: ${WORKLOAD_CURRENT_COMMAND:-}
+    extra_hosts:
+      - 'ydb:172.28.0.11'
+      - 'ydb:172.28.0.12'
+      - 'ydb:172.28.0.13'
+      - 'ydb:172.28.0.14'
+      - 'ydb:172.28.0.15'
+      - 'ydb:172.28.0.99'
+    environment:
+      - GOMAXPROCS=2
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_DATABASE=/Root/testdb
+      - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
+      - WORKLOAD_REF=${WORKLOAD_CURRENT_REF:-current}
+      - SLO_RESULT_PATH=/tmp/slo-result.json
+      - WORKLOAD_NAME=${WORKLOAD_NAME:-kv}
+      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-600}
+      - PROMETHEUS_URL=http://ydb-prometheus:9090
+      - PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp/v1/metrics
+    depends_on:
+      database-readiness:
+        condition: service_completed_successfully
+    profiles:
+      - workload-current
+    labels:
+      - ydb.node.type=workload
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 4G
+        reservations:
+          cpus: '1.00'
+          memory: 2G
+
+  workload-baseline:
+    <<: *runtime
+    image: ${WORKLOAD_BASELINE_IMAGE:-ydb-workload-baseline}
+    container_name: ydb-workload-baseline
+    restart: no
+    command: ${WORKLOAD_BASELINE_COMMAND:-}
+    extra_hosts:
+      - 'ydb:172.28.0.11'
+      - 'ydb:172.28.0.12'
+      - 'ydb:172.28.0.13'
+      - 'ydb:172.28.0.14'
+      - 'ydb:172.28.0.15'
+      - 'ydb:172.28.0.99'
+    environment:
+      - GOMAXPROCS=2
+      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_DATABASE=/Root/testdb
+      - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
+      - WORKLOAD_REF=${WORKLOAD_BASELINE_REF:-baseline}
+      - SLO_RESULT_PATH=/tmp/slo-result.json
+      - WORKLOAD_NAME=${WORKLOAD_NAME:-kv}
+      - WORKLOAD_DURATION=${WORKLOAD_DURATION:-600}
+      - PROMETHEUS_URL=http://ydb-prometheus:9090
+      - PROMETHEUS_QUERY_URL=http://ydb-prometheus:9090/api/v1/query
+      - PROMETHEUS_REMOTE_WRITE_URL=http://ydb-prometheus:9090/api/v1/write
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://ydb-prometheus:9090/api/v1/otlp/v1/metrics
+    depends_on:
+      database-readiness:
+        condition: service_completed_successfully
+    profiles:
+      - workload-baseline
+    labels:
+      - ydb.node.type=workload
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 4G
+        reservations:
+          cpus: '1.00'
+          memory: 2G

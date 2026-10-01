@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		// Target Node.js 24
+		"target": "ES2023",
+		"lib": ["ES2023"],
+		"module": "NodeNext",
+		"moduleDetection": "force",
+		"moduleResolution": "NodeNext",
+
+		// Bundler compatibility
+		"noEmit": true,
+		"resolveJsonModule": true,
+		"verbatimModuleSyntax": true,
+
+		// Best practices
+		"strict": true,
+		"skipLibCheck": true,
+		"noFallthroughCasesInSwitch": true,
+		"forceConsistentCasingInFileNames": true,
+
+		// Stricter flags
+		"noUnusedLocals": false,
+		"noUnusedParameters": false,
+		"noPropertyAccessFromIndexSignature": false
+	}
+}
