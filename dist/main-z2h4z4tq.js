@@ -40370,7 +40370,7 @@ function resolveRelativeThresholds(metricName, config) {
   };
 }
 function analyzeMetric(metric, currentRef, baselineRef, options = {}) {
-  let { trimPercent = 0.1, emaAlpha = 0.15, thresholdConfig } = options, direction = inferDirection(metric.name), currentVals = extractValues(metric, currentRef), baselineVals = extractValues(metric, baselineRef), current = buildRefSummary(currentVals, trimPercent), baseline = buildRefSummary(baselineVals, trimPercent), absoluteCheck = {
+  let { trimPercent = 0.1, emaAlpha = 0.15, thresholdConfig } = options, direction = thresholdConfig ? findMatchingThreshold(metric.name, thresholdConfig)?.direction ?? inferDirection(metric.name) : inferDirection(metric.name), currentVals = extractValues(metric, currentRef), baselineVals = extractValues(metric, baselineRef), current = buildRefSummary(currentVals, trimPercent), baseline = buildRefSummary(baselineVals, trimPercent), absoluteCheck = {
     severity: "success",
     value: current.trimmedMean,
     violations: []
@@ -40435,7 +40435,7 @@ function analyzeMetric(metric, currentRef, baselineRef, options = {}) {
     absoluteCheck,
     absoluteThresholds,
     relativeCheck,
-    relativeThresholds: thresholdConfig ? resolveRelativeThresholds(metric.name, thresholdConfig) : void 0,
+    relativeThresholds: thresholdConfig && direction !== "neutral" ? resolveRelativeThresholds(metric.name, thresholdConfig) : void 0,
     severity,
     visualization,
     _forestEntry: forestEntry

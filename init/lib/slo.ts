@@ -43,7 +43,30 @@ export async function validateWorkloads(
 	for (let workload of workloads) {
 		let resultPath = path.join(extraArtifactsPath(cwd), `${workload.name}-slo-result.json`)
 		try {
-			await exec('docker', ['cp', `${workload.container}:/tmp/slo-result.json`, resultPath])
+			let resultExit = await exec('docker', ['cp', `${workload.container}:/tmp/slo-result.json`, resultPath], {
+				ignoreReturnCode: true,
+			})
+			if (resultExit !== 0) {
+				if (!prometheusIp) {
+					checks.push({ id: workload.name, verdict: 'INVALID', detail: 'Prometheus is unavailable' })
+					continue
+				}
+				let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000))
+				let at = window.finish.getTime() / 1000
+				let selector = `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`
+				let response = await queryInstant({
+					url: `http://${prometheusIp}:9090`,
+					query: `sum(max_over_time(${selector}[${seconds}s] @ ${at}))`,
+				})
+				let count = Number(response.data?.result[0]?.value[1])
+				let observed = response.status === 'success' && Number.isFinite(count) && count > 0
+				checks.push({
+					id: workload.name,
+					verdict: observed ? 'PASS' : 'INVALID',
+					detail: observed ? 'Native SDK observations collected' : 'Missing SDK observations',
+				})
+				continue
+			}
 			let result = parseSloResult(await fs.readFile(resultPath, 'utf8'))
 			let check = evaluateSloResult(result, workload.ref, thresholds)
 			checks.push({ ...check, id: workload.name })

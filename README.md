@@ -100,6 +100,7 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `github_token`              | no       | —             | GitHub token for API access                                                          |
 | `github_issue`              | no       | auto-detected | Pull request number                                                                  |
 | `workload_duration`         | no       | `60`          | Duration of the workload in seconds                                                  |
+| `workload_completion_timeout` | no     | duration + 60 | Total process budget in seconds, including initialization, verification/drain and cleanup |
 | `fail_on_workload_error`    | no       | `true`        | Stop waiting after a process failure; FAIL/INVALID always fail V3                     |
 | `workload_current_ref`      | no       | `current`     | Git ref for current version (used as `ref` label in metrics)                         |
 | `workload_current_command`  | no       | `""`          | Command arguments for current workload                                               |

@@ -64,7 +64,7 @@ wait_container_healthy() {
 
     elapsed=0
     while [ $elapsed -lt $timeout ]; do
-        if docker inspect "${node}" --format='{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
+        if docker inspect "${node}" --format='{{.State.Health.Status}}' 2>/dev/null | grep -qx "healthy"; then
             return 0
         fi
         sleep 2

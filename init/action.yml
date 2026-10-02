@@ -18,6 +18,9 @@ inputs:
     description: "Duration of the workload in seconds."
     required: false
     default: "60"
+  workload_completion_timeout:
+    description: "Total workload process budget in positive integer seconds, including initialization, verification/drain and cleanup. Defaults to workload_duration + 60."
+    required: false
   fail_on_workload_error:
     description: "Stop waiting after a workload process failure. V3 always fails on FAIL or INVALID SLO evidence."
     required: false

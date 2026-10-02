@@ -10,7 +10,7 @@ import {
   mergeWorkloadThresholds,
   setFailed,
   warning
-} from "../main-4nedmbz7.js";
+} from "../main-z2h4z4tq.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";
@@ -188,6 +188,7 @@ var default_template_default = `<!doctype html>
 			@media (max-width: 640px) {
 				#app > div > aside { display: none; }
 				#app > div > main { min-width: 0; padding: 1rem; }
+				#app main h2 { min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
 			}
 		</style>
 		<meta charset="UTF-8" />
