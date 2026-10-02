@@ -24,6 +24,8 @@ The gate requires `ydb_client_operation_duration_seconds_count` for tables; topi
 
 ## Result and verdict
 
+Existing workloads can keep their execution process unchanged and export SDK metrics without a result JSON. V3 checks native observations and process outcomes. The following structured result is optional; when present, its checks are validated.
+
 Write `schemaVersion: 3`, `ref`, `runId`, `kind: table|topic`, `verdict: PASS|FAIL|INVALID`, `checks: [{id, verdict, detail}]`, and `operations: [{type, success, error}]`. The exact parser is `shared/slo-result.ts`.
 
 Table checks: T01 confirmed writes are readable, T02 returned payloads are correct. Topic checks: P01 confirmed delivery/order, P02 batch and single-message APIs, P03 acknowledged commit. At-least-once duplicates are allowed only with validated identity and offset semantics. Future transaction coverage must not be reported as passed.

@@ -46,7 +46,7 @@ A workload is a Docker image that connects to YDB, performs read/write operation
 
 These are the most common mistakes developers make — always keep them in mind:
 
-**Resource identity is mandatory.** Export `ref=WORKLOAD_REF` and a process-unique `run_id` as Resource attributes. They must match `ref` and `runId` in the V3 result file; Prometheus promotes them to labels.
+**Resource identity is mandatory.** Export `ref=WORKLOAD_REF` as a Resource attribute. Workloads that write a structured V3 result also export its process-unique `run_id`; Prometheus promotes these attributes to labels.
 
 **Only SDK convention metrics are exported.** Subscribe to the SDK `ydb.*` meters. Do not emit legacy `sdk.*` or custom `slo.*` instruments. V3 computes quantiles from SDK Histogram buckets; data checks and terminal logical outcomes live in the JSON result, not custom metrics.
 
@@ -68,4 +68,4 @@ ydb_topic_reader_delivered_messages_total{ref, run_id}
 A workload does not need to emit the source series for a built-in metric that it
 explicitly disables through `metrics_yaml` or `metrics_yaml_path`.
 
-**The V3 result file is required.** Write the final JSON contract to `SLO_RESULT_PATH` (`/tmp/slo-result.json`). Table workloads must prove T01/T02; topic workloads P01/P02/P03. Missing checks or telemetry give INVALID; failed invariants give FAIL and a nonzero process exit. See `shared/slo-result.ts` and `docs/slo-v3.md`.
+**Preserve existing workload behavior when migrating metrics.** Native SDK telemetry and process outcomes work without a result JSON. If a workload already writes `/tmp/slo-result.json`, V3 also validates its checks; do not add new assertions, ledgers or lifecycle rules merely to replace metrics. Missing SDK observations give INVALID. See `shared/slo-result.ts` and `docs/slo-v3.md`.
