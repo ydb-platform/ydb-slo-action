@@ -9,7 +9,7 @@ import {
   parseSloResult,
   queryInstant,
   waitForContainerCompletion
-} from "../main-51kb8934.js";
+} from "../main-efmx0wm6.js";
 import {
   analyzeSloWorkload,
   debug,
@@ -23,7 +23,7 @@ import {
   setOutput,
   summary,
   warning
-} from "../main-4nedmbz7.js";
+} from "../main-z2h4z4tq.js";
 
 // init/main.ts
 import * as fs2 from "node:fs";

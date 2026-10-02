@@ -24,6 +24,9 @@ default:
 # Metric-specific thresholds
 # Patterns support wildcards: *_availability, read_*, etc.
 metrics:
+  - name: ydb.query.session.create_time
+    direction: neutral
+
   # Availability metrics (should stay high)
   - pattern: "*_availability"
     direction: higher_is_better

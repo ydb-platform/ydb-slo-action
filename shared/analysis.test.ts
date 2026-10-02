@@ -185,6 +185,37 @@ test('analyzeMetric detects regression in latency', () => {
 	assert.equal(result.direction, 'lower_is_better')
 })
 
+for (let [name, severity] of [
+	['ydb.query.session.create_time', 'success'],
+	['ydb.client.operation.duration', 'failure'],
+]) {
+	test(`analyzeMetric applies neutral direction only to the configured metric ${name}`, () => {
+		let metric: CollectedMetric = {
+			name,
+			query: '',
+			type: 'range',
+			data: [
+				{ metric: { ref: 'current' }, values: [[1, '200'], [2, '200']] },
+				{ metric: { ref: 'baseline' }, values: [[1, '100'], [2, '100']] },
+			],
+		}
+		let result = analyzeMetric(metric, 'current', 'baseline', {
+			thresholdConfig: {
+				neutral_change_percent: 5,
+				default: { warning_change_percent: 20, critical_change_percent: 50 },
+				metrics: [{ name: 'ydb.query.session.create_time', direction: 'neutral' }],
+			},
+		})
+		assert.equal(result.severity, severity)
+		assert.equal(result.relativeCheck?.changePercent, 100)
+		assert.ok(result.visualization)
+		if (name === 'ydb.query.session.create_time') {
+			assert.deepEqual(result.relativeCheck?.violations, [])
+			assert.equal(result.relativeThresholds, undefined)
+		}
+	})
+}
+
 test('analyzeMetric produces visualization for range metrics', () => {
 	let metric: CollectedMetric = {
 		name: 'read_latency_p50_ms',

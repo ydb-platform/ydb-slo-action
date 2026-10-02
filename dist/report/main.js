@@ -10,7 +10,7 @@ import {
   mergeWorkloadThresholds,
   setFailed,
   warning
-} from "../main-4nedmbz7.js";
+} from "../main-z2h4z4tq.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";
