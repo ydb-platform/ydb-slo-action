@@ -12,7 +12,7 @@ inputs:
     required: true
 
   github_run_id:
-    description: "The id of the workflow run where the desired download artifact was uploaded from."
+    description: "Workflow run ID, or comma-separated run IDs whose workload artifacts should be combined."
     required: true
 
   github_issue:

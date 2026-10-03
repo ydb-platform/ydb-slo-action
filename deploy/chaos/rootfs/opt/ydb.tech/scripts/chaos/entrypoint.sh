@@ -39,7 +39,13 @@ for script in $(find "$SCENARIOS_DIR" -maxdepth 1 -name "*.sh" -type f | sort); 
         scenario_name=$(basename "$script" | sed 's/.sh$//')
         log "Running scenario: ${scenario_name}"
 
-        "$script"
+        if "$script"; then
+            log "Completed scenario: ${scenario_name}"
+        else
+            exit_code=$?
+            log "Failed scenario: ${scenario_name} (exit ${exit_code})"
+            exit "$exit_code"
+        fi
 
         echo ""
     else

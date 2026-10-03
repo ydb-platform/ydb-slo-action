@@ -1,46 +1,59 @@
 import {
-  DefaultArtifactClient,
-  analyzeSloWorkload,
-  context,
-  debug,
   getInput,
-  getOctokit,
+  setFailed,
+  debug,
+  warning,
   info,
+  context,
+  getOctokit,
+  DefaultArtifactClient,
   loadThresholdConfig,
   mergeWorkloadThresholds,
-  setFailed,
-  warning
-} from "../main-z2h4z4tq.js";
+  analyzeSloWorkload
+} from "../main-xzyv760g.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";
 import * as path2 from "node:path";
 import { fileURLToPath } from "node:url";
 
+// shared/chaos.ts
+function parseChaosScenarios(logs) {
+  let scenarios = [], current;
+  for (let line of logs.split(`
+`)) {
+    let record = line.match(/^\S*chaos\S*\s*\|\s*(?:\[([^\]]+)\]\s*)?(.*)$/);
+    if (!record)
+      continue;
+    let [, timestamp, message] = record, start = message.match(/^Running scenario: ([\w.-]+)$/);
+    if (start && timestamp && Number.isFinite(Date.parse(timestamp))) {
+      current = { name: start[1], startedAt: timestamp, status: "incomplete" }, scenarios.push(current);
+      continue;
+    }
+    if (!current)
+      continue;
+    let finish = message.match(/^(Completed|Failed) scenario: ([\w.-]+)(?: \(exit (\d+)\))?$/);
+    if (finish && finish[2] === current.name) {
+      if (current.status = finish[1] === "Completed" ? "completed" : "failed", timestamp && Number.isFinite(Date.parse(timestamp)))
+        current.finishedAt = timestamp;
+      if (finish[3])
+        current.exitCode = Number(finish[3]);
+    } else if (/\bscenario completed$|^Rolling restart completed for all \d+ nodes$/.test(message))
+      current.status = "completed";
+  }
+  return scenarios;
+}
+
 // report/lib/artifacts.ts
 import * as fs from "node:fs";
 import * as path from "node:path";
 async function downloadRunArtifacts(destinationPath) {
-  let token = getInput("github_token"), workflowRunId = parseInt(getInput("github_run_id") || String(context.runId));
-  if (!token || !workflowRunId)
-    throw Error("GitHub token and workflow run ID are required");
-  let artifactClient = new DefaultArtifactClient, { artifacts } = await artifactClient.listArtifacts({
-    findBy: {
-      token,
-      workflowRunId,
-      repositoryName: context.repo.repo,
-      repositoryOwner: context.repo.owner
-    }
-  });
-  debug(`Found ${artifacts.length} artifacts in run ${workflowRunId}`);
-  let downloadedPaths = /* @__PURE__ */ new Map;
-  for (let artifact of artifacts) {
-    let artifactDir = path.join(destinationPath, artifact.name);
-    if (artifact.name.includes("report.html"))
-      continue;
-    debug(`Downloading artifact ${artifact.name}...`);
-    let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
-      path: artifactDir,
+  let token = getInput("github_token"), workflowRunIds = (getInput("github_run_id") || String(context.runId)).split(",").map((id) => Number(id.trim()));
+  if (!token || workflowRunIds.some((id) => !Number.isSafeInteger(id) || id <= 0))
+    throw Error("GitHub token and positive workflow run IDs are required");
+  let artifactClient = new DefaultArtifactClient, downloadedPaths = /* @__PURE__ */ new Map;
+  for (let workflowRunId of workflowRunIds) {
+    let { artifacts } = await artifactClient.listArtifacts({
       findBy: {
         token,
         workflowRunId,
@@ -48,7 +61,23 @@ async function downloadRunArtifacts(destinationPath) {
         repositoryOwner: context.repo.owner
       }
     });
-    downloadedPaths.set(artifact.name, downloadPath || artifactDir);
+    debug(`Found ${artifacts.length} artifacts in run ${workflowRunId}`);
+    for (let artifact of artifacts) {
+      let artifactDir = path.join(destinationPath, String(workflowRunId), artifact.name);
+      if (artifact.name.includes("report.html"))
+        continue;
+      debug(`Downloading artifact ${artifact.name}...`);
+      let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
+        path: artifactDir,
+        findBy: {
+          token,
+          workflowRunId,
+          repositoryName: context.repo.repo,
+          repositoryOwner: context.repo.owner
+        }
+      });
+      downloadedPaths.set(artifact.name, downloadPath || artifactDir);
+    }
   }
   let workloadArtifacts = /* @__PURE__ */ new Map;
   for (let [artifactName, artifactPath] of downloadedPaths) {
@@ -70,6 +99,8 @@ async function downloadRunArtifacts(destinationPath) {
         artifact.alertsPath = file;
       else if (basename2.endsWith("-metrics.jsonl"))
         artifact.metricsPath = file;
+      else if (basename2.endsWith("-logs.txt"))
+        artifact.logsPath = file;
       else if (basename2.endsWith("-thresholds.yaml") || basename2.endsWith("-thresholds.yml"))
         artifact.thresholdsPath = file;
     }
@@ -130,6 +161,28 @@ function generateCommentBody(reports) {
   for (let report of reports) {
     let emoji = severityEmoji(report.analysis.severity), thresholdLabel = report.analysis.severity === "failure" ? `${emoji} Failure` : report.analysis.severity === "warning" ? `${emoji} Warning` : `${emoji} OK`, durationCell = report.durationMs != null ? formatDuration(report.durationMs) : "—", reportCell = report.reportUrl ? `[\uD83D\uDCC4 Report](${report.reportUrl})` : "—";
     lines.push(`| ${report.workload} | ${thresholdLabel} | ${durationCell} | ${reportCell} |`);
+  }
+  let scenarioNames = new Set(reports.flatMap((report) => report.scenarios?.map((scenario) => scenario.name) ?? []));
+  if (scenarioNames.size > 0) {
+    lines.push("", "### Chaos scenarios", ""), lines.push(`| Scenario | ${reports.map((report) => report.workload).join(" | ")} |`), lines.push(`|----------|${reports.map(() => ":--------:|").join("")}`);
+    for (let name of scenarioNames) {
+      let cells = reports.map((report) => {
+        let scenario = report.scenarios?.find((candidate) => candidate.name === name);
+        if (!scenario)
+          return "—";
+        let duration = scenario.finishedAt ? ` (${formatDuration(Date.parse(scenario.finishedAt) - Date.parse(scenario.startedAt))})` : "";
+        switch (scenario.status) {
+          case "completed":
+            return `Completed${duration}`;
+          case "failed":
+            return `Failed${duration}${scenario.exitCode === void 0 ? "" : `, exit ${scenario.exitCode}`}`;
+          case "incomplete":
+            return "Incomplete";
+        }
+      });
+      lines.push(`| ${name} | ${cells.join(" | ")} |`);
+    }
+    lines.push("", "_Scenario execution status is separate from the workload SLO verdict._");
   }
   let violatingReports = reports.filter((r) => r.analysis.severity !== "success");
   if (violatingReports.length > 0) {
@@ -293,7 +346,7 @@ async function main() {
   for (let [workload, artifact] of runArtifacts) {
     info(`
 \uD83D\uDCE6 Processing workload: ${workload}`);
-    let meta = await loadMetadata(artifact.metaPath), alerts = await loadAlerts(artifact.alertsPath), metrics = await loadMetrics(artifact.metricsPath);
+    let meta = await loadMetadata(artifact.metaPath), alerts = await loadAlerts(artifact.alertsPath), metrics = await loadMetrics(artifact.metricsPath), scenarios = artifact.logsPath ? parseChaosScenarios(await fs4.readFile(artifact.logsPath, "utf-8")) : [];
     if (!prNumber && meta.pull)
       prNumber = meta.pull;
     if (meta.failed) {
@@ -311,7 +364,8 @@ async function main() {
         runUrl: meta.run_url,
         repoUrl: meta.repo_url,
         reportUrl: meta.run_url,
-        durationMs: meta.duration_ms
+        durationMs: meta.duration_ms,
+        scenarios
       });
       continue;
     }
@@ -347,7 +401,8 @@ async function main() {
       commit: meta.commit,
       repoUrl: meta.repo_url,
       runUrl: meta.run_url,
-      durationMs: meta.duration_ms
+      durationMs: meta.duration_ms,
+      scenarios
     });
   }
   if (postComment && prNumber) {

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { getInput, info, setFailed, warning } from '@actions/core'
 
 import type { MetricAnalysis } from '../shared/analysis.js'
+import { parseChaosScenarios } from '../shared/chaos.js'
 import { analyzeSloWorkload as analyzeWorkload } from '../shared/slo-analysis.js'
 import { loadThresholdConfig, mergeWorkloadThresholds } from '../shared/thresholds.js'
 
@@ -58,6 +59,9 @@ async function main() {
 		let meta = await loadMetadata(artifact.metaPath)
 		let alerts = await loadAlerts(artifact.alertsPath)
 		let metrics = await loadMetrics(artifact.metricsPath)
+		let scenarios = artifact.logsPath
+			? parseChaosScenarios(await fs.readFile(artifact.logsPath, 'utf-8'))
+			: []
 
 		// Use PR number from metadata if not provided via input
 		if (!prNumber && meta.pull) {
@@ -80,6 +84,7 @@ async function main() {
 				repoUrl: meta.repo_url,
 				reportUrl: meta.run_url,
 				durationMs: meta.duration_ms,
+				scenarios,
 			} as WorkloadReportSummary)
 
 			continue
@@ -143,6 +148,7 @@ async function main() {
 			repoUrl: meta.repo_url,
 			runUrl: meta.run_url,
 			durationMs: meta.duration_ms,
+			scenarios,
 		})
 	}
 

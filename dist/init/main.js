@@ -1,29 +1,29 @@
 import {
-  collectMetricsFromPrometheus,
-  evaluateSloResult,
-  extraArtifactsPath,
-  getComposeProfiles,
-  getContainerIp,
-  getPullRequestNumber,
-  loadMetricConfig,
-  parseSloResult,
-  queryInstant,
-  waitForContainerCompletion
-} from "../main-efmx0wm6.js";
-import {
-  analyzeSloWorkload,
-  debug,
-  error,
+  summary,
   exec,
   getInput,
-  info,
-  loadThresholdConfig,
-  saveState,
-  setFailed,
   setOutput,
-  summary,
-  warning
-} from "../main-z2h4z4tq.js";
+  setFailed,
+  debug,
+  error,
+  warning,
+  info,
+  saveState,
+  loadThresholdConfig,
+  analyzeSloWorkload
+} from "../main-xzyv760g.js";
+import {
+  getContainerIp,
+  getComposeProfiles,
+  waitForContainerCompletion,
+  getPullRequestNumber,
+  extraArtifactsPath,
+  parseSloResult,
+  evaluateSloResult,
+  loadMetricConfig,
+  queryInstant,
+  collectMetricsFromPrometheus
+} from "../main-y3n7pjbt.js";
 
 // init/main.ts
 import * as fs2 from "node:fs";
@@ -53,9 +53,9 @@ async function validateWorkloads(cwd, workloads, window) {
           checks.push({ id: workload.name, verdict: "INVALID", detail: "Prometheus is unavailable" });
           continue;
         }
-        let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, selector2 = `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`, response = await queryInstant({
+        let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, selector = `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`, response = await queryInstant({
           url: `http://${prometheusIp}:9090`,
-          query: `sum(max_over_time(${selector2}[${seconds}s] @ ${at}))`
+          query: `sum(max_over_time(${selector}[${seconds}s] @ ${at}))`
         }), count = Number(response.data?.result[0]?.value[1]), observed = response.status === "success" && Number.isFinite(count) && count > 0;
         checks.push({
           id: workload.name,
@@ -64,14 +64,14 @@ async function validateWorkloads(cwd, workloads, window) {
         });
         continue;
       }
-      let result2 = parseSloResult(await fs.readFile(resultPath, "utf8")), check = evaluateSloResult(result2, workload.ref, thresholds);
+      let result = parseSloResult(await fs.readFile(resultPath, "utf8")), check = evaluateSloResult(result, workload.ref, thresholds);
       if (checks.push({ ...check, id: workload.name }), check.verdict !== "PASS")
         continue;
       if (!prometheusIp) {
         checks.push({ id: `${workload.name}/telemetry`, verdict: "INVALID", detail: "Prometheus is unavailable" });
         continue;
       }
-      let selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result2.runId)}}`, required = result2.kind === "table" ? ["ydb_client_operation_duration_seconds_count"] : ["ydb_topic_writer_written_messages_total", "ydb_topic_reader_delivered_messages_total"];
+      let selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}}`, required = result.kind === "table" ? ["ydb_client_operation_duration_seconds_count"] : ["ydb_topic_writer_written_messages_total", "ydb_topic_reader_delivered_messages_total"];
       for (let metric of required) {
         let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, response = await queryInstant({
           url: `http://${prometheusIp}:9090`,
@@ -80,10 +80,10 @@ async function validateWorkloads(cwd, workloads, window) {
         if (response.status !== "success" || !Number.isFinite(count) || count <= 0)
           checks.push({ id: `${workload.name}/telemetry`, verdict: "INVALID", detail: `Missing SDK observations: ${metric}` });
       }
-    } catch (error2) {
-      if (!(error2 instanceof Error))
-        throw error2;
-      checks.push({ id: workload.name, verdict: "INVALID", detail: error2.message });
+    } catch (error) {
+      if (!(error instanceof Error))
+        throw error;
+      checks.push({ id: workload.name, verdict: "INVALID", detail: error.message });
     }
   }
   if (workloads.length === 0)
