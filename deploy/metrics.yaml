@@ -13,10 +13,6 @@ metrics:
     role: diagnostic
     unit: attempts/s
     query: sum by(ref) (rate(ydb_client_operation_failed_total[30s]))
-  - name: ydb.client.retry.duration
-    title: "SDK retry operation duration, p95"
-    unit: ms
-    query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_client_retry_duration_seconds_bucket[30s]))) * 1000
   - name: ydb.client.retry.attempts
     role: diagnostic
     unit: attempts
