@@ -78,7 +78,7 @@ test.if(hasYq())('loadMetricConfig disables a default metric by name', async () 
 
 	assert.ok(!config.metrics.some((m) => m.name === 'ydb.client.retry.attempts'))
 	assert.ok(!config.metrics.some((m) => m.name === 'ydb.client.operation.failed'))
-	assert.ok(config.metrics.some((m) => m.name === 'ydb.client.retry.duration'))
+	assert.ok(config.metrics.some((m) => m.name === 'ydb.client.operation.duration'))
 })
 
 test.if(hasYq())('loadMetricConfig lets a higher-priority file re-enable a metric', async () => {
