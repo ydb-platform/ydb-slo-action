@@ -14,6 +14,7 @@ export interface WorkloadArtifact {
 	metaPath: string
 	alertsPath: string
 	metricsPath: string
+	logsPath?: string
 	thresholdsPath?: string
 }
 
@@ -24,38 +25,19 @@ export async function downloadRunArtifacts(
 	destinationPath: string
 ): Promise<Map<string, WorkloadArtifact>> {
 	let token = getInput('github_token')
-	let workflowRunId = parseInt(getInput('github_run_id') || String(context.runId))
+	let workflowRunIds = (getInput('github_run_id') || String(context.runId))
+		.split(',')
+		.map((id) => Number(id.trim()))
 
-	if (!token || !workflowRunId) {
-		throw new Error('GitHub token and workflow run ID are required')
+	if (!token || workflowRunIds.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
+		throw new Error('GitHub token and positive workflow run IDs are required')
 	}
 
 	let artifactClient = new DefaultArtifactClient()
-	let { artifacts } = await artifactClient.listArtifacts({
-		findBy: {
-			token,
-			workflowRunId,
-			repositoryName: context.repo.repo,
-			repositoryOwner: context.repo.owner,
-		},
-	})
-
-	debug(`Found ${artifacts.length} artifacts in run ${workflowRunId}`)
-
-	// Download each artifact
 	let downloadedPaths = new Map<string, string>()
 
-	for (let artifact of artifacts) {
-		let artifactDir = path.join(destinationPath, artifact.name)
-
-		if (artifact.name.includes('report.html')) {
-			continue
-		}
-
-		debug(`Downloading artifact ${artifact.name}...`)
-
-		let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
-			path: artifactDir,
+	for (let workflowRunId of workflowRunIds) {
+		let { artifacts } = await artifactClient.listArtifacts({
 			findBy: {
 				token,
 				workflowRunId,
@@ -64,7 +46,29 @@ export async function downloadRunArtifacts(
 			},
 		})
 
-		downloadedPaths.set(artifact.name, downloadPath || artifactDir)
+		debug(`Found ${artifacts.length} artifacts in run ${workflowRunId}`)
+
+		for (let artifact of artifacts) {
+			let artifactDir = path.join(destinationPath, String(workflowRunId), artifact.name)
+
+			if (artifact.name.includes('report.html')) {
+				continue
+			}
+
+			debug(`Downloading artifact ${artifact.name}...`)
+
+			let { downloadPath } = await artifactClient.downloadArtifact(artifact.id, {
+				path: artifactDir,
+				findBy: {
+					token,
+					workflowRunId,
+					repositoryName: context.repo.repo,
+					repositoryOwner: context.repo.owner,
+				},
+			})
+
+			downloadedPaths.set(artifact.name, downloadPath || artifactDir)
+		}
 	}
 
 	// Group by workload
@@ -97,6 +101,8 @@ export async function downloadRunArtifacts(
 				artifact.alertsPath = file
 			} else if (basename.endsWith('-metrics.jsonl')) {
 				artifact.metricsPath = file
+			} else if (basename.endsWith('-logs.txt')) {
+				artifact.logsPath = file
 			} else if (
 				basename.endsWith('-thresholds.yaml') ||
 				basename.endsWith('-thresholds.yml')
