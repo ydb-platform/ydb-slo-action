@@ -109,6 +109,7 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
 | `thresholds_yaml_path`      | no       | —             | Path to a per-scenario SLO thresholds file; merged over the report action's thresholds for this workload |
 | `bridge_mode`               | no       | `false`       | Run YDB as a two-pile 2DC bridge cluster                                             |
+| `tls`                       | no       | `false`       | Verify TLS on workload connections and discovered database endpoints                |
 | `disable_compose_profiles`  | no       | —             | Comma-separated list of compose profiles to disable (e.g., `chaos,telemetry`)        |
 
 ### 2DC bridge cluster
@@ -193,6 +194,26 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_run_id: ${{ github.event.workflow_run.id }}
 ```
+
+### TLS workloads
+
+Every YDB node exposes plaintext gRPC on port 2136 and TLS on port 2135. The checked-in certificates and server key under `deploy/tls/` are public test fixtures. Stable node hostnames and the certificate DNS/IP SANs cover both the regular and bridge topologies. Readiness checks SQL and scheme operations on both ports.
+
+Set `tls: true` on the action to select `grpcs://ydb:2135/Root/testdb` for workloads; `false` selects the existing plaintext endpoint. This only selects the client endpoint: the cluster configuration is identical in both cases.
+
+For local runs, open `deploy/` and use the same Compose files directly:
+
+```bash
+cd deploy
+YDB_WORKLOAD_ENDPOINT=grpcs://ydb:2135 WORKLOAD_CURRENT_IMAGE=my-workload \
+  docker compose --profile telemetry --profile workload-current up --build
+```
+
+Omit `YDB_WORKLOAD_ENDPOINT` for plaintext, or add `-f compose.bridge.yml` for the bridge topology. There is no preparation step or generated Compose file.
+
+Workloads mount only `/tls/ca.crt`, read-only. `YDB_SSL_ROOT_CERTIFICATES_FILE`, `GRPC_DEFAULT_SSL_ROOTS_FILE_PATH`, `NODE_EXTRA_CA_CERTS` and `SSL_CERT_FILE` point to that file. SDKs that do not consume these variables must load the CA explicitly; hostname and certificate verification stay enabled.
+
+The certificates expire in 2036. `sh tls/generate.sh` replaces the fixtures when needed; commit the new CA, certificate and server key together. The CA signing key is not retained. Normal action and local launches do not invoke OpenSSL.
 
 ### Init Action Outputs
 

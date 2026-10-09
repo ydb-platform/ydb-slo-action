@@ -63,6 +63,7 @@ async function deployInfra(cwd, workload, composeFile) {
           ...process.env,
           COMPOSE_PROFILES: profiles.join(","),
           WORKLOAD_NAME: workload,
+          YDB_WORKLOAD_ENDPOINT: getInput("tls") === "true" ? "grpcs://ydb:2135" : "grpc://ydb:2136",
           WORKLOAD_DURATION: workloadDuration,
           WORKLOAD_CURRENT_REF: workloadCurrentRef,
           WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,

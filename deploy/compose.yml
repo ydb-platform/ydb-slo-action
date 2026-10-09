@@ -7,9 +7,12 @@ x-ydb-node: &ydb-node
   build:
     context: ./ydb
   restart: always
+  volumes:
+    - ./tls:/tls:ro
   <<: *runtime
   expose:
     - '2135'
+    - '2136'
     - '8765'
     - '19001'
   extra_hosts:
@@ -56,6 +59,7 @@ services:
   database-1:
     <<: *ydb-node
     container_name: ydb-database-1
+    hostname: ydb-database-1
     command: ['--grpc-public-address-v4', '172.28.0.11']
     environment:
       - YDB_TENANT=/Root/testdb
@@ -77,6 +81,7 @@ services:
   database-2:
     <<: *ydb-node
     container_name: ydb-database-2
+    hostname: ydb-database-2
     command: ['--grpc-public-address-v4', '172.28.0.12']
     environment:
       - YDB_TENANT=/Root/testdb
@@ -98,6 +103,7 @@ services:
   database-3:
     <<: *ydb-node
     container_name: ydb-database-3
+    hostname: ydb-database-3
     profiles:
       - extra-nodes
     command: ['--grpc-public-address-v4', '172.28.0.13']
@@ -121,6 +127,7 @@ services:
   database-4:
     <<: *ydb-node
     container_name: ydb-database-4
+    hostname: ydb-database-4
     profiles:
       - extra-nodes
     command: ['--grpc-public-address-v4', '172.28.0.14']
@@ -144,6 +151,7 @@ services:
   database-5:
     <<: *ydb-node
     container_name: ydb-database-5
+    hostname: ydb-database-5
     profiles:
       - extra-nodes
     command: ['--grpc-public-address-v4', '172.28.0.15']
@@ -268,6 +276,8 @@ services:
     image: ${WORKLOAD_CURRENT_IMAGE:-ydb-workload-current}
     container_name: ydb-workload-current
     restart: no
+    volumes:
+      - ./tls/ca.crt:/tls/ca.crt:ro
     command: ${WORKLOAD_CURRENT_COMMAND:-}
     extra_hosts:
       - 'ydb:172.28.0.11'
@@ -278,9 +288,13 @@ services:
       - 'ydb:172.28.0.99'
     environment:
       - GOMAXPROCS=2
-      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_ENDPOINT=${YDB_WORKLOAD_ENDPOINT:-grpc://ydb:2136}
       - YDB_DATABASE=/Root/testdb
-      - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
+      - YDB_CONNECTION_STRING=${YDB_WORKLOAD_ENDPOINT:-grpc://ydb:2136}/Root/testdb
+      - YDB_SSL_ROOT_CERTIFICATES_FILE=/tls/ca.crt
+      - GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/tls/ca.crt
+      - NODE_EXTRA_CA_CERTS=/tls/ca.crt
+      - SSL_CERT_FILE=/tls/ca.crt
       - WORKLOAD_REF=${WORKLOAD_CURRENT_REF:-current}
       - WORKLOAD_NAME=${WORKLOAD_NAME:-kv}
       - WORKLOAD_DURATION=${WORKLOAD_DURATION:-600}
@@ -310,6 +324,8 @@ services:
     image: ${WORKLOAD_BASELINE_IMAGE:-ydb-workload-baseline}
     container_name: ydb-workload-baseline
     restart: no
+    volumes:
+      - ./tls/ca.crt:/tls/ca.crt:ro
     command: ${WORKLOAD_BASELINE_COMMAND:-}
     extra_hosts:
       - 'ydb:172.28.0.11'
@@ -320,9 +336,13 @@ services:
       - 'ydb:172.28.0.99'
     environment:
       - GOMAXPROCS=2
-      - YDB_ENDPOINT=grpc://ydb:2136
+      - YDB_ENDPOINT=${YDB_WORKLOAD_ENDPOINT:-grpc://ydb:2136}
       - YDB_DATABASE=/Root/testdb
-      - YDB_CONNECTION_STRING=grpc://ydb:2136/Root/testdb
+      - YDB_CONNECTION_STRING=${YDB_WORKLOAD_ENDPOINT:-grpc://ydb:2136}/Root/testdb
+      - YDB_SSL_ROOT_CERTIFICATES_FILE=/tls/ca.crt
+      - GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/tls/ca.crt
+      - NODE_EXTRA_CA_CERTS=/tls/ca.crt
+      - SSL_CERT_FILE=/tls/ca.crt
       - WORKLOAD_REF=${WORKLOAD_BASELINE_REF:-baseline}
       - WORKLOAD_NAME=${WORKLOAD_NAME:-kv}
       - WORKLOAD_DURATION=${WORKLOAD_DURATION:-600}
