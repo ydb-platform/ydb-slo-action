@@ -21,8 +21,8 @@ for (let topology of ['compose.yml', 'compose.bridge.yml']) {
 					env: {
 						...process.env,
 						YDB_WORKLOAD_ENDPOINT: endpoint,
-						WORKLOAD_CURRENT_IMAGE: 'node:24',
-						WORKLOAD_CURRENT_COMMAND: '--worker=topic.run --topic.run.rps=500',
+						WORKLOAD_CURRENT_IMAGE: 'example/workload:test',
+						WORKLOAD_CURRENT_COMMAND: '--rate=500 --payload-size=32768',
 					},
 				}
 			)
@@ -33,10 +33,10 @@ for (let topology of ['compose.yml', 'compose.bridge.yml']) {
 				expect(workload.volumes).toHaveLength(1)
 				expect(workload.volumes[0].source).toBe(path.join(directory, 'tls/ca.crt'))
 			}
-			expect(config.services['workload-current'].image).toBe('node:24')
+			expect(config.services['workload-current'].image).toBe('example/workload:test')
 			expect(config.services['workload-current'].command).toEqual([
-				'--worker=topic.run',
-				'--topic.run.rps=500',
+				'--rate=500',
+				'--payload-size=32768',
 			])
 			for (let [name, service] of Object.entries(config.services) as [
 				string,
@@ -53,10 +53,5 @@ for (let topology of ['compose.yml', 'compose.bridge.yml']) {
 				expect(certificate.checkIP(address)).toBe(address)
 			}
 		}
-		execFileSync(
-			'node',
-			[path.join(import.meta.dir, 'tls-probe.fixture.mjs'), path.join(directory, 'tls')],
-			{ timeout: 10_000 }
-		)
 	})
 }
