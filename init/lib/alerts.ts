@@ -50,7 +50,7 @@ export function parseAlertsFromRange(results: PrometheusRangeValue[], step: stri
 	const stepMs = parseStepToMs(step)
 
 	for (const series of results) {
-		const { alertname, alertstate, ...labels } = series.metric
+		const { alertname, alertstate: _alertstate, ...labels } = series.metric
 
 		if (!alertname) continue
 

@@ -267,7 +267,7 @@ export function aggregateValues(
 ): number {
 	if (values.length === 0) return NaN
 
-	let nums = values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
+	let nums = values.map(([, v]) => parseFloat(v)).filter((n) => !isNaN(n))
 
 	if (nums.length === 0) return NaN
 
