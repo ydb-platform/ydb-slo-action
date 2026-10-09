@@ -262,7 +262,7 @@ function extractValues(metric: CollectedMetric, ref: string): number[] {
 		return isNaN(v) ? [] : [v]
 	}
 
-	return (series as RangeSeries).values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
+	return (series as RangeSeries).values.map(([, v]) => parseFloat(v)).filter((n) => !isNaN(n))
 }
 
 function resolveRelativeThresholds(
