@@ -48,7 +48,7 @@ check_node_responds() {
     local endpoint="$1"
     local tls_args=()
     if [[ "$endpoint" == grpcs://* ]]; then
-        tls_args=(--ca-file "${YDB_TLS_CA_FILE:?TLS readiness requires a CA file}")
+        tls_args=(--ca-file "/tls/ca.crt")
     fi
 
     log "Checking if node at $endpoint responds"
@@ -101,7 +101,8 @@ for host in $DATABASE_HOSTS; do
         log "Skipping $host (not running)"
         continue
     fi
-    check_node_responds "${YDB_READINESS_SCHEME:-grpc}://${host}:${YDB_READINESS_PORT:-2136}"
+    check_node_responds "grpc://${host}:2136"
+    check_node_responds "grpcs://${host}:2135"
     checked=$((checked + 1))
 done
 

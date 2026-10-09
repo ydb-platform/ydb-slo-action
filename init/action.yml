@@ -65,7 +65,7 @@ inputs:
 
   # Infrastructure
   tls:
-    description: "Use verified TLS for workload connections and discovered database endpoints. Mounts the generated test CA at /tls/ca.crt."
+    description: "Connect workloads to the TLS endpoint (2135) instead of plaintext (2136). Both listeners are always available; the test CA is mounted at /tls/ca.crt."
     required: false
     default: "false"
   bridge_mode:

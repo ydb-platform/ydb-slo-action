@@ -197,20 +197,23 @@ jobs:
 
 ### TLS workloads
 
-Set `tls: true` to connect workloads using `grpcs://ydb:2135/Root/testdb`. The action generates an ephemeral test CA and server certificate with DNS/IP SANs for the selected topology, enables the secure gRPC listener and checks SQL and scheme readiness over TLS on every running database node. Discovery advertises the secure port. This works with the regular and bridge topologies and with chaos disabled.
+Every YDB node exposes plaintext gRPC on port 2136 and TLS on port 2135. The checked-in certificates and server key under `deploy/tls/` are public test fixtures. Stable node hostnames and the certificate DNS/IP SANs cover both the regular and bridge topologies. Readiness checks SQL and scheme operations on both ports.
 
-Workloads receive only `/tls/ca.crt`, mounted read-only. The action sets `YDB_SSL_ROOT_CERTIFICATES_FILE`, `GRPC_DEFAULT_SSL_ROOTS_FILE_PATH`, `NODE_EXTRA_CA_CERTS` and `SSL_CERT_FILE` to this path. SDKs that do not consume these variables must load that CA explicitly. Certificate and hostname verification must stay enabled. Private server keys are mounted only on server containers; the CA signing key is removed after issuance.
+Set `tls: true` on the action to select `grpcs://ydb:2135/Root/testdb` for workloads; `false` selects the existing plaintext endpoint. This only selects the client endpoint: the cluster configuration is identical in both cases.
 
-TLS covers the client-facing gRPC connections. Internal bootstrap, node registration and bridge administration keep their existing plaintext connections inside the isolated Docker network.
-
-The runner needs Docker Compose and OpenSSL. For local runs, after installing the action dependencies, prepare the selected topology and use the returned Compose file:
+For local runs, open `deploy/` and use the same Compose files directly:
 
 ```bash
-bun -e 'import { prepareTls } from "./init/lib/tls.ts"; console.log(prepareTls("deploy", "compose.yml"))'
-WORKLOAD_CURRENT_IMAGE=my-workload docker compose -f deploy/compose.tls.json --profile telemetry --profile workload-current up --build
+cd deploy
+YDB_WORKLOAD_ENDPOINT=grpcs://ydb:2135 WORKLOAD_CURRENT_IMAGE=my-workload \
+  docker compose --profile telemetry --profile workload-current up --build
 ```
 
-Do not archive the generated `tls/server` directory. The action uploads diagnostics, not private certificate material.
+Omit `YDB_WORKLOAD_ENDPOINT` for plaintext, or add `-f compose.bridge.yml` for the bridge topology. There is no preparation step or generated Compose file.
+
+Workloads mount only `/tls/ca.crt`, read-only. `YDB_SSL_ROOT_CERTIFICATES_FILE`, `GRPC_DEFAULT_SSL_ROOTS_FILE_PATH`, `NODE_EXTRA_CA_CERTS` and `SSL_CERT_FILE` point to that file. SDKs that do not consume these variables must load the CA explicitly; hostname and certificate verification stay enabled.
+
+The certificates expire in 2036. `sh tls/generate.sh` replaces the fixtures when needed; commit the new CA, certificate and server key together. The CA signing key is not retained. Normal action and local launches do not invoke OpenSSL.
 
 ### Init Action Outputs
 

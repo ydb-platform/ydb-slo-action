@@ -4,10 +4,10 @@ import { join } from 'node:path'
 import { connect, createServer } from 'node:tls'
 
 let directory = process.argv[2]
-let ca = readFileSync(join(directory, 'public/ca.crt'))
+let ca = readFileSync(join(directory, 'ca.crt'))
 let server = createServer({
-	cert: readFileSync(join(directory, 'server/server.crt')),
-	key: readFileSync(join(directory, 'server/server.key')),
+	cert: readFileSync(join(directory, 'server.crt')),
+	key: readFileSync(join(directory, 'server.key')),
 }, (socket) => socket.end())
 server.on('tlsClientError', () => {})
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))

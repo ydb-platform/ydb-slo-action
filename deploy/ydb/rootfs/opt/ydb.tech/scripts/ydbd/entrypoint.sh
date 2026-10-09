@@ -62,6 +62,12 @@ start_ydb_node() {
         "server"
         "--yaml-config" "$config_path"
         "--grpc-port" "$grpc_port"
+        "--grpcs-port" "2135"
+        "--grpcs-public-port" "2135"
+        "--grpc-public-host" "$HOSTNAME"
+        "--grpc-cert" "/tls/server.crt"
+        "--grpc-key" "/tls/server.key"
+        "--grpc-ca" "/tls/ca.crt"
         "--mon-port" "$mon_port"
         "--ic-port" "$ic_port"
     )
