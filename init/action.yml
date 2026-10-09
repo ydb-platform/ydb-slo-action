@@ -64,6 +64,10 @@ inputs:
     required: false
 
   # Infrastructure
+  tls:
+    description: "Use verified TLS for workload connections and discovered database endpoints. Mounts the generated test CA at /tls/ca.crt."
+    required: false
+    default: "false"
   bridge_mode:
     description: "Run YDB as a two-pile 2DC bridge cluster."
     required: false

@@ -186,3 +186,7 @@ dist
 .claude/settings.local.json
 .claude/skills/
 skills-lock.json
+
+# Ephemeral TLS test material
+deploy/tls/
+deploy/compose.tls.json

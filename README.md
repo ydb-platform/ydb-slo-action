@@ -109,6 +109,7 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
 | `thresholds_yaml_path`      | no       | —             | Path to a per-scenario SLO thresholds file; merged over the report action's thresholds for this workload |
 | `bridge_mode`               | no       | `false`       | Run YDB as a two-pile 2DC bridge cluster                                             |
+| `tls`                       | no       | `false`       | Verify TLS on workload connections and discovered database endpoints                |
 | `disable_compose_profiles`  | no       | —             | Comma-separated list of compose profiles to disable (e.g., `chaos,telemetry`)        |
 
 ### 2DC bridge cluster
@@ -193,6 +194,23 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_run_id: ${{ github.event.workflow_run.id }}
 ```
+
+### TLS workloads
+
+Set `tls: true` to connect workloads using `grpcs://ydb:2135/Root/testdb`. The action generates an ephemeral test CA and server certificate with DNS/IP SANs for the selected topology, enables the secure gRPC listener and checks SQL and scheme readiness over TLS on every running database node. Discovery advertises the secure port. This works with the regular and bridge topologies and with chaos disabled.
+
+Workloads receive only `/tls/ca.crt`, mounted read-only. The action sets `YDB_SSL_ROOT_CERTIFICATES_FILE`, `GRPC_DEFAULT_SSL_ROOTS_FILE_PATH`, `NODE_EXTRA_CA_CERTS` and `SSL_CERT_FILE` to this path. SDKs that do not consume these variables must load that CA explicitly. Certificate and hostname verification must stay enabled. Private server keys are mounted only on server containers; the CA signing key is removed after issuance.
+
+TLS covers the client-facing gRPC connections. Internal bootstrap, node registration and bridge administration keep their existing plaintext connections inside the isolated Docker network.
+
+The runner needs Docker Compose and OpenSSL. For local runs, after installing the action dependencies, prepare the selected topology and use the returned Compose file:
+
+```bash
+bun -e 'import { prepareTls } from "./init/lib/tls.ts"; console.log(prepareTls("deploy", "compose.yml"))'
+WORKLOAD_CURRENT_IMAGE=my-workload docker compose -f deploy/compose.tls.json --profile telemetry --profile workload-current up --build
+```
+
+Do not archive the generated `tls/server` directory. The action uploads diagnostics, not private certificate material.
 
 ### Init Action Outputs
 

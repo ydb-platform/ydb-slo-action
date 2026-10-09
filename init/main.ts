@@ -17,6 +17,7 @@ import { exec } from '@actions/exec'
 import { getComposeProfiles, getContainerIp, waitForContainerCompletion } from './lib/docker.js'
 import { getPullRequestNumber } from './lib/github.js'
 import { extraArtifactsPath } from './lib/artifacts.js'
+import { prepareTls } from './lib/tls.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
 
@@ -37,6 +38,10 @@ async function main() {
 	await copyAssets(cwd)
 
 	try {
+		if (getInput('tls') === 'true') {
+			composeFile = prepareTls(cwd, composeFile)
+			saveState('compose_file', composeFile)
+		}
 		await deployInfra(cwd, workload, composeFile)
 	} catch (err) {
 		saveState('failed', 'cluster')

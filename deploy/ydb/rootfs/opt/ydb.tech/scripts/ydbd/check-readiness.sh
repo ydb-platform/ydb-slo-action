@@ -46,6 +46,10 @@ check_cluster_health() {
 
 check_node_responds() {
     local endpoint="$1"
+    local tls_args=()
+    if [[ "$endpoint" == grpcs://* ]]; then
+        tls_args=(--ca-file "${YDB_TLS_CA_FILE:?TLS readiness requires a CA file}")
+    fi
 
     log "Checking if node at $endpoint responds"
 
@@ -54,7 +58,7 @@ check_node_responds() {
 
     while [[ $attempt -lt $max_attempts ]]; do
         # Check SQL operations
-        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "SELECT 1" 2>&1 >/dev/null; then
+        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb "${tls_args[@]}" --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "SELECT 1" 2>&1 >/dev/null; then
             attempt=$((attempt + 1))
             log "Node at $endpoint not responding to SQL (attempt $attempt/$max_attempts)"
             sleep 2
@@ -65,7 +69,7 @@ check_node_responds() {
         local node_id="${endpoint//[^a-zA-Z0-9]/_}"
 
         # Check DDL operations
-        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "CREATE TABLE IF NOT EXISTS rd_check_${node_id} (ip Utf8, primary key (ip));" 2>&1 >/dev/null; then
+        if ! timeout "${YDB_READINESS_TIMEOUT}" ydb "${tls_args[@]}" --endpoint "${endpoint}" --database "${YDB_DATABASE}" --no-discovery sql -s "CREATE TABLE IF NOT EXISTS rd_check_${node_id} (ip Utf8, primary key (ip));" 2>&1 >/dev/null; then
             attempt=$((attempt + 1))
             log "Node at $endpoint not responding to DDL (attempt $attempt/$max_attempts)"
             sleep 2
@@ -97,7 +101,7 @@ for host in $DATABASE_HOSTS; do
         log "Skipping $host (not running)"
         continue
     fi
-    check_node_responds "grpc://${host}:2136"
+    check_node_responds "${YDB_READINESS_SCHEME:-grpc}://${host}:${YDB_READINESS_PORT:-2136}"
     checked=$((checked + 1))
 done
 
