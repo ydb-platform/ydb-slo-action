@@ -313,8 +313,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.00'
-          memory: 4G
+          cpus: '${WORKLOAD_CPU_LIMIT:-2.00}'
+          memory: '${WORKLOAD_MEMORY_LIMIT:-4G}'
         reservations:
           cpus: '1.00'
           memory: 2G
@@ -362,8 +362,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.00'
-          memory: 4G
+          cpus: '${WORKLOAD_CPU_LIMIT:-2.00}'
+          memory: '${WORKLOAD_MEMORY_LIMIT:-4G}'
         reservations:
           cpus: '1.00'
           memory: 2G
