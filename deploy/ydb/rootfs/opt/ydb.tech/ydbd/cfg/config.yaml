@@ -8,6 +8,9 @@ config:
   default_disk_type: SSD
   yaml_config_enabled: true
 
+  auth_config:
+    login_token_expire_time: 5m
+
   actor_system_config:
     use_auto_config: true
     cpu_count: 4
