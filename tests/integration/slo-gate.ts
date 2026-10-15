@@ -13,18 +13,41 @@ process.env['GITHUB_STEP_SUMMARY'] = path.join(cwd, 'summary.md')
 await fs.writeFile(process.env['GITHUB_STEP_SUMMARY'], '')
 
 let windowText = ''
-await exec('docker', ['inspect', container, '--format', '{{.State.StartedAt}}|{{.State.FinishedAt}}'], {
-	listeners: { stdout: (data) => { windowText += data.toString() } },
-})
-let [start, finish] = windowText.trim().split('|')
-if (!start || !finish) throw new Error('Probe execution window is missing')
+await exec(
+	'docker',
+	[
+		'inspect',
+		container,
+		'--format',
+		'{{.State.Status}}|{{.State.StartedAt}}|{{.State.FinishedAt}}|{{.State.ExitCode}}',
+	],
+	{
+		listeners: {
+			stdout: (data) => {
+				windowText += data.toString()
+			},
+		},
+	}
+)
+let [status, start, finish, exitCode] = windowText.trim().split('|')
+if (status !== 'exited' || !start || !finish) throw new Error('Probe has not completed')
 
 try {
-	await validateWorkloads(cwd, [{
-		name: 'current',
-		container,
-		ref,
-	}], { start: new Date(start), finish: new Date(finish), failures: [] })
+	await validateWorkloads(
+		cwd,
+		[
+			{
+				name: 'current',
+				container,
+				ref,
+			},
+		],
+		{
+			start: new Date(start),
+			finish: new Date(finish),
+			failures: exitCode === '0' ? [] : [`${container} exited with code ${exitCode}`],
+		}
+	)
 } catch (error) {
 	if (!(error instanceof SloRunError)) throw error
 	console.error(error.message)
