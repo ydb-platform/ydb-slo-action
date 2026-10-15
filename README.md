@@ -8,7 +8,7 @@
 
 **YDB SLO Action** tests your YDB SDK's reliability under real-world conditions:
 
-- Deploys a full YDB cluster (1 storage + 5 database nodes)
+- Deploys a YDB cluster (1 storage + 2 database nodes by default, expandable to 5 database nodes)
 - Introduces chaos (random node failures, network issues, rolling restarts)
 - Runs your current and baseline workloads simultaneously under the same conditions
 - Collects metrics via Prometheus and compares performance using paired-comparison analysis
@@ -112,7 +112,7 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
 | `thresholds_yaml_path`      | no       | —             | Path to a per-scenario SLO thresholds file; merged over the report action's thresholds for this workload |
 | `bridge_mode`               | no       | `false`       | Run YDB as a two-pile 2DC bridge cluster                                             |
-| `disable_compose_profiles`  | no       | —             | Comma-separated list of compose profiles to disable (e.g., `chaos,telemetry`)        |
+| `disable_compose_profiles`  | no       | `extra-nodes` | Comma-separated profiles to disable; an explicit empty value enables the full topology |
 
 ### 2DC bridge cluster
 
@@ -127,25 +127,35 @@ Set `bridge_mode: true` to run the same workloads and telemetry on a YDB cluster
     bridge_mode: true
 ```
 
-The default bridge topology has two storage nodes and four database nodes, split evenly between `pile-1` and `pile-2`.
-Disabling the `extra-nodes` profile keeps one database node in each pile.
+The default bridge topology has two storage nodes and two database nodes,
+with one database node in each pile. An explicit empty
+`disable_compose_profiles` value enables four database nodes, split evenly
+between `pile-1` and `pile-2`.
 
 ### Cluster size
 
-In regular mode the cluster runs **5 database nodes** by default. Disable the `extra-nodes`
-profile to run a smaller **2-node** cluster — cheaper and faster to start:
+In regular mode the Action runs **2 database nodes** by default, with the
+`extra-nodes` profile disabled. This is the default GitHub-hosted SLO topology.
+Both current and baseline use the same cluster and chaos conditions.
+
+Set an explicit empty disabled-profile list to opt into **5 database nodes**:
 
 ```yaml
 - uses: ydb-platform/ydb-slo-action/init@v3
   with:
     workload_name: my-test
     workload_current_image: my-workload:pr-123
-    disable_compose_profiles: extra-nodes
+    disable_compose_profiles: ""
 ```
 
-A 2-node cluster suits quick smoke runs more than strict SLO gating: chaos
-faults remove a larger fraction of the cluster (stopping one node drops 50% of
-compute instead of 20%), so latency/availability swings are wider by design.
+Stopping one of two database nodes removes 50% of compute rather than 20%.
+Keep that topology explicit when interpreting availability and latency; an
+older five-node run is not an equivalent capacity comparison.
+
+The input replaces the default disabled-profile list, rather than extending
+it. When disabling additional profiles, include `extra-nodes` to retain two
+database nodes, for example `extra-nodes,chaos`. Keep telemetry enabled for
+SDK observations and reports.
 
 ### Fail fast on workload errors
 
@@ -159,7 +169,7 @@ it does not turn a FAIL or INVALID verdict into PASS.
     workload_name: topics-smoke
     workload_current_image: my-topics-workload:current
     fail_on_workload_error: true
-    disable_compose_profiles: chaos # SDK telemetry is required
+    disable_compose_profiles: extra-nodes,chaos # SDK telemetry is required
 ```
 
 Whether a **report** is produced on a failed run is

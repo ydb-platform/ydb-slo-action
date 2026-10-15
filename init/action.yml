@@ -72,8 +72,9 @@ inputs:
     required: false
     default: "false"
   disable_compose_profiles:
-    description: "Comma-separated list of compose profiles to disable (e.g., 'chaos,telemetry')."
+    description: "Comma-separated profiles to disable. Defaults to extra-nodes for two database nodes. An explicit empty value enables the full topology; include extra-nodes when disabling additional profiles to keep two nodes."
     required: false
+    default: "extra-nodes"
 
 outputs:
   slo-verdict:
