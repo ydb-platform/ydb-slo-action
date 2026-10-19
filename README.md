@@ -111,10 +111,15 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults; supports per-workload exclusions  |
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
 | `thresholds_yaml_path`      | no       | —             | Path to a per-scenario SLO thresholds file; merged over the report action's thresholds for this workload |
+| `deployment_timeout`       | no       | `600`         | Total seconds for Compose pull, build and startup; requires GNU `timeout` on the runner |
 | `bridge_mode`               | no       | `false`       | Run YDB as a two-pile 2DC bridge cluster                                             |
 | `disable_compose_profiles`  | no       | —             | Comma-separated list of compose profiles to disable (e.g., `chaos,telemetry`)        |
 
 ### 2DC bridge cluster
+
+Infrastructure startup runs pull, build and startup as separate logged stages within
+`deployment_timeout`. Workload execution has its own completion budget. The monitoring
+and network helper images use digest-pinned upstream Docker Hub images.
 
 Set `bridge_mode: true` to run the same workloads and telemetry on a YDB cluster with two bridge piles and pile-level chaos scenarios:
 

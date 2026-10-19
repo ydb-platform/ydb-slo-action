@@ -130,6 +130,7 @@ State passed via `saveState()`/`getState()`: cwd, workload name, PR number, comm
 **Lifecycle resilience contract:**
 
 - `main` owns the definitive verdict. V3 fails on process errors, failed data invariants or missing required SDK telemetry. `fail_on_workload_error` only controls whether to stop waiting after a process failure. Pass the measurement window directly to the gate: `saveState` values are exposed only to `post`.
+- Deployment runs pull, build and startup as separate visible stages under one `deployment_timeout` budget. Stage retries share that deadline and must not start workloads after an image preparation failure. Runners need GNU `timeout`.
 - `post` is best-effort diagnostics + cleanup and never decides pass/fail. It discovers what exists (e.g. probes for the Prometheus container) instead of assuming, degrades each collector to an empty artifact when its source is absent, guarantees teardown via `finally`, and never crashes. Whether a report runs on a failed init is workflow orchestration (`needs:`/`if:`, or `workflow_run.conclusion`), not an action input.
 
 ### Metrics Collection

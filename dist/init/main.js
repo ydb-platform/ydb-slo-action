@@ -30,6 +30,42 @@ import * as fs2 from "node:fs";
 import * as path2 from "node:path";
 import { fileURLToPath } from "node:url";
 
+// init/lib/deployment.ts
+async function deployCompose(options) {
+  if (!Number.isSafeInteger(options.timeoutSeconds) || options.timeoutSeconds <= 0)
+    throw Error("deployment_timeout must be a positive integer in seconds");
+  let deadline = Date.now() + options.timeoutSeconds * 1000, stages = [
+    ["pull", "--ignore-buildable", "--policy", "missing"],
+    ["build"],
+    ["up", "--no-build", "--pull", "never", "--detach"]
+  ];
+  for (let stage of stages)
+    for (let attempt = 1;attempt <= 3; attempt++) {
+      let remaining = Math.ceil((deadline - Date.now()) / 1000);
+      if (remaining <= 0)
+        throw Error("Compose deployment budget expired");
+      info(`Compose ${stage[0]}: attempt ${attempt}/3, ${remaining}s remaining`);
+      try {
+        await exec("timeout", [
+          "--kill-after=30s",
+          `${remaining}s`,
+          "docker",
+          "compose",
+          "--progress",
+          "plain",
+          "-f",
+          options.composeFile,
+          ...stage
+        ], { cwd: options.cwd, env: options.env });
+        break;
+      } catch (error) {
+        if (attempt === 3 || Date.now() >= deadline)
+          throw error;
+        warning(`Compose ${stage[0]} attempt ${attempt} failed: ${String(error)}`);
+      }
+    }
+}
+
 // init/lib/slo.ts
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -173,34 +209,23 @@ async function deployInfra(cwd, workload, composeFile) {
     profiles.push("workload-current");
   if (workloadBaselineImage)
     profiles.push("workload-baseline");
-  let started = !1;
-  for (let attempt = 1;attempt <= 3; attempt++) {
-    try {
-      await exec("docker", ["compose", "-f", composeFile, "up", "--quiet-pull", "--quiet-build", "--detach"], {
-        cwd,
-        env: {
-          ...process.env,
-          COMPOSE_PROFILES: profiles.join(","),
-          WORKLOAD_NAME: workload,
-          WORKLOAD_DURATION: workloadDuration,
-          WORKLOAD_CURRENT_REF: workloadCurrentRef,
-          WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
-          WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
-          WORKLOAD_BASELINE_REF: workloadBaselineRef,
-          WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
-          WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand
-        }
-      });
-    } catch (err) {
-      info(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`);
-      continue;
+  if (await deployCompose({
+    cwd,
+    composeFile,
+    timeoutSeconds: Number(getInput("deployment_timeout") || "600"),
+    env: {
+      ...process.env,
+      COMPOSE_PROFILES: profiles.join(","),
+      WORKLOAD_NAME: workload,
+      WORKLOAD_DURATION: workloadDuration,
+      WORKLOAD_CURRENT_REF: workloadCurrentRef,
+      WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
+      WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
+      WORKLOAD_BASELINE_REF: workloadBaselineRef,
+      WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
+      WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand
     }
-    started = !0;
-    break;
-  }
-  if (!started)
-    throw Error("Failed to start YDB cluster.");
-  if (debug(`Ran ${composeFile} with profiles: ${profiles.join(", ")}`), profiles.includes("telemetry")) {
+  }), debug(`Ran ${composeFile} with profiles: ${profiles.join(", ")}`), profiles.includes("telemetry")) {
     let prometheusIp = await getContainerIp("ydb-prometheus");
     setOutput("ydb-prometheus-url", `http://${prometheusIp}:9090`), setOutput("ydb-prometheus-otlp", `http://${prometheusIp}:9090/api/v1/otlp`);
   }
