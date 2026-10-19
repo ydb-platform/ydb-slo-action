@@ -349,26 +349,6 @@ async function main() {
     let meta = await loadMetadata(artifact.metaPath), alerts = await loadAlerts(artifact.alertsPath), metrics = await loadMetrics(artifact.metricsPath), scenarios = artifact.logsPath ? parseChaosScenarios(await fs4.readFile(artifact.logsPath, "utf-8")) : [];
     if (!prNumber && meta.pull)
       prNumber = meta.pull;
-    if (meta.failed) {
-      reports.push({
-        failed: !0,
-        workload,
-        currentRef: meta.workload_current_ref || "current",
-        baselineRef: meta.workload_baseline_ref || "baseline",
-        analysis: {
-          workload,
-          severity: "failure",
-          metrics: []
-        },
-        commit: meta.commit,
-        runUrl: meta.run_url,
-        repoUrl: meta.repo_url,
-        reportUrl: meta.run_url,
-        durationMs: meta.duration_ms,
-        scenarios
-      });
-      continue;
-    }
     info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`);
     let effectiveConfig = thresholdsConfig;
     if (artifact.thresholdsPath)
@@ -382,7 +362,7 @@ async function main() {
       trimPercent: 0.1,
       emaAlpha: 0.15,
       thresholdConfig: effectiveConfig,
-      sloVerdict: meta.slo?.verdict ?? "INVALID"
+      sloVerdict: meta.failed ? "FAIL" : meta.slo?.verdict ?? "INVALID"
     });
     if (analysis.summary.failures > 0)
       info(`  ❌ ${analysis.summary.failures} critical threshold violation(s)`);
@@ -392,7 +372,7 @@ async function main() {
     await fs4.writeFile(htmlPath, html, "utf-8");
     let reportUrl = await uploadReportArtifact(cwd, workload, htmlPath, artifactRetentionDays);
     info(`  \uD83D\uDCCE Report: ${reportUrl}`), reports.push({
-      failed: !1,
+      failed: Boolean(meta.failed),
       workload,
       currentRef: meta.workload_current_ref || "current",
       baselineRef: meta.workload_baseline_ref || "baseline",

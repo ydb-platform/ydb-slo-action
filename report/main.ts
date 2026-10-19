@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 
 import { getInput, info, setFailed, warning } from '@actions/core'
 
-import type { MetricAnalysis } from '../shared/analysis.js'
 import { parseChaosScenarios } from '../shared/chaos.js'
 import { analyzeSloWorkload as analyzeWorkload } from '../shared/slo-analysis.js'
 import { loadThresholdConfig, mergeWorkloadThresholds } from '../shared/thresholds.js'
@@ -68,28 +67,6 @@ async function main() {
 			prNumber = meta.pull
 		}
 
-		if (meta.failed) {
-			reports.push({
-				failed: true,
-				workload,
-				currentRef: meta.workload_current_ref || 'current',
-				baselineRef: meta.workload_baseline_ref || 'baseline',
-				analysis: {
-					workload,
-					severity: 'failure',
-					metrics: [] as MetricAnalysis[],
-				},
-				commit: meta.commit,
-				runUrl: meta.run_url,
-				repoUrl: meta.repo_url,
-				reportUrl: meta.run_url,
-				durationMs: meta.duration_ms,
-				scenarios,
-			} as WorkloadReportSummary)
-
-			continue
-		}
-
 		info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`)
 
 		// Per-scenario thresholds (shipped by init) override the report-global config
@@ -118,7 +95,7 @@ async function main() {
 				trimPercent: 0.1,
 				emaAlpha: 0.15,
 				thresholdConfig: effectiveConfig,
-				sloVerdict: meta.slo?.verdict ?? 'INVALID',
+				sloVerdict: meta.failed ? 'FAIL' : (meta.slo?.verdict ?? 'INVALID'),
 			}
 		)
 
@@ -138,7 +115,7 @@ async function main() {
 		info(`  📎 Report: ${reportUrl}`)
 
 		reports.push({
-			failed: false,
+			failed: Boolean(meta.failed),
 			workload,
 			currentRef: meta.workload_current_ref || 'current',
 			baselineRef: meta.workload_baseline_ref || 'baseline',
