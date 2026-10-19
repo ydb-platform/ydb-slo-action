@@ -1,6 +1,7 @@
 import {
   summary,
   exec,
+  getExecOutput,
   getInput,
   setOutput,
   setFailed,
@@ -11,7 +12,7 @@ import {
   saveState,
   loadThresholdConfig,
   analyzeSloWorkload
-} from "../main-xzyv760g.js";
+} from "../main-rv8d74fb.js";
 import {
   getContainerIp,
   getComposeProfiles,
@@ -23,7 +24,7 @@ import {
   loadMetricConfig,
   queryInstant,
   collectMetricsFromPrometheus
-} from "../main-y3n7pjbt.js";
+} from "../main-28xy2ajk.js";
 
 // init/main.ts
 import * as fs2 from "node:fs";
@@ -34,8 +35,30 @@ import { fileURLToPath } from "node:url";
 async function deployCompose(options) {
   if (!Number.isSafeInteger(options.timeoutSeconds) || options.timeoutSeconds <= 0)
     throw Error("deployment_timeout must be a positive integer in seconds");
-  let deadline = Date.now() + options.timeoutSeconds * 1000, stages = [
-    ["pull", "--ignore-buildable", "--policy", "missing"],
+  let deadline = Date.now() + options.timeoutSeconds * 1000, timed = (args) => {
+    let remaining = Math.ceil((deadline - Date.now()) / 1000);
+    if (remaining <= 0)
+      throw Error("Compose deployment budget expired");
+    return ["--kill-after=30s", `${remaining}s`, ...args];
+  }, compose = ["docker", "compose", "--progress", "plain", "-f", options.composeFile], execution = { cwd: options.cwd, env: options.env }, config = await getExecOutput("timeout", timed([...compose, "config", "--format", "json"]), {
+    ...execution,
+    silent: !0
+  }), services = JSON.parse(config.stdout).services, missing = [];
+  for (let [name, service] of Object.entries(services)) {
+    if (!service.image || service.build || service.pull_policy === "never")
+      continue;
+    let image = await getExecOutput("timeout", timed(["docker", "image", "inspect", service.image]), {
+      ...execution,
+      silent: !0,
+      ignoreReturnCode: !0
+    });
+    if (image.exitCode === 1)
+      missing.push(name);
+    else if (image.exitCode !== 0)
+      throw Error(`Image inspection exited with code ${image.exitCode}`);
+  }
+  let stages = [
+    ...missing.length ? [["pull", "--ignore-buildable", "--policy", "missing", ...missing]] : [],
     ["build"],
     ["up", "--no-build", "--pull", "never", "--detach"]
   ];
@@ -46,17 +69,7 @@ async function deployCompose(options) {
         throw Error("Compose deployment budget expired");
       info(`Compose ${stage[0]}: attempt ${attempt}/3, ${remaining}s remaining`);
       try {
-        await exec("timeout", [
-          "--kill-after=30s",
-          `${remaining}s`,
-          "docker",
-          "compose",
-          "--progress",
-          "plain",
-          "-f",
-          options.composeFile,
-          ...stage
-        ], { cwd: options.cwd, env: options.env });
+        await exec("timeout", timed([...compose, ...stage]), execution);
         break;
       } catch (error) {
         if (attempt === 3 || Date.now() >= deadline)
