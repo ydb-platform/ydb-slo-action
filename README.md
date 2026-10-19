@@ -119,7 +119,7 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 
 Infrastructure startup runs pull, build and startup as separate logged stages within
 `deployment_timeout`. Workload execution has its own completion budget. The monitoring
-and network helper images use digest-pinned upstream Docker Hub images.
+and build images use digest-pinned upstream Docker Hub images.
 
 Set `bridge_mode: true` to run the same workloads and telemetry on a YDB cluster with two bridge piles and pile-level chaos scenarios:
 
