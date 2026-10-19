@@ -19,6 +19,17 @@ test.if(hasDockerCompose())('getComposeProfiles extracts profiles from compose f
 		assert.ok(profiles.includes('telemetry'))
 		assert.ok(profiles.includes('workload-current'))
 		assert.ok(profiles.includes('workload-baseline'))
+		let config = spawnSync(
+			'docker',
+			['compose', '-f', composeFile, '--profile', '*', 'config', '--format', 'json'],
+			{ cwd, encoding: 'utf-8' }
+		)
+		assert.equal(config.status, 0, config.stderr)
+		let services = JSON.parse(config.stdout).services
+		let nodes = Object.keys(services).filter(
+			(name) => services[name].labels?.['ydb.node.type'] === 'database'
+		)
+		assert.deepEqual(nodes.sort(), ['database-1', 'database-2'])
 	}
 })
 

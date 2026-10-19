@@ -132,25 +132,13 @@ Set `bridge_mode: true` to run the same workloads and telemetry on a YDB cluster
     bridge_mode: true
 ```
 
-The default bridge topology has two storage nodes and four database nodes, split evenly between `pile-1` and `pile-2`.
-Disabling the `extra-nodes` profile keeps one database node in each pile.
+The bridge topology has two database nodes, one per pile, and two storage nodes.
 
 ### Cluster size
 
-In regular mode the cluster runs **5 database nodes** by default. Disable the `extra-nodes`
-profile to run a smaller **2-node** cluster — cheaper and faster to start:
-
-```yaml
-- uses: ydb-platform/ydb-slo-action/init@v3
-  with:
-    workload_name: my-test
-    workload_current_image: my-workload:pr-123
-    disable_compose_profiles: extra-nodes
-```
-
-A 2-node cluster suits quick smoke runs more than strict SLO gating: chaos
-faults remove a larger fraction of the cluster (stopping one node drops 50% of
-compute instead of 20%), so latency/availability swings are wider by design.
+Both modes always run **two database nodes**. Regular mode uses one separate
+storage node. Readiness requires both database nodes to respond before workloads
+start. Stopping one database node during chaos removes half the compute.
 
 ### Fail fast on workload errors
 

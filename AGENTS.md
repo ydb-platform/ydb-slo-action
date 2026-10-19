@@ -26,6 +26,7 @@ GitHub Actions toolkit for automated SLO testing of YDB database SDKs.
 
 - Docker Compose defines all infrastructure
 - `bridge_mode` selects the two-pile 2DC Compose topology; the default topology remains single-pile
+- Both topologies have exactly two database nodes; profiles never change their count
 - Metrics = YAML files (not hardcoded)
 - Chaos scenarios = shell scripts
 - `deploy/` directory copied to `.slo/` at runtime
