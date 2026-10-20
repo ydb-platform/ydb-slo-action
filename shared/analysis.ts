@@ -291,7 +291,8 @@ export function analyzeMetric(
 ): MetricAnalysis {
 	let { trimPercent = 0.1, emaAlpha = 0.15, thresholdConfig } = options
 	let direction = thresholdConfig
-		? findMatchingThreshold(metric.name, thresholdConfig)?.direction ?? inferDirection(metric.name)
+		? (findMatchingThreshold(metric.name, thresholdConfig)?.direction ??
+			inferDirection(metric.name))
 		: inferDirection(metric.name)
 
 	let currentVals = extractValues(metric, currentRef)
@@ -400,9 +401,10 @@ export function analyzeMetric(
 		absoluteCheck,
 		absoluteThresholds,
 		relativeCheck,
-		relativeThresholds: thresholdConfig && direction !== 'neutral'
-			? resolveRelativeThresholds(metric.name, thresholdConfig)
-			: undefined,
+		relativeThresholds:
+			thresholdConfig && direction !== 'neutral'
+				? resolveRelativeThresholds(metric.name, thresholdConfig)
+				: undefined,
 		severity,
 		visualization,
 		_forestEntry: forestEntry,

@@ -1,4 +1,4 @@
-import { analyzeWorkload, type AnalysisOptions, type WorkloadAnalysis } from './analysis.js'
+import { type AnalysisOptions, type WorkloadAnalysis, analyzeWorkload } from './analysis.js'
 import type { CollectedMetric } from './metrics.js'
 import type { SloVerdict } from './slo-result.js'
 
@@ -24,12 +24,15 @@ export function analyzeSloWorkload(
 	)
 	return {
 		...sli,
-		severity: options.sloVerdict === 'FAIL' || options.sloVerdict === 'INVALID'
-			? 'failure'
-			: sli.severity,
+		severity:
+			options.sloVerdict === 'FAIL' || options.sloVerdict === 'INVALID'
+				? 'failure'
+				: sli.severity,
 		metrics: [
 			...sli.metrics,
-			...diagnostics.metrics.filter((metric) => metric.current.count > 0 || metric.baseline.count > 0),
+			...diagnostics.metrics.filter(
+				(metric) => metric.current.count > 0 || metric.baseline.count > 0
+			),
 		],
 		forestPlot: [...sli.forestPlot, ...diagnostics.forestPlot],
 	}

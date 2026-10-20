@@ -25,7 +25,7 @@ import {
   loadMetricConfig,
   queryInstant,
   collectMetricsFromPrometheus
-} from "../main-jmd4jxef.js";
+} from "../main-bsh7a88w.js";
 
 // init/main.ts
 import * as fs2 from "node:fs";
@@ -202,9 +202,17 @@ async function waitForWorkloads(cwd) {
   debug(`Workload configuration: duration=${workloadDuration}s, timeout=${workloadTimeoutMs}ms, failFast=${failFast}`);
   let workloadsToWait = [];
   if (workloadCurrentImage)
-    workloadsToWait.push({ name: "current", container: "ydb-workload-current", ref: getInput("workload_current_ref") || "current" });
+    workloadsToWait.push({
+      name: "current",
+      container: "ydb-workload-current",
+      ref: getInput("workload_current_ref") || "current"
+    });
   if (workloadBaselineImage)
-    workloadsToWait.push({ name: "baseline", container: "ydb-workload-baseline", ref: getInput("workload_baseline_ref") || "baseline" });
+    workloadsToWait.push({
+      name: "baseline",
+      container: "ydb-workload-baseline",
+      ref: getInput("workload_baseline_ref") || "baseline"
+    });
   let failures = [];
   if (workloadsToWait.length > 0) {
     if (info(`Waiting for ${workloadsToWait.length} workload(s) to complete...`), info(`  - ${workloadsToWait.map((w) => w.name).join(", ")}`), info(`  - Total completion budget: ${workloadTimeout}s`), (await Promise.allSettled(workloadsToWait.map((w) => waitForContainerCompletion({ container: w.container, timeoutMs: workloadTimeoutMs })))).forEach((result, i) => {

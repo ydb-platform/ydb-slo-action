@@ -4,7 +4,7 @@ import * as path from 'node:path'
 import { getInput, info, saveState, setOutput, summary } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import { evaluateSloResult, parseSloResult, type SloCheck } from '../../shared/slo-result.js'
+import { type SloCheck, evaluateSloResult, parseSloResult } from '../../shared/slo-result.js'
 import { analyzeSloWorkload } from '../../shared/slo-analysis.js'
 import { loadMetricConfig } from '../../shared/metrics.js'
 import { getMetricSchema } from '../../shared/metric-schema.js'

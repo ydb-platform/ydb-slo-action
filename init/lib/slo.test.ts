@@ -96,7 +96,7 @@ for (let fixture of cases) {
 		let collectSpy = spyOn(metrics, 'collectMetricsFromPrometheus').mockResolvedValue([])
 		let summarySpy = spyOn(summary, 'write').mockResolvedValue(summary)
 		let querySpy = spyOn(prometheus, 'queryInstant').mockImplementation(async ({ query }) => {
-			let ref = ['feature', 'main'].find((ref) => query.includes(`ref="${ref}"`))
+			let ref = ['feature', 'main'].find((candidate) => query.includes(`ref="${candidate}"`))
 			let result: prometheus.PrometheusInstantValue[] = []
 			if (ref && ref !== fixture.missingRef) {
 				if (fixture.schema === 'legacy_table' && query.includes('sdk_operations_total')) {

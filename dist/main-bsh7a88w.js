@@ -250,9 +250,17 @@ function evaluateSloResult(result, expectedRef, thresholds) {
     return { id: "contract", verdict: "FAIL", detail: result.checks.filter((check) => check.verdict === "FAIL").map((check) => `${check.id}: ${check.detail}`).join("; ") || "Workload reported FAIL" };
   let required = result.kind === "table" ? ["T01", "T02"] : ["P01", "P02", "P03"], ids = result.checks.map((check) => check.id);
   if (new Set(ids).size !== ids.length || result.verdict !== "PASS" || result.checks.some((check) => check.verdict !== "PASS") || required.some((id) => !result.checks.some((check) => check.id === id && check.verdict === "PASS")))
-    return { id: "contract", verdict: "INVALID", detail: "Required scenario checks are missing or invalid" };
+    return {
+      id: "contract",
+      verdict: "INVALID",
+      detail: "Required scenario checks are missing or invalid"
+    };
   if (["read", "write"].some((type) => !result.operations.some((operation) => operation.type === type && operation.success > 0)))
-    return { id: "contract", verdict: "INVALID", detail: "No successful read/write observations" };
+    return {
+      id: "contract",
+      verdict: "INVALID",
+      detail: "No successful read/write observations"
+    };
   if (new Set(result.operations.map((operation) => operation.type)).size !== result.operations.length)
     return { id: "contract", verdict: "INVALID", detail: "Duplicate operation counts" };
   if (thresholds)

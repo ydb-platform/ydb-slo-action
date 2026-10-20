@@ -27,7 +27,9 @@ export function parseChaosScenarios(logs: string): ChaosScenario[] {
 			current.status = finish[1] === 'Completed' ? 'completed' : 'failed'
 			if (timestamp && Number.isFinite(Date.parse(timestamp))) current.finishedAt = timestamp
 			if (finish[3]) current.exitCode = Number(finish[3])
-		} else if (/\bscenario completed$|^Rolling restart completed for all \d+ nodes$/.test(message)) {
+		} else if (
+			/\bscenario completed$|^Rolling restart completed for all \d+ nodes$/.test(message)
+		) {
 			current.status = 'completed'
 		}
 	}

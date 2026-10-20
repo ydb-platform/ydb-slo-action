@@ -46,7 +46,10 @@ export function injectData(template: string, data: ReportData): string {
 	// map, so the map stays first in the head and precedes every module script.
 	let serialized = JSON.stringify(data)
 	let dataScript = `<script>window.__REPORT_DATA__ = ${serialized};</script>`
-	return template.replace(/(<script type="importmap">[\s\S]*?<\/script>)/, '$1\n\t\t' + dataScript)
+	return template.replace(
+		/(<script type="importmap">[\s\S]*?<\/script>)/,
+		'$1\n\t\t' + dataScript
+	)
 }
 
 /**

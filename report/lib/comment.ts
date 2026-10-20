@@ -117,7 +117,9 @@ export function generateCommentBody(reports: WorkloadReportSummary[]): string {
 		lines.push(`| ${report.workload} | ${thresholdLabel} | ${durationCell} | ${reportCell} |`)
 	}
 
-	let scenarioNames = new Set(reports.flatMap((report) => report.scenarios?.map((scenario) => scenario.name) ?? []))
+	let scenarioNames = new Set(
+		reports.flatMap((report) => report.scenarios?.map((scenario) => scenario.name) ?? [])
+	)
 	if (scenarioNames.size > 0) {
 		lines.push('', '### Chaos scenarios', '')
 		lines.push(`| Scenario | ${reports.map((report) => report.workload).join(' | ')} |`)
@@ -130,9 +132,12 @@ export function generateCommentBody(reports: WorkloadReportSummary[]): string {
 					? ` (${formatDuration(Date.parse(scenario.finishedAt) - Date.parse(scenario.startedAt))})`
 					: ''
 				switch (scenario.status) {
-					case 'completed': return `Completed${duration}`
-					case 'failed': return `Failed${duration}${scenario.exitCode === undefined ? '' : `, exit ${scenario.exitCode}`}`
-					case 'incomplete': return 'Incomplete'
+					case 'completed':
+						return `Completed${duration}`
+					case 'failed':
+						return `Failed${duration}${scenario.exitCode === undefined ? '' : `, exit ${scenario.exitCode}`}`
+					case 'incomplete':
+						return 'Incomplete'
 				}
 			})
 			lines.push(`| ${name} | ${cells.join(' | ')} |`)

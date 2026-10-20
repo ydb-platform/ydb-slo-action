@@ -12,29 +12,83 @@ let thresholds: ThresholdConfig = {
 
 test('attempt diagnostics cannot fail a successful logical SLO', () => {
 	let metrics: CollectedMetric[] = [
-		{ name: 'ydb.client.retry.duration', query: '', type: 'instant', data: [{ metric: { ref: 'current' }, value: [1, '20'] }] },
-		{ name: 'ydb.client.operation.failed', role: 'diagnostic', query: '', type: 'instant', data: [{ metric: { ref: 'current' }, value: [1, '400'] }] },
-		{ name: 'ydb.query.session.count', role: 'diagnostic', query: '', type: 'instant', data: [{ metric: { ref: 'current' }, value: [1, '0'] }] },
-		{ name: 'ydb.query.session.create_time', role: 'diagnostic', query: '', type: 'range', data: [{ metric: { ref: 'current' }, values: [[1, 'NaN']] }] },
-		{ name: 'ydb.query.session.pending_requests', role: 'diagnostic', query: '', type: 'range', data: [{ metric: { ref: 'baseline' }, values: [[1, '5']] }] },
+		{
+			name: 'ydb.client.retry.duration',
+			query: '',
+			type: 'instant',
+			data: [{ metric: { ref: 'current' }, value: [1, '20'] }],
+		},
+		{
+			name: 'ydb.client.operation.failed',
+			role: 'diagnostic',
+			query: '',
+			type: 'instant',
+			data: [{ metric: { ref: 'current' }, value: [1, '400'] }],
+		},
+		{
+			name: 'ydb.query.session.count',
+			role: 'diagnostic',
+			query: '',
+			type: 'instant',
+			data: [{ metric: { ref: 'current' }, value: [1, '0'] }],
+		},
+		{
+			name: 'ydb.query.session.create_time',
+			role: 'diagnostic',
+			query: '',
+			type: 'range',
+			data: [{ metric: { ref: 'current' }, values: [[1, 'NaN']] }],
+		},
+		{
+			name: 'ydb.query.session.pending_requests',
+			role: 'diagnostic',
+			query: '',
+			type: 'range',
+			data: [{ metric: { ref: 'baseline' }, values: [[1, '5']] }],
+		},
 	]
-	let analysis = analyzeSloWorkload('table', metrics, 'current', 'baseline', { thresholdConfig: thresholds })
+	let analysis = analyzeSloWorkload('table', metrics, 'current', 'baseline', {
+		thresholdConfig: thresholds,
+	})
 	expect(analysis.severity).toBe('success')
-	expect(analysis.metrics.map((metric) => metric.name)).toEqual(['ydb.client.retry.duration', 'ydb.client.operation.failed', 'ydb.query.session.count', 'ydb.query.session.pending_requests'])
+	expect(analysis.metrics.map((metric) => metric.name)).toEqual([
+		'ydb.client.retry.duration',
+		'ydb.client.operation.failed',
+		'ydb.query.session.count',
+		'ydb.query.session.pending_requests',
+	])
 })
 
 test('logical failures remain failures when diagnostic metrics look healthy', () => {
 	let metrics: CollectedMetric[] = [
-		{ name: 'ydb.client.retry.duration', query: '', type: 'instant', data: [{ metric: { ref: 'current' }, value: [1, '500'] }] },
-		{ name: 'ydb.client.operation.failed', role: 'diagnostic', query: '', type: 'instant', data: [{ metric: { ref: 'current' }, value: [1, '0'] }] },
+		{
+			name: 'ydb.client.retry.duration',
+			query: '',
+			type: 'instant',
+			data: [{ metric: { ref: 'current' }, value: [1, '500'] }],
+		},
+		{
+			name: 'ydb.client.operation.failed',
+			role: 'diagnostic',
+			query: '',
+			type: 'instant',
+			data: [{ metric: { ref: 'current' }, value: [1, '0'] }],
+		},
 	]
-	let analysis = analyzeSloWorkload('table', metrics, 'current', 'baseline', { thresholdConfig: thresholds })
+	let analysis = analyzeSloWorkload('table', metrics, 'current', 'baseline', {
+		thresholdConfig: thresholds,
+	})
 	expect(analysis.severity).toBe('failure')
 })
 
 test('a failed data check cannot be hidden by healthy SDK duration', () => {
 	let metrics: CollectedMetric[] = [
-		{ name: 'ydb.client.retry.duration', query: '', type: 'instant', data: [{ metric: { ref: 'current' }, value: [1, '10'] }] },
+		{
+			name: 'ydb.client.retry.duration',
+			query: '',
+			type: 'instant',
+			data: [{ metric: { ref: 'current' }, value: [1, '10'] }],
+		},
 	]
 	let analysis = analyzeSloWorkload('table', metrics, 'current', 'baseline', {
 		thresholdConfig: thresholds,

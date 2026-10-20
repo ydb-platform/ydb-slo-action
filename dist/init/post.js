@@ -21,7 +21,7 @@ import {
   safeStep,
   queryRange,
   collectMetricsFromPrometheus
-} from "../main-jmd4jxef.js";
+} from "../main-bsh7a88w.js";
 
 // init/post.ts
 import * as fs from "node:fs/promises";
@@ -47,7 +47,7 @@ async function collectAlertsFromPrometheus(url, start, end, preferredStepSeconds
 function parseAlertsFromRange(results, step) {
   let alerts = [], stepMs = parseStepToMs(step);
   for (let series of results) {
-    let { alertname, alertstate, ...labels } = series.metric;
+    let { alertname, alertstate: _alertstate, ...labels } = series.metric;
     if (!alertname)
       continue;
     let intervals = findFiringIntervals(series.values, stepMs);

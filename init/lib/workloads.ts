@@ -12,9 +12,16 @@ export async function waitForWorkloads(cwd: string): Promise<void> {
 	let workloadBaselineImage = getInput('workload_baseline_image') || ''
 	let workloadDuration = Number(getInput('workload_duration') || '60')
 	let workloadTimeout = Number(getInput('workload_completion_timeout') || workloadDuration + 60)
-	if (!Number.isSafeInteger(workloadDuration) || workloadDuration <= 0
-		|| !Number.isSafeInteger(workloadTimeout) || workloadTimeout <= 0 || workloadTimeout > 2_147_483) {
-		throw new Error('Workload duration and completion timeout must be positive integer seconds; timeout must fit the Node timer range')
+	if (
+		!Number.isSafeInteger(workloadDuration) ||
+		workloadDuration <= 0 ||
+		!Number.isSafeInteger(workloadTimeout) ||
+		workloadTimeout <= 0 ||
+		workloadTimeout > 2_147_483
+	) {
+		throw new Error(
+			'Workload duration and completion timeout must be positive integer seconds; timeout must fit the Node timer range'
+		)
 	}
 	let workloadTimeoutMs = workloadTimeout * 1000
 	let failFast = getInput('fail_on_workload_error') === 'true'
@@ -25,10 +32,18 @@ export async function waitForWorkloads(cwd: string): Promise<void> {
 
 	let workloadsToWait: SloWorkload[] = []
 	if (workloadCurrentImage) {
-		workloadsToWait.push({ name: 'current', container: 'ydb-workload-current', ref: getInput('workload_current_ref') || 'current' })
+		workloadsToWait.push({
+			name: 'current',
+			container: 'ydb-workload-current',
+			ref: getInput('workload_current_ref') || 'current',
+		})
 	}
 	if (workloadBaselineImage) {
-		workloadsToWait.push({ name: 'baseline', container: 'ydb-workload-baseline', ref: getInput('workload_baseline_ref') || 'baseline' })
+		workloadsToWait.push({
+			name: 'baseline',
+			container: 'ydb-workload-baseline',
+			ref: getInput('workload_baseline_ref') || 'baseline',
+		})
 	}
 
 	let failures: string[] = []

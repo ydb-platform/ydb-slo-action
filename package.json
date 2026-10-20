@@ -8,8 +8,9 @@
 		"typecheck": "tsc --noEmit",
 		"test:watch": "bun test --watch",
 		"test:coverage": "bun test --coverage",
-		"format": "bunx --bun oxfmt **/*.ts --write",
-		"lint": "bunx --bun oxlint **/*.ts --fix"
+		"format": "oxfmt '**/*.ts'",
+		"format:check": "oxfmt --check '**/*.ts'",
+		"lint": "oxlint init report shared tests deploy"
 	},
 	"dependencies": {
 		"@actions/artifact": "^6.2.1",

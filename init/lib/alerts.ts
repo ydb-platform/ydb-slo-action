@@ -1,6 +1,6 @@
 import { debug } from '@actions/core'
 import type { CollectedAlert } from '../../shared/alerts.js'
-import { queryRange, safeStep, type PrometheusRangeValue } from './prometheus.js'
+import { type PrometheusRangeValue, queryRange, safeStep } from './prometheus.js'
 
 /**
  * Collect alerts from Prometheus ALERTS metric.
@@ -45,12 +45,15 @@ export async function collectAlertsFromPrometheus(
  * Converts time series where value=1 into alerts with epoch_ms and duration_ms.
  * Consecutive points with value=1 are merged into single alerts.
  */
-export function parseAlertsFromRange(results: PrometheusRangeValue[], step: string): CollectedAlert[] {
+export function parseAlertsFromRange(
+	results: PrometheusRangeValue[],
+	step: string
+): CollectedAlert[] {
 	const alerts: CollectedAlert[] = []
 	const stepMs = parseStepToMs(step)
 
 	for (const series of results) {
-		const { alertname, alertstate, ...labels } = series.metric
+		const { alertname, alertstate: _alertstate, ...labels } = series.metric
 
 		if (!alertname) continue
 
