@@ -12,7 +12,7 @@ import {
   saveState,
   loadThresholdConfig,
   analyzeSloWorkload
-} from "../main-rv8d74fb.js";
+} from "../main-3z5610fy.js";
 import {
   getContainerIp,
   getComposeProfiles,
@@ -24,7 +24,7 @@ import {
   loadMetricConfig,
   queryInstant,
   collectMetricsFromPrometheus
-} from "../main-28xy2ajk.js";
+} from "../main-w41x8dth.js";
 
 // init/main.ts
 import * as fs2 from "node:fs";
