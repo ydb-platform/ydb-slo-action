@@ -8,6 +8,28 @@ import { test } from 'bun:test'
 
 let hasYq = () => spawnSync('yq', ['--version'], { encoding: 'utf-8' }).status === 0
 
+test.if(hasYq())('legacy Table schema collects old paired metrics without native Topic requirements', async () => {
+	let previousPath = process.env['GITHUB_ACTION_PATH']
+	let previousSchema = process.env['INPUT_METRICS_SCHEMA']
+	process.env['GITHUB_ACTION_PATH'] = process.cwd()
+	process.env['INPUT_METRICS_SCHEMA'] = 'legacy_table'
+	try {
+		let { loadMetricConfig } = await import('./metrics.js')
+		let config = await loadMetricConfig()
+		assert.equal(config.default.step, '5s')
+		assert.ok(config.metrics.some(metric =>
+			metric.name === 'read_throughput' && metric.query.includes('sdk_operations_total')))
+		assert.ok(config.metrics.some(metric =>
+			metric.name === 'write_latency_p99_ms' && metric.query.includes('sdk_operation_latency_p99_seconds')))
+		assert.ok(config.metrics.every(metric => !metric.query.includes('ydb_topic_')))
+	} finally {
+		if (previousPath === undefined) Reflect.deleteProperty(process.env, 'GITHUB_ACTION_PATH')
+		else process.env['GITHUB_ACTION_PATH'] = previousPath
+		if (previousSchema === undefined) delete process.env['INPUT_METRICS_SCHEMA']
+		else process.env['INPUT_METRICS_SCHEMA'] = previousSchema
+	}
+})
+
 test.if(hasYq())('loadMetricConfig merges inline yaml before defaults', async () => {
 	process.env['GITHUB_ACTION_PATH'] = process.cwd()
 

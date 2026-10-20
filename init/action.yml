@@ -53,6 +53,10 @@ inputs:
     default: ""
 
   # Metrics
+  metrics_schema:
+    description: "Metric contract: native for SDK convention telemetry, legacy_table for sdk.* Table metrics with mandatory baseline comparison."
+    required: false
+    default: "native"
   metrics_yaml:
     description: "Custom metrics configuration (inline YAML)."
     required: false

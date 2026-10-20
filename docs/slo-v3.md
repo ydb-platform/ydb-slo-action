@@ -1,6 +1,6 @@
 # SLO V3
 
-Сначала переводим табличный SLO на [конвенцию SDK](https://wiki.yandex-team.ru/kikimr/developers/appteam/kb/observability-sdk), затем подключаем [метрики топиков](https://wiki.yandex-team.ru/users/kurdyukov-kir/ydb-topics-metrics-review). V3 — версия SLO, не версия observability.
+Табличный SLO пока сохраняет старые метрики и обязательное сравнение с baseline (`metrics_schema: legacy_table`). Переход таблиц на [конвенцию SDK](https://wiki.yandex-team.ru/kikimr/developers/appteam/kb/observability-sdk) отложен. [Метрики топиков](https://wiki.yandex-team.ru/users/kurdyukov-kir/ydb-topics-metrics-review) используют конвенцию. V3 — версия SLO, не версия observability.
 
 ## Таблицы
 
@@ -9,7 +9,7 @@
 - **T03. Восстановление:** после снятия отказа полезная нагрузка возвращается до deadline.
 - **T04. Пул:** после отказа сессии восстанавливаются, запросы не зависают.
 
-Метрики — только конвенция: `ydb.client.operation.duration/failed`, `ydb.client.retry.duration/attempts`, `ydb.query.session.*`. Исходы read/write и проверка данных — отдельный JSON-отчёт, не собственные метрики. `ExecuteQuery` не различает SELECT и UPSERT.
+Старый контракт: `sdk.operations.total` с `operation_type`, `operation_status`, `ref` и `sdk.operation.latency.p50/p95/p99.seconds` для успешных логических операций. `deploy/metrics.table.yaml` сохраняет исходные запросы и сравнение current/baseline. Action требует успешные read/write-наблюдения обеих версий; ошибки процесса и существующие проверки данных по-прежнему дают FAIL.
 
 ## Топики
 
@@ -24,7 +24,7 @@
 
 ## Вердикт
 
-При замене метрик существующий процесс SLO сохраняем. Action проверяет SDK-метрики и исход процесса; JSON с проверками необязателен и оценивается, только если workload его уже формирует. Сценарии выше не требуют переписывания текущего workload при миграции метрик.
+При замене метрик существующий процесс SLO и baseline сохраняем. Action проверяет наблюдения выбранного контракта и исход процесса; JSON с проверками необязателен и оценивается, только если workload его уже формирует. Сценарии выше не требуют переписывания текущего workload при миграции метрик.
 
 **PASS:** данные корректны, нагрузка и восстановление в заданном бюджете. **FAIL:** нарушен инвариант или deadline. **INVALID:** сценарий не исполнен либо нет обязательных данных.
 

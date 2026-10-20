@@ -1,6 +1,6 @@
 # YDB SLO Action
 
-**V3:** measurements use only SDK observability convention instruments (`ydb.*`). Workloads must also write the scenario result JSON described in [the V3 contract](.agents/skills/ydb-slo-workload/references/workload-contract.md); it records data assertions and terminal outcomes, not custom metrics.
+**V3:** Topic measurements use SDK observability convention instruments (`ydb.*`). Existing Table workloads can retain their original `sdk.*` metrics and mandatory baseline comparison with `metrics_schema: legacy_table`. An optional [scenario result JSON](.agents/skills/ydb-slo-workload/references/workload-contract.md) records data assertions and terminal outcomes.
 
 > Automated Service Level Objective (SLO) testing for YDB database SDKs with chaos engineering and performance monitoring built-in.
 
@@ -107,6 +107,7 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `workload_baseline_image`   | no       | —             | Docker image for baseline workload (if not provided, baseline comparison is skipped) |
 | `workload_baseline_ref`     | no       | `baseline`    | Git ref for baseline version (used as `ref` label in metrics)                        |
 | `workload_baseline_command` | no       | `""`          | Command arguments for baseline workload                                              |
+| `metrics_schema`            | no       | `native`      | `native` SDK convention metrics, or `legacy_table` old Table metrics with required baseline |
 | `metrics_yaml`              | no       | —             | Custom metrics configuration (inline YAML), merged with defaults; supports per-workload exclusions |
 | `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults; supports per-workload exclusions  |
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
@@ -142,7 +143,7 @@ start. Stopping one database node during chaos removes half the compute.
 
 ### Fail fast on workload errors
 
-V3 fails on a failed process, failed data check, or missing required SDK telemetry.
+V3 fails on a failed process, failed data check, or missing required observations for the selected metric schema.
 `fail_on_workload_error: false` waits for all workload containers before verifying;
 it does not turn a FAIL or INVALID verdict into PASS.
 
@@ -270,7 +271,14 @@ ydb_topic_writer_written_messages_total{ref="current"}
 ydb_topic_reader_delivered_messages_total{ref="current"}
 ```
 
-V3 exports only convention metrics. Data correctness and terminal logical outcomes are recorded in `SLO_RESULT_PATH`; they are not emitted as custom metrics. Missing required SDK observations produce INVALID even when a query is disabled in the report.
+The default `native` schema uses convention metrics. Missing required observations produce INVALID even when a report query is disabled. Existing result JSON checks and process failures remain authoritative.
+
+For existing Table workloads, set `metrics_schema: legacy_table` and provide
+`workload_baseline_image`. This selects the original Table queries in
+`deploy/metrics.table.yaml`: `sdk_operations_total` by `ref`, `operation_type`
+and `operation_status`, and the successful-operation p50/p95/p99 latency
+Gauges. Both current and baseline must emit successful read and write
+observations. Native Table telemetry is not required in this schema.
 
 **Labels:**
 

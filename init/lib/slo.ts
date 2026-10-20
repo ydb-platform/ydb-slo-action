@@ -7,6 +7,7 @@ import { exec } from '@actions/exec'
 import { evaluateSloResult, parseSloResult, type SloCheck } from '../../shared/slo-result.js'
 import { analyzeSloWorkload } from '../../shared/slo-analysis.js'
 import { loadMetricConfig } from '../../shared/metrics.js'
+import { getMetricSchema } from '../../shared/metric-schema.js'
 import { loadThresholdConfig } from '../../shared/thresholds.js'
 import { extraArtifactsPath } from './artifacts.js'
 import { getContainerIp } from './docker.js'
@@ -37,7 +38,11 @@ export async function validateWorkloads(
 	window: SloWindow
 ): Promise<void> {
 	let thresholds = await loadThresholdConfig(getInput('thresholds_yaml'), getInput('thresholds_yaml_path'))
+	let schema = getMetricSchema()
 	let checks: SloCheck[] = window.failures.map((detail) => ({ id: 'process', verdict: 'FAIL', detail }))
+	if (schema === 'legacy_table' && !workloads.some(workload => workload.name === 'baseline')) {
+		checks.push({ id: 'baseline', verdict: 'INVALID', detail: 'Legacy Table comparison requires a baseline workload' })
+	}
 	let prometheusIp = await getContainerIp('ydb-prometheus')
 
 	for (let workload of workloads) {
@@ -53,17 +58,25 @@ export async function validateWorkloads(
 				}
 				let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000))
 				let at = window.finish.getTime() / 1000
-				let selector = `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`
+				let selector = schema === 'legacy_table'
+					? `sdk_operations_total{ref=${JSON.stringify(workload.ref)},operation_status="success"}`
+					: `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`
 				let response = await queryInstant({
 					url: `http://${prometheusIp}:9090`,
-					query: `sum(max_over_time(${selector}[${seconds}s] @ ${at}))`,
+					query: `sum${schema === 'legacy_table' ? ' by(operation_type)' : ''}(max_over_time(${selector}[${seconds}s] @ ${at}))`,
 				})
 				let count = Number(response.data?.result[0]?.value[1])
-				let observed = response.status === 'success' && Number.isFinite(count) && count > 0
+				let observed = response.status === 'success' && (schema === 'legacy_table'
+					? ['read', 'write'].every(operation => response.data?.result.some(series =>
+						series.metric['operation_type'] === operation &&
+						Number.isFinite(Number(series.value[1])) && Number(series.value[1]) > 0))
+					: Number.isFinite(count) && count > 0)
 				checks.push({
 					id: workload.name,
 					verdict: observed ? 'PASS' : 'INVALID',
-					detail: observed ? 'Native SDK observations collected' : 'Missing SDK observations',
+					detail: observed
+						? schema === 'legacy_table' ? 'Legacy Table observations collected' : 'Native SDK observations collected'
+						: 'Missing workload observations',
 				})
 				continue
 			}
@@ -78,7 +91,7 @@ export async function validateWorkloads(
 			}
 			let selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}}`
 			let sdkMetrics = result.kind === 'table'
-				? ['ydb_client_operation_duration_seconds_count']
+				? [schema === 'legacy_table' ? 'sdk_operations_total' : 'ydb_client_operation_duration_seconds_count']
 				: ['ydb_topic_writer_written_messages_total', 'ydb_topic_reader_delivered_messages_total']
 			let required = sdkMetrics
 			for (let metric of required) {
