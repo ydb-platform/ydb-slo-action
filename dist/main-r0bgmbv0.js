@@ -43570,7 +43570,7 @@ function extractValues(metric, ref) {
     let v = parseFloat(series.value[1]);
     return isNaN(v) ? [] : [v];
   }
-  return series.values.map(([_2, v]) => parseFloat(v)).filter((n) => !isNaN(n));
+  return series.values.map(([, v]) => parseFloat(v)).filter((n) => !isNaN(n));
 }
 function resolveRelativeThresholds(metricName, config) {
   let matched = findMatchingThreshold(metricName, config);
@@ -43681,9 +43681,9 @@ function analyzeWorkload(workload, metrics, currentRef, baselineRef, options = {
   }
   let forestPlot = [], cleanAnalyses = [];
   for (let a of analyses) {
-    if (a._forestEntry)
-      forestPlot.push(a._forestEntry);
-    let { _forestEntry, ...clean } = a;
+    let { _forestEntry: forestEntry, ...clean } = a;
+    if (forestEntry)
+      forestPlot.push(forestEntry);
     cleanAnalyses.push(clean);
   }
   let success = cleanAnalyses.filter((a) => a.severity === "success").length, warnings = cleanAnalyses.filter((a) => a.severity === "warning").length, failures = cleanAnalyses.filter((a) => a.severity === "failure").length, overallSeverity = worstSeverity(...cleanAnalyses.map((a) => a.severity));

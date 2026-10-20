@@ -9,7 +9,7 @@ import {
   formatChangeCell,
   formatValue,
   analyzeSloWorkload
-} from "../main-qacpw82a.js";
+} from "../main-r0bgmbv0.js";
 import {
   getContainerIp,
   collectComposeLogs,
@@ -21,7 +21,7 @@ import {
   safeStep,
   queryRange,
   collectMetricsFromPrometheus
-} from "../main-3d1tmpva.js";
+} from "../main-qmzgrzrb.js";
 
 // init/post.ts
 import * as fs from "node:fs/promises";

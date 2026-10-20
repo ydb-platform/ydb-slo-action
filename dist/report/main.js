@@ -10,7 +10,7 @@ import {
   loadThresholdConfig,
   mergeWorkloadThresholds,
   analyzeSloWorkload
-} from "../main-qacpw82a.js";
+} from "../main-r0bgmbv0.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";

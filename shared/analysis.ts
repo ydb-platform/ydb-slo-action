@@ -262,7 +262,7 @@ function extractValues(metric: CollectedMetric, ref: string): number[] {
 		return isNaN(v) ? [] : [v]
 	}
 
-	return (series as RangeSeries).values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
+	return (series as RangeSeries).values.map(([, v]) => parseFloat(v)).filter((n) => !isNaN(n))
 }
 
 function resolveRelativeThresholds(
@@ -476,10 +476,10 @@ export function analyzeWorkload(
 	let cleanAnalyses: MetricAnalysis[] = []
 
 	for (let a of analyses) {
-		if (a._forestEntry) {
-			forestPlot.push(a._forestEntry)
+		let { _forestEntry: forestEntry, ...clean } = a
+		if (forestEntry) {
+			forestPlot.push(forestEntry)
 		}
-		let { _forestEntry, ...clean } = a
 		cleanAnalyses.push(clean)
 	}
 
