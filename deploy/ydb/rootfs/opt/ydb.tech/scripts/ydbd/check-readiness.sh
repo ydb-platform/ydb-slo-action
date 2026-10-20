@@ -85,26 +85,10 @@ log "Starting database readiness check"
 # First check overall cluster health
 check_cluster_health
 
-# Then verify each running database node responds.
-# A node container is resolvable via Docker DNS only while it is running, so
-# nodes absent from the active compose profiles resolve to nothing and are
-# skipped — keeping the check correct for any cluster size.
-DATABASE_HOSTS="ydb-database-1 ydb-database-2 ydb-database-3 ydb-database-4 ydb-database-5"
-
-checked=0
-for host in $DATABASE_HOSTS; do
-    if ! getent hosts "$host" >/dev/null 2>&1; then
-        log "Skipping $host (not running)"
-        continue
-    fi
+# Both database nodes must respond before workloads start.
+for host in ydb-database-1 ydb-database-2; do
     check_node_responds "grpc://${host}:2136"
-    checked=$((checked + 1))
 done
 
-if [[ $checked -eq 0 ]]; then
-    log "ERROR: No database nodes resolved"
-    exit 1
-fi
-
-log "Cluster is healthy and all $checked running database node(s) are responding!"
+log "Cluster is healthy and both database nodes are responding!"
 exit 0

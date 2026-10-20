@@ -20,9 +20,6 @@ scrape_configs:
       - targets:
           - ydb-database-1:8765
           - ydb-database-2:8765
-          - ydb-database-3:8765
-          - ydb-database-4:8765
-          - ydb-database-5:8765
 
   - job_name: interconnect
     scrape_interval: 5s
@@ -32,6 +29,3 @@ scrape_configs:
       - targets:
           - ydb-database-1:8765
           - ydb-database-2:8765
-          - ydb-database-3:8765
-          - ydb-database-4:8765
-          - ydb-database-5:8765

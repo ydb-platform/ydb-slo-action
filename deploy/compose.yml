@@ -28,7 +28,7 @@ networks:
 
 services:
   blackhole:
-    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/socat
+    image: alpine/socat@sha256:22d77becaeeea8ef56b8c4bb2312323acafe85354be6a85714ff5050e3537842
     container_name: ydb-blackhole
     restart: unless-stopped
     networks:
@@ -95,75 +95,6 @@ services:
       database-init:
         condition: service_completed_successfully
 
-  database-3:
-    <<: *ydb-node
-    container_name: ydb-database-3
-    profiles:
-      - extra-nodes
-    command: ['--grpc-public-address-v4', '172.28.0.13']
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_ENDPOINT=grpc://ydb:2136
-      - YDB_START_DELAY=8
-    networks:
-      slo:
-        ipv4_address: 172.28.0.13
-    labels:
-      - ydb.node.type=database
-    depends_on:
-      storage-1:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-
-  database-4:
-    <<: *ydb-node
-    container_name: ydb-database-4
-    profiles:
-      - extra-nodes
-    command: ['--grpc-public-address-v4', '172.28.0.14']
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_ENDPOINT=grpc://ydb:2136
-      - YDB_START_DELAY=12
-    networks:
-      slo:
-        ipv4_address: 172.28.0.14
-    labels:
-      - ydb.node.type=database
-    depends_on:
-      storage-1:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-
-  database-5:
-    <<: *ydb-node
-    container_name: ydb-database-5
-    profiles:
-      - extra-nodes
-    command: ['--grpc-public-address-v4', '172.28.0.15']
-    environment:
-      - YDB_TENANT=/Root/testdb
-      - YDB_ENDPOINT=grpc://ydb:2136
-      - YDB_START_DELAY=16
-    networks:
-      slo:
-        ipv4_address: 172.28.0.15
-    labels:
-      - ydb.node.type=database
-    depends_on:
-      storage-1:
-        condition: service_healthy
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-
   storage-init:
     <<: *ydb-node
     container_name: ydb-storage-init
@@ -205,7 +136,7 @@ services:
         condition: service_completed_successfully
 
   grafana:
-    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/grafana
+    image: grafana/grafana@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
     <<: *runtime
     container_name: ydb-grafana
     restart: unless-stopped
@@ -224,7 +155,7 @@ services:
       - telemetry
 
   prometheus:
-    image: cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/prometheus
+    image: prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
     restart: unless-stopped
     <<: *runtime
     container_name: ydb-prometheus

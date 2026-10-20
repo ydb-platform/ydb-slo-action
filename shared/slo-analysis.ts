@@ -27,7 +27,10 @@ export function analyzeSloWorkload(
 		severity: options.sloVerdict === 'FAIL' || options.sloVerdict === 'INVALID'
 			? 'failure'
 			: sli.severity,
-		metrics: [...sli.metrics, ...diagnostics.metrics],
+		metrics: [
+			...sli.metrics,
+			...diagnostics.metrics.filter((metric) => metric.current.count > 0 || metric.baseline.count > 0),
+		],
 		forestPlot: [...sli.forestPlot, ...diagnostics.forestPlot],
 	}
 }

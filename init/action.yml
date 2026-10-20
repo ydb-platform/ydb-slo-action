@@ -67,6 +67,10 @@ inputs:
     required: false
 
   # Infrastructure
+  deployment_timeout:
+    description: "Total Compose pull, build and startup budget in positive integer seconds. Requires GNU timeout on the runner."
+    required: false
+    default: "600"
   bridge_mode:
     description: "Run YDB as a two-pile 2DC bridge cluster."
     required: false

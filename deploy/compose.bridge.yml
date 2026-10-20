@@ -123,62 +123,6 @@ services:
       database-init:
         condition: service_completed_successfully
 
-  database-3:
-    <<: *ydb-node
-    container_name: ydb-database-3
-    profiles:
-      - extra-nodes
-    command: ['--grpc-public-address-v4', '172.28.0.13']
-    environment:
-      - YDB_CONFIG_PATH=/opt/ydb.tech/ydbd/cfg/config.bridge.yaml
-      - YDB_TENANT=/Root/testdb
-      - YDB_NODE_BROKERS=grpc://ydb-storage-1:2136,grpc://ydb-storage-2:2136
-      - YDB_START_DELAY=8
-      - YDB_NODE_LOCATION_DC=dc-a
-      - YDB_NODE_LOCATION_RACK=rack-2
-      - YDB_BRIDGE_PILE_NAME=pile-1
-    networks:
-      slo:
-        ipv4_address: 172.28.0.13
-    labels:
-      - ydb.node.type=database
-      - ydb.node.location.dc=dc-a
-      - ydb.node.location.rack=rack-2
-      - ydb.node.location.pile=pile-1
-    depends_on:
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-
-  database-4:
-    <<: *ydb-node
-    container_name: ydb-database-4
-    profiles:
-      - extra-nodes
-    command: ['--grpc-public-address-v4', '172.28.0.14']
-    environment:
-      - YDB_CONFIG_PATH=/opt/ydb.tech/ydbd/cfg/config.bridge.yaml
-      - YDB_TENANT=/Root/testdb
-      - YDB_NODE_BROKERS=grpc://ydb-storage-1:2136,grpc://ydb-storage-2:2136
-      - YDB_START_DELAY=12
-      - YDB_NODE_LOCATION_DC=dc-b
-      - YDB_NODE_LOCATION_RACK=rack-2
-      - YDB_BRIDGE_PILE_NAME=pile-2
-    networks:
-      slo:
-        ipv4_address: 172.28.0.14
-    labels:
-      - ydb.node.type=database
-      - ydb.node.location.dc=dc-b
-      - ydb.node.location.rack=rack-2
-      - ydb.node.location.pile=pile-2
-    depends_on:
-      storage-init:
-        condition: service_completed_successfully
-      database-init:
-        condition: service_completed_successfully
-
   storage-init:
     <<: *ydb-node
     container_name: ydb-storage-init

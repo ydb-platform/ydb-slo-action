@@ -38747,6 +38747,9 @@ class Summary {
 var _summary = new Summary;
 var summary = _summary;
 
+// node_modules/@actions/exec/lib/exec.js
+import { StringDecoder } from "string_decoder";
+
 // node_modules/@actions/exec/lib/toolrunner.js
 import * as os from "os";
 import * as events from "events";
@@ -39305,6 +39308,23 @@ function exec(commandLine, args, options) {
       throw Error("Parameter 'commandLine' cannot be null or empty.");
     let toolPath = commandArgs[0];
     return args = commandArgs.slice(1).concat(args || []), new ToolRunner(toolPath, args, options).exec();
+  });
+}
+function getExecOutput(commandLine, args, options) {
+  return __awaiter5(this, void 0, void 0, function* () {
+    var _a, _b;
+    let stdout = "", stderr = "", stdoutDecoder = new StringDecoder("utf8"), stderrDecoder = new StringDecoder("utf8"), originalStdoutListener = (_a = options === null || options === void 0 ? void 0 : options.listeners) === null || _a === void 0 ? void 0 : _a.stdout, originalStdErrListener = (_b = options === null || options === void 0 ? void 0 : options.listeners) === null || _b === void 0 ? void 0 : _b.stderr, stdErrListener = (data) => {
+      if (stderr += stderrDecoder.write(data), originalStdErrListener)
+        originalStdErrListener(data);
+    }, stdOutListener = (data) => {
+      if (stdout += stdoutDecoder.write(data), originalStdoutListener)
+        originalStdoutListener(data);
+    }, listeners = Object.assign(Object.assign({}, options === null || options === void 0 ? void 0 : options.listeners), { stdout: stdOutListener, stderr: stdErrListener }), exitCode = yield exec(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
+    return stdout += stdoutDecoder.end(), stderr += stderrDecoder.end(), {
+      exitCode,
+      stdout,
+      stderr
+    };
   });
 }
 
@@ -40450,7 +40470,10 @@ function analyzeSloWorkload(workload, metrics, currentRef, baselineRef, options 
   return {
     ...sli,
     severity: options.sloVerdict === "FAIL" || options.sloVerdict === "INVALID" ? "failure" : sli.severity,
-    metrics: [...sli.metrics, ...diagnostics.metrics],
+    metrics: [
+      ...sli.metrics,
+      ...diagnostics.metrics.filter((metric) => metric.current.count > 0 || metric.baseline.count > 0)
+    ],
     forestPlot: [...sli.forestPlot, ...diagnostics.forestPlot]
   };
 }
@@ -69098,4 +69121,4 @@ If the error persists, please check whether Actions and API requests are operati
 // node_modules/@actions/artifact/lib/artifact.js
 var client2 = new DefaultArtifactClient;
 
-export { summary, exec, getInput, setOutput, setFailed, debug, error, warning, info, saveState, getState, context, getOctokit, DefaultArtifactClient, loadThresholdConfig, mergeWorkloadThresholds, evaluateAbsoluteThreshold, formatChangeCell, formatValue, analyzeSloWorkload };
+export { summary, exec, getExecOutput, getInput, setOutput, setFailed, debug, error, warning, info, saveState, getState, context, getOctokit, DefaultArtifactClient, loadThresholdConfig, mergeWorkloadThresholds, evaluateAbsoluteThreshold, formatChangeCell, formatValue, analyzeSloWorkload };

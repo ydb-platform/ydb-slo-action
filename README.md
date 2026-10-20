@@ -111,10 +111,15 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults; supports per-workload exclusions  |
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
 | `thresholds_yaml_path`      | no       | —             | Path to a per-scenario SLO thresholds file; merged over the report action's thresholds for this workload |
+| `deployment_timeout`       | no       | `600`         | Total seconds for Compose pull, build and startup; requires GNU `timeout` on the runner |
 | `bridge_mode`               | no       | `false`       | Run YDB as a two-pile 2DC bridge cluster                                             |
 | `disable_compose_profiles`  | no       | —             | Comma-separated list of compose profiles to disable (e.g., `chaos,telemetry`)        |
 
 ### 2DC bridge cluster
+
+Infrastructure startup runs pull, build and startup as separate logged stages within
+`deployment_timeout`. Workload execution has its own completion budget. The monitoring
+and build images use digest-pinned upstream Docker Hub images.
 
 Set `bridge_mode: true` to run the same workloads and telemetry on a YDB cluster with two bridge piles and pile-level chaos scenarios:
 
@@ -127,25 +132,13 @@ Set `bridge_mode: true` to run the same workloads and telemetry on a YDB cluster
     bridge_mode: true
 ```
 
-The default bridge topology has two storage nodes and four database nodes, split evenly between `pile-1` and `pile-2`.
-Disabling the `extra-nodes` profile keeps one database node in each pile.
+The bridge topology has two database nodes, one per pile, and two storage nodes.
 
 ### Cluster size
 
-In regular mode the cluster runs **5 database nodes** by default. Disable the `extra-nodes`
-profile to run a smaller **2-node** cluster — cheaper and faster to start:
-
-```yaml
-- uses: ydb-platform/ydb-slo-action/init@v3
-  with:
-    workload_name: my-test
-    workload_current_image: my-workload:pr-123
-    disable_compose_profiles: extra-nodes
-```
-
-A 2-node cluster suits quick smoke runs more than strict SLO gating: chaos
-faults remove a larger fraction of the cluster (stopping one node drops 50% of
-compute instead of 20%), so latency/availability swings are wider by design.
+Both modes always run **two database nodes**. Regular mode uses one separate
+storage node. Readiness requires both database nodes to respond before workloads
+start. Stopping one database node during chaos removes half the compute.
 
 ### Fail fast on workload errors
 

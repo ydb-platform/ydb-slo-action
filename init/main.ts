@@ -2,18 +2,10 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import {
-	debug,
-	error,
-	getInput,
-	info,
-	saveState,
-	setFailed,
-	setOutput,
-} from '@actions/core'
-import { exec } from '@actions/exec'
+import { debug, error, getInput, saveState, setFailed, setOutput } from '@actions/core'
 
 import { getComposeProfiles, getContainerIp } from './lib/docker.js'
+import { deployCompose } from './lib/deployment.js'
 import { getPullRequestNumber } from './lib/github.js'
 import { extraArtifactsPath } from './lib/artifacts.js'
 import { waitForWorkloads } from './lib/workloads.js'
@@ -96,40 +88,23 @@ async function deployInfra(cwd: string, workload: string, composeFile: string): 
 		profiles.push('workload-baseline')
 	}
 
-	let started = false
-	for (let attempt = 1; attempt <= 3; attempt++) {
-		try {
-			await exec(
-				`docker`,
-				[`compose`, `-f`, composeFile, `up`, `--quiet-pull`, `--quiet-build`, `--detach`],
-				{
-					cwd,
-					env: {
-						...process.env,
-						COMPOSE_PROFILES: profiles.join(','),
-						WORKLOAD_NAME: workload,
-						WORKLOAD_DURATION: workloadDuration,
-						WORKLOAD_CURRENT_REF: workloadCurrentRef,
-						WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
-						WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
-						WORKLOAD_BASELINE_REF: workloadBaselineRef,
-						WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
-						WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand,
-					},
-				}
-			)
-		} catch (err) {
-			info(`Failed to start YDB cluster: (${attempt} / 3). ${new String(err)}`)
-			continue
-		}
-
-		started = true
-		break
-	}
-
-	if (!started) {
-		throw new Error('Failed to start YDB cluster.')
-	}
+	await deployCompose({
+		cwd,
+		composeFile,
+		timeoutSeconds: Number(getInput('deployment_timeout') || '600'),
+		env: {
+			...process.env,
+			COMPOSE_PROFILES: profiles.join(','),
+			WORKLOAD_NAME: workload,
+			WORKLOAD_DURATION: workloadDuration,
+			WORKLOAD_CURRENT_REF: workloadCurrentRef,
+			WORKLOAD_CURRENT_IMAGE: workloadCurrentImage,
+			WORKLOAD_CURRENT_COMMAND: workloadCurrentCommand,
+			WORKLOAD_BASELINE_REF: workloadBaselineRef,
+			WORKLOAD_BASELINE_IMAGE: workloadBaselineImage,
+			WORKLOAD_BASELINE_COMMAND: workloadBaselineCommand,
+		},
+	})
 
 	debug(`Ran ${composeFile} with profiles: ${profiles.join(', ')}`)
 

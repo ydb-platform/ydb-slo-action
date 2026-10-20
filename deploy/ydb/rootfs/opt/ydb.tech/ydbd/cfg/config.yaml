@@ -8,6 +8,11 @@ config:
   default_disk_type: SSD
   yaml_config_enabled: true
 
+  log_config:
+    entry:
+      - component: HIVE
+        level: 7
+
   actor_system_config:
     use_auto_config: true
     cpu_count: 4
@@ -17,6 +22,10 @@ config:
 
   self_management_config:
     enabled: true
+
+  hive_config:
+    # Start tablets on the surviving node instead of waiting for both nodes.
+    warm_up_enabled: false
 
   feature_flags:
     enable_drain_on_shutdown: false

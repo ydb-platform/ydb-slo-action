@@ -54,7 +54,7 @@ These are the most common mistakes developers make — always keep them in mind:
 
 **`workload_current_command` replaces Docker CMD.** It does not append — it replaces the entire command. Design the workload entrypoint to work both with and without extra arguments.
 
-**Chaos is expected.** YDB nodes will be killed, paused, and network-partitioned during the test. The workload must handle transient connection errors, retries, and timeouts without crashing. The cluster can be as small as 2 database nodes (`disable_compose_profiles: extra-nodes`), where losing one node removes half the compute — so never pin to a specific node or assume a node count; rely on the `ydb` hostname and SDK discovery.
+**Chaos is expected.** YDB nodes will be killed, paused, and network-partitioned during the test. The workload must handle transient connection errors, retries, and timeouts without crashing. The cluster has two database nodes, so losing one removes half the compute. Rely on the `ydb` hostname and SDK discovery, not a pinned node.
 
 **Metrics expected by the built-in configuration (exact names):**
 

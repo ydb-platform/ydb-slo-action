@@ -1,7 +1,7 @@
-ARG YDB_IMAGE=cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/local-ydb:stable-25-3
+ARG YDB_IMAGE=ydbplatform/local-ydb@sha256:48b8f492662b3997c6efb743210c471d0217465965456fabb04b9e8cef9b1327
 FROM ${YDB_IMAGE} AS ydb-dist
 
-FROM --platform=linux/amd64 cr.yandex/crpb3d0up7s6a7iuofo9/ydb-appteam-ci/debian:bookworm-slim
+FROM --platform=linux/amd64 debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
 ARG APP_VERSION=stable-25-3
 
 ENV APP_NAME="ydb" \
