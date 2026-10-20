@@ -92,9 +92,17 @@ class SloRunError extends Error {
   }
 }
 async function validateWorkloads(cwd, workloads, window) {
-  let thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path")), schema = getMetricSchema(), checks = window.failures.map((detail) => ({ id: "process", verdict: "FAIL", detail }));
+  let thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path")), schema = getMetricSchema(), checks = window.failures.map((detail) => ({
+    id: "process",
+    verdict: "FAIL",
+    detail
+  }));
   if (schema === "legacy_table" && !workloads.some((workload) => workload.name === "baseline"))
-    checks.push({ id: "baseline", verdict: "INVALID", detail: "Legacy Table comparison requires a baseline workload" });
+    checks.push({
+      id: "baseline",
+      verdict: "INVALID",
+      detail: "Legacy Table comparison requires a baseline workload"
+    });
   let prometheusIp = await getContainerIp("ydb-prometheus");
   for (let workload of workloads) {
     let resultPath = path.join(extraArtifactsPath(cwd), `${workload.name}-slo-result.json`);
@@ -103,7 +111,11 @@ async function validateWorkloads(cwd, workloads, window) {
         ignoreReturnCode: !0
       }) !== 0) {
         if (!prometheusIp) {
-          checks.push({ id: workload.name, verdict: "INVALID", detail: "Prometheus is unavailable" });
+          checks.push({
+            id: workload.name,
+            verdict: "INVALID",
+            detail: "Prometheus is unavailable"
+          });
           continue;
         }
         let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, selector = schema === "legacy_table" ? `sdk_operations_total{ref=${JSON.stringify(workload.ref)},operation_status="success"}` : `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`, response = await queryInstant({
@@ -121,17 +133,30 @@ async function validateWorkloads(cwd, workloads, window) {
       if (checks.push({ ...check, id: workload.name }), check.verdict !== "PASS")
         continue;
       if (!prometheusIp) {
-        checks.push({ id: `${workload.name}/telemetry`, verdict: "INVALID", detail: "Prometheus is unavailable" });
+        checks.push({
+          id: `${workload.name}/telemetry`,
+          verdict: "INVALID",
+          detail: "Prometheus is unavailable"
+        });
         continue;
       }
-      let selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}}`, required = result.kind === "table" ? [schema === "legacy_table" ? "sdk_operations_total" : "ydb_client_operation_duration_seconds_count"] : ["ydb_topic_writer_written_messages_total", "ydb_topic_reader_delivered_messages_total"];
+      let selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}}`, required = result.kind === "table" ? [
+        schema === "legacy_table" ? "sdk_operations_total" : "ydb_client_operation_duration_seconds_count"
+      ] : [
+        "ydb_topic_writer_written_messages_total",
+        "ydb_topic_reader_delivered_messages_total"
+      ];
       for (let metric of required) {
         let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, response = await queryInstant({
           url: `http://${prometheusIp}:9090`,
           query: `sum(max_over_time(${metric}${selector}[${seconds}s] @ ${at}))`
         }), count = Number(response.data?.result[0]?.value[1]);
         if (response.status !== "success" || !Number.isFinite(count) || count <= 0)
-          checks.push({ id: `${workload.name}/telemetry`, verdict: "INVALID", detail: `Missing SDK observations: ${metric}` });
+          checks.push({
+            id: `${workload.name}/telemetry`,
+            verdict: "INVALID",
+            detail: `Missing SDK observations: ${metric}`
+          });
       }
     } catch (error) {
       if (!(error instanceof Error))
@@ -149,7 +174,10 @@ async function validateWorkloads(cwd, workloads, window) {
       checks.push({
         id: metric.name,
         verdict: "FAIL",
-        detail: [...metric.absoluteCheck.violations, ...metric.relativeCheck?.violations ?? []].join("; ")
+        detail: [
+          ...metric.absoluteCheck.violations,
+          ...metric.relativeCheck?.violations ?? []
+        ].join("; ")
       });
     }
   }

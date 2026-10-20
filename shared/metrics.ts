@@ -156,7 +156,8 @@ export async function loadDefaultMetricConfig(): Promise<MetricConfig> {
 	debug('Loading default metrics from GITHUB_ACTION_PATH/deploy/metrics.yaml')
 	let actionRoot = path.resolve(process.env['GITHUB_ACTION_PATH']!)
 	let defaultPath = path.join(
-		actionRoot, 'deploy',
+		actionRoot,
+		'deploy',
 		getMetricSchema() === 'legacy_table' ? 'metrics.table.yaml' : 'metrics.yaml'
 	)
 
