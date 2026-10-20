@@ -3,8 +3,8 @@ import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { getInput, info, setFailed, warning } from '@actions/core'
+import { context } from '@actions/github'
 
-import { parseChaosScenarios } from '../shared/chaos.js'
 import { analyzeSloWorkload as analyzeWorkload } from '../shared/slo-analysis.js'
 import { loadThresholdConfig, mergeWorkloadThresholds } from '../shared/thresholds.js'
 
@@ -15,6 +15,7 @@ import {
 	generateCommentBody,
 } from './lib/comment.js'
 import { generateHTMLReport } from './lib/html.js'
+import { removeSloLabel } from './lib/github.js'
 import { loadAlerts, loadMetadata, loadMetrics } from './lib/loaders.js'
 
 process.env['GITHUB_ACTION_PATH'] ??= fileURLToPath(new URL('../..', import.meta.url))
@@ -41,6 +42,7 @@ async function main() {
 	info(`Found ${runArtifacts.size} workload(s): ${[...runArtifacts.keys()].join(', ')}`)
 
 	if (runArtifacts.size === 0) {
+		if (['skipped', 'cancelled'].includes(context.payload.workflow_run?.conclusion)) return
 		setFailed('No workload artifacts found in current run')
 		return
 	}
@@ -58,10 +60,6 @@ async function main() {
 		let meta = await loadMetadata(artifact.metaPath)
 		let alerts = await loadAlerts(artifact.alertsPath)
 		let metrics = await loadMetrics(artifact.metricsPath)
-		let scenarios = artifact.logsPath
-			? parseChaosScenarios(await fs.readFile(artifact.logsPath, 'utf-8'))
-			: []
-
 		// Use PR number from metadata if not provided via input
 		if (!prNumber && meta.pull) {
 			prNumber = meta.pull
@@ -115,17 +113,10 @@ async function main() {
 		info(`  📎 Report: ${reportUrl}`)
 
 		reports.push({
-			failed: Boolean(meta.failed),
 			workload,
-			currentRef: meta.workload_current_ref || 'current',
-			baselineRef: meta.workload_baseline_ref || 'baseline',
 			reportUrl,
 			analysis,
-			commit: meta.commit,
-			repoUrl: meta.repo_url,
-			runUrl: meta.run_url,
 			durationMs: meta.duration_ms,
-			scenarios,
 		})
 	}
 
@@ -162,6 +153,8 @@ async function main() {
 	info('\n🎉 Done!')
 }
 
-main().catch((error) => {
-	setFailed(`Report generation failed: ${error}`)
-})
+export const completion = main()
+	.finally(removeSloLabel)
+	.catch((error) => {
+		setFailed(`Report generation failed: ${error}`)
+	})

@@ -182,13 +182,19 @@ permissions:
 jobs:
   report:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: github.event.workflow_run.event == 'pull_request'
     steps:
        - uses: ydb-platform/ydb-slo-action/report@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_run_id: ${{ github.event.workflow_run.id }}
+          github_workflows: SLO Test
 ```
+
+For separate Table and Topic workflows, set `github_workflows: SLO,SLO YDB Topics`.
+The Action combines their latest completed runs for the same revision. No selector
+script is needed. An optional `remove_label: SLO` removes the PR label even when
+the source run is skipped/cancelled or reporting fails. The comment is a compact
+workload table; metric details remain in the linked HTML reports.
 
 ### Init Action Outputs
 
@@ -202,7 +208,9 @@ Only available when the `telemetry` profile is enabled (enabled by default).
 | Input                     | Required | Default       | Description                                                         |
 | ------------------------- | -------- | ------------- | ------------------------------------------------------------------- |
 | `github_token`            | **yes**  | —             | GitHub token for API access (artifacts, comments, checks)           |
-| `github_run_id`           | **yes**  | —             | Workflow run ID to download artifacts from                          |
+| `github_run_id`           | no       | auto-detected | Workflow run ID, or comma-separated IDs to combine                    |
+| `github_workflows`        | no       | —             | Automatically combine the latest completed workflows for the triggering revision (comma-separated names) |
+| `remove_label`            | no       | —             | PR label to remove after reporting, including failures and skipped/cancelled runs |
 | `github_issue`            | no       | auto-detected | GitHub issue number for report publishing                           |
 | `template_path`           | no       | built-in      | Path to custom HTML report template                                 |
 | `post_comment`            | no       | `true`        | Post report as PR comment                                           |

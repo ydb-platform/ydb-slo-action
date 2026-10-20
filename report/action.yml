@@ -12,8 +12,16 @@ inputs:
     required: true
 
   github_run_id:
-    description: "Workflow run ID, or comma-separated run IDs whose workload artifacts should be combined."
-    required: true
+    description: "Workflow run ID, or comma-separated run IDs to combine. Defaults to the triggering workflow_run or current run."
+    required: false
+
+  github_workflows:
+    description: "Comma-separated workflow names to combine automatically for the workflow_run revision. Uses the latest completed, non-skipped, non-cancelled run of each workflow."
+    required: false
+
+  remove_label:
+    description: "PR label to remove after reporting, including skipped/cancelled runs and report failures."
+    required: false
 
   github_issue:
     description: "GitHub issue number where the report will be published. If not provided, will try to get from artifact metadata."

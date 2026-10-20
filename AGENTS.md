@@ -148,11 +148,13 @@ State passed via `saveState()`/`getState()`: cwd, workload name, PR number, comm
 
 ### Report Generation
 
-1. Download current run metrics from artifacts
-2. Fetch latest successful base branch workflow run
-3. Download base branch metrics
-4. Merge (current first, base second)
-5. Render with ASCII charts
+1. Resolve explicit run IDs or the latest completed named workflows for the same `workflow_run` revision
+2. Download workload artifacts containing current and baseline metrics
+3. Analyze metrics and upload detailed HTML reports
+4. Publish one compact workload table with links to those reports
+5. Remove an optional PR label in `finally`, including skipped/cancelled source runs and report failures
+
+Run selection and label cleanup belong to the Action, not consumer shell scripts.
 
 ## Chaos Testing
 

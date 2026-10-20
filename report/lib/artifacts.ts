@@ -9,6 +9,8 @@ import { DefaultArtifactClient } from '@actions/artifact'
 import { debug, getInput, warning } from '@actions/core'
 import { context } from '@actions/github'
 
+import { getWorkflowRunIds } from './github.js'
+
 export interface WorkloadArtifact {
 	workload: string
 	metaPath: string
@@ -24,14 +26,8 @@ export interface WorkloadArtifact {
 export async function downloadRunArtifacts(
 	destinationPath: string
 ): Promise<Map<string, WorkloadArtifact>> {
-	let token = getInput('github_token')
-	let workflowRunIds = (getInput('github_run_id') || String(context.runId))
-		.split(',')
-		.map((id) => Number(id.trim()))
-
-	if (!token || workflowRunIds.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
-		throw new Error('GitHub token and positive workflow run IDs are required')
-	}
+	let token = getInput('github_token', { required: true })
+	let workflowRunIds = await getWorkflowRunIds()
 
 	let artifactClient = new DefaultArtifactClient()
 	let downloadedPaths = new Map<string, string>()
