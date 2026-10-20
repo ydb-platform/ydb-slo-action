@@ -8,6 +8,11 @@ config:
   default_disk_type: SSD
   yaml_config_enabled: true
 
+  log_config:
+    entry:
+      - component: HIVE
+        level: 7
+
   actor_system_config:
     use_auto_config: true
     cpu_count: 4
