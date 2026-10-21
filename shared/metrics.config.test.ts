@@ -35,6 +35,12 @@ for (let schema of ['legacy_table', 'legacy_topic', 'legacy_topic_tx']) {
 					)
 				)
 				assert.ok(config.metrics.every((metric) => !metric.query.includes('ydb_topic_')))
+				for (let name of ['read_retry_attempts', 'write_retry_attempts']) {
+					assert.equal(
+						config.metrics.find((metric) => metric.name === name)?.role,
+						'diagnostic'
+					)
+				}
 			} finally {
 				if (previousPath === undefined)
 					Reflect.deleteProperty(process.env, 'GITHUB_ACTION_PATH')

@@ -62,6 +62,7 @@ metrics:
   # sdk_operations_total = количество логических бизнес-запросов (всегда 1 на операцию).
   # sdk_retry_attempts_total = общее количество технических попыток (включая первую).
   - name: read_retry_attempts
+    role: diagnostic
     unit: attempts
     query: |
       clamp_min(
@@ -77,6 +78,7 @@ metrics:
   # sdk_operations_total = количество логических бизнес-запросов (всегда 1 на операцию).
   # sdk_retry_attempts_total = общее количество технических попыток (включая первую).
   - name: write_retry_attempts
+    role: diagnostic
     unit: attempts
     query: |
       clamp_min(
