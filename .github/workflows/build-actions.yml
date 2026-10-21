@@ -15,10 +15,36 @@ on:
       - ".oxlintrc.json"
       - ".oxfmtrc.json"
       - ".github/workflows/build-actions.yml"
+  pull_request:
+    branches:
+      - v3
 
 jobs:
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - name: Verify source and tests
+        run: |
+          bun run lint
+          bun run format:check
+          bun run typecheck
+          bun test
+      - name: Verify generated bundle
+        run: |
+          bun run bundle
+          git add -f dist
+          git diff --cached --exit-code
+
   build:
-    if: github.actor != 'github-actions[bot]'
+    if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -54,7 +54,7 @@ inputs:
 
   # Metrics
   metrics_schema:
-    description: "Metric contract: native for SDK convention telemetry, legacy_table for sdk.* Table metrics with mandatory baseline comparison."
+    description: "Metric contract: native for SDK convention telemetry, legacy_table for sdk.* Table metrics with mandatory baseline, legacy_topic for existing sdk.* Topic read/write operations, legacy_topic_tx for transaction operations."
     required: false
     default: "native"
   metrics_yaml:

@@ -25,7 +25,7 @@ import {
   loadMetricConfig,
   queryInstant,
   collectMetricsFromPrometheus
-} from "../main-qmzgrzrb.js";
+} from "../main-j7stgw2r.js";
 
 // init/main.ts
 import * as fs2 from "node:fs";
@@ -91,8 +91,11 @@ class SloRunError extends Error {
     this.checks = checks;
   }
 }
+function hasLegacyObservations(series, operations) {
+  return operations.every((operation) => series.some((item) => item.metric.operation_type === operation && Number.isFinite(Number(item.value[1])) && Number(item.value[1]) > 0));
+}
 async function validateWorkloads(cwd, workloads, window) {
-  let thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path")), schema = getMetricSchema(), checks = window.failures.map((detail) => ({
+  let thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path")), schema = getMetricSchema(), legacy = schema !== "native", legacyOperations = schema === "legacy_topic_tx" ? ["transaction"] : ["read", "write"], checks = window.failures.map((detail) => ({
     id: "process",
     verdict: "FAIL",
     detail
@@ -118,14 +121,14 @@ async function validateWorkloads(cwd, workloads, window) {
           });
           continue;
         }
-        let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, selector = schema === "legacy_table" ? `sdk_operations_total{ref=${JSON.stringify(workload.ref)},operation_status="success"}` : `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`, response = await queryInstant({
+        let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, selector = legacy ? `sdk_operations_total{ref=${JSON.stringify(workload.ref)},operation_status="success"}` : `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`, response = await queryInstant({
           url: `http://${prometheusIp}:9090`,
-          query: `sum${schema === "legacy_table" ? " by(operation_type)" : ""}(max_over_time(${selector}[${seconds}s] @ ${at}))`
-        }), count = Number(response.data?.result[0]?.value[1]), observed = response.status === "success" && (schema === "legacy_table" ? ["read", "write"].every((operation) => response.data?.result.some((series) => series.metric.operation_type === operation && Number.isFinite(Number(series.value[1])) && Number(series.value[1]) > 0)) : Number.isFinite(count) && count > 0);
+          query: `sum${legacy ? " by(operation_type)" : ""}(max_over_time(${selector}[${seconds}s] @ ${at}))`
+        }), count = Number(response.data?.result[0]?.value[1]), observed = response.status === "success" && (legacy ? hasLegacyObservations(response.data?.result ?? [], legacyOperations) : Number.isFinite(count) && count > 0);
         checks.push({
           id: workload.name,
           verdict: observed ? "PASS" : "INVALID",
-          detail: observed ? schema === "legacy_table" ? "Legacy Table observations collected" : "Native SDK observations collected" : "Missing workload observations"
+          detail: observed ? schema === "legacy_table" ? "Legacy Table observations collected" : legacy ? "Legacy Topic observations collected" : "Native SDK observations collected" : "Missing workload observations"
         });
         continue;
       }
@@ -140,7 +143,7 @@ async function validateWorkloads(cwd, workloads, window) {
         });
         continue;
       }
-      let selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}}`, required = result.kind === "table" ? [
+      let legacyTopic = schema === "legacy_topic" || schema === "legacy_topic_tx", selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}${legacyTopic ? ',operation_status="success"' : ""}}`, required = legacyTopic ? ["sdk_operations_total"] : result.kind === "table" ? [
         schema === "legacy_table" ? "sdk_operations_total" : "ydb_client_operation_duration_seconds_count"
       ] : [
         "ydb_topic_writer_written_messages_total",
@@ -149,9 +152,9 @@ async function validateWorkloads(cwd, workloads, window) {
       for (let metric of required) {
         let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, response = await queryInstant({
           url: `http://${prometheusIp}:9090`,
-          query: `sum(max_over_time(${metric}${selector}[${seconds}s] @ ${at}))`
+          query: `sum${legacyTopic ? " by(operation_type)" : ""}(max_over_time(${metric}${selector}[${seconds}s] @ ${at}))`
         }), count = Number(response.data?.result[0]?.value[1]);
-        if (response.status !== "success" || !Number.isFinite(count) || count <= 0)
+        if (!(response.status === "success" && (legacyTopic ? hasLegacyObservations(response.data?.result ?? [], legacyOperations) : Number.isFinite(count) && count > 0)))
           checks.push({
             id: `${workload.name}/telemetry`,
             verdict: "INVALID",

@@ -22,6 +22,10 @@
 
 Метрики Writer: `sending.messages`, `written.messages`, `sending.oldest_age`, `buffer.*`, `session.errors`. Reader: `delivered.messages`, `local_buffer.*`, `commit.*`, `commit_offset.lag.max`, `session.errors`. Префиксы — `ydb.topic.writer.` и `ydb.topic.reader.`. ACK записи в транзакции не доказывает commit.
 
+Существующие Topic-workload со старыми `sdk.*` метриками используют `metrics_schema: legacy_topic` и свои прежние YAML-запросы. Action требует успешные read/write-наблюдения текущего workload и baseline, если он задан. Ошибки процесса, существующие проверки данных и пороги сохраняются; режим не добавляет новые сценарии доставки.
+
+Существующий Rust Topic-tx учитывает всю транзакцию как одну операцию `transaction`. Для него `metrics_schema: legacy_topic_tx` требует успешные транзакционные наблюдения вместо отдельных read/write; прежние workload-проверки атомарности и transaction YAML остаются без изменений. Наличие счётчика само по себе не добавляет доказательства commit.
+
 ## Вердикт
 
 При замене метрик существующий процесс SLO и baseline сохраняем. Action проверяет наблюдения выбранного контракта и исход процесса; JSON с проверками необязателен и оценивается, только если workload его уже формирует. Сценарии выше не требуют переписывания текущего workload при миграции метрик.

@@ -158,7 +158,7 @@ export async function loadDefaultMetricConfig(): Promise<MetricConfig> {
 	let defaultPath = path.join(
 		actionRoot,
 		'deploy',
-		getMetricSchema() === 'legacy_table' ? 'metrics.table.yaml' : 'metrics.yaml'
+		getMetricSchema() === 'native' ? 'metrics.yaml' : 'metrics.table.yaml'
 	)
 
 	if (fs.existsSync(defaultPath)) {

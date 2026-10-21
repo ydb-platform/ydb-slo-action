@@ -11,7 +11,7 @@ import { getMetricSchema } from '../../shared/metric-schema.js'
 import { loadThresholdConfig } from '../../shared/thresholds.js'
 import { extraArtifactsPath } from './artifacts.js'
 import { getContainerIp } from './docker.js'
-import { queryInstant } from './prometheus.js'
+import { type PrometheusInstantValue, queryInstant } from './prometheus.js'
 import { collectMetricsFromPrometheus } from './metrics.js'
 
 export type SloWorkload = {
@@ -37,6 +37,20 @@ export class SloRunError extends Error {
 	}
 }
 
+function hasLegacyObservations(
+	series: readonly PrometheusInstantValue[],
+	operations: readonly string[]
+): boolean {
+	return operations.every((operation) =>
+		series.some(
+			(item) =>
+				item.metric['operation_type'] === operation &&
+				Number.isFinite(Number(item.value[1])) &&
+				Number(item.value[1]) > 0
+		)
+	)
+}
+
 export async function validateWorkloads(
 	cwd: string,
 	workloads: readonly SloWorkload[],
@@ -47,6 +61,8 @@ export async function validateWorkloads(
 		getInput('thresholds_yaml_path')
 	)
 	let schema = getMetricSchema()
+	let legacy = schema !== 'native'
+	let legacyOperations = schema === 'legacy_topic_tx' ? ['transaction'] : ['read', 'write']
 	let checks: SloCheck[] = window.failures.map((detail) => ({
 		id: 'process',
 		verdict: 'FAIL',
@@ -85,26 +101,18 @@ export async function validateWorkloads(
 					Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)
 				)
 				let at = window.finish.getTime() / 1000
-				let selector =
-					schema === 'legacy_table'
-						? `sdk_operations_total{ref=${JSON.stringify(workload.ref)},operation_status="success"}`
-						: `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`
+				let selector = legacy
+					? `sdk_operations_total{ref=${JSON.stringify(workload.ref)},operation_status="success"}`
+					: `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`
 				let response = await queryInstant({
 					url: `http://${prometheusIp}:9090`,
-					query: `sum${schema === 'legacy_table' ? ' by(operation_type)' : ''}(max_over_time(${selector}[${seconds}s] @ ${at}))`,
+					query: `sum${legacy ? ' by(operation_type)' : ''}(max_over_time(${selector}[${seconds}s] @ ${at}))`,
 				})
 				let count = Number(response.data?.result[0]?.value[1])
 				let observed =
 					response.status === 'success' &&
-					(schema === 'legacy_table'
-						? ['read', 'write'].every((operation) =>
-								response.data?.result.some(
-									(series) =>
-										series.metric['operation_type'] === operation &&
-										Number.isFinite(Number(series.value[1])) &&
-										Number(series.value[1]) > 0
-								)
-							)
+					(legacy
+						? hasLegacyObservations(response.data?.result ?? [], legacyOperations)
 						: Number.isFinite(count) && count > 0)
 				checks.push({
 					id: workload.name,
@@ -112,7 +120,9 @@ export async function validateWorkloads(
 					detail: observed
 						? schema === 'legacy_table'
 							? 'Legacy Table observations collected'
-							: 'Native SDK observations collected'
+							: legacy
+								? 'Legacy Topic observations collected'
+								: 'Native SDK observations collected'
 						: 'Missing workload observations',
 				})
 				continue
@@ -130,9 +140,11 @@ export async function validateWorkloads(
 				})
 				continue
 			}
-			let selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}}`
-			let sdkMetrics =
-				result.kind === 'table'
+			let legacyTopic = schema === 'legacy_topic' || schema === 'legacy_topic_tx'
+			let selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}${legacyTopic ? ',operation_status="success"' : ''}}`
+			let sdkMetrics = legacyTopic
+				? ['sdk_operations_total']
+				: result.kind === 'table'
 					? [
 							schema === 'legacy_table'
 								? 'sdk_operations_total'
@@ -151,10 +163,15 @@ export async function validateWorkloads(
 				let at = window.finish.getTime() / 1000
 				let response = await queryInstant({
 					url: `http://${prometheusIp}:9090`,
-					query: `sum(max_over_time(${metric}${selector}[${seconds}s] @ ${at}))`,
+					query: `sum${legacyTopic ? ' by(operation_type)' : ''}(max_over_time(${metric}${selector}[${seconds}s] @ ${at}))`,
 				})
 				let count = Number(response.data?.result[0]?.value[1])
-				if (response.status !== 'success' || !Number.isFinite(count) || count <= 0) {
+				let observed =
+					response.status === 'success' &&
+					(legacyTopic
+						? hasLegacyObservations(response.data?.result ?? [], legacyOperations)
+						: Number.isFinite(count) && count > 0)
+				if (!observed) {
 					checks.push({
 						id: `${workload.name}/telemetry`,
 						verdict: 'INVALID',

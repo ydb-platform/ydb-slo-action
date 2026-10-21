@@ -1,6 +1,6 @@
 # YDB SLO Action
 
-**V3:** Topic measurements use SDK observability convention instruments (`ydb.*`). Existing Table workloads can retain their original `sdk.*` metrics and mandatory baseline comparison with `metrics_schema: legacy_table`. An optional [scenario result JSON](.agents/skills/ydb-slo-workload/references/workload-contract.md) records data assertions and terminal outcomes.
+**V3:** Native measurements use SDK observability convention instruments (`ydb.*`). Existing workloads can retain their original `sdk.*` metrics: `metrics_schema: legacy_table` requires baseline comparison; `legacy_topic` preserves existing Topic read/write operations, and `legacy_topic_tx` preserves transaction operations. An optional [scenario result JSON](.agents/skills/ydb-slo-workload/references/workload-contract.md) records data assertions and terminal outcomes.
 
 > Automated Service Level Objective (SLO) testing for YDB database SDKs with chaos engineering and performance monitoring built-in.
 
@@ -107,7 +107,7 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `workload_baseline_image`   | no       | —             | Docker image for baseline workload (if not provided, baseline comparison is skipped) |
 | `workload_baseline_ref`     | no       | `baseline`    | Git ref for baseline version (used as `ref` label in metrics)                        |
 | `workload_baseline_command` | no       | `""`          | Command arguments for baseline workload                                              |
-| `metrics_schema`            | no       | `native`      | `native` SDK convention metrics, or `legacy_table` old Table metrics with required baseline |
+| `metrics_schema`            | no       | `native`      | `native` SDK metrics, `legacy_table` old Table metrics with required baseline, `legacy_topic` old Topic read/write metrics, or `legacy_topic_tx` old transaction metrics |
 | `metrics_yaml`              | no       | —             | Custom metrics configuration (inline YAML), merged with defaults; supports per-workload exclusions |
 | `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults; supports per-workload exclusions  |
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
@@ -287,6 +287,17 @@ For existing Table workloads, set `metrics_schema: legacy_table` and provide
 and `operation_status`, and the successful-operation p50/p95/p99 latency
 Gauges. Both current and baseline must emit successful read and write
 observations. Native Table telemetry is not required in this schema.
+
+For existing Topic workloads with the same operation counters, use
+`metrics_schema: legacy_topic` and retain their custom Topic metric overrides.
+Successful read and write observations are required for current and any supplied
+baseline. The baseline is optional for Topic workloads. Process errors, existing
+result JSON checks and metric thresholds still determine the verdict.
+
+For an existing transactional Topic workload that records one `transaction`
+operation per logical transaction, use `metrics_schema: legacy_topic_tx`.
+This requires successful transaction observations, not separate read/write
+counters, and retains the workload's own transaction checks and custom metrics.
 
 **Labels:**
 
