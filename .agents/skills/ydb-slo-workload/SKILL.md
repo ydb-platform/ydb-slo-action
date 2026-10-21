@@ -48,7 +48,7 @@ These are the most common mistakes developers make — always keep them in mind:
 
 **Resource identity is mandatory.** Export `ref=WORKLOAD_REF` as a Resource attribute. Workloads that write a structured V3 result also export its process-unique `run_id`; Prometheus promotes these attributes to labels.
 
-**Only SDK convention metrics are exported.** Subscribe to the SDK `ydb.*` meters. Do not emit legacy `sdk.*` or custom `slo.*` instruments. V3 computes quantiles from SDK Histogram buckets; data checks and terminal logical outcomes live in the JSON result, not custom metrics.
+**Keep the selected metric contract.** Topics use SDK `ydb.*` meters. Existing Table workloads use `metrics_schema: legacy_table`, retain `sdk.operations.total` and successful-operation p50/p95/p99 Gauges, and require a real baseline. Do not migrate Table metrics or remove baseline without an explicit request.
 
 **Push interval matters.** Metrics must be pushed every second. With a typical 10-minute test duration, longer intervals produce too few data points for meaningful analysis.
 

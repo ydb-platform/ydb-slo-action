@@ -1,6 +1,6 @@
 # V3 metric queries
 
-`deploy/metrics.yaml` queries only the SDK `ydb.*` convention instruments. SDK attempt failures, retries, pool state and buffer ages are diagnostics; data and terminal-result checks come from the workload result JSON.
+`deploy/metrics.yaml` queries SDK `ydb.*` convention instruments for the native schema. `metrics_schema: legacy_table` instead selects `deploy/metrics.table.yaml`, retaining the original Table queries, successful-operation percentile Gauges and current/baseline comparison. Do not migrate Table metrics when restoring a legacy workload.
 
 Latency is computed from SDK Histogram buckets. The report must not average precomputed percentile Gauges or derive retry counts by subtracting unrelated operation counters.
 

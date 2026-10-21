@@ -4,6 +4,8 @@ import * as path from 'node:path'
 import { debug, warning } from '@actions/core'
 import { exec } from '@actions/exec'
 
+import { getMetricSchema } from './metric-schema.js'
+
 export type MetricType = 'range' | 'instant'
 
 export interface MetricDefinition {
@@ -153,7 +155,11 @@ function removeDisabledMetrics(config: MetricConfig): MetricConfig {
 export async function loadDefaultMetricConfig(): Promise<MetricConfig> {
 	debug('Loading default metrics from GITHUB_ACTION_PATH/deploy/metrics.yaml')
 	let actionRoot = path.resolve(process.env['GITHUB_ACTION_PATH']!)
-	let defaultPath = path.join(actionRoot, 'deploy', 'metrics.yaml')
+	let defaultPath = path.join(
+		actionRoot,
+		'deploy',
+		getMetricSchema() === 'legacy_table' ? 'metrics.table.yaml' : 'metrics.yaml'
+	)
 
 	if (fs.existsSync(defaultPath)) {
 		let content = fs.readFileSync(defaultPath, { encoding: 'utf-8' })
@@ -269,7 +275,7 @@ export function aggregateValues(
 ): number {
 	if (values.length === 0) return NaN
 
-	let nums = values.map(([_, v]) => parseFloat(v)).filter((n) => !isNaN(n))
+	let nums = values.map(([, v]) => parseFloat(v)).filter((n) => !isNaN(n))
 
 	if (nums.length === 0) return NaN
 

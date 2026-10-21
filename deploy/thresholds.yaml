@@ -34,6 +34,46 @@ metrics:
     critical_min: 95.0 # < 95% triggers failure
     warning_change_percent: 1.0 # > 1% drop is significant
 
+  # Legacy Table metric names retain their original comparison thresholds.
+  - pattern: "*_latency_*"
+    direction: lower_is_better
+    warning_change_percent: 30.0
+    critical_change_percent: 100.0
+
+  - pattern: "*_duration_*"
+    direction: lower_is_better
+    warning_change_percent: 30.0
+    critical_change_percent: 100.0
+
+  - pattern: "*_throughput"
+    direction: higher_is_better
+    warning_change_percent: 25.0
+    critical_change_percent: 50.0
+
+  - pattern: "*_qps"
+    direction: higher_is_better
+    warning_change_percent: 25.0
+    critical_change_percent: 50.0
+
+  - pattern: "*_rps"
+    direction: higher_is_better
+    warning_change_percent: 25.0
+    critical_change_percent: 50.0
+
+  - pattern: "*_attempts"
+    direction: lower_is_better
+    warning_max: 0.0
+
+  - pattern: "*_error*"
+    direction: lower_is_better
+    warning_max: 0.1
+    critical_max: 1.0
+
+  - pattern: "*_failure*"
+    direction: lower_is_better
+    warning_max: 0.1
+    critical_max: 1.0
+
   # Convention histograms (should stay low)
   - pattern: "*.duration"
     direction: lower_is_better

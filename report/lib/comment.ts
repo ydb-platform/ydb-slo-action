@@ -6,19 +6,11 @@ import { debug, getInput, info } from '@actions/core'
 import { context, getOctokit } from '@actions/github'
 
 import { type Severity, type WorkloadAnalysis } from '../../shared/analysis.js'
-import type { ChaosScenario } from '../../shared/chaos.js'
 export interface WorkloadReportSummary {
-	failed: boolean
 	workload: string
-	currentRef: string
-	baselineRef: string
 	reportUrl?: string
 	analysis: WorkloadAnalysis
-	commit?: string
-	repoUrl?: string
-	runUrl?: string
 	durationMs?: number
-	scenarios?: ChaosScenario[]
 }
 
 /**
@@ -26,27 +18,6 @@ export interface WorkloadReportSummary {
  */
 function severityEmoji(severity: Severity): string {
 	return severity === 'failure' ? '🔴' : severity === 'warning' ? '🟡' : '🟢'
-}
-
-/**
- * Collect all threshold violation reasons from a workload analysis
- */
-function collectViolations(analysis: WorkloadAnalysis): Array<{ metric: string; reason: string }> {
-	let result: Array<{ metric: string; reason: string }> = []
-
-	for (let m of analysis.metrics) {
-		for (let v of m.absoluteCheck.violations) {
-			result.push({ metric: m.name, reason: v })
-		}
-		for (let v of m.relativeCheck?.violations ?? []) {
-			result.push({ metric: m.name, reason: v })
-		}
-		if (m.retriesCheck?.reason && m.retriesCheck.severity !== 'success') {
-			result.push({ metric: m.name, reason: m.retriesCheck.reason })
-		}
-	}
-
-	return result
 }
 
 /**
@@ -65,44 +36,12 @@ function formatDuration(ms: number): string {
  * Generate PR comment body for all workloads
  */
 export function generateCommentBody(reports: WorkloadReportSummary[]): string {
-	let totalFailures = reports.filter((r) => r.analysis.severity === 'failure').length
-	let totalWarnings = reports.filter((r) => r.analysis.severity === 'warning').length
-
-	let overallEmoji = totalFailures > 0 ? '🔴' : totalWarnings > 0 ? '🟡' : '🟢'
-	let overallText =
-		totalFailures > 0
-			? `${totalFailures} workload(s) exceeded failure thresholds`
-			: totalWarnings > 0
-				? `${totalWarnings} workload(s) exceeded warning thresholds`
-				: 'All thresholds passed'
-
-	// Build commit/run info line from first report that has the data
-	let first = reports[0]
-	let metaParts: string[] = []
-	if (first?.commit && first?.repoUrl) {
-		let short = first.commit.slice(0, 7)
-		metaParts.push(`**Commit:** [\`${short}\`](${first.repoUrl}/commit/${first.commit})`)
-	} else if (first?.commit) {
-		metaParts.push(`**Commit:** \`${first.commit.slice(0, 7)}\``)
-	}
-	if (first?.runUrl) {
-		metaParts.push(`[View run](${first.runUrl})`)
-	}
-
 	let lines: string[] = [
 		`## 🌋 SLO Test Results`,
 		``,
-		`${overallEmoji} ${reports.length} workload(s) tested — ${overallText}`,
+		`| Workload | Thresholds | Duration | Report |`,
+		`|----------|:----------:|:--------:|--------|`,
 	]
-
-	if (metaParts.length > 0) {
-		lines.push(``)
-		lines.push(metaParts.join(' · '))
-	}
-
-	lines.push(``)
-	lines.push(`| Workload | Thresholds | Duration | Report |`)
-	lines.push(`|----------|:----------:|:--------:|--------|`)
 
 	for (let report of reports) {
 		let emoji = severityEmoji(report.analysis.severity)
@@ -115,47 +54,6 @@ export function generateCommentBody(reports: WorkloadReportSummary[]): string {
 		let durationCell = report.durationMs != null ? formatDuration(report.durationMs) : '—'
 		let reportCell = report.reportUrl ? `[📄 Report](${report.reportUrl})` : '—'
 		lines.push(`| ${report.workload} | ${thresholdLabel} | ${durationCell} | ${reportCell} |`)
-	}
-
-	let scenarioNames = new Set(reports.flatMap((report) => report.scenarios?.map((scenario) => scenario.name) ?? []))
-	if (scenarioNames.size > 0) {
-		lines.push('', '### Chaos scenarios', '')
-		lines.push(`| Scenario | ${reports.map((report) => report.workload).join(' | ')} |`)
-		lines.push(`|----------|${reports.map(() => ':--------:|').join('')}`)
-		for (let name of scenarioNames) {
-			let cells = reports.map((report) => {
-				let scenario = report.scenarios?.find((candidate) => candidate.name === name)
-				if (!scenario) return '—'
-				let duration = scenario.finishedAt
-					? ` (${formatDuration(Date.parse(scenario.finishedAt) - Date.parse(scenario.startedAt))})`
-					: ''
-				switch (scenario.status) {
-					case 'completed': return `Completed${duration}`
-					case 'failed': return `Failed${duration}${scenario.exitCode === undefined ? '' : `, exit ${scenario.exitCode}`}`
-					case 'incomplete': return 'Incomplete'
-				}
-			})
-			lines.push(`| ${name} | ${cells.join(' | ')} |`)
-		}
-		lines.push('', '_Scenario execution status is separate from the workload SLO verdict._')
-	}
-
-	// Threshold violations section
-	let violatingReports = reports.filter((r) => r.analysis.severity !== 'success')
-	if (violatingReports.length > 0) {
-		lines.push(``)
-		lines.push(`**Threshold violations:**`)
-
-		for (let report of violatingReports) {
-			let violations = collectViolations(report.analysis)
-			if (violations.length === 0) continue
-
-			lines.push(``)
-			lines.push(`**${report.workload}:**`)
-			for (let { metric, reason } of violations) {
-				lines.push(`- \`${metric}\`: ${reason}`)
-			}
-		}
 	}
 
 	lines.push(``)

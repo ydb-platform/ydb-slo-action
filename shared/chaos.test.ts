@@ -7,12 +7,14 @@ test('completed scenarios retain their measured execution window', () => {
 		'ydb-chaos-monkey | [2026-10-03T10:00:26Z] Completed scenario: 01-graceful-stop',
 	].join('\n')
 	let scenarios = parseChaosScenarios(logs)
-	expect(scenarios).toEqual([{
-		name: '01-graceful-stop',
-		startedAt: '2026-10-03T10:00:00Z',
-		finishedAt: '2026-10-03T10:00:26Z',
-		status: 'completed',
-	}])
+	expect(scenarios).toEqual([
+		{
+			name: '01-graceful-stop',
+			startedAt: '2026-10-03T10:00:00Z',
+			finishedAt: '2026-10-03T10:00:26Z',
+			status: 'completed',
+		},
+	])
 })
 
 test('failed scenarios keep their exit code and ignore other container messages', () => {

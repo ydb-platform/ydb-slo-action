@@ -42,7 +42,11 @@ export async function getPullRequestNumber(): Promise<number | null> {
 /**
  * Uploads artifacts to GitHub Actions as a single bundle
  */
-export async function uploadArtifacts(name: string, artifacts: string[], cwd?: string): Promise<void> {
+export async function uploadArtifacts(
+	name: string,
+	artifacts: string[],
+	cwd?: string
+): Promise<void> {
 	let artifactClient = new DefaultArtifactClient()
 	let rootDirectory = cwd || process.cwd()
 

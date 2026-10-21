@@ -131,6 +131,7 @@ State passed via `saveState()`/`getState()`: cwd, workload name, PR number, comm
 **Lifecycle resilience contract:**
 
 - `main` owns the definitive verdict. V3 fails on process errors, failed data invariants or missing required SDK telemetry. `fail_on_workload_error` only controls whether to stop waiting after a process failure. Pass the measurement window directly to the gate: `saveState` values are exposed only to `post`.
+- `metrics_schema` selects the telemetry contract, not the verdict policy. `native` retains SDK convention metrics; `legacy_table` retains the original `sdk.*` Table queries and requires current/baseline read and write observations. Never remove baseline to accommodate a metric migration.
 - Deployment runs pull, build and startup as separate visible stages under one `deployment_timeout` budget. Stage retries share that deadline and must not start workloads after an image preparation failure. Runners need GNU `timeout`.
 - `post` is best-effort diagnostics + cleanup and never decides pass/fail. It discovers what exists (e.g. probes for the Prometheus container) instead of assuming, degrades each collector to an empty artifact when its source is absent, guarantees teardown via `finally`, and never crashes. Whether a report runs on a failed init is workflow orchestration (`needs:`/`if:`, or `workflow_run.conclusion`), not an action input.
 
@@ -147,11 +148,13 @@ State passed via `saveState()`/`getState()`: cwd, workload name, PR number, comm
 
 ### Report Generation
 
-1. Download current run metrics from artifacts
-2. Fetch latest successful base branch workflow run
-3. Download base branch metrics
-4. Merge (current first, base second)
-5. Render with ASCII charts
+1. Resolve explicit run IDs or the latest completed named workflows for the same `workflow_run` revision
+2. Download workload artifacts containing current and baseline metrics
+3. Analyze metrics and upload detailed HTML reports
+4. Publish one compact workload table with links to those reports
+5. Remove an optional PR label in `finally`, including skipped/cancelled source runs and report failures
+
+Run selection and label cleanup belong to the Action, not consumer shell scripts.
 
 ## Chaos Testing
 

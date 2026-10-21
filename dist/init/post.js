@@ -9,7 +9,7 @@ import {
   formatChangeCell,
   formatValue,
   analyzeSloWorkload
-} from "../main-3z5610fy.js";
+} from "../main-r0bgmbv0.js";
 import {
   getContainerIp,
   collectComposeLogs,
@@ -21,7 +21,7 @@ import {
   safeStep,
   queryRange,
   collectMetricsFromPrometheus
-} from "../main-w41x8dth.js";
+} from "../main-qmzgrzrb.js";
 
 // init/post.ts
 import * as fs from "node:fs/promises";
@@ -47,7 +47,7 @@ async function collectAlertsFromPrometheus(url, start, end, preferredStepSeconds
 function parseAlertsFromRange(results, step) {
   let alerts = [], stepMs = parseStepToMs(step);
   for (let series of results) {
-    let { alertname, alertstate, ...labels } = series.metric;
+    let { alertname, alertstate: _alertstate, ...labels } = series.metric;
     if (!alertname)
       continue;
     let intervals = findFiringIntervals(series.values, stepMs);

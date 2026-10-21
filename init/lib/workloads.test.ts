@@ -13,19 +13,25 @@ test('explicit completion budget permits drain beyond duration plus sixty second
 		INPUT_WORKLOAD_BASELINE_IMAGE: '',
 		INPUT_FAIL_ON_WORKLOAD_ERROR: 'true',
 	}
-	let savedInputs = Object.fromEntries(Object.keys(inputs).map(key => [key, process.env[key]]))
+	let savedInputs = Object.fromEntries(Object.keys(inputs).map((key) => [key, process.env[key]]))
 	Object.assign(process.env, inputs)
 
 	let originalTimeout = globalThis.setTimeout
 	let timers: { handle: ReturnType<typeof setTimeout>; deadline: number; fire: () => void }[] = []
-	let timerSpy = spyOn(globalThis, 'setTimeout').mockImplementation(new Proxy(originalTimeout, {
-		apply(target, _receiver, args: Parameters<typeof setTimeout>) {
-			let [callback, delay, ...parameters] = args
-			let handle = target(callback, delay, ...parameters)
-			timers.push({ handle, deadline: Date.now() + (delay ?? 0), fire: () => callback(...parameters) })
-			return handle
-		},
-	}))
+	let timerSpy = spyOn(globalThis, 'setTimeout').mockImplementation(
+		new Proxy(originalTimeout, {
+			apply(target, _receiver, args: Parameters<typeof setTimeout>) {
+				let [callback, delay, ...parameters] = args
+				let handle = target(callback, delay, ...parameters)
+				timers.push({
+					handle,
+					deadline: Date.now() + (delay ?? 0),
+					fire: () => callback(...parameters),
+				})
+				return handle
+			},
+		})
+	)
 	let releaseWait: (() => void) | undefined
 	let started = Promise.withResolvers<void>()
 	let completion = Promise.withResolvers<number>()

@@ -1,7 +1,4 @@
-import {
-	evaluateAbsoluteThreshold,
-	type ThresholdConfig,
-} from './thresholds.js'
+import { type ThresholdConfig, evaluateAbsoluteThreshold } from './thresholds.js'
 
 export type SloVerdict = 'PASS' | 'FAIL' | 'INVALID'
 
@@ -86,11 +83,17 @@ function decodeJson(content: string): unknown {
 export function parseSloSummary(content: string): SloSummary {
 	let value = decodeJson(content)
 	if (
-		typeof value !== 'object' || value === null ||
-		!('schemaVersion' in value) || value.schemaVersion !== 3 ||
-		!('verdict' in value) || !isVerdict(value.verdict) ||
-		!('checks' in value) || !Array.isArray(value.checks) || !value.checks.every(isCheck)
-	) throw new SloResultError('Invalid scenario summary')
+		typeof value !== 'object' ||
+		value === null ||
+		!('schemaVersion' in value) ||
+		value.schemaVersion !== 3 ||
+		!('verdict' in value) ||
+		!isVerdict(value.verdict) ||
+		!('checks' in value) ||
+		!Array.isArray(value.checks) ||
+		!value.checks.every(isCheck)
+	)
+		throw new SloResultError('Invalid scenario summary')
 	return { schemaVersion: 3, verdict: value.verdict, checks: value.checks }
 }
 
@@ -139,8 +142,10 @@ export function evaluateSloResult(
 		return { id: 'contract', verdict: 'INVALID', detail: 'Workload ref does not match the run' }
 	}
 	if (result.verdict === 'FAIL' || result.checks.some((check) => check.verdict === 'FAIL')) {
-		let detail = result.checks.filter((check) => check.verdict === 'FAIL')
-			.map((check) => `${check.id}: ${check.detail}`).join('; ')
+		let detail = result.checks
+			.filter((check) => check.verdict === 'FAIL')
+			.map((check) => `${check.id}: ${check.detail}`)
+			.join('; ')
 		return { id: 'contract', verdict: 'FAIL', detail: detail || 'Workload reported FAIL' }
 	}
 	let required = result.kind === 'table' ? ['T01', 'T02'] : ['P01', 'P02', 'P03']
@@ -149,14 +154,34 @@ export function evaluateSloResult(
 		new Set(ids).size !== ids.length ||
 		result.verdict !== 'PASS' ||
 		result.checks.some((check) => check.verdict !== 'PASS') ||
-		required.some((id) => !result.checks.some((check) => check.id === id && check.verdict === 'PASS'))
+		required.some(
+			(id) => !result.checks.some((check) => check.id === id && check.verdict === 'PASS')
+		)
 	) {
-		return { id: 'contract', verdict: 'INVALID', detail: 'Required scenario checks are missing or invalid' }
+		return {
+			id: 'contract',
+			verdict: 'INVALID',
+			detail: 'Required scenario checks are missing or invalid',
+		}
 	}
-	if (['read', 'write'].some((type) => !result.operations.some((operation) => operation.type === type && operation.success > 0))) {
-		return { id: 'contract', verdict: 'INVALID', detail: 'No successful read/write observations' }
+	if (
+		['read', 'write'].some(
+			(type) =>
+				!result.operations.some(
+					(operation) => operation.type === type && operation.success > 0
+				)
+		)
+	) {
+		return {
+			id: 'contract',
+			verdict: 'INVALID',
+			detail: 'No successful read/write observations',
+		}
 	}
-	if (new Set(result.operations.map((operation) => operation.type)).size !== result.operations.length) {
+	if (
+		new Set(result.operations.map((operation) => operation.type)).size !==
+		result.operations.length
+	) {
 		return { id: 'contract', verdict: 'INVALID', detail: 'Duplicate operation counts' }
 	}
 	if (thresholds) {
@@ -165,7 +190,7 @@ export function evaluateSloResult(
 			if (total === 0) continue
 			let check = evaluateAbsoluteThreshold(
 				`${operation.type}_availability`,
-				100 * operation.success / total,
+				(100 * operation.success) / total,
 				'higher_is_better',
 				thresholds
 			)

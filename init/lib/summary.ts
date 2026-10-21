@@ -5,10 +5,10 @@
 import { summary } from '@actions/core'
 
 import {
-	formatChangeCell,
-	formatValue,
 	type Severity,
 	type WorkloadAnalysis,
+	formatChangeCell,
+	formatValue,
 } from '../../shared/analysis.js'
 
 function severityEmoji(severity: Severity): string {

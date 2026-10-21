@@ -3,6 +3,7 @@ import * as assert from 'node:assert/strict'
 import { test } from 'bun:test'
 
 import {
+	type MetricAnalysis,
 	alignSeries,
 	analyzeMetric,
 	analyzeWorkload,
@@ -13,7 +14,6 @@ import {
 	formatChangeCell,
 	formatValue,
 	inferDirection,
-	type MetricAnalysis,
 } from './analysis.js'
 import type { CollectedMetric, RangeSeries } from './metrics.js'
 
@@ -195,8 +195,20 @@ for (let [name, severity] of [
 			query: '',
 			type: 'range',
 			data: [
-				{ metric: { ref: 'current' }, values: [[1, '200'], [2, '200']] },
-				{ metric: { ref: 'baseline' }, values: [[1, '100'], [2, '100']] },
+				{
+					metric: { ref: 'current' },
+					values: [
+						[1, '200'],
+						[2, '200'],
+					],
+				},
+				{
+					metric: { ref: 'baseline' },
+					values: [
+						[1, '100'],
+						[2, '100'],
+					],
+				},
 			],
 		}
 		let result = analyzeMetric(metric, 'current', 'baseline', {
@@ -345,13 +357,25 @@ test('formatValue and formatChange produce stable strings', () => {
 })
 
 test('describeChange marks below-neutral changes as flat', () => {
-	let parts = describeChange(makeAnalysis({ direction: 'lower_is_better', changePercent: 0.4, severity: 'success' }))
+	let parts = describeChange(
+		makeAnalysis({ direction: 'lower_is_better', changePercent: 0.4, severity: 'success' })
+	)
 	assert.deepEqual(parts, { trend: 'flat', arrow: '≈', percent: 0.4 })
 })
 
 test('describeChange marks lower_is_better regression below warn as worse with hint', () => {
-	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: 12.5, severity: 'success', warning: 30 })
-	assert.deepEqual(describeChange(m), { trend: 'worse', arrow: '▲', percent: 12.5, hint: '< 30% warn' })
+	let m = makeAnalysis({
+		direction: 'lower_is_better',
+		changePercent: 12.5,
+		severity: 'success',
+		warning: 30,
+	})
+	assert.deepEqual(describeChange(m), {
+		trend: 'worse',
+		arrow: '▲',
+		percent: 12.5,
+		hint: '< 30% warn',
+	})
 })
 
 test('describeChange marks improvement without hint', () => {
@@ -360,27 +384,72 @@ test('describeChange marks improvement without hint', () => {
 })
 
 test('describeChange picks warn hint at warning severity', () => {
-	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: 40, severity: 'warning', warning: 30, critical: 100 })
-	assert.deepEqual(describeChange(m), { trend: 'worse', arrow: '▲', percent: 40, hint: '≥ 30% warn' })
+	let m = makeAnalysis({
+		direction: 'lower_is_better',
+		changePercent: 40,
+		severity: 'warning',
+		warning: 30,
+		critical: 100,
+	})
+	assert.deepEqual(describeChange(m), {
+		trend: 'worse',
+		arrow: '▲',
+		percent: 40,
+		hint: '≥ 30% warn',
+	})
 })
 
 test('describeChange picks fail hint at failure severity', () => {
-	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: 120, severity: 'failure', warning: 30, critical: 100 })
-	assert.deepEqual(describeChange(m), { trend: 'worse', arrow: '▲', percent: 120, hint: '≥ 100% fail' })
+	let m = makeAnalysis({
+		direction: 'lower_is_better',
+		changePercent: 120,
+		severity: 'failure',
+		warning: 30,
+		critical: 100,
+	})
+	assert.deepEqual(describeChange(m), {
+		trend: 'worse',
+		arrow: '▲',
+		percent: 120,
+		hint: '≥ 100% fail',
+	})
 })
 
 test('describeChange treats higher_is_better drop as worse', () => {
-	let m = makeAnalysis({ direction: 'higher_is_better', changePercent: -10, severity: 'success', warning: 25 })
-	assert.deepEqual(describeChange(m), { trend: 'worse', arrow: '▲', percent: 10, hint: '< 25% warn' })
+	let m = makeAnalysis({
+		direction: 'higher_is_better',
+		changePercent: -10,
+		severity: 'success',
+		warning: 25,
+	})
+	assert.deepEqual(describeChange(m), {
+		trend: 'worse',
+		arrow: '▲',
+		percent: 10,
+		hint: '< 25% warn',
+	})
 })
 
 test('formatChangeCell renders the cell text', () => {
-	let m = makeAnalysis({ direction: 'lower_is_better', changePercent: 12.5, severity: 'success', warning: 30 })
+	let m = makeAnalysis({
+		direction: 'lower_is_better',
+		changePercent: 12.5,
+		severity: 'success',
+		warning: 30,
+	})
 	assert.equal(formatChangeCell(m), '▲ 12.5% (< 30% warn)')
 
-	let improved = makeAnalysis({ direction: 'lower_is_better', changePercent: -10, severity: 'success' })
+	let improved = makeAnalysis({
+		direction: 'lower_is_better',
+		changePercent: -10,
+		severity: 'success',
+	})
 	assert.equal(formatChangeCell(improved), '▼ 10.0%')
 
-	let flat = makeAnalysis({ direction: 'lower_is_better', changePercent: 0.5, severity: 'success' })
+	let flat = makeAnalysis({
+		direction: 'lower_is_better',
+		changePercent: 0.5,
+		severity: 'success',
+	})
 	assert.equal(formatChangeCell(flat), '≈ 0.5%')
 })

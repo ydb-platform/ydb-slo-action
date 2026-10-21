@@ -18,9 +18,9 @@ The Action runs current and baseline under the same failure profile. Use the sam
 
 Subscribe to the SDK convention meters. SDK operation/retry/pool metrics describe attempts and diagnostics; they cannot replace logical outcomes or data assertions.
 
-Export only SDK `ydb.*` convention instruments. Do not introduce legacy `sdk.*` or custom `slo.*` metrics. Resource: `ref=WORKLOAD_REF`, `run_id=<unique process run>`. Send every second and flush before exit. Data assertions and terminal logical outcomes belong to the result artifact.
+The default native schema exports SDK `ydb.*` instruments. Existing Table workloads select `metrics_schema: legacy_table` and retain `sdk.operations.total` with `operation_type`, `operation_status`, `ref`, plus successful-operation `sdk.operation.latency.p50/p95/p99.seconds` Gauges. Legacy Table requires current and baseline read/write observations; do not remove baseline or migrate its metric contract. Resource for native telemetry: `ref=WORKLOAD_REF`, `run_id=<unique process run>`. Send every second and flush before exit. Existing data assertions and terminal logical outcomes remain authoritative.
 
-The gate requires `ydb_client_operation_duration_seconds_count` for tables; topics require `ydb_topic_writer_written_messages_total` and `ydb_topic_reader_delivered_messages_total`. Quantiles use SDK Histogram buckets, not precomputed Gauges. Verify Prometheus names against the actual exporter.
+The native gate requires `ydb_client_operation_duration_seconds_count` for tables; topics require `ydb_topic_writer_written_messages_total` and `ydb_topic_reader_delivered_messages_total`. Native quantiles use SDK Histogram buckets. Legacy Table uses the original Gauge queries from `deploy/metrics.table.yaml` and `sdk_operations_total` observations for both refs. Verify Prometheus names against the actual exporter.
 
 ## Result and verdict
 

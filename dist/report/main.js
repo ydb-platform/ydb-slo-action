@@ -10,48 +10,82 @@ import {
   loadThresholdConfig,
   mergeWorkloadThresholds,
   analyzeSloWorkload
-} from "../main-3z5610fy.js";
+} from "../main-r0bgmbv0.js";
 
 // report/main.ts
 import * as fs4 from "node:fs/promises";
 import * as path2 from "node:path";
 import { fileURLToPath } from "node:url";
 
-// shared/chaos.ts
-function parseChaosScenarios(logs) {
-  let scenarios = [], current;
-  for (let line of logs.split(`
-`)) {
-    let record = line.match(/^\S*chaos\S*\s*\|\s*(?:\[([^\]]+)\]\s*)?(.*)$/);
-    if (!record)
-      continue;
-    let [, timestamp, message] = record, start = message.match(/^Running scenario: ([\w.-]+)$/);
-    if (start && timestamp && Number.isFinite(Date.parse(timestamp))) {
-      current = { name: start[1], startedAt: timestamp, status: "incomplete" }, scenarios.push(current);
-      continue;
-    }
-    if (!current)
-      continue;
-    let finish = message.match(/^(Completed|Failed) scenario: ([\w.-]+)(?: \(exit (\d+)\))?$/);
-    if (finish && finish[2] === current.name) {
-      if (current.status = finish[1] === "Completed" ? "completed" : "failed", timestamp && Number.isFinite(Date.parse(timestamp)))
-        current.finishedAt = timestamp;
-      if (finish[3])
-        current.exitCode = Number(finish[3]);
-    } else if (/\bscenario completed$|^Rolling restart completed for all \d+ nodes$/.test(message))
-      current.status = "completed";
-  }
-  return scenarios;
-}
-
 // report/lib/artifacts.ts
 import * as fs from "node:fs";
 import * as path from "node:path";
+
+// report/lib/github.ts
+async function getWorkflowRunIds() {
+  let explicit = getInput("github_run_id");
+  if (explicit) {
+    let ids = explicit.split(",").map((id) => Number(id.trim()));
+    if (ids.some((id) => !Number.isSafeInteger(id) || id <= 0))
+      throw Error("Positive workflow run IDs are required");
+    return ids;
+  }
+  let source = context.payload.workflow_run;
+  if (!source)
+    return [context.runId];
+  if (source.conclusion === "skipped" || source.conclusion === "cancelled")
+    return [];
+  let names = getInput("github_workflows").split(",").map((name) => name.trim()).filter(Boolean);
+  if (names.length === 0)
+    return [source.id];
+  let octokit = getOctokit(getInput("github_token", { required: !0 })), runs = await octokit.paginate(octokit.rest.actions.listWorkflowRunsForRepo, {
+    ...context.repo,
+    head_sha: source.head_sha,
+    event: source.event,
+    status: "completed",
+    per_page: 100
+  });
+  runs.push(source);
+  let latest = /* @__PURE__ */ new Map;
+  for (let run of runs) {
+    if (!run.name || !names.includes(run.name) || run.head_sha !== source.head_sha || run.event !== source.event || run.status !== "completed" || run.conclusion === "skipped" || run.conclusion === "cancelled")
+      continue;
+    let previous = latest.get(run.name);
+    if (!previous || run.run_number >= previous.run_number)
+      latest.set(run.name, run);
+  }
+  return [...latest.values()].map((run) => run.id);
+}
+async function removeSloLabel() {
+  let label = getInput("remove_label");
+  if (!label)
+    return;
+  let source = context.payload.workflow_run, pull = source?.pull_requests?.[0]?.number ?? context.payload.pull_request?.number, octokit = getOctokit(getInput("github_token", { required: !0 }));
+  if (!pull && source?.head_repository) {
+    let { data } = await octokit.rest.pulls.list({
+      ...context.repo,
+      head: `${source.head_repository.owner.login}:${source.head_branch}`,
+      state: "open"
+    });
+    pull = data[0]?.number;
+  }
+  if (!pull)
+    throw Error("Cannot resolve the pull request for SLO label cleanup");
+  if ((await octokit.paginate(octokit.rest.issues.listLabelsOnIssue, {
+    ...context.repo,
+    issue_number: pull,
+    per_page: 100
+  })).some((candidate) => candidate.name === label))
+    await octokit.rest.issues.removeLabel({
+      ...context.repo,
+      issue_number: pull,
+      name: label
+    }), info(`Removed ${label} label from PR #${pull}`);
+}
+
+// report/lib/artifacts.ts
 async function downloadRunArtifacts(destinationPath) {
-  let token = getInput("github_token"), workflowRunIds = (getInput("github_run_id") || String(context.runId)).split(",").map((id) => Number(id.trim()));
-  if (!token || workflowRunIds.some((id) => !Number.isSafeInteger(id) || id <= 0))
-    throw Error("GitHub token and positive workflow run IDs are required");
-  let artifactClient = new DefaultArtifactClient, downloadedPaths = /* @__PURE__ */ new Map;
+  let token = getInput("github_token", { required: !0 }), workflowRunIds = await getWorkflowRunIds(), artifactClient = new DefaultArtifactClient, downloadedPaths = /* @__PURE__ */ new Map;
   for (let workflowRunId of workflowRunIds) {
     let { artifacts } = await artifactClient.listArtifacts({
       findBy: {
@@ -121,18 +155,6 @@ async function uploadReportArtifact(cwd, workload, htmlPath, retentionDays = 30)
 function severityEmoji(severity) {
   return severity === "failure" ? "\uD83D\uDD34" : severity === "warning" ? "\uD83D\uDFE1" : "\uD83D\uDFE2";
 }
-function collectViolations(analysis) {
-  let result = [];
-  for (let m of analysis.metrics) {
-    for (let v of m.absoluteCheck.violations)
-      result.push({ metric: m.name, reason: v });
-    for (let v of m.relativeCheck?.violations ?? [])
-      result.push({ metric: m.name, reason: v });
-    if (m.retriesCheck?.reason && m.retriesCheck.severity !== "success")
-      result.push({ metric: m.name, reason: m.retriesCheck.reason });
-  }
-  return result;
-}
 function formatDuration(ms) {
   let totalSeconds = Math.round(ms / 1000), minutes = Math.floor(totalSeconds / 60), seconds = totalSeconds % 60;
   if (minutes === 0)
@@ -142,59 +164,15 @@ function formatDuration(ms) {
   return `${minutes}m ${seconds}s`;
 }
 function generateCommentBody(reports) {
-  let totalFailures = reports.filter((r) => r.analysis.severity === "failure").length, totalWarnings = reports.filter((r) => r.analysis.severity === "warning").length, overallEmoji = totalFailures > 0 ? "\uD83D\uDD34" : totalWarnings > 0 ? "\uD83D\uDFE1" : "\uD83D\uDFE2", overallText = totalFailures > 0 ? `${totalFailures} workload(s) exceeded failure thresholds` : totalWarnings > 0 ? `${totalWarnings} workload(s) exceeded warning thresholds` : "All thresholds passed", first = reports[0], metaParts = [];
-  if (first?.commit && first?.repoUrl) {
-    let short = first.commit.slice(0, 7);
-    metaParts.push(`**Commit:** [\`${short}\`](${first.repoUrl}/commit/${first.commit})`);
-  } else if (first?.commit)
-    metaParts.push(`**Commit:** \`${first.commit.slice(0, 7)}\``);
-  if (first?.runUrl)
-    metaParts.push(`[View run](${first.runUrl})`);
   let lines = [
     "## \uD83C\uDF0B SLO Test Results",
     "",
-    `${overallEmoji} ${reports.length} workload(s) tested — ${overallText}`
+    "| Workload | Thresholds | Duration | Report |",
+    "|----------|:----------:|:--------:|--------|"
   ];
-  if (metaParts.length > 0)
-    lines.push(""), lines.push(metaParts.join(" · "));
-  lines.push(""), lines.push("| Workload | Thresholds | Duration | Report |"), lines.push("|----------|:----------:|:--------:|--------|");
   for (let report of reports) {
     let emoji = severityEmoji(report.analysis.severity), thresholdLabel = report.analysis.severity === "failure" ? `${emoji} Failure` : report.analysis.severity === "warning" ? `${emoji} Warning` : `${emoji} OK`, durationCell = report.durationMs != null ? formatDuration(report.durationMs) : "—", reportCell = report.reportUrl ? `[\uD83D\uDCC4 Report](${report.reportUrl})` : "—";
     lines.push(`| ${report.workload} | ${thresholdLabel} | ${durationCell} | ${reportCell} |`);
-  }
-  let scenarioNames = new Set(reports.flatMap((report) => report.scenarios?.map((scenario) => scenario.name) ?? []));
-  if (scenarioNames.size > 0) {
-    lines.push("", "### Chaos scenarios", ""), lines.push(`| Scenario | ${reports.map((report) => report.workload).join(" | ")} |`), lines.push(`|----------|${reports.map(() => ":--------:|").join("")}`);
-    for (let name of scenarioNames) {
-      let cells = reports.map((report) => {
-        let scenario = report.scenarios?.find((candidate) => candidate.name === name);
-        if (!scenario)
-          return "—";
-        let duration = scenario.finishedAt ? ` (${formatDuration(Date.parse(scenario.finishedAt) - Date.parse(scenario.startedAt))})` : "";
-        switch (scenario.status) {
-          case "completed":
-            return `Completed${duration}`;
-          case "failed":
-            return `Failed${duration}${scenario.exitCode === void 0 ? "" : `, exit ${scenario.exitCode}`}`;
-          case "incomplete":
-            return "Incomplete";
-        }
-      });
-      lines.push(`| ${name} | ${cells.join(" | ")} |`);
-    }
-    lines.push("", "_Scenario execution status is separate from the workload SLO verdict._");
-  }
-  let violatingReports = reports.filter((r) => r.analysis.severity !== "success");
-  if (violatingReports.length > 0) {
-    lines.push(""), lines.push("**Threshold violations:**");
-    for (let report of violatingReports) {
-      let violations = collectViolations(report.analysis);
-      if (violations.length === 0)
-        continue;
-      lines.push(""), lines.push(`**${report.workload}:**`);
-      for (let { metric, reason } of violations)
-        lines.push(`- \`${metric}\`: ${reason}`);
-    }
   }
   return lines.push(""), lines.push("---"), lines.push("_Generated by [ydb-slo-action](https://github.com/ydb-platform/ydb-slo-action)_"), lines.join(`
 `);
@@ -339,6 +317,8 @@ async function main() {
   info("\uD83D\uDCCA YDB SLO Report v3");
   let runArtifacts = await downloadRunArtifacts(cwd);
   if (info(`Found ${runArtifacts.size} workload(s): ${[...runArtifacts.keys()].join(", ")}`), runArtifacts.size === 0) {
+    if (["skipped", "cancelled"].includes(context.payload.workflow_run?.conclusion))
+      return;
     setFailed("No workload artifacts found in current run");
     return;
   }
@@ -346,7 +326,7 @@ async function main() {
   for (let [workload, artifact] of runArtifacts) {
     info(`
 \uD83D\uDCE6 Processing workload: ${workload}`);
-    let meta = await loadMetadata(artifact.metaPath), alerts = await loadAlerts(artifact.alertsPath), metrics = await loadMetrics(artifact.metricsPath), scenarios = artifact.logsPath ? parseChaosScenarios(await fs4.readFile(artifact.logsPath, "utf-8")) : [];
+    let meta = await loadMetadata(artifact.metaPath), alerts = await loadAlerts(artifact.alertsPath), metrics = await loadMetrics(artifact.metricsPath);
     if (!prNumber && meta.pull)
       prNumber = meta.pull;
     info(`  ✅ Loaded ${metrics.length} metrics, ${alerts.length} alerts`);
@@ -372,17 +352,10 @@ async function main() {
     await fs4.writeFile(htmlPath, html, "utf-8");
     let reportUrl = await uploadReportArtifact(cwd, workload, htmlPath, artifactRetentionDays);
     info(`  \uD83D\uDCCE Report: ${reportUrl}`), reports.push({
-      failed: Boolean(meta.failed),
       workload,
-      currentRef: meta.workload_current_ref || "current",
-      baselineRef: meta.workload_baseline_ref || "baseline",
       reportUrl,
       analysis,
-      commit: meta.commit,
-      repoUrl: meta.repo_url,
-      runUrl: meta.run_url,
-      durationMs: meta.duration_ms,
-      scenarios
+      durationMs: meta.duration_ms
     });
   }
   if (postComment && prNumber) {
@@ -411,6 +384,9 @@ ${summary}`);
   info(`
 \uD83C\uDF89 Done!`);
 }
-main().catch((error) => {
+var completion = main().finally(removeSloLabel).catch((error) => {
   setFailed(`Report generation failed: ${error}`);
 });
+export {
+  completion
+};

@@ -8,7 +8,7 @@ import {
   getOctokit,
   DefaultArtifactClient,
   evaluateAbsoluteThreshold
-} from "./main-3z5610fy.js";
+} from "./main-r0bgmbv0.js";
 
 // init/lib/docker.ts
 async function getContainerIp(containerName) {
@@ -250,9 +250,17 @@ function evaluateSloResult(result, expectedRef, thresholds) {
     return { id: "contract", verdict: "FAIL", detail: result.checks.filter((check) => check.verdict === "FAIL").map((check) => `${check.id}: ${check.detail}`).join("; ") || "Workload reported FAIL" };
   let required = result.kind === "table" ? ["T01", "T02"] : ["P01", "P02", "P03"], ids = result.checks.map((check) => check.id);
   if (new Set(ids).size !== ids.length || result.verdict !== "PASS" || result.checks.some((check) => check.verdict !== "PASS") || required.some((id) => !result.checks.some((check) => check.id === id && check.verdict === "PASS")))
-    return { id: "contract", verdict: "INVALID", detail: "Required scenario checks are missing or invalid" };
+    return {
+      id: "contract",
+      verdict: "INVALID",
+      detail: "Required scenario checks are missing or invalid"
+    };
   if (["read", "write"].some((type) => !result.operations.some((operation) => operation.type === type && operation.success > 0)))
-    return { id: "contract", verdict: "INVALID", detail: "No successful read/write observations" };
+    return {
+      id: "contract",
+      verdict: "INVALID",
+      detail: "No successful read/write observations"
+    };
   if (new Set(result.operations.map((operation) => operation.type)).size !== result.operations.length)
     return { id: "contract", verdict: "INVALID", detail: "Duplicate operation counts" };
   if (thresholds)
@@ -270,6 +278,16 @@ function evaluateSloResult(result, expectedRef, thresholds) {
 // shared/metrics.ts
 import * as fs3 from "node:fs";
 import * as path2 from "node:path";
+
+// shared/metric-schema.ts
+function getMetricSchema() {
+  let schema = getInput("metrics_schema") || "native";
+  if (schema !== "native" && schema !== "legacy_table")
+    throw RangeError("metrics_schema must be native or legacy_table");
+  return schema;
+}
+
+// shared/metrics.ts
 async function parseMetricsYaml(yamlContent) {
   if (!yamlContent || yamlContent.trim() === "")
     return null;
@@ -324,7 +342,7 @@ function removeDisabledMetrics(config) {
 }
 async function loadDefaultMetricConfig() {
   debug("Loading default metrics from GITHUB_ACTION_PATH/deploy/metrics.yaml");
-  let actionRoot = path2.resolve(process.env.GITHUB_ACTION_PATH), defaultPath = path2.join(actionRoot, "deploy", "metrics.yaml");
+  let actionRoot = path2.resolve(process.env.GITHUB_ACTION_PATH), defaultPath = path2.join(actionRoot, "deploy", getMetricSchema() === "legacy_table" ? "metrics.table.yaml" : "metrics.yaml");
   if (fs3.existsSync(defaultPath)) {
     let content = fs3.readFileSync(defaultPath, { encoding: "utf-8" }), config = await parseMetricsYaml(content);
     if (config)
@@ -455,4 +473,4 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
   return metrics;
 }
 
-export { getContainerIp, collectComposeLogs, getComposeProfiles, waitForContainerCompletion, getPullRequestNumber, uploadArtifacts, extraArtifactsPath, collectExtraArtifacts, parseSloSummary, parseSloResult, evaluateSloResult, loadMetricConfig, safeStep, queryInstant, queryRange, collectMetricsFromPrometheus };
+export { getContainerIp, collectComposeLogs, getComposeProfiles, waitForContainerCompletion, getPullRequestNumber, uploadArtifacts, extraArtifactsPath, collectExtraArtifacts, parseSloSummary, parseSloResult, evaluateSloResult, getMetricSchema, loadMetricConfig, safeStep, queryInstant, queryRange, collectMetricsFromPrometheus };
