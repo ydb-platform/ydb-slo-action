@@ -13,4 +13,4 @@ let analysis = analyzeSloWorkload(input.meta.workload, input.metrics, 'current',
 })
 let html = await generateHTMLReport(input.meta, [], analysis, input.metrics)
 await writeFile('.slo-topic-report.html', html)
-console.log(`Rendered ${analysis.metrics.length} native SDK metric cards`)
+console.log(`Rendered ${analysis.metrics.length} workload metric cards`)

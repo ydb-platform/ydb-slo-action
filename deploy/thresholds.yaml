@@ -7,7 +7,7 @@
 #
 # Example custom config:
 #   metrics:
-#     - name: ydb.client.retry.duration    # Override specific metric
+#     - name: read_latency_p95_ms    # Override specific metric
 #       warning_change_percent: 10.0
 #     - pattern: critical_*                # Add new pattern
 #       critical_change_percent: 25.0
@@ -24,9 +24,6 @@ default:
 # Metric-specific thresholds
 # Patterns support wildcards: *_availability, read_*, etc.
 metrics:
-  - name: ydb.query.session.create_time
-    direction: neutral
-
   # Availability metrics (should stay high)
   - pattern: "*_availability"
     direction: higher_is_better
@@ -34,7 +31,7 @@ metrics:
     critical_min: 95.0 # < 95% triggers failure
     warning_change_percent: 1.0 # > 1% drop is significant
 
-  # Legacy Table metric names retain their original comparison thresholds.
+  # Workload metric names retain their original comparison thresholds.
   - pattern: "*_latency_*"
     direction: lower_is_better
     warning_change_percent: 30.0
@@ -70,39 +67,6 @@ metrics:
     critical_max: 1.0
 
   - pattern: "*_failure*"
-    direction: lower_is_better
-    warning_max: 0.1
-    critical_max: 1.0
-
-  # Convention histograms (should stay low)
-  - pattern: "*.duration"
-    direction: lower_is_better
-    warning_change_percent: 30.0
-    critical_change_percent: 100.0
-
-  # Throughput metrics (should stay stable or increase)
-  - pattern: "*.written.messages"
-    direction: higher_is_better
-    warning_change_percent: 25.0 # > 25% drop triggers warning
-    critical_change_percent: 50.0 # > 50% drop triggers failure
-
-  - pattern: "*.delivered.messages"
-    direction: higher_is_better
-    warning_change_percent: 25.0
-    critical_change_percent: 50.0
-
-  # Retry attempts (should stay at zero)
-  - pattern: "*.attempts"
-    direction: lower_is_better
-    warning_max: 0.0
-
-  # Error/failure metrics (should stay at zero)
-  - pattern: "*.errors"
-    direction: lower_is_better
-    warning_max: 0.1 # Any errors trigger warning
-    critical_max: 1.0 # > 1% error rate triggers failure
-
-  - pattern: "*.failed"
     direction: lower_is_better
     warning_max: 0.1
     critical_max: 1.0
