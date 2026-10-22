@@ -13,34 +13,34 @@ let thresholds: ThresholdConfig = {
 test('attempt diagnostics cannot fail a successful logical SLO', () => {
 	let metrics: CollectedMetric[] = [
 		{
-			name: 'ydb.client.retry.duration',
+			name: 'read_latency_p95_ms',
 			query: '',
 			type: 'instant',
 			data: [{ metric: { ref: 'current' }, value: [1, '20'] }],
 		},
 		{
-			name: 'ydb.client.operation.failed',
+			name: 'read_retry_attempts',
 			role: 'diagnostic',
 			query: '',
 			type: 'instant',
 			data: [{ metric: { ref: 'current' }, value: [1, '400'] }],
 		},
 		{
-			name: 'ydb.query.session.count',
+			name: 'write_retry_attempts',
 			role: 'diagnostic',
 			query: '',
 			type: 'instant',
 			data: [{ metric: { ref: 'current' }, value: [1, '0'] }],
 		},
 		{
-			name: 'ydb.query.session.create_time',
+			name: 'empty_diagnostic',
 			role: 'diagnostic',
 			query: '',
 			type: 'range',
 			data: [{ metric: { ref: 'current' }, values: [[1, 'NaN']] }],
 		},
 		{
-			name: 'ydb.query.session.pending_requests',
+			name: 'baseline_only_diagnostic',
 			role: 'diagnostic',
 			query: '',
 			type: 'range',
@@ -52,23 +52,23 @@ test('attempt diagnostics cannot fail a successful logical SLO', () => {
 	})
 	expect(analysis.severity).toBe('success')
 	expect(analysis.metrics.map((metric) => metric.name)).toEqual([
-		'ydb.client.retry.duration',
-		'ydb.client.operation.failed',
-		'ydb.query.session.count',
-		'ydb.query.session.pending_requests',
+		'read_latency_p95_ms',
+		'read_retry_attempts',
+		'write_retry_attempts',
+		'baseline_only_diagnostic',
 	])
 })
 
 test('logical failures remain failures when diagnostic metrics look healthy', () => {
 	let metrics: CollectedMetric[] = [
 		{
-			name: 'ydb.client.retry.duration',
+			name: 'read_latency_p95_ms',
 			query: '',
 			type: 'instant',
 			data: [{ metric: { ref: 'current' }, value: [1, '500'] }],
 		},
 		{
-			name: 'ydb.client.operation.failed',
+			name: 'read_retry_attempts',
 			role: 'diagnostic',
 			query: '',
 			type: 'instant',
@@ -81,10 +81,10 @@ test('logical failures remain failures when diagnostic metrics look healthy', ()
 	expect(analysis.severity).toBe('failure')
 })
 
-test('a failed data check cannot be hidden by healthy SDK duration', () => {
+test('a failed data check cannot be hidden by healthy workload metrics', () => {
 	let metrics: CollectedMetric[] = [
 		{
-			name: 'ydb.client.retry.duration',
+			name: 'read_latency_p95_ms',
 			query: '',
 			type: 'instant',
 			data: [{ metric: { ref: 'current' }, value: [1, '10'] }],

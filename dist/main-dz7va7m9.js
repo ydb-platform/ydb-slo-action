@@ -278,16 +278,6 @@ function evaluateSloResult(result, expectedRef, thresholds) {
 // shared/metrics.ts
 import * as fs3 from "node:fs";
 import * as path2 from "node:path";
-
-// shared/metric-schema.ts
-function getMetricSchema() {
-  let schema = getInput("metrics_schema") || "native";
-  if (schema !== "native" && schema !== "legacy_table" && schema !== "legacy_topic" && schema !== "legacy_topic_tx")
-    throw RangeError("metrics_schema must be native, legacy_table, legacy_topic or legacy_topic_tx");
-  return schema;
-}
-
-// shared/metrics.ts
 async function parseMetricsYaml(yamlContent) {
   if (!yamlContent || yamlContent.trim() === "")
     return null;
@@ -342,7 +332,7 @@ function removeDisabledMetrics(config) {
 }
 async function loadDefaultMetricConfig() {
   debug("Loading default metrics from GITHUB_ACTION_PATH/deploy/metrics.yaml");
-  let actionRoot = path2.resolve(process.env.GITHUB_ACTION_PATH), defaultPath = path2.join(actionRoot, "deploy", getMetricSchema() === "native" ? "metrics.yaml" : "metrics.table.yaml");
+  let actionRoot = path2.resolve(process.env.GITHUB_ACTION_PATH), defaultPath = path2.join(actionRoot, "deploy", "metrics.yaml");
   if (fs3.existsSync(defaultPath)) {
     let content = fs3.readFileSync(defaultPath, { encoding: "utf-8" }), config = await parseMetricsYaml(content);
     if (config)
@@ -473,4 +463,4 @@ async function collectMetricsFromPrometheus(url, start, finish, config) {
   return metrics;
 }
 
-export { getContainerIp, collectComposeLogs, getComposeProfiles, waitForContainerCompletion, getPullRequestNumber, uploadArtifacts, extraArtifactsPath, collectExtraArtifacts, parseSloSummary, parseSloResult, evaluateSloResult, getMetricSchema, loadMetricConfig, safeStep, queryInstant, queryRange, collectMetricsFromPrometheus };
+export { getContainerIp, collectComposeLogs, getComposeProfiles, waitForContainerCompletion, getPullRequestNumber, uploadArtifacts, extraArtifactsPath, collectExtraArtifacts, parseSloSummary, parseSloResult, evaluateSloResult, loadMetricConfig, safeStep, queryInstant, queryRange, collectMetricsFromPrometheus };

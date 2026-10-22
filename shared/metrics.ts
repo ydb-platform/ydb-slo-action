@@ -4,8 +4,6 @@ import * as path from 'node:path'
 import { debug, warning } from '@actions/core'
 import { exec } from '@actions/exec'
 
-import { getMetricSchema } from './metric-schema.js'
-
 export type MetricType = 'range' | 'instant'
 
 export interface MetricDefinition {
@@ -155,11 +153,7 @@ function removeDisabledMetrics(config: MetricConfig): MetricConfig {
 export async function loadDefaultMetricConfig(): Promise<MetricConfig> {
 	debug('Loading default metrics from GITHUB_ACTION_PATH/deploy/metrics.yaml')
 	let actionRoot = path.resolve(process.env['GITHUB_ACTION_PATH']!)
-	let defaultPath = path.join(
-		actionRoot,
-		'deploy',
-		getMetricSchema() === 'native' ? 'metrics.yaml' : 'metrics.table.yaml'
-	)
+	let defaultPath = path.join(actionRoot, 'deploy', 'metrics.yaml')
 
 	if (fs.existsSync(defaultPath)) {
 		let content = fs.readFileSync(defaultPath, { encoding: 'utf-8' })

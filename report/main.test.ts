@@ -16,7 +16,7 @@ test('a failed workload still uploads its metrics graph with a failure verdict',
 	let workload = `failed-${randomUUID()}`
 	let htmlPath = path.join(process.cwd(), '.slo-reports', `${workload}-report.html`)
 	let metric: CollectedMetric = {
-		name: 'ydb.client.operation.duration',
+		name: 'read_retry_attempts',
 		role: 'diagnostic',
 		type: 'range',
 		query: '',

@@ -186,8 +186,8 @@ test('analyzeMetric detects regression in latency', () => {
 })
 
 for (let [name, severity] of [
-	['ydb.query.session.create_time', 'success'],
-	['ydb.client.operation.duration', 'failure'],
+	['setup_duration_ms', 'success'],
+	['read_latency_p95_ms', 'failure'],
 ]) {
 	test(`analyzeMetric applies neutral direction only to the configured metric ${name}`, () => {
 		let metric: CollectedMetric = {
@@ -215,13 +215,13 @@ for (let [name, severity] of [
 			thresholdConfig: {
 				neutral_change_percent: 5,
 				default: { warning_change_percent: 20, critical_change_percent: 50 },
-				metrics: [{ name: 'ydb.query.session.create_time', direction: 'neutral' }],
+				metrics: [{ name: 'setup_duration_ms', direction: 'neutral' }],
 			},
 		})
 		assert.equal(result.severity, severity)
 		assert.equal(result.relativeCheck?.changePercent, 100)
 		assert.ok(result.visualization)
-		if (name === 'ydb.query.session.create_time') {
+		if (name === 'setup_duration_ms') {
 			assert.deepEqual(result.relativeCheck?.violations, [])
 			assert.equal(result.relativeThresholds, undefined)
 		}

@@ -14,6 +14,10 @@ inputs:
   workload_name:
     description: "Name of the workload (used for artifact naming)."
     required: true
+  workload_type:
+    description: "Workload operations: table (read/write with required baseline), topic (read/write), or topic_tx (transaction)."
+    required: false
+    default: "table"
   workload_duration:
     description: "Duration of the workload in seconds."
     required: false
@@ -45,7 +49,7 @@ inputs:
     required: false
     default: "baseline"
   workload_baseline_image:
-    description: "Docker image for baseline workload. If not provided, baseline comparison is skipped."
+    description: "Docker image for baseline workload. Required for table; optional for topic and topic_tx."
     required: false
   workload_baseline_command:
     description: "Command arguments for baseline workload."
@@ -53,10 +57,6 @@ inputs:
     default: ""
 
   # Metrics
-  metrics_schema:
-    description: "Metric contract: native for SDK convention telemetry, legacy_table for sdk.* Table metrics with mandatory baseline, legacy_topic for existing sdk.* Topic read/write operations, legacy_topic_tx for transaction operations."
-    required: false
-    default: "native"
   metrics_yaml:
     description: "Custom metrics configuration (inline YAML)."
     required: false

@@ -1,24 +1,32 @@
-# V3 metric queries
+# Workload metric queries
 
-`deploy/metrics.yaml` queries SDK `ydb.*` convention instruments for the native schema. `metrics_schema: legacy_table` instead selects `deploy/metrics.table.yaml`, retaining the original Table queries, successful-operation percentile Gauges and current/baseline comparison. Do not migrate Table metrics when restoring a legacy workload.
-
-Latency is computed from SDK Histogram buckets. The report must not average precomputed percentile Gauges or derive retry counts by subtracting unrelated operation counters.
+`deploy/metrics.yaml` retains the existing workload counters, successful-operation
+p50/p95/p99 latency Gauges, availability and diagnostic retry measurements.
+Keep the source metric names, queries and units when migrating the Action.
 
 ```yaml
 default:
-  step: 1s
+  step: 5s
   timeout: 30s
 metrics:
-  - name: ydb.client.operation.duration
-    title: "Operation attempt duration, p95"
-    query: histogram_quantile(0.95, sum by(ref, le) (rate(ydb_client_operation_duration_seconds_bucket[30s]))) * 1000
+  - name: read_latency_p95_ms
+    query: |
+      1000 * max by(ref) (
+        sdk_operation_latency_p95_seconds{operation_type="read",operation_status="success"}
+      )
     unit: ms
-    role: diagnostic
-    round: 0.01
 ```
 
-Queries are grouped by `ref` to compare current and baseline. Source Resource attributes `ref` and `run_id` are promoted by Prometheus; the gate matches the exact result `runId` and cannot accept stale telemetry.
+Queries are grouped by `ref` to compare current and baseline. Export
+`ref=WORKLOAD_REF`; when a workload already writes a result JSON, its process
+`run_id` must match the result `runId`.
 
-Custom YAML merges by `name`: fields override partially, new query names are added, `disabled: true` excludes a report query, and a higher-priority `disabled: false` restores its inherited query. Fields: `name`, `query`, optional `title`, `step`, `unit`, `round`, `type`, `role`, `disabled`.
+Custom YAML merges by `name`: fields override partially, new query names are
+added, `disabled: true` excludes a report query, and a higher-priority
+`disabled: false` restores its inherited query. Fields: `name`, `query`, optional
+`title`, `step`, `unit`, `round`, `type`, `role`, `disabled`.
 
-`role: diagnostic` displays measurements without making expected SDK attempt errors fail the logical SLO. Disabling a report query does not disable the mandatory canonical SDK telemetry gate.
+`role: diagnostic` displays measurements without making retry counters decide
+the logical SLO. Disabling a report query does not disable required successful
+workload operations. `workload_type` selects read/write or transaction
+observations; it does not change the metric format.

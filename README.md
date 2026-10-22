@@ -1,6 +1,6 @@
 # YDB SLO Action
 
-**V3:** Native measurements use SDK observability convention instruments (`ydb.*`). Existing workloads can retain their original `sdk.*` metrics: `metrics_schema: legacy_table` requires baseline comparison; `legacy_topic` preserves existing Topic read/write operations, and `legacy_topic_tx` preserves transaction operations. An optional [scenario result JSON](.agents/skills/ydb-slo-workload/references/workload-contract.md) records data assertions and terminal outcomes.
+**V3:** Uses the existing workload `sdk.*` metrics and process/data checks. `workload_type` selects Table, Topic or transactional Topic operations; Table requires a real current/baseline comparison. An optional [scenario result JSON](.agents/skills/ydb-slo-workload/references/workload-contract.md) records existing data assertions and terminal outcomes.
 
 > Automated Service Level Objective (SLO) testing for YDB database SDKs with chaos engineering and performance monitoring built-in.
 
@@ -104,10 +104,10 @@ Your SDK should handle these scenarios gracefully. The metrics show how well it 
 | `fail_on_workload_error`    | no       | `true`        | Stop waiting after a process failure; FAIL/INVALID always fail V3                     |
 | `workload_current_ref`      | no       | `current`     | Git ref for current version (used as `ref` label in metrics)                         |
 | `workload_current_command`  | no       | `""`          | Command arguments for current workload                                               |
-| `workload_baseline_image`   | no       | —             | Docker image for baseline workload (if not provided, baseline comparison is skipped) |
+| `workload_baseline_image`   | no       | —             | Docker image for baseline workload (required for Table; optional for Topic) |
 | `workload_baseline_ref`     | no       | `baseline`    | Git ref for baseline version (used as `ref` label in metrics)                        |
 | `workload_baseline_command` | no       | `""`          | Command arguments for baseline workload                                              |
-| `metrics_schema`            | no       | `native`      | `native` SDK metrics, `legacy_table` old Table metrics with required baseline, `legacy_topic` old Topic read/write metrics, or `legacy_topic_tx` old transaction metrics |
+| `workload_type`             | no       | `table`       | `table` read/write with required baseline, `topic` read/write, or `topic_tx` transaction operations |
 | `metrics_yaml`              | no       | —             | Custom metrics configuration (inline YAML), merged with defaults; supports per-workload exclusions |
 | `metrics_yaml_path`         | no       | —             | Path to custom metrics configuration file, merged with defaults; supports per-workload exclusions  |
 | `thresholds_yaml`           | no       | —             | Per-scenario SLO thresholds (inline YAML); merged over the report action's thresholds for this workload |
@@ -143,7 +143,7 @@ start. Stopping one database node during chaos removes half the compute.
 
 ### Fail fast on workload errors
 
-V3 fails on a failed process, failed data check, or missing required observations for the selected metric schema.
+V3 fails on a failed process, failed data check, or missing required observations for the selected workload type.
 `fail_on_workload_error: false` waits for all workload containers before verifying;
 it does not turn a FAIL or INVALID verdict into PASS.
 
@@ -151,9 +151,10 @@ it does not turn a FAIL or INVALID verdict into PASS.
 - uses: ydb-platform/ydb-slo-action/init@v3
   with:
     workload_name: topics-smoke
+    workload_type: topic
     workload_current_image: my-topics-workload:current
     fail_on_workload_error: true
-    disable_compose_profiles: chaos # SDK telemetry is required
+    disable_compose_profiles: chaos # workload observations are required
 ```
 
 Whether a **report** is produced on a failed run is
@@ -267,45 +268,35 @@ Your workload is a Docker image. The action runs it inside the same Docker netwo
 
 Your workload pushes metrics to the OTLP endpoint (or Prometheus remote write). Every metric must include a `ref` label set to the value of `WORKLOAD_REF` — this is how the report distinguishes current from baseline.
 
-**Required metrics:**
+**Required observations:**
 
-```promql
-# Table operation attempt count and SDK retry latency
-ydb_client_operation_duration_seconds_count{ref="current"}
-histogram_quantile(0.95, sum by(ref, le)(rate(ydb_client_retry_duration_seconds_bucket[30s])))
+`sdk_operations_total` records logical operations with `ref`, `operation_type`
+and `operation_status` labels. Successful operations use
+`operation_status="success"`.
 
-# Topic ACK and delivery counters
-ydb_topic_writer_written_messages_total{ref="current"}
-ydb_topic_reader_delivered_messages_total{ref="current"}
-```
+- `workload_type: table` (default): successful `read` and `write` observations
+  from current and an independently built baseline SDK are required. Supply
+  `workload_baseline_image`.
+- `workload_type: topic`: successful `read` and `write` observations are
+  required for current and any supplied baseline. Keep the workload's Topic
+  metric overrides.
+- `workload_type: topic_tx`: successful `transaction` observations are required
+  instead of separate read/write counters. Keep the existing transaction checks
+  and metric overrides.
 
-The default `native` schema uses convention metrics. Missing required observations produce INVALID even when a report query is disabled. Existing result JSON checks and process failures remain authoritative.
-
-For existing Table workloads, set `metrics_schema: legacy_table` and provide
-`workload_baseline_image`. This selects the original Table queries in
-`deploy/metrics.table.yaml`: `sdk_operations_total` by `ref`, `operation_type`
-and `operation_status`, and the successful-operation p50/p95/p99 latency
-Gauges. Both current and baseline must emit successful read and write
-observations. Native Table telemetry is not required in this schema.
-
-For existing Topic workloads with the same operation counters, use
-`metrics_schema: legacy_topic` and retain their custom Topic metric overrides.
-Successful read and write observations are required for current and any supplied
-baseline. The baseline is optional for Topic workloads. Process errors, existing
-result JSON checks and metric thresholds still determine the verdict.
-
-For an existing transactional Topic workload that records one `transaction`
-operation per logical transaction, use `metrics_schema: legacy_topic_tx`.
-This requires successful transaction observations, not separate read/write
-counters, and retains the workload's own transaction checks and custom metrics.
+The built-in `deploy/metrics.yaml` retains the existing operation counters,
+successful-operation p50/p95/p99 latency Gauges, availability and diagnostic
+retry measurements. Missing required observations produce INVALID. Existing
+result JSON checks, process failures and thresholds remain authoritative.
 
 **Labels:**
 
 | Label | Values | Purpose |
 | --- | --- | --- |
 | `ref` | value of `WORKLOAD_REF` env var | Separates current and baseline in analysis |
-| `run_id` | process-unique result `runId` | Excludes stale observations from earlier processes |
-| SDK attributes | convention-defined | Do not invent read/write or outcome tags on ExecuteQuery |
+| `run_id` | process-unique result `runId`, when a result is written | Excludes stale observations from earlier processes |
+| `operation_type` | `read`, `write`, or `transaction` | Logical workload operation |
+| `operation_status` | `success` or the existing failure status | Logical operation outcome |
 
 **Expectations:**
 

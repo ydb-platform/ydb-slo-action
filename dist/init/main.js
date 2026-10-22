@@ -21,11 +21,10 @@ import {
   extraArtifactsPath,
   parseSloResult,
   evaluateSloResult,
-  getMetricSchema,
   loadMetricConfig,
   queryInstant,
   collectMetricsFromPrometheus
-} from "../main-j7stgw2r.js";
+} from "../main-dz7va7m9.js";
 
 // init/main.ts
 import * as fs2 from "node:fs";
@@ -83,6 +82,16 @@ async function deployCompose(options) {
 // init/lib/slo.ts
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+
+// shared/workload-type.ts
+function getWorkloadType() {
+  let type = getInput("workload_type") || "table";
+  if (type !== "table" && type !== "topic" && type !== "topic_tx")
+    throw RangeError("workload_type must be table, topic or topic_tx");
+  return type;
+}
+
+// init/lib/slo.ts
 class SloRunError extends Error {
   checks;
   constructor(checks) {
@@ -91,76 +100,51 @@ class SloRunError extends Error {
     this.checks = checks;
   }
 }
-function hasLegacyObservations(series, operations) {
+function hasWorkloadObservations(series, operations) {
   return operations.every((operation) => series.some((item) => item.metric.operation_type === operation && Number.isFinite(Number(item.value[1])) && Number(item.value[1]) > 0));
 }
 async function validateWorkloads(cwd, workloads, window) {
-  let thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path")), schema = getMetricSchema(), legacy = schema !== "native", legacyOperations = schema === "legacy_topic_tx" ? ["transaction"] : ["read", "write"], checks = window.failures.map((detail) => ({
+  let thresholds = await loadThresholdConfig(getInput("thresholds_yaml"), getInput("thresholds_yaml_path")), type = getWorkloadType(), operations = type === "topic_tx" ? ["transaction"] : ["read", "write"], checks = window.failures.map((detail) => ({
     id: "process",
     verdict: "FAIL",
     detail
   }));
-  if (schema === "legacy_table" && !workloads.some((workload) => workload.name === "baseline"))
+  if (type === "table" && !workloads.some((workload) => workload.name === "baseline"))
     checks.push({
       id: "baseline",
       verdict: "INVALID",
-      detail: "Legacy Table comparison requires a baseline workload"
+      detail: "Table comparison requires a baseline workload"
     });
-  let prometheusIp = await getContainerIp("ydb-prometheus");
+  let prometheusIp = await getContainerIp("ydb-prometheus"), seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000;
   for (let workload of workloads) {
     let resultPath = path.join(extraArtifactsPath(cwd), `${workload.name}-slo-result.json`);
     try {
+      let runId;
       if (await exec("docker", ["cp", `${workload.container}:/tmp/slo-result.json`, resultPath], {
         ignoreReturnCode: !0
-      }) !== 0) {
-        if (!prometheusIp) {
-          checks.push({
-            id: workload.name,
-            verdict: "INVALID",
-            detail: "Prometheus is unavailable"
-          });
+      }) === 0) {
+        let result = parseSloResult(await fs.readFile(resultPath, "utf8")), check = evaluateSloResult(result, workload.ref, thresholds);
+        if (checks.push({ ...check, id: workload.name }), check.verdict !== "PASS")
           continue;
-        }
-        let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, selector = legacy ? `sdk_operations_total{ref=${JSON.stringify(workload.ref)},operation_status="success"}` : `{ref=${JSON.stringify(workload.ref)},__name__=~"ydb_client_operation_duration_seconds_count|ydb_topic_writer_written_messages_total|ydb_topic_reader_delivered_messages_total"}`, response = await queryInstant({
-          url: `http://${prometheusIp}:9090`,
-          query: `sum${legacy ? " by(operation_type)" : ""}(max_over_time(${selector}[${seconds}s] @ ${at}))`
-        }), count = Number(response.data?.result[0]?.value[1]), observed = response.status === "success" && (legacy ? hasLegacyObservations(response.data?.result ?? [], legacyOperations) : Number.isFinite(count) && count > 0);
-        checks.push({
-          id: workload.name,
-          verdict: observed ? "PASS" : "INVALID",
-          detail: observed ? schema === "legacy_table" ? "Legacy Table observations collected" : legacy ? "Legacy Topic observations collected" : "Native SDK observations collected" : "Missing workload observations"
-        });
-        continue;
+        runId = result.runId;
       }
-      let result = parseSloResult(await fs.readFile(resultPath, "utf8")), check = evaluateSloResult(result, workload.ref, thresholds);
-      if (checks.push({ ...check, id: workload.name }), check.verdict !== "PASS")
-        continue;
       if (!prometheusIp) {
         checks.push({
-          id: `${workload.name}/telemetry`,
+          id: runId ? `${workload.name}/telemetry` : workload.name,
           verdict: "INVALID",
           detail: "Prometheus is unavailable"
         });
         continue;
       }
-      let legacyTopic = schema === "legacy_topic" || schema === "legacy_topic_tx", selector = `{ref=${JSON.stringify(workload.ref)},run_id=${JSON.stringify(result.runId)}${legacyTopic ? ',operation_status="success"' : ""}}`, required = legacyTopic ? ["sdk_operations_total"] : result.kind === "table" ? [
-        schema === "legacy_table" ? "sdk_operations_total" : "ydb_client_operation_duration_seconds_count"
-      ] : [
-        "ydb_topic_writer_written_messages_total",
-        "ydb_topic_reader_delivered_messages_total"
-      ];
-      for (let metric of required) {
-        let seconds = Math.max(1, Math.ceil((window.finish.getTime() - window.start.getTime()) / 1000)), at = window.finish.getTime() / 1000, response = await queryInstant({
-          url: `http://${prometheusIp}:9090`,
-          query: `sum${legacyTopic ? " by(operation_type)" : ""}(max_over_time(${metric}${selector}[${seconds}s] @ ${at}))`
-        }), count = Number(response.data?.result[0]?.value[1]);
-        if (!(response.status === "success" && (legacyTopic ? hasLegacyObservations(response.data?.result ?? [], legacyOperations) : Number.isFinite(count) && count > 0)))
-          checks.push({
-            id: `${workload.name}/telemetry`,
-            verdict: "INVALID",
-            detail: `Missing SDK observations: ${metric}`
-          });
-      }
+      let selector = `sdk_operations_total{ref=${JSON.stringify(workload.ref)},operation_status="success"${runId ? `,run_id=${JSON.stringify(runId)}` : ""}}`, response = await queryInstant({
+        url: `http://${prometheusIp}:9090`,
+        query: `sum by(operation_type)(max_over_time(${selector}[${seconds}s] @ ${at}))`
+      }), observed = response.status === "success" && hasWorkloadObservations(response.data?.result ?? [], operations);
+      checks.push({
+        id: runId ? `${workload.name}/telemetry` : workload.name,
+        verdict: observed ? "PASS" : "INVALID",
+        detail: observed ? "Workload observations collected" : "Missing workload observations"
+      });
     } catch (error) {
       if (!(error instanceof Error))
         throw error;
